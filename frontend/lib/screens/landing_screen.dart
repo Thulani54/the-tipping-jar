@@ -99,10 +99,7 @@ class _NavBar extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                        colors: [_orange, _pink],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight),
+                    color: _orange,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.volunteer_activism,
@@ -117,10 +114,12 @@ class _NavBar extends StatelessWidget {
                         letterSpacing: -0.3)),
               ]),
               const Spacer(),
-              if (w > 700) ...[
+              if (w > 1000) ...[
                 _navLink('Features', context, '/features'),
                 _navLink('How it works', context, '/how-it-works'),
                 _navLink('Creators', context, '/creators'),
+                _navLink('Enterprise', context, '/enterprise'),
+                _navLink('Developers', context, '/developers'),
                 const SizedBox(width: 8),
               ],
               _outlineBtn('Sign in', () => context.go('/login'), context),
@@ -136,11 +135,11 @@ class _NavBar extends StatelessWidget {
   Widget _navLink(String label, BuildContext ctx, String route) => GestureDetector(
         onTap: () => ctx.go(route),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(label,
               style: GoogleFonts.inter(
                   color: _textMuted,
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w500)),
         ),
       );

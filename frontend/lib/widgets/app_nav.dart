@@ -54,7 +54,7 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
               ]),
             ),
             const Spacer(),
-            if (w > 960) ...[
+            if (w > 1000) ...[
               ..._links.map((l) => _NavLink(
                     label: l.$1,
                     route: l.$2,
@@ -114,13 +114,13 @@ class _NavLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       child: GestureDetector(
         onTap: () => context.go(route),
         child: Text(label,
             style: GoogleFonts.inter(
                 color: active ? kPrimary : kMuted,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: active ? FontWeight.w600 : FontWeight.w500)),
       ),
     );
