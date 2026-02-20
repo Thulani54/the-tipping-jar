@@ -47,7 +47,7 @@ class _TipScreenState extends State<TipScreen> {
                   label: Text('\$${a.toInt()}'),
                   selected: _amount == a,
                   onSelected: (_) => setState(() => _amount = a),
-                  selectedColor: const Color(0xFFFF6B35),
+                  selectedColor: const Color(0xFF00C896),
                   labelStyle: TextStyle(
                       color: _amount == a ? Colors.white : null,
                       fontWeight: FontWeight.bold),
@@ -120,7 +120,7 @@ class _TipScreenState extends State<TipScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.favorite, color: Color(0xFFFF6B35), size: 80),
+          const Icon(Icons.favorite, color: Color(0xFF00C896), size: 80),
           const SizedBox(height: 16),
           const Text('Your tip is on its way!',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),

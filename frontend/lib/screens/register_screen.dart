@@ -33,7 +33,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 shrinkWrap: true,
                 children: [
                   const Icon(Icons.volunteer_activism,
-                      size: 56, color: Color(0xFFFF6B35)),
+                      size: 56, color: Color(0xFF00C896)),
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: _usernameCtrl,
@@ -109,7 +109,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       label: Text(label),
       selected: _role == value,
       onSelected: (_) => setState(() => _role = value),
-      selectedColor: const Color(0xFFFF6B35),
+      selectedColor: const Color(0xFF00C896),
       labelStyle: TextStyle(
           color: _role == value ? Colors.white : null,
           fontWeight: FontWeight.bold),

@@ -5,15 +5,15 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
-const _dark = Color(0xFF0D0D12);
-const _darker = Color(0xFF08080C);
-const _orange = Color(0xFFFF6B35);
-const _orangeLight = Color(0xFFFF8C42);
-const _pink = Color(0xFFFF3CAC);
-const _purple = Color(0xFF784BFF);
-const _cardBg = Color(0xFF16161F);
-const _border = Color(0xFF242430);
-const _textMuted = Color(0xFF8888A0);
+const _dark = Color(0xFF0A0F0D);
+const _darker = Color(0xFF060A08);
+const _orange = Color(0xFF00C896);      // primary green
+const _orangeLight = Color(0xFF34D8A0); // light green
+const _pink = Color(0xFF0097B2);        // ocean teal
+const _purple = Color(0xFF2563EB);      // electric blue
+const _cardBg = Color(0xFF111A16);
+const _border = Color(0xFF1E2E26);
+const _textMuted = Color(0xFF7A9088);
 const _white = Colors.white;
 
 class LandingScreen extends StatefulWidget {
@@ -149,7 +149,7 @@ class _NavBar extends StatelessWidget {
           foregroundColor: _white,
           side: const BorderSide(color: _border),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
         child: Text(label,
             style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
@@ -159,7 +159,7 @@ class _NavBar extends StatelessWidget {
       DecoratedBox(
         decoration: BoxDecoration(
           gradient: const LinearGradient(colors: [_orange, _pink]),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(36),
         ),
         child: ElevatedButton(
           onPressed: onTap,
@@ -168,7 +168,7 @@ class _NavBar extends StatelessWidget {
             shadowColor: Colors.transparent,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
           ),
           child: Text(label,
               style: GoogleFonts.inter(
@@ -196,7 +196,7 @@ class _HeroSection extends StatelessWidget {
         gradient: RadialGradient(
           center: Alignment(-0.3, -0.6),
           radius: 1.4,
-          colors: [Color(0xFF1A0A2E), _dark, _darker],
+          colors: [Color(0xFF001A12), _dark, _darker],
         ),
       ),
       child: Stack(
@@ -328,7 +328,7 @@ class _HeroSection extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 28, vertical: 16),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(36)),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Text('Start tipping for free',
@@ -349,7 +349,7 @@ class _HeroSection extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: 28, vertical: 16),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(36)),
             ),
             child: Text('Browse creators',
                 style: GoogleFonts.inter(
@@ -505,7 +505,7 @@ class _MockupCard extends StatelessWidget {
                   colors: [_orange, _pink],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(36),
               boxShadow: [
                 BoxShadow(
                     color: _orange.withOpacity(0.4),
@@ -816,9 +816,9 @@ class _FeaturesSection extends StatelessWidget {
       (Icons.bar_chart_rounded, 'Live analytics',
           'Watch tips roll in with a real-time dashboard built for creators.', _purple),
       (Icons.lock_rounded, 'Bank-grade security',
-          'All payments processed by Stripe — PCI-DSS compliant, always.', const Color(0xFF00D2FF)),
+          'All payments processed by Stripe — PCI-DSS compliant, always.', const Color(0xFF22D3EE)),
       (Icons.palette_rounded, 'Custom pages',
-          'Personalise your tip page with cover art, a tagline, and a monthly goal.', const Color(0xFF00FF88)),
+          'Personalise your tip page with cover art, a tagline, and a monthly goal.', const Color(0xFF4ADE80)),
       (Icons.public_rounded, 'Works worldwide',
           'Accept tips in 135+ currencies across 48 countries.', _orangeLight),
     ];
@@ -1079,7 +1079,7 @@ class _CreatorCard extends StatelessWidget {
               side: BorderSide(color: color.withOpacity(0.4)),
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(36)),
             ),
             child: Text('Send a tip',
                 style: GoogleFonts.inter(
@@ -1105,7 +1105,7 @@ class _CtaSection extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 40),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF1A0530), Color(0xFF200A18)],
+            colors: [Color(0xFF001A12), Color(0xFF001520)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -1163,7 +1163,7 @@ class _CtaSection extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 36, vertical: 18),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(36)),
                   ),
                   child: Text('Create your free page →',
                       style: GoogleFonts.inter(

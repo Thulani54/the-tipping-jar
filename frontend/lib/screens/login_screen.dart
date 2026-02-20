@@ -31,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.volunteer_activism,
-                      size: 56, color: Color(0xFFFF6B35)),
+                      size: 56, color: Color(0xFF00C896)),
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: _emailCtrl,

@@ -20,7 +20,7 @@ class CreatorCard extends StatelessWidget {
             // Cover
             Container(
               height: 100,
-              color: const Color(0xFFFF6B35).withOpacity(0.2),
+              color: const Color(0xFF00C896).withOpacity(0.2),
               child: creator.coverImage != null
                   ? Image.network(creator.coverImage!,
                       width: double.infinity, fit: BoxFit.cover)
