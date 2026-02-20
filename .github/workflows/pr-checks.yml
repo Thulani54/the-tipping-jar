@@ -1,0 +1,53 @@
+name: PR checks
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # Ensures PRs to main come from dev (or a hotfix/* branch)
+  branch-policy:
+    name: Branch policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [[ "$HEAD_REF" != "dev" && "$HEAD_REF" != hotfix/* ]]; then
+            echo "PRs to main must come from 'dev' or a 'hotfix/*' branch."
+            echo "Source branch was: $HEAD_REF"
+            exit 1
+          fi
+          echo "Branch policy passed."
+
+  # Lightweight diff summary posted as a PR comment
+  size-check:
+    name: PR size
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Count changed files
+        id: diff
+        run: |
+          COUNT=$(git diff --name-only origin/main...HEAD | wc -l | tr -d ' ')
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const count = '${{ steps.diff.outputs.count }}';
+            const emoji = parseInt(count) > 50 ? '⚠️' : '✅';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `${emoji} **PR size:** ${count} files changed.`
+            });
