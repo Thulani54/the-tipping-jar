@@ -1214,11 +1214,14 @@ class _Footer extends StatelessWidget {
                             color: _white, size: 14),
                       ),
                       const SizedBox(width: 8),
-                      Text('TippingJar',
-                          style: GoogleFonts.inter(
-                              color: _white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15)),
+                      Flexible(
+                        child: Text('TippingJar',
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                                color: _white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15)),
+                      ),
                     ]),
                     const SizedBox(height: 12),
                     Text('Supporting creators,\none tip at a time.',
