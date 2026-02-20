@@ -300,7 +300,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,
           role: _role);
-      if (mounted) context.go('/login');
+      if (mounted) {
+        // Creators go through onboarding; fans go straight to login
+        if (_role == 'creator') {
+          context.go('/onboarding');
+        } else {
+          context.go('/login');
+        }
+      }
     } catch (_) {
       setState(() => _error = 'Registration failed. Try a different email.');
     }

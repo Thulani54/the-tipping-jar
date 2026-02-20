@@ -10,6 +10,7 @@ import 'screens/register_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/features_screen.dart';
 import 'screens/how_it_works_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/enterprise_screen.dart';
 import 'screens/developer_screen.dart';
 import 'screens/pricing_screen.dart';
@@ -30,6 +31,7 @@ GoRouter buildRouter(BuildContext context) {
       GoRoute(path: '/creators',     builder: (_, __) => const CreatorsScreen()),
       GoRoute(path: '/login',        builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register',     builder: (_, __) => const RegisterScreen()),
+      GoRoute(path: '/onboarding',   builder: (_, __) => const OnboardingScreen()),
       GoRoute(path: '/dashboard',    builder: (_, __) => const DashboardScreen()),
       GoRoute(path: '/enterprise',   builder: (_, __) => const EnterpriseScreen()),
       GoRoute(path: '/developers',   builder: (_, __) => const DeveloperScreen()),
