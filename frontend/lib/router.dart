@@ -12,6 +12,12 @@ import 'screens/features_screen.dart';
 import 'screens/how_it_works_screen.dart';
 import 'screens/enterprise_screen.dart';
 import 'screens/developer_screen.dart';
+import 'screens/pricing_screen.dart';
+import 'screens/changelog_screen.dart';
+import 'screens/about_screen.dart';
+import 'screens/blog_screen.dart';
+import 'screens/careers_screen.dart';
+import 'screens/legal_screen.dart';
 
 GoRouter buildRouter(BuildContext context) {
   return GoRouter(
@@ -27,6 +33,14 @@ GoRouter buildRouter(BuildContext context) {
       GoRoute(path: '/dashboard',    builder: (_, __) => const DashboardScreen()),
       GoRoute(path: '/enterprise',   builder: (_, __) => const EnterpriseScreen()),
       GoRoute(path: '/developers',   builder: (_, __) => const DeveloperScreen()),
+      GoRoute(path: '/pricing',      builder: (_, __) => const PricingScreen()),
+      GoRoute(path: '/changelog',    builder: (_, __) => const ChangelogScreen()),
+      GoRoute(path: '/about',        builder: (_, __) => const AboutScreen()),
+      GoRoute(path: '/blog',         builder: (_, __) => const BlogScreen()),
+      GoRoute(path: '/careers',      builder: (_, __) => const CareersScreen()),
+      GoRoute(path: '/privacy',      builder: (_, __) => const PrivacyScreen()),
+      GoRoute(path: '/terms',        builder: (_, __) => const TermsScreen()),
+      GoRoute(path: '/cookies',      builder: (_, __) => const CookiesScreen()),
       GoRoute(
         path: '/creator/:slug',
         builder: (_, state) =>

@@ -1188,9 +1188,9 @@ class _Footer extends StatelessWidget {
             ),
             // Links
             ...[
-              ('Product', ['Features', 'Pricing', 'Changelog']),
-              ('Company', ['About', 'Blog', 'Careers']),
-              ('Legal', ['Privacy', 'Terms', 'Cookies']),
+              ('Product',  [('Features', '/features'), ('Pricing', '/pricing'), ('Changelog', '/changelog')]),
+              ('Company',  [('About', '/about'), ('Blog', '/blog'), ('Careers', '/careers')]),
+              ('Legal',    [('Privacy', '/privacy'), ('Terms', '/terms'), ('Cookies', '/cookies')]),
             ].map((col) => Expanded(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1203,9 +1203,12 @@ class _Footer extends StatelessWidget {
                         const SizedBox(height: 12),
                         ...col.$2.map((link) => Padding(
                               padding: const EdgeInsets.only(bottom: 8),
-                              child: Text(link,
-                                  style: GoogleFonts.inter(
-                                      color: _textMuted, fontSize: 13)),
+                              child: GestureDetector(
+                                onTap: () => context.go(link.$2),
+                                child: Text(link.$1,
+                                    style: GoogleFonts.inter(
+                                        color: _textMuted, fontSize: 13)),
+                              ),
                             )),
                       ]),
                 )),
