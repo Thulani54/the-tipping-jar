@@ -208,7 +208,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
         duration: 200.ms,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         decoration: BoxDecoration(
-          gradient: active ? kGradient : null,
+          color: active ? kPrimary : null,
           borderRadius: BorderRadius.circular(36),
         ),
         child: Text(label,
@@ -355,18 +355,16 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
             style: kBodyStyle, textAlign: TextAlign.center),
         const SizedBox(height: 32),
         Wrap(spacing: 12, runSpacing: 12, alignment: WrapAlignment.center, children: [
-          DecoratedBox(
-            decoration: gradientBox(),
-            child: ElevatedButton(
-              onPressed: () => ctx.go('/register'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-              ),
-              child: Text('Create your page →',
-                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+          ElevatedButton(
+            onPressed: () => ctx.go('/register'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimary, foregroundColor: Colors.white,
+              shadowColor: Colors.transparent, elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
+            child: Text('Create your page →',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
           ),
           OutlinedButton(
             onPressed: () => ctx.go('/creators'),

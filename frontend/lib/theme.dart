@@ -14,7 +14,7 @@ const kMuted   = Color(0xFF7A9088);
 const kGradient = LinearGradient(colors: [kPrimary, kTeal]);
 
 BoxDecoration gradientBox({double radius = 36}) => BoxDecoration(
-      gradient: kGradient,
+      color: kPrimary,
       borderRadius: BorderRadius.circular(radius),
     );
 

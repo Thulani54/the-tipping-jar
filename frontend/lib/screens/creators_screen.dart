@@ -247,8 +247,7 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
                   decoration: BoxDecoration(
-                    gradient: active ? kGradient : null,
-                    color: active ? null : kCardBg,
+                    color: active ? kPrimary : kCardBg,
                     borderRadius: BorderRadius.circular(36),
                     border: Border.all(color: active ? Colors.transparent : kBorder),
                   ),
@@ -310,7 +309,7 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
         child: Column(children: [
           Container(
             width: 64, height: 64,
-            decoration: BoxDecoration(gradient: kGradient, shape: BoxShape.circle),
+            decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
             child: const Icon(Icons.volunteer_activism, color: Colors.white, size: 28),
           ),
           const SizedBox(height: 20),
@@ -322,18 +321,16 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
           const Text('Set up your tip page in 60 seconds. It\'s completely free.',
               style: kBodyStyle, textAlign: TextAlign.center),
           const SizedBox(height: 28),
-          DecoratedBox(
-            decoration: gradientBox(),
-            child: ElevatedButton(
-              onPressed: () => ctx.go('/register'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-              ),
-              child: Text('Create your page →',
-                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+          ElevatedButton(
+            onPressed: () => ctx.go('/register'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimary, foregroundColor: Colors.white,
+              shadowColor: Colors.transparent, elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
+            child: Text('Create your page →',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
           ),
         ]),
       ),

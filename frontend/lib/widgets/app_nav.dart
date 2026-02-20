@@ -11,9 +11,12 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(64);
 
   static const _links = [
+    ('Home',         '/'),
     ('Features',     '/features'),
     ('How it works', '/how-it-works'),
     ('Creators',     '/creators'),
+    ('Enterprise',   '/enterprise'),
+    ('Developers',   '/developers'),
   ];
 
   @override
@@ -34,8 +37,8 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
                 Container(
                   width: 30,
                   height: 30,
-                  decoration: BoxDecoration(
-                    gradient: kGradient,
+                  decoration: const BoxDecoration(
+                    color: kPrimary,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.volunteer_activism,
@@ -51,7 +54,7 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
               ]),
             ),
             const Spacer(),
-            if (w > 680) ...[
+            if (w > 960) ...[
               ..._links.map((l) => _NavLink(
                     label: l.$1,
                     route: l.$2,
@@ -61,7 +64,7 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
             ],
             _outlineBtn('Sign in', () => context.go('/login')),
             const SizedBox(width: 10),
-            _gradientBtn('Get started', () => context.go('/register')),
+            _solidBtn('Get started', () => context.go('/register')),
           ]),
         ),
       ),
@@ -82,26 +85,22 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
                 fontSize: 13, fontWeight: FontWeight.w500)),
       );
 
-  Widget _gradientBtn(String label, VoidCallback onTap) => DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: kGradient,
-          borderRadius: BorderRadius.circular(36),
+  Widget _solidBtn(String label, VoidCallback onTap) => ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: kPrimary,
+          foregroundColor: Colors.white,
+          shadowColor: Colors.transparent,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(36)),
         ),
-        child: ElevatedButton(
-          onPressed: onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(36)),
-          ),
-          child: Text(label,
-              style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white)),
-        ),
+        child: Text(label,
+            style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white)),
       );
 }
 

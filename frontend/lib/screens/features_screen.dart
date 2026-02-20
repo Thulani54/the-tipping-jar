@@ -182,7 +182,7 @@ class _FeaturesScreenState extends State<FeaturesScreen>
                   duration: 200.ms,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   decoration: BoxDecoration(
-                    gradient: active ? kGradient : null,
+                    color: active ? kPrimary : null,
                     borderRadius: BorderRadius.circular(36),
                   ),
                   child: Text(e.value,
@@ -285,18 +285,16 @@ class _FeaturesScreenState extends State<FeaturesScreen>
               fontSize: 30, letterSpacing: -1),
           textAlign: TextAlign.center),
       const SizedBox(height: 28),
-      DecoratedBox(
-        decoration: gradientBox(),
-        child: ElevatedButton(
-          onPressed: () => ctx.go('/register'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-          ),
-          child: Text('Create your free page →',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+      ElevatedButton(
+        onPressed: () => ctx.go('/register'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: kPrimary, foregroundColor: Colors.white,
+          shadowColor: Colors.transparent, elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
+        child: Text('Create your free page →',
+            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
       ),
     ]),
   );
@@ -392,7 +390,7 @@ class _TierCard extends StatelessWidget {
           Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(gradient: kGradient, borderRadius: BorderRadius.circular(36)),
+            decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(36)),
             child: Text('Most popular', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11)),
           ),
         Text(tier.name, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
@@ -421,17 +419,15 @@ class _TierCard extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: isPro
-              ? DecoratedBox(
-                  decoration: gradientBox(),
-                  child: ElevatedButton(
-                    onPressed: () => context.go('/register'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-                    ),
-                    child: Text('Get Pro', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+              ? ElevatedButton(
+                  onPressed: () => context.go('/register'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimary, foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent, elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                   ),
+                  child: Text('Get Pro', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
                 )
               : OutlinedButton(
                   onPressed: () => context.go('/register'),

@@ -125,7 +125,7 @@ class _NavBar extends StatelessWidget {
               ],
               _outlineBtn('Sign in', () => context.go('/login'), context),
               const SizedBox(width: 10),
-              _gradientBtn('Get started', () => context.go('/register'), context),
+              _solidBtn('Get started', () => context.go('/register'), context),
             ],
           ),
         ),
@@ -158,27 +158,22 @@ class _NavBar extends StatelessWidget {
             style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
       );
 
-  Widget _gradientBtn(String label, VoidCallback onTap, BuildContext ctx) =>
-      DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [_orange, _pink]),
-          borderRadius: BorderRadius.circular(36),
+  Widget _solidBtn(String label, VoidCallback onTap, BuildContext ctx) =>
+      ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _orange,
+          foregroundColor: _white,
+          shadowColor: Colors.transparent,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
-        child: ElevatedButton(
-          onPressed: onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-          ),
-          child: Text(label,
-              style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: _white)),
-        ),
+        child: Text(label,
+            style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _white)),
       );
 }
 
@@ -308,37 +303,26 @@ class _HeroSection extends StatelessWidget {
 
         // CTAs
         Wrap(spacing: 14, runSpacing: 12, children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_orange, _pink]),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                    color: _orange.withOpacity(0.45),
-                    blurRadius: 28,
-                    offset: const Offset(0, 8))
-              ],
+          ElevatedButton(
+            onPressed: () => context.go('/register'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _orange,
+              foregroundColor: _white,
+              shadowColor: Colors.transparent,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(36)),
             ),
-            child: ElevatedButton(
-              onPressed: () => context.go('/register'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 28, vertical: 16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(36)),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('Start tipping for free',
-                    style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: _white)),
-                const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward, size: 16, color: _white),
-              ]),
-            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text('Start tipping for free',
+                  style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: _white)),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward, size: 16, color: _white),
+            ]),
           ),
           OutlinedButton(
             onPressed: () => context.go('/login'),
@@ -470,11 +454,7 @@ class _MockupCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      gradient: selected
-                          ? const LinearGradient(
-                              colors: [_orange, _pink])
-                          : null,
-                      color: selected ? null : _cardBg,
+                      color: selected ? _orange : _cardBg,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                           color: selected ? Colors.transparent : _border),
@@ -500,17 +480,8 @@ class _MockupCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 14),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                  colors: [_orange, _pink],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight),
+              color: _orange,
               borderRadius: BorderRadius.circular(36),
-              boxShadow: [
-                BoxShadow(
-                    color: _orange.withOpacity(0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6))
-              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1140,36 +1111,23 @@ class _CtaSection extends StatelessWidget {
                   .animate()
                   .fadeIn(delay: 150.ms, duration: 500.ms),
               const SizedBox(height: 36),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [_orange, _pink],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                        color: _orange.withOpacity(0.5),
-                        blurRadius: 36,
-                        offset: const Offset(0, 10))
-                  ],
+              ElevatedButton(
+                onPressed: () => context.go('/register'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _orange,
+                  foregroundColor: _white,
+                  shadowColor: Colors.transparent,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 36, vertical: 18),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(36)),
                 ),
-                child: ElevatedButton(
-                  onPressed: () => context.go('/register'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 36, vertical: 18),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(36)),
-                  ),
-                  child: Text('Create your free page →',
-                      style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: _white)),
-                ),
+                child: Text('Create your free page →',
+                    style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: _white)),
               )
                   .animate()
                   .fadeIn(delay: 300.ms, duration: 500.ms)
@@ -1204,9 +1162,8 @@ class _Footer extends StatelessWidget {
                       Container(
                         width: 28,
                         height: 28,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                              colors: [_orange, _pink]),
+                        decoration: const BoxDecoration(
+                          color: _orange,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.volunteer_activism,
