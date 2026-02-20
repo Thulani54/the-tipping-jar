@@ -268,7 +268,7 @@ class _StepNiche extends StatelessWidget {
     (Icons.fitness_center_rounded, 'Fitness',       Color(0xFFF87171)),
     (Icons.restaurant_rounded,     'Food',          Color(0xFFFF9466)),
     (Icons.camera_rounded,         'Photography',   Color(0xFFA78BFA)),
-    (Icons.comedy_mask_rounded,    'Comedy',        Color(0xFFFCD34D)),
+    (Icons.sentiment_very_satisfied_rounded, 'Comedy', Color(0xFFFCD34D)),
     (Icons.flight_rounded,         'Travel',        Color(0xFF38BDF8)),
     (Icons.menu_book_rounded,      'Writing',       Color(0xFF86EFAC)),
     (Icons.more_horiz_rounded,     'Other',         kMuted),
@@ -333,7 +333,7 @@ class _StepAudience extends StatelessWidget {
   const _StepAudience({super.key, required this.selected, required this.onSelect});
 
   static const _sizes = [
-    ('Just starting out', 'Under 1,000 followers', Icons.seedling_rounded),
+    ('Just starting out', 'Under 1,000 followers', Icons.spa_rounded),
     ('Growing',           '1K – 10K followers',    Icons.trending_up_rounded),
     ('Established',       '10K – 100K followers',  Icons.star_rounded),
     ('Large audience',    '100K+ followers',        Icons.rocket_launch_rounded),
