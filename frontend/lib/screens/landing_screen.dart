@@ -118,9 +118,9 @@ class _NavBar extends StatelessWidget {
               ]),
               const Spacer(),
               if (w > 700) ...[
-                _navLink('Features', context),
-                _navLink('How it works', context),
-                _navLink('Creators', context),
+                _navLink('Features', context, '/features'),
+                _navLink('How it works', context, '/how-it-works'),
+                _navLink('Creators', context, '/creators'),
                 const SizedBox(width: 8),
               ],
               _outlineBtn('Sign in', () => context.go('/login'), context),
@@ -133,13 +133,16 @@ class _NavBar extends StatelessWidget {
     );
   }
 
-  Widget _navLink(String label, BuildContext ctx) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Text(label,
-            style: GoogleFonts.inter(
-                color: _textMuted,
-                fontSize: 14,
-                fontWeight: FontWeight.w500)),
+  Widget _navLink(String label, BuildContext ctx, String route) => GestureDetector(
+        onTap: () => ctx.go(route),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(label,
+              style: GoogleFonts.inter(
+                  color: _textMuted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500)),
+        ),
       );
 
   Widget _outlineBtn(String label, VoidCallback onTap, BuildContext ctx) =>

@@ -3,20 +3,26 @@ import 'package:go_router/go_router.dart';
 import 'screens/landing_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/creator_screen.dart';
+import 'screens/creators_screen.dart';
 import 'screens/tip_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/features_screen.dart';
+import 'screens/how_it_works_screen.dart';
 
 GoRouter buildRouter(BuildContext context) {
   return GoRouter(
     initialLocation: '/',
     routes: [
-      GoRoute(path: '/', builder: (_, __) => const LandingScreen()),
-      GoRoute(path: '/explore', builder: (_, __) => const HomeScreen()),
-      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
+      GoRoute(path: '/',             builder: (_, __) => const LandingScreen()),
+      GoRoute(path: '/explore',      builder: (_, __) => const HomeScreen()),
+      GoRoute(path: '/features',     builder: (_, __) => const FeaturesScreen()),
+      GoRoute(path: '/how-it-works', builder: (_, __) => const HowItWorksScreen()),
+      GoRoute(path: '/creators',     builder: (_, __) => const CreatorsScreen()),
+      GoRoute(path: '/login',        builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/register',     builder: (_, __) => const RegisterScreen()),
+      GoRoute(path: '/dashboard',    builder: (_, __) => const DashboardScreen()),
       GoRoute(
         path: '/creator/:slug',
         builder: (_, state) =>
