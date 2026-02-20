@@ -60,16 +60,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "core.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DB_NAME", default="tipping_jar"),
-        "USER": env("DB_USER", default="postgres"),
-        "PASSWORD": env("DB_PASSWORD", default="postgres"),
-        "HOST": env("DB_HOST", default="db"),
-        "PORT": env("DB_PORT", default="5432"),
+import dj_database_url
+
+_db_url = env("DATABASE_URL", default="")
+if _db_url:
+    DATABASES = {"default": dj_database_url.parse(_db_url, conn_max_age=600)}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": env("DB_NAME", default="tipping_jar"),
+            "USER": env("DB_USER", default="postgres"),
+            "PASSWORD": env("DB_PASSWORD", default="postgres"),
+            "HOST": env("DB_HOST", default="db"),
+            "PORT": env("DB_PORT", default="5432"),
+        }
     }
-}
 
 AUTH_USER_MODEL = "users.User"
 
@@ -118,7 +124,11 @@ SIMPLE_JWT = {
 # ── CORS ──────────────────────────────────────────────────────────
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
-    default=["http://localhost:3000", "http://localhost:5000"],
+    default=[
+        "http://localhost:3000",
+        "http://localhost:5000",
+        "http://localhost:8080",
+    ],
 )
 
 # ── Stripe ────────────────────────────────────────────────────────
