@@ -193,24 +193,20 @@ class _HeroSection extends StatelessWidget {
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 760),
       decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(-0.3, -0.6),
-          radius: 1.4,
-          colors: [Color(0xFF001A12), _dark, _darker],
-        ),
+        color: _dark,
       ),
       child: Stack(
         children: [
           // Mesh blobs
           Positioned(
               top: 100, left: -80,
-              child: _GlowBlob(color: _purple.withOpacity(0.25), size: 420)),
+              child: _GlowBlob(color: _purple.withOpacity(0.10), size: 420)),
           Positioned(
               top: 200, right: -60,
-              child: _GlowBlob(color: _pink.withOpacity(0.18), size: 360)),
+              child: _GlowBlob(color: _pink.withOpacity(0.07), size: 360)),
           Positioned(
               bottom: 60, left: 200,
-              child: _GlowBlob(color: _orange.withOpacity(0.15), size: 280)),
+              child: _GlowBlob(color: _orange.withOpacity(0.08), size: 280)),
 
           // Content
           Padding(
