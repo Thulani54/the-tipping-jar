@@ -21,6 +21,12 @@ FROM nginx:alpine
 # Copy the built Flutter web app
 COPY --from=builder /app/build/web /usr/share/nginx/html
 
+# Stamp a unique build version into flutter_bootstrap.js reference so every
+# deployment automatically busts the browser cache — no manual version bumps needed.
+RUN BUILD_TS=$(date +%s) && \
+    sed -i "s|flutter_bootstrap\.js?v=[^\"]*|flutter_bootstrap.js?v=${BUILD_TS}|g" \
+        /usr/share/nginx/html/index.html
+
 # nginx config for SPA routing (all 404s → index.html)
 RUN printf 'server {\n\
     listen 80;\n\
@@ -31,14 +37,19 @@ RUN printf 'server {\n\
     gzip on;\n\
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;\n\
 \n\
-    # Never cache the HTML entry point or bootstrap loader\n\
-    location ~* ^/(index\\.html|flutter_bootstrap\\.js)$ {\n\
+    # index.html — never cache (exact match, also covers SPA fallback)\n\
+    location = /index.html {\n\
         add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
-        try_files $uri =404;\n\
+    }\n\
+\n\
+    # flutter_bootstrap.js — never cache (served with unique ?v= per build)\n\
+    location = /flutter_bootstrap.js {\n\
+        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
     }\n\
 \n\
     location / {\n\
         try_files $uri $uri/ /index.html;\n\
+        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
     }\n\
 \n\
     # Hashed Flutter assets can be cached forever (filenames change each build)\n\
