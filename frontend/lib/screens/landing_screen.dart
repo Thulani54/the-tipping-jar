@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/app_logo.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 const _dark = Color(0xFF0A0F0D);
@@ -95,16 +96,7 @@ class _NavBar extends StatelessWidget {
             children: [
               // Logo
               Row(children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: const BoxDecoration(
-                    color: _orange,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.volunteer_activism,
-                      color: _white, size: 17),
-                ),
+                const AppLogoIcon(size: 32),
                 const SizedBox(width: 10),
                 Text('TippingJar',
                     style: GoogleFonts.inter(
@@ -447,8 +439,8 @@ class _MockupCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: ['\$1', '\$5', '\$10', '\$25'].map((a) {
-                  final selected = a == '\$5';
+                children: ['R5', 'R10', 'R20', 'R50'].map((a) {
+                  final selected = a == 'R10';
                   return Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 8),
@@ -488,7 +480,7 @@ class _MockupCard extends StatelessWidget {
                 const Icon(Icons.volunteer_activism,
                     color: _white, size: 16),
                 const SizedBox(width: 8),
-                Text('Send \$5 tip',
+                Text('Send R50 tip',
                     style: GoogleFonts.inter(
                         color: _white,
                         fontWeight: FontWeight.w700,
@@ -503,8 +495,8 @@ class _MockupCard extends StatelessWidget {
 
   List<Widget> _tipItems() {
     final items = [
-      ('Sarah M.', '\$10', 'Keep up the amazing work! 🔥', 'SM', _pink),
-      ('David K.', '\$25', 'Best creator on the internet.', 'DK', _purple),
+      ('Sarah M.', 'R50', 'Keep up the amazing work! 🔥', 'SM', _pink),
+      ('David K.', 'R100', 'Best creator on the internet.', 'DK', _purple),
     ];
     return items.map((t) {
       return Container(
@@ -595,7 +587,7 @@ class _StatsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final stats = [
       ('2,400+', 'Creators'),
-      ('\$180K+', 'Tips sent'),
+      ('R3.6M+', 'Tips sent'),
       ('48', 'Countries'),
       ('4.9★', 'Avg rating'),
     ];
@@ -615,8 +607,7 @@ class _StatsSection extends StatelessWidget {
                     fontSize: 32,
                     letterSpacing: -1))
                 .animate()
-                .fadeIn(delay: (e.key * 100).ms, duration: 500.ms)
-                .slideY(begin: 0.3, curve: Curves.easeOut),
+                .fadeIn(delay: (e.key * 100).ms, duration: 500.ms),
             const SizedBox(height: 4),
             Text(e.value.$2,
                 style: GoogleFonts.inter(
@@ -910,9 +901,9 @@ class _CreatorSpotlightSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final creators = [
-      ('Mia Chen', 'Illustrator & comic artist', '\$3,240', _pink, 'MC'),
-      ('Raj Patel', 'Indie game developer', '\$1,870', _purple, 'RP'),
-      ('Lena Torres', 'Music producer & DJ', '\$5,100', _orange, 'LT'),
+      ('Mia Chen', 'Illustrator & comic artist', 'R3,240', _pink, 'MC'),
+      ('Raj Patel', 'Indie game developer', 'R1,870', _purple, 'RP'),
+      ('Lena Torres', 'Music producer & DJ', 'R5,100', _orange, 'LT'),
     ];
 
     return _SectionWrapper(
@@ -1042,7 +1033,7 @@ class _CreatorCard extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed: () {},
+            onPressed: () => context.go('/explore'),
             style: OutlinedButton.styleFrom(
               foregroundColor: color,
               side: BorderSide(color: color.withOpacity(0.4)),
@@ -1158,16 +1149,7 @@ class _Footer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: const BoxDecoration(
-                          color: _orange,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.volunteer_activism,
-                            color: _white, size: 14),
-                      ),
+                      const AppLogoIcon(size: 28),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text('TippingJar',

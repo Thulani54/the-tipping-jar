@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
+import '../widgets/app_logo.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -96,11 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return GestureDetector(
       onTap: () => ctx.go('/'),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 36, height: 36,
-          decoration: BoxDecoration(color: kPrimary, shape: BoxShape.circle),
-          child: const Icon(Icons.volunteer_activism, color: Colors.white, size: 18),
-        ),
+        const AppLogoIcon(size: 36),
         const SizedBox(width: 10),
         Text('TippingJar',
             style: GoogleFonts.inter(
@@ -271,7 +268,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _socialBtn(String label, IconData icon) => OutlinedButton.icon(
-    onPressed: () {},
+    onPressed: () {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$label sign-in coming soon!',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+          backgroundColor: kCardBg,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    },
     icon: Icon(icon, size: 18, color: Colors.white),
     label: Text(label, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
     style: OutlinedButton.styleFrom(
@@ -291,9 +299,14 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _error = null);
     try {
-      await context.read<AuthProvider>().login(
-            _emailCtrl.text.trim(), _passwordCtrl.text);
-      if (mounted) context.go('/dashboard');
+      final auth = context.read<AuthProvider>();
+      await auth.login(_emailCtrl.text.trim(), _passwordCtrl.text);
+      if (!mounted) return;
+      if (auth.isCreator) {
+        context.go('/dashboard');
+      } else {
+        context.go('/fan-dashboard');
+      }
     } catch (_) {
       setState(() => _error = 'Invalid email or password. Please try again.');
     }
