@@ -31,10 +31,17 @@ RUN printf 'server {\n\
     gzip on;\n\
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;\n\
 \n\
+    # Never cache the HTML entry point or bootstrap loader\n\
+    location ~* ^/(index\\.html|flutter_bootstrap\\.js)$ {\n\
+        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
+        try_files $uri =404;\n\
+    }\n\
+\n\
     location / {\n\
         try_files $uri $uri/ /index.html;\n\
     }\n\
 \n\
+    # Hashed Flutter assets can be cached forever (filenames change each build)\n\
     location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {\n\
         expires 1y;\n\
         add_header Cache-Control "public, immutable";\n\
