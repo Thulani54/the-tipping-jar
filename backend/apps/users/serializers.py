@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from .models import ApiKey, OTP, User
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -16,5 +16,22 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "username", "email", "role", "avatar", "bio")
+        fields = ("id", "username", "email", "role", "avatar", "bio", "phone_number", "otp_method")
         read_only_fields = ("id", "email")
+
+
+class OtpRequestSerializer(serializers.Serializer):
+    method = serializers.ChoiceField(
+        choices=OTP.Method.choices,
+        required=False,
+        help_text="Delivery channel: 'email' or 'sms'. Defaults to the user's saved preference.",
+    )
+
+
+class ApiKeySerializer(serializers.ModelSerializer):
+    """Read serializer — never exposes key_hash."""
+
+    class Meta:
+        model = ApiKey
+        fields = ("id", "name", "prefix", "is_active", "created_at", "last_used_at")
+        read_only_fields = fields

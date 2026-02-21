@@ -1,0 +1,390 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  :root {
+    --tj-green:  #00C896;
+    --tj-teal:   #0097B2;
+    --tj-dark:   #0A0F0D;
+    --tj-card:   #111815;
+    --tj-border: #1E2822;
+    --tj-muted:  #6B7F76;
+    --tj-red:    #E05252;
+    --tj-amber:  #F0A500;
+  }
+  body { background:#060A08 !important; }
+  #content { padding:20px 30px; }
+  #content-main { float:none; width:100%; }
+
+  /* ── Dashboard grid ─────────────────────────── */
+  .tj-dashboard { font-family:'Inter',system-ui,sans-serif; }
+  .tj-page-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:24px; padding-bottom:16px;
+    border-bottom:1px solid var(--tj-border);
+  }
+  .tj-page-header h1 {
+    font-size:22px; font-weight:700; color:#fff;
+    margin:0; letter-spacing:-0.4px;
+  }
+  .tj-page-header .badge {
+    font-size:11px; font-weight:600; padding:4px 10px;
+    border-radius:20px; background:rgba(0,200,150,0.1);
+    color:var(--tj-green); border:1px solid rgba(0,200,150,0.2);
+  }
+
+  /* ── Stat cards ─────────────────────────────── */
+  .tj-grid { display:grid; gap:14px; margin-bottom:24px; }
+  .tj-grid-4 { grid-template-columns:repeat(4,1fr); }
+  .tj-grid-3 { grid-template-columns:repeat(3,1fr); }
+  .tj-grid-2 { grid-template-columns:repeat(2,1fr); }
+
+  .tj-card {
+    background:var(--tj-card); border:1px solid var(--tj-border);
+    border-radius:12px; padding:18px 20px;
+  }
+  .tj-card-label {
+    font-size:11px; font-weight:600; color:var(--tj-muted);
+    text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px;
+  }
+  .tj-card-value {
+    font-size:28px; font-weight:700; color:#fff; letter-spacing:-0.5px;
+    line-height:1.1;
+  }
+  .tj-card-value.green  { color:var(--tj-green); }
+  .tj-card-value.teal   { color:var(--tj-teal); }
+  .tj-card-value.amber  { color:var(--tj-amber); }
+  .tj-card-value.red    { color:var(--tj-red); }
+  .tj-card-sub {
+    font-size:12px; color:var(--tj-muted); margin-top:4px;
+  }
+  .tj-card-sub .up { color:var(--tj-green); font-weight:600; }
+  .tj-card-sub .dn { color:var(--tj-red); font-weight:600; }
+
+  /* ── Section headers ─────────────────────────── */
+  .tj-section-header {
+    display:flex; align-items:center; gap:8px;
+    font-size:13px; font-weight:600; color:var(--tj-muted);
+    text-transform:uppercase; letter-spacing:0.8px;
+    margin:24px 0 12px; padding-bottom:8px;
+    border-bottom:1px solid var(--tj-border);
+  }
+  .tj-section-header .dot {
+    width:6px; height:6px; border-radius:50%;
+    background:var(--tj-green);
+  }
+
+  /* ── SMS Portal card ─────────────────────────── */
+  .tj-sms-card {
+    background:linear-gradient(135deg,rgba(0,151,178,0.08),rgba(0,200,150,0.05));
+    border:1px solid rgba(0,151,178,0.2);
+  }
+  .tj-sms-indicator {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:11px; font-weight:600; padding:3px 10px;
+    border-radius:20px; margin-bottom:10px;
+  }
+  .tj-sms-indicator.online {
+    background:rgba(0,200,150,0.1); color:var(--tj-green);
+    border:1px solid rgba(0,200,150,0.2);
+  }
+  .tj-sms-indicator.offline {
+    background:rgba(224,82,82,0.1); color:var(--tj-red);
+    border:1px solid rgba(224,82,82,0.2);
+  }
+  .tj-sms-indicator::before {
+    content:''; width:6px; height:6px; border-radius:50%;
+    background:currentColor; display:inline-block;
+  }
+
+  /* ── Tables ──────────────────────────────────── */
+  .tj-table {
+    width:100%; border-collapse:collapse;
+    background:var(--tj-card); border-radius:12px; overflow:hidden;
+    border:1px solid var(--tj-border);
+  }
+  .tj-table th {
+    font-size:11px; font-weight:600; color:var(--tj-muted);
+    text-transform:uppercase; letter-spacing:0.6px;
+    padding:10px 14px; text-align:left;
+    border-bottom:1px solid var(--tj-border);
+  }
+  .tj-table td {
+    padding:10px 14px; font-size:13px; color:#C8D8D0;
+    border-bottom:1px solid rgba(30,40,34,0.5);
+  }
+  .tj-table tr:last-child td { border-bottom:none; }
+  .tj-table tr:hover td { background:rgba(0,200,150,0.03); }
+
+  /* ── Status badges ───────────────────────────── */
+  .badge-status {
+    font-size:10px; font-weight:600; padding:2px 8px;
+    border-radius:20px; text-transform:capitalize; letter-spacing:0.3px;
+  }
+  .badge-completed  { background:rgba(0,200,150,0.12); color:#00C896; }
+  .badge-pending    { background:rgba(240,165,0,0.12);  color:#F0A500; }
+  .badge-failed     { background:rgba(224,82,82,0.12);  color:#E05252; }
+  .badge-refunded   { background:rgba(107,127,118,0.12);color:#6B7F76; }
+  .badge-fan        { background:rgba(0,151,178,0.12); color:#0097B2; }
+  .badge-creator    { background:rgba(0,200,150,0.12); color:#00C896; }
+
+  /* ── Quick-links ─────────────────────────────── */
+  .tj-quick-links {
+    display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px;
+  }
+  .tj-quick-link {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; font-weight:500; color:#C8D8D0;
+    background:var(--tj-card); border:1px solid var(--tj-border);
+    border-radius:8px; padding:7px 14px; text-decoration:none;
+    transition:border-color .15s, color .15s;
+  }
+  .tj-quick-link:hover {
+    border-color:var(--tj-green); color:var(--tj-green);
+    text-decoration:none;
+  }
+
+  /* ── Responsive ──────────────────────────────── */
+  @media (max-width:1100px) {
+    .tj-grid-4 { grid-template-columns:repeat(2,1fr); }
+  }
+  @media (max-width:700px) {
+    .tj-grid-4,.tj-grid-3,.tj-grid-2 { grid-template-columns:1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tj-dashboard">
+
+  <!-- Page header -->
+  <div class="tj-page-header">
+    <h1>📊 Dashboard</h1>
+    <span class="badge">Live Data</span>
+  </div>
+
+  {% if stats_error %}
+    <div style="background:rgba(224,82,82,0.1);border:1px solid rgba(224,82,82,0.3);
+                border-radius:8px;padding:12px 16px;color:#E05252;font-size:13px;margin-bottom:20px;">
+      ⚠ Stats error: {{ stats_error }}
+    </div>
+  {% endif %}
+
+  <!-- Quick links -->
+  <div class="tj-quick-links">
+    <a class="tj-quick-link" href="{% url 'tippingjar_admin:tips_tip_changelist' %}">💸 Tips</a>
+    <a class="tj-quick-link" href="{% url 'tippingjar_admin:users_user_changelist' %}">👥 Users</a>
+    <a class="tj-quick-link" href="{% url 'tippingjar_admin:creators_creatorprofile_changelist' %}">🎨 Creators</a>
+    <a class="tj-quick-link" href="{% url 'tippingjar_admin:support_dispute_changelist' %}">⚖ Disputes</a>
+    <a class="tj-quick-link" href="{% url 'tippingjar_admin:support_contactmessage_changelist' %}">✉ Contacts</a>
+    <a class="tj-quick-link" href="{% url 'tippingjar_admin:users_otp_changelist' %}">🔐 OTPs</a>
+  </div>
+
+  <!-- ── Tips overview ─────────────────────────── -->
+  <div class="tj-section-header"><span class="dot"></span>Tips</div>
+  <div class="tj-grid tj-grid-4">
+    <div class="tj-card">
+      <div class="tj-card-label">Total Completed Tips</div>
+      <div class="tj-card-value green">{{ tips_total|default:"0" }}</div>
+      <div class="tj-card-sub">{{ tips_today }} tips today</div>
+    </div>
+    <div class="tj-card">
+      <div class="tj-card-label">Total Revenue</div>
+      <div class="tj-card-value green">R {{ tips_value|floatformat:2|default:"0.00" }}</div>
+      <div class="tj-card-sub">R {{ tips_month_value|floatformat:2 }} this month</div>
+    </div>
+    <div class="tj-card">
+      <div class="tj-card-label">Pending Tips</div>
+      <div class="tj-card-value amber">{{ tips_pending|default:"0" }}</div>
+      <div class="tj-card-sub">Awaiting payment confirmation</div>
+    </div>
+    <div class="tj-card">
+      <div class="tj-card-label">Failed / Refunded</div>
+      <div class="tj-card-value red">{{ tips_failed|default:"0" }}</div>
+      <div class="tj-card-sub">Requires attention</div>
+    </div>
+  </div>
+
+  <!-- ── Users ─────────────────────────────────── -->
+  <div class="tj-section-header"><span class="dot"></span>Users</div>
+  <div class="tj-grid tj-grid-4">
+    <div class="tj-card">
+      <div class="tj-card-label">Total Users</div>
+      <div class="tj-card-value">{{ users_total|default:"0" }}</div>
+      <div class="tj-card-sub"><span class="up">+{{ users_new_month }}</span> new this month</div>
+    </div>
+    <div class="tj-card">
+      <div class="tj-card-label">Fans</div>
+      <div class="tj-card-value teal">{{ users_fans|default:"0" }}</div>
+      <div class="tj-card-sub">Tipping supporters</div>
+    </div>
+    <div class="tj-card">
+      <div class="tj-card-label">Creators</div>
+      <div class="tj-card-value green">{{ users_creators|default:"0" }}</div>
+      <div class="tj-card-sub">{{ creators_active }} active profiles</div>
+    </div>
+    <div class="tj-card">
+      <div class="tj-card-label">OTPs Sent Today</div>
+      <div class="tj-card-value">{{ otp_email_today|default:"0" }}</div>
+      <div class="tj-card-sub">📧 Email: {{ otp_email_today }} &nbsp; 📱 SMS: {{ otp_sms_today }}</div>
+    </div>
+  </div>
+
+  <!-- ── Support queue ──────────────────────────── -->
+  <div class="tj-section-header"><span class="dot"></span>Support Queue</div>
+  <div class="tj-grid tj-grid-3">
+    <div class="tj-card">
+      <div class="tj-card-label">Pending Messages</div>
+      <div class="tj-card-value {% if contacts_pending > 0 %}amber{% endif %}">{{ contacts_pending|default:"0" }}</div>
+      <div class="tj-card-sub">Unresolved contact forms</div>
+    </div>
+    <div class="tj-card">
+      <div class="tj-card-label">Open Disputes</div>
+      <div class="tj-card-value {% if disputes_open > 0 %}red{% endif %}">{{ disputes_open|default:"0" }}</div>
+      <div class="tj-card-sub">Awaiting review</div>
+    </div>
+    <div class="tj-card">
+      <div class="tj-card-label">Under Investigation</div>
+      <div class="tj-card-value {% if disputes_investigating > 0 %}amber{% endif %}">{{ disputes_investigating|default:"0" }}</div>
+      <div class="tj-card-sub">{{ disputes_resolved }} resolved total</div>
+    </div>
+  </div>
+
+  <!-- ── SMS Portal ─────────────────────────────── -->
+  <div class="tj-section-header"><span class="dot"></span>SMS Portal</div>
+  <div class="tj-grid tj-grid-2">
+    <div class="tj-card tj-sms-card">
+      {% if sms_configured %}
+        <div class="tj-sms-indicator online">SMSPortal Connected</div>
+      {% else %}
+        <div class="tj-sms-indicator offline">SMSPortal Unavailable</div>
+      {% endif %}
+      <div class="tj-card-label">Credit Balance</div>
+      {% if sms_credits is not None %}
+        <div class="tj-card-value green">{{ sms_credits|floatformat:0 }}</div>
+        <div class="tj-card-sub">SMS credits remaining</div>
+      {% else %}
+        <div class="tj-card-value" style="font-size:16px;color:var(--tj-muted);">—</div>
+        <div class="tj-card-sub">Could not fetch balance</div>
+      {% endif %}
+    </div>
+    <div class="tj-card">
+      <div class="tj-card-label">OTP Channels Today</div>
+      <div style="display:flex;gap:24px;margin-top:8px;">
+        <div>
+          <div style="font-size:11px;color:var(--tj-muted);margin-bottom:4px;">📧 Email</div>
+          <div style="font-size:24px;font-weight:700;color:#fff;">{{ otp_email_today|default:"0" }}</div>
+        </div>
+        <div style="width:1px;background:var(--tj-border);"></div>
+        <div>
+          <div style="font-size:11px;color:var(--tj-muted);margin-bottom:4px;">📱 SMS</div>
+          <div style="font-size:24px;font-weight:700;color:var(--tj-teal);">{{ otp_sms_today|default:"0" }}</div>
+        </div>
+      </div>
+      <div class="tj-card-sub" style="margin-top:10px;">
+        Users can switch delivery method via account settings
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Recent Tips ────────────────────────────── -->
+  {% if recent_tips %}
+  <div class="tj-section-header"><span class="dot"></span>Recent Tips</div>
+  <table class="tj-table">
+    <thead>
+      <tr>
+        <th>Tipper</th>
+        <th>Creator</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tip in recent_tips %}
+      <tr>
+        <td>{{ tip.tipper_name|default:"Anonymous" }}</td>
+        <td>{{ tip.creator.display_name }}</td>
+        <td style="font-weight:600;color:#00C896;">R {{ tip.amount }}</td>
+        <td>
+          <span class="badge-status badge-{{ tip.status }}">{{ tip.status }}</span>
+        </td>
+        <td style="color:var(--tj-muted);">{{ tip.created_at|date:"d M Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ── Recent Users ───────────────────────────── -->
+  {% if recent_users %}
+  <div class="tj-section-header" style="margin-top:24px;"><span class="dot"></span>Recent Users</div>
+  <table class="tj-table">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Username</th>
+        <th>Role</th>
+        <th>OTP Method</th>
+        <th>Joined</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in recent_users %}
+      <tr>
+        <td>{{ user.email }}</td>
+        <td>{{ user.username }}</td>
+        <td><span class="badge-status badge-{{ user.role }}">{{ user.role }}</span></td>
+        <td style="color:var(--tj-muted);">{{ user.otp_method }}</td>
+        <td style="color:var(--tj-muted);">{{ user.date_joined|date:"d M Y" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- Standard app/model index from parent -->
+  <div class="tj-section-header" style="margin-top:32px;"><span class="dot"></span>All Models</div>
+  {% for app in app_list %}
+    <div style="margin-bottom:20px;">
+      <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:10px;padding:6px 0;
+                  border-bottom:1px solid var(--tj-border);">
+        {{ app.name }}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        {% for model in app.models %}
+          <div style="background:var(--tj-card);border:1px solid var(--tj-border);
+                      border-radius:8px;padding:10px 14px;min-width:160px;">
+            <div style="font-size:13px;font-weight:600;color:#C8D8D0;margin-bottom:6px;">
+              {{ model.name }}
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              {% if model.admin_url %}
+                <a href="{{ model.admin_url }}"
+                   style="font-size:11px;color:var(--tj-green);text-decoration:none;font-weight:500;">
+                  View ↗
+                </a>
+              {% endif %}
+              {% if model.add_url %}
+                <a href="{{ model.add_url }}"
+                   style="font-size:11px;color:var(--tj-teal);text-decoration:none;font-weight:500;">
+                  + Add
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% empty %}
+    <p style="color:var(--tj-muted);font-size:13px;">
+      No models registered. Make sure your admin.py files register models with <code>site=admin_site</code>.
+    </p>
+  {% endfor %}
+
+</div>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}

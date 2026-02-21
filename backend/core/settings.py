@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "apps.creators",
     "apps.tips",
     "apps.payments",
+    "apps.support",
 ]
 
 MIDDLEWARE = [
@@ -45,7 +46,7 @@ ROOT_URLCONF = "core.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -103,6 +104,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ── REST Framework ────────────────────────────────────────────────
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        # API key checked first — if the Bearer token starts with tj_live_sk_v1_
+        # it is resolved via the ApiKey table; otherwise falls through to JWT.
+        "apps.users.authentication.ApiKeyAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
@@ -134,3 +138,23 @@ CORS_ALLOWED_ORIGINS = env.list(
 # ── Stripe ────────────────────────────────────────────────────────
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
+
+# ── Email ──────────────────────────────────────────────────────────────────────
+EMAIL_BACKEND      = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST         = env("EMAIL_HOST", default="mail.tippingjar.co.za")
+EMAIL_PORT         = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS      = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_HOST_USER    = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="accounts@tippingjar.co.za")
+NO_REPLY_EMAIL     = env("NO_REPLY_EMAIL",     default="no-reply@tippingjar.co.za")
+SUPPORT_EMAIL      = env("SUPPORT_EMAIL",      default="support@tippingjar.co.za")
+
+# ── SMS Portal ─────────────────────────────────────────────────────────────────
+SMS_PORTAL_USERNAME = env("SMS_PORTAL_USERNAME", default="")
+SMS_PORTAL_PASSWORD = env("SMS_PORTAL_PASSWORD", default="")
+SMS_PORTAL_ENDPOINT = env("SMS_PORTAL_ENDPOINT", default="https://api.smsportal.com/api5/http5.aspx")
+
+# ── Site ───────────────────────────────────────────────────────────────────────
+SITE_URL = env("SITE_URL", default="https://tippingjar.co.za")
