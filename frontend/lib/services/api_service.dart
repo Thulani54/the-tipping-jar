@@ -240,8 +240,8 @@ class ApiService {
         Uri.parse('$_baseUrl/creators/$creatorSlug/jars/'), headers: _headers);
     if (res.statusCode == 200) {
       final body = jsonDecode(res.body);
-      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
-      return (list as List).map((e) => JarModel.fromJson(e as Map<String, dynamic>)).toList();
+      final List list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list.map((e) => JarModel.fromJson(e as Map<String, dynamic>)).toList();
     }
     throw Exception('Failed to load creator jars');
   }
