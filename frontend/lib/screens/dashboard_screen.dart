@@ -1461,14 +1461,13 @@ class _ContentPageState extends State<_ContentPage> {
       ),
     );
     if (ok == true && mounted) {
+      final api = context.read<AuthProvider>().api;
+      final messenger = ScaffoldMessenger.of(context);
       try {
-        await context.read<AuthProvider>().api.deletePost(post.id);
+        await api.deletePost(post.id);
         _load();
       } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to delete post')));
-        }
+        messenger.showSnackBar(const SnackBar(content: Text('Failed to delete post')));
       }
     }
   }
@@ -1726,7 +1725,7 @@ class _PostFormDialogState extends State<_PostFormDialog> {
                   color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _postType,
+                initialValue: _postType,
                 dropdownColor: kCardBg,
                 style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
                 decoration: _deco(''),
@@ -1806,7 +1805,7 @@ class _PostFormDialogState extends State<_PostFormDialog> {
                 Switch(
                   value: _isPublished,
                   onChanged: (v) => setState(() => _isPublished = v),
-                  activeColor: kPrimary,
+                  activeThumbColor: kPrimary,
                 ),
               ]),
 

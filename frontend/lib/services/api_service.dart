@@ -372,10 +372,8 @@ class ApiService {
 
   // ── Creator posts ─────────────────────────────────────────────────
 
-  Map<String, String> get _authHeaders => {
-        if (authToken != null) 'Authorization': 'Bearer $authToken',
-        if (apiKey != null) 'X-API-Key': apiKey!,
-      };
+  Map<String, String> get _authHeaders => Map.fromEntries(
+        _headers.entries.where((e) => e.key != 'Content-Type'));
 
   Future<List<CreatorPostModel>> getMyPosts() async {
     final res = await http.get(

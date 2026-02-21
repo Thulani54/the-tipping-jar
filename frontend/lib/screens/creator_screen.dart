@@ -1404,7 +1404,7 @@ class _UnlockedPostCard extends StatelessWidget {
             post.mediaUrl!,
             fit: BoxFit.cover,
             width: double.infinity,
-            errorBuilder: (_, __, _e) => Container(
+            errorBuilder: (context, obj, err) => Container(
               height: 120,
               color: kDark,
               child: const Center(child: Icon(Icons.broken_image_rounded, color: kMuted)),
