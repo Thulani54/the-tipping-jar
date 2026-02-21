@@ -12,7 +12,8 @@ import '../models/tip.dart';
 import '../models/tip_model.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://localhost:8000/api';
+  static const String _baseUrl =
+      String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:8000') + '/api';
 
   /// JWT Bearer token (from login / session).
   final String? authToken;
