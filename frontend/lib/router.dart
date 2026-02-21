@@ -37,7 +37,7 @@ GoRouter buildRouter(AuthProvider auth) {
     refreshListenable: auth, // re-evaluate redirect whenever auth changes
     redirect: (context, state) {
       final loggedIn = auth.isAuthenticated;
-      final path = state.matchedLocation;
+      final path = state.uri.path;
 
       // Bounce unauthenticated users away from protected pages
       if (_protectedRoutes.contains(path) && !loggedIn) {
