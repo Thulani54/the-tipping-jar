@@ -61,6 +61,9 @@ class JarSerializer(serializers.ModelSerializer):
             "id", "creator_slug", "total_raised", "tip_count",
             "progress_pct", "created_at",
         )
+        extra_kwargs = {
+            "slug": {"required": False, "allow_blank": True},
+        }
 
     def get_progress_pct(self, obj):
         if not obj.goal or obj.goal == 0:
