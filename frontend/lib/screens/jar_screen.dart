@@ -151,7 +151,7 @@ class _ShareButtonState extends State<_ShareButton> {
   bool _copied = false;
 
   void _copy() {
-    final url = 'tippingjar.io${widget.jar.shareUrl}';
+    final url = 'www.tippingjar.co.za${widget.jar.shareUrl}';
     Clipboard.setData(ClipboardData(text: url));
     setState(() => _copied = true);
     Future.delayed(const Duration(seconds: 2), () {

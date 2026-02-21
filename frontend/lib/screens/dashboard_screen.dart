@@ -157,7 +157,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   );
 
   void _copyLink() {
-    final link = 'tippingjar.io/u/${_data?.profile.slug ?? ''}';
+    final link = 'www.tippingjar.co.za/u/${_data?.profile.slug ?? ''}';
     Clipboard.setData(ClipboardData(text: link));
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Tip link copied!', style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
@@ -503,7 +503,7 @@ class _ProfilePageState extends State<_ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final tipLink = 'tippingjar.io/u/${_profile.slug}';
+    final tipLink = 'www.tippingjar.co.za/u/${_profile.slug}';
 
     // Profile completion items
     final items = [
@@ -1421,7 +1421,7 @@ class _JarsPageState extends State<_JarsPage> {
   );
 
   void _copyLink(JarModel jar) {
-    final link = 'tippingjar.io/creator/${widget.profile.slug}/jar/${jar.slug}';
+    final link = 'www.tippingjar.co.za/creator/${widget.profile.slug}/jar/${jar.slug}';
     Clipboard.setData(ClipboardData(text: link));
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Jar link copied!', style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
@@ -1631,7 +1631,7 @@ class _JarDashCard extends StatelessWidget {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.link_rounded, color: kPrimary, size: 14),
               const SizedBox(width: 6),
-              Text('tippingjar.io/creator/$profileSlug/jar/${jar.slug}',
+              Text('www.tippingjar.co.za/creator/$profileSlug/jar/${jar.slug}',
                   style: GoogleFonts.inter(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w500),
                   overflow: TextOverflow.ellipsis),
             ]),
