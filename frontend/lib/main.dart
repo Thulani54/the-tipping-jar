@@ -25,35 +25,24 @@ class TippingJarApp extends StatefulWidget {
 }
 
 class _TippingJarAppState extends State<TippingJarApp> {
-  GoRouter? _router;
+  late final GoRouter _router;
 
   @override
   void initState() {
     super.initState();
-    _init();
-  }
-
-  Future<void> _init() async {
     final auth = context.read<AuthProvider>();
-    await auth.init(); // restore session from SharedPreferences
-    if (mounted) {
-      setState(() => _router = buildRouter(auth));
-    }
+    // Create the router synchronously so GoRouter captures the real browser URL
+    // before anything else can reset it to '/'.
+    _router = buildRouter(auth);
+    // Auth init runs async; when it calls notifyListeners(), refreshListenable
+    // triggers a redirect re-evaluation without re-creating the router.
+    auth.init();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_router == null) {
-      // Splash while we restore the saved session
-      return const MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(
-          backgroundColor: Color(0xFF0D0D0D),
-          body: Center(child: CircularProgressIndicator(color: Color(0xFF00C896))),
-        ),
-      );
-    }
-
+    // Always use MaterialApp.router — never fall back to a plain MaterialApp,
+    // which would overwrite window.location with '/' and break deep links.
     return MaterialApp.router(
       title: 'The Tipping Jar',
       debugShowCheckedModeBanner: false,
