@@ -1,5 +1,7 @@
 from django.contrib import admin
+
 from core.admin_site import admin_site
+
 from .emails import send_dispute_status_update
 from .models import ContactMessage, Dispute
 

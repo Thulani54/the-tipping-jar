@@ -1,10 +1,12 @@
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
-from apps.users.models import User
+
 from apps.creators.models import CreatorProfile
 from apps.tips.models import Tip
-from unittest.mock import patch
+from apps.users.models import User
 
 
 class TipTests(TestCase):

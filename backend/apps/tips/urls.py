@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import CreatorTipsView, MyTipsView, FanTipsView, InitiateTipView, VerifyTipView
+
+from .views import CreatorTipsView, FanTipsView, InitiateTipView, MyTipsView, VerifyTipView
 
 urlpatterns = [
     path("initiate/",          InitiateTipView.as_view(),  name="initiate-tip"),

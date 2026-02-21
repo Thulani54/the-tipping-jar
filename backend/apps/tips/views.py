@@ -9,8 +9,9 @@ from rest_framework.views import APIView
 from apps.creators.models import CreatorProfile, Jar
 from apps.payments import paystack as ps
 from apps.support.emails import send_tip_thank_you
+
 from .models import Tip
-from .serializers import TipSerializer, CreateTipSerializer
+from .serializers import CreateTipSerializer, TipSerializer
 
 
 class CreatorTipsView(generics.ListAPIView):

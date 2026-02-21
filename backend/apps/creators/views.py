@@ -2,13 +2,14 @@ import datetime
 import logging
 
 from django.conf import settings
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.payments import paystack as ps
+
 from .models import CreatorProfile, Jar
 from .serializers import CreatorProfileSerializer, JarSerializer
 

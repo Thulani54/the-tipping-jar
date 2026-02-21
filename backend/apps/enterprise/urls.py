@@ -1,12 +1,13 @@
 from django.urls import path
+
 from .views import (
-    MyEnterpriseView,
-    EnterpriseMemberListView,
     EnterpriseMemberDetailView,
+    EnterpriseMemberListView,
     EnterpriseStatsView,
-    FundDistributionListCreateView,
     FundDistributionDetailView,
     FundDistributionItemUpdateView,
+    FundDistributionListCreateView,
+    MyEnterpriseView,
 )
 
 urlpatterns = [

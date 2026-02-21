@@ -3,9 +3,9 @@ import json
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from apps.tips.models import Tip
 from apps.payments import paystack as ps
 from apps.support.emails import send_tip_thank_you
+from apps.tips.models import Tip
 
 
 @csrf_exempt

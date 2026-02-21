@@ -3,8 +3,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.support.sms import send_otp_via_sms
-from .models import ApiKey, OTP, User
-from .serializers import ApiKeySerializer, OtpRequestSerializer, RegisterSerializer, UserSerializer
+
+from .models import OTP, ApiKey, User
+from .serializers import ApiKeySerializer, RegisterSerializer, UserSerializer
 
 
 class RegisterView(generics.CreateAPIView):
@@ -58,8 +59,8 @@ class OtpRequestView(APIView):
             channel_info = f"SMS to {user.phone_number[:4]}****"
         else:
             # Email delivery
-            from django.core.mail import send_mail
             from django.conf import settings
+            from django.core.mail import send_mail
             send_mail(
                 subject="TippingJar — Your verification code",
                 message=f"Your TippingJar code is: {raw_code}\n\nValid for 10 minutes.",

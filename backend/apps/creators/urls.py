@@ -1,11 +1,12 @@
 from django.urls import path
+
 from .views import (
-    CreatorListView,
     CreatorDetailView,
+    CreatorListView,
     MyCreatorProfileView,
     MyDashboardStatsView,
-    MyJarListCreateView,
     MyJarDetailView,
+    MyJarListCreateView,
     PublicCreatorJarsView,
     PublicJarDetailView,
 )

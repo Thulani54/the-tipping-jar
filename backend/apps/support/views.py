@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .emails import send_contact_confirmation, send_contact_to_support, send_dispute_confirmation
-from .models import ContactMessage, Dispute
+from .models import Dispute
 from .serializers import ContactSerializer, DisputeCreateSerializer, DisputeDetailSerializer
 
 

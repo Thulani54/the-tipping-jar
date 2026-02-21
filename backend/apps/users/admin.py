@@ -1,7 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+
 from core.admin_site import admin_site
-from .models import ApiKey, OTP, User
+
+from .models import OTP, ApiKey, User
 
 
 @admin.register(User, site=admin_site)
