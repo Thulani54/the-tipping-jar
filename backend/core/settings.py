@@ -160,6 +160,17 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="accounts@tippingjar.co.z
 NO_REPLY_EMAIL     = env("NO_REPLY_EMAIL",     default="no-reply@tippingjar.co.za")
 SUPPORT_EMAIL      = env("SUPPORT_EMAIL",      default="support@tippingjar.co.za")
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "loggers": {
+        "apps": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}
+
 # ── SMS Portal ─────────────────────────────────────────────────────────────────
 SMS_PORTAL_USERNAME = env("SMS_PORTAL_USERNAME", default="")
 SMS_PORTAL_PASSWORD = env("SMS_PORTAL_PASSWORD", default="")
