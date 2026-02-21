@@ -5,8 +5,12 @@ All outbound mail uses accounts@ for SMTP auth (configured in settings).
 Dispute / contact confirmations set the From header to no-reply@.
 Support notifications land in support@.
 """
+import logging
+
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+
+logger = logging.getLogger(__name__)
 
 
 def _no_reply():
@@ -84,9 +88,13 @@ def send_contact_confirmation(contact):
 
 # ─── Tip thank-you ────────────────────────────────────────────────────────────
 
+_ANON_EMAIL = "anonymous@tippingjar.co.za"
+
+
 def send_tip_thank_you(tip):
     """Send a thank-you email to the tipper after a successful payment."""
-    if not tip.tipper_email:
+    if not tip.tipper_email or tip.tipper_email == _ANON_EMAIL:
+        logger.info("send_tip_thank_you: skipped tip=%s (no real tipper email)", tip.id)
         return
 
     creator = tip.creator
@@ -145,7 +153,11 @@ def send_tip_thank_you(tip):
         to=[tip.tipper_email],
     )
     msg.attach_alternative(html, "text/html")
-    msg.send(fail_silently=True)
+    try:
+        msg.send(fail_silently=False)
+        logger.info("send_tip_thank_you: sent to %s for tip=%s", tip.tipper_email, tip.id)
+    except Exception as exc:
+        logger.error("send_tip_thank_you: FAILED for tip=%s to=%s error=%s", tip.id, tip.tipper_email, exc)
 
 
 # ─── Disputes ─────────────────────────────────────────────────────────────────

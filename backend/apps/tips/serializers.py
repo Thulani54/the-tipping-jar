@@ -31,5 +31,5 @@ class CreateTipSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=1)
     message = serializers.CharField(max_length=500, required=False, allow_blank=True)
     tipper_name = serializers.CharField(max_length=100, required=False, default="Anonymous")
-    tipper_email = serializers.EmailField(required=False, default="anonymous@tippingjar.co.za")
+    tipper_email = serializers.EmailField(required=False, allow_blank=True, default="")
     jar_id = serializers.IntegerField(required=False, allow_null=True)
