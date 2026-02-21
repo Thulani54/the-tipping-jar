@@ -24,6 +24,7 @@ import 'screens/legal_screen.dart';
 import 'screens/contact_screen.dart';
 import 'screens/dispute_screen.dart';
 import 'screens/enterprise_portal_screen.dart';
+import 'screens/payment_callback_screen.dart';
 
 /// Routes that require the user to be signed in.
 const _protectedRoutes = {'/dashboard', '/onboarding', '/fan-dashboard', '/enterprise-portal'};
@@ -96,6 +97,12 @@ GoRouter buildRouter(AuthProvider auth) {
         path: '/u/:slug',
         builder: (_, state) =>
             TipScreen(slug: state.pathParameters['slug']!),
+      ),
+      GoRoute(
+        path: '/payment/callback',
+        builder: (_, state) => PaymentCallbackScreen(
+          reference: state.uri.queryParameters['ref'] ?? '',
+        ),
       ),
       GoRoute(path: '/contact',  builder: (_, __) => const ContactScreen()),
       GoRoute(path: '/dispute',  builder: (_, __) => const DisputeScreen()),
