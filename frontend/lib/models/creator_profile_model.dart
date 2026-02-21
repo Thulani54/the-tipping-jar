@@ -13,6 +13,7 @@ class CreatorProfileModel {
   final String bankRoutingNumber;
   final String bankAccountType;
   final String bankCountry;
+  final String thankYouMessage;
 
   const CreatorProfileModel({
     required this.id,
@@ -29,6 +30,7 @@ class CreatorProfileModel {
     required this.bankRoutingNumber,
     required this.bankAccountType,
     required this.bankCountry,
+    this.thankYouMessage = '',
   });
 
   factory CreatorProfileModel.fromJson(Map<String, dynamic> j) =>
@@ -47,6 +49,7 @@ class CreatorProfileModel {
         bankRoutingNumber: j['bank_routing_number'] as String? ?? '',
         bankAccountType: j['bank_account_type'] as String? ?? 'checking',
         bankCountry: j['bank_country'] as String? ?? 'US',
+        thankYouMessage: j['thank_you_message'] as String? ?? '',
       );
 
   CreatorProfileModel copyWith({
@@ -60,6 +63,7 @@ class CreatorProfileModel {
     String? bankRoutingNumber,
     String? bankAccountType,
     String? bankCountry,
+    String? thankYouMessage,
   }) =>
       CreatorProfileModel(
         id: id,
@@ -77,5 +81,6 @@ class CreatorProfileModel {
         bankRoutingNumber: bankRoutingNumber ?? this.bankRoutingNumber,
         bankAccountType: bankAccountType ?? this.bankAccountType,
         bankCountry: bankCountry ?? this.bankCountry,
+        thankYouMessage: thankYouMessage ?? this.thankYouMessage,
       );
 }

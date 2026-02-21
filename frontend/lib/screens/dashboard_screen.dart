@@ -642,6 +642,7 @@ class _ProfilePageState extends State<_ProfilePage> {
     final taglineCtrl = TextEditingController(text: _profile.tagline);
     final goalCtrl = TextEditingController(
         text: _profile.tipGoal?.toStringAsFixed(0) ?? '');
+    final thankYouCtrl = TextEditingController(text: _profile.thankYouMessage);
     bool saving = false;
 
     await showDialog(
@@ -651,14 +652,20 @@ class _ProfilePageState extends State<_ProfilePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Edit profile', style: GoogleFonts.inter(
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
-        content: SizedBox(width: 400, child: Column(mainAxisSize: MainAxisSize.min, children: [
-          _DlgField('Display name', nameCtrl, hint: 'Your public name'),
-          const SizedBox(height: 14),
-          _DlgField('Tagline', taglineCtrl, hint: 'What you create — 80 chars', maxLength: 80),
-          const SizedBox(height: 14),
-          _DlgField('Monthly goal (R)', goalCtrl,
-              hint: '100', keyboardType: TextInputType.number),
-        ])),
+        content: SingleChildScrollView(
+          child: SizedBox(width: 400, child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _DlgField('Display name', nameCtrl, hint: 'Your public name'),
+            const SizedBox(height: 14),
+            _DlgField('Tagline', taglineCtrl, hint: 'What you create — 80 chars', maxLength: 80),
+            const SizedBox(height: 14),
+            _DlgField('Monthly goal (R)', goalCtrl,
+                hint: '100', keyboardType: TextInputType.number),
+            const SizedBox(height: 14),
+            _DlgField('Thank-you message', thankYouCtrl,
+                hint: 'Message sent to tippers after a successful tip',
+                maxLines: 3, maxLength: 300),
+          ])),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -674,6 +681,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                   'tagline': taglineCtrl.text.trim(),
                   if (goalCtrl.text.isNotEmpty)
                     'tip_goal': double.tryParse(goalCtrl.text) ?? 0,
+                  'thank_you_message': thankYouCtrl.text.trim(),
                 });
                 if (ctx.mounted) Navigator.pop(ctx);
                 setState(() => _profile = updated);
@@ -944,9 +952,10 @@ class _DlgField extends StatelessWidget {
   final TextEditingController ctrl;
   final bool obscure;
   final int? maxLength;
+  final int? maxLines;
   final TextInputType? keyboardType;
   const _DlgField(this.label, this.ctrl,
-      {required this.hint, this.obscure = false, this.maxLength, this.keyboardType});
+      {required this.hint, this.obscure = false, this.maxLength, this.maxLines, this.keyboardType});
 
   @override
   Widget build(BuildContext context) => Column(
@@ -959,6 +968,7 @@ class _DlgField extends StatelessWidget {
         controller: ctrl,
         obscureText: obscure,
         maxLength: maxLength,
+        maxLines: maxLines ?? 1,
         keyboardType: keyboardType,
         style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
         decoration: InputDecoration(

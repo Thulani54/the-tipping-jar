@@ -22,6 +22,10 @@ class CreatorProfile(models.Model):
         help_text="Paystack subaccount code (ACCT_xxxx) — auto-created on bank detail save",
     )
     paystack_subaccount_id = models.CharField(max_length=100, blank=True)
+    thank_you_message = models.TextField(
+        blank=True, default="",
+        help_text="Custom thank-you note sent to tippers after a successful payment.",
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

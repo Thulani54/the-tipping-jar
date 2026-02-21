@@ -22,6 +22,7 @@ class Tip(models.Model):
         related_name="tips_sent",
     )
     tipper_name = models.CharField(max_length=100, blank=True, default="Anonymous")
+    tipper_email = models.EmailField(blank=True, default="")
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     message = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)

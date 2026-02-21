@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from apps.tips.models import Tip
 from apps.payments import paystack as ps
+from apps.support.emails import send_tip_thank_you
 
 
 @csrf_exempt
@@ -39,9 +40,11 @@ def paystack_webhook(request):
         return HttpResponse(status=200)
 
     if event_type == "charge.success":
-        Tip.objects.filter(paystack_reference=reference).update(
-            status=Tip.Status.COMPLETED
-        )
+        tip = Tip.objects.filter(paystack_reference=reference).first()
+        if tip and tip.status != Tip.Status.COMPLETED:
+            tip.status = Tip.Status.COMPLETED
+            tip.save(update_fields=["status"])
+            send_tip_thank_you(tip)
 
     elif event_type == "charge.failed":
         Tip.objects.filter(paystack_reference=reference).update(

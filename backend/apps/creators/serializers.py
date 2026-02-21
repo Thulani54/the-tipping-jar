@@ -15,6 +15,7 @@ class CreatorProfileSerializer(serializers.ModelSerializer):
         fields = (
             "id", "username", "avatar", "display_name", "slug",
             "tagline", "cover_image", "tip_goal", "total_tips",
+            "thank_you_message",
             "is_active", "created_at",
             # Banking
             "bank_name", "bank_account_holder",

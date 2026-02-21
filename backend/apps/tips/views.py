@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from apps.creators.models import CreatorProfile, Jar
 from apps.payments import paystack as ps
+from apps.support.emails import send_tip_thank_you
 from .models import Tip
 from .serializers import TipSerializer, CreateTipSerializer
 
@@ -100,6 +101,7 @@ class InitiateTipView(APIView):
                 jar=jar,
                 tipper=request.user if request.user.is_authenticated else None,
                 tipper_name=data.get("tipper_name", "Anonymous"),
+                tipper_email=data.get("tipper_email", ""),
                 amount=data["amount"],
                 message=data.get("message", ""),
                 status=Tip.Status.COMPLETED,
@@ -107,6 +109,7 @@ class InitiateTipView(APIView):
                 service_fee=Decimal(str(fees["service_fee"])),
                 creator_net=Decimal(str(fees["creator_net"])),
             )
+            send_tip_thank_you(tip)
             return Response(
                 {
                     "dev_mode": True,
@@ -129,6 +132,7 @@ class InitiateTipView(APIView):
             jar=jar,
             tipper=request.user if request.user.is_authenticated else None,
             tipper_name=data.get("tipper_name", "Anonymous"),
+            tipper_email=data.get("tipper_email", ""),
             amount=data["amount"],
             message=data.get("message", ""),
             status=Tip.Status.PENDING,
@@ -219,6 +223,7 @@ class VerifyTipView(APIView):
         if paystack_status == "success":
             tip.status = Tip.Status.COMPLETED
             tip.save(update_fields=["status"])
+            send_tip_thank_you(tip)
         elif paystack_status in ("failed", "abandoned"):
             tip.status = Tip.Status.FAILED
             tip.save(update_fields=["status"])

@@ -82,6 +82,72 @@ def send_contact_confirmation(contact):
     msg.send(fail_silently=True)
 
 
+# ─── Tip thank-you ────────────────────────────────────────────────────────────
+
+def send_tip_thank_you(tip):
+    """Send a thank-you email to the tipper after a successful payment."""
+    if not tip.tipper_email:
+        return
+
+    creator = tip.creator
+    tipper_name = tip.tipper_name or "there"
+    amount = f"R{tip.amount:.2f}"
+    jar_name = tip.jar.name if tip.jar else None
+    creator_page = f"https://www.tippingjar.co.za/creator/{creator.slug}"
+
+    custom_msg = (creator.thank_you_message.strip()
+                  if creator.thank_you_message.strip()
+                  else f"Thank you so much for the support — it truly means the world to me!")
+
+    subject = f"{creator.display_name} thanks you for your tip 💚"
+
+    jar_line = f" into the <strong>{jar_name}</strong> jar" if jar_name else ""
+    jar_line_text = f" into the '{jar_name}' jar" if jar_name else ""
+
+    body = (
+        f"Hi {tipper_name},\n\n"
+        f"You sent a {amount} tip{jar_line_text} to {creator.display_name}.\n\n"
+        f"{custom_msg}\n\n"
+        f"Visit {creator.display_name}'s page: {creator_page}\n\n"
+        f"— The TippingJar Team\n"
+        f"  www.tippingjar.co.za"
+    )
+
+    html = f"""
+<div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;padding:32px;background:#0A0F0D;color:#E2E8F0;border-radius:12px;">
+  <div style="text-align:center;margin-bottom:28px;">
+    <span style="font-size:40px;">💚</span>
+    <h2 style="color:#00C896;margin:8px 0 4px;">{creator.display_name} says thank you!</h2>
+    <p style="color:#7A9088;font-size:14px;margin:0;">Hi {tipper_name}, your tip was received.</p>
+  </div>
+  <div style="background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:20px;margin:0 0 24px;">
+    <p style="margin:0;font-size:13px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Tip amount</p>
+    <p style="margin:4px 0 0;font-size:28px;font-weight:800;color:#00C896;">{amount}</p>
+    {'<p style="margin:6px 0 0;font-size:13px;color:#7A9088;">Jar: <strong style=\\"color:#E2E8F0;\\">' + jar_name + '</strong></p>' if jar_name else ''}
+  </div>
+  <div style="background:#0D1A12;border-left:3px solid #00C896;padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:24px;">
+    <p style="margin:0;font-size:15px;line-height:1.7;color:#E2E8F0;font-style:italic;">"{custom_msg}"</p>
+    <p style="margin:10px 0 0;font-size:13px;color:#7A9088;">— {creator.display_name}</p>
+  </div>
+  <a href="{creator_page}" style="display:block;text-align:center;background:#00C896;color:#fff;text-decoration:none;padding:14px 28px;border-radius:36px;font-weight:700;font-size:15px;margin-bottom:24px;">
+    Visit {creator.display_name}'s page →
+  </a>
+  <hr style="border-color:#1E2E26;margin:0 0 16px;">
+  <p style="font-size:12px;color:#7A9088;margin:0;text-align:center;">
+    TippingJar · <a href="https://www.tippingjar.co.za" style="color:#00C896;">www.tippingjar.co.za</a>
+  </p>
+</div>"""
+
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=body,
+        from_email=_no_reply(),
+        to=[tip.tipper_email],
+    )
+    msg.attach_alternative(html, "text/html")
+    msg.send(fail_silently=True)
+
+
 # ─── Disputes ─────────────────────────────────────────────────────────────────
 
 def send_dispute_confirmation(dispute):
