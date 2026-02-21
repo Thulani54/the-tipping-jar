@@ -1,11 +1,11 @@
 {
-    "name": "the_tipping_jar",
-    "short_name": "the_tipping_jar",
+    "name": "TippingJar",
+    "short_name": "TippingJar",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#00C896",
+    "theme_color": "#00C896",
+    "description": "TippingJar — tip your favourite creators instantly. Support the people who inspire you.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
