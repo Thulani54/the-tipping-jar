@@ -105,11 +105,10 @@ def send_tip_thank_you(tip):
 
     custom_msg = (creator.thank_you_message.strip()
                   if creator.thank_you_message.strip()
-                  else f"Thank you so much for the support — it truly means the world to me!")
+                  else "Thank you so much for the support — it truly means the world to me!")
 
     subject = f"{creator.display_name} thanks you for your tip 💚"
 
-    jar_line = f" into the <strong>{jar_name}</strong> jar" if jar_name else ""
     jar_line_text = f" into the '{jar_name}' jar" if jar_name else ""
 
     body = (

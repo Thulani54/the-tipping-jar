@@ -93,7 +93,7 @@ class _TippingJarAppState extends State<TippingJarApp> {
               borderRadius: BorderRadius.circular(36)),
         ),
       ),
-      routerConfig: _router!,
+      routerConfig: _router,
     );
   }
 }

@@ -10,7 +10,6 @@ import '../models/dashboard_stats.dart';
 import '../models/jar_model.dart';
 import '../models/tip_model.dart';
 import '../providers/auth_provider.dart';
-import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/app_logo.dart';
 
