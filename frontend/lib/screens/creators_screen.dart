@@ -176,7 +176,7 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
   Widget _statsBar() {
     final stats = [
       ('${_creators.length}', 'Active creators'),
-      ('\$180K+', 'Tips sent'),
+      ('R3.6M+', 'Tips sent'),
       ('48', 'Countries'),
     ];
     return Container(
@@ -514,7 +514,7 @@ class _CreatorBrowseCardState extends State<_CreatorBrowseCard> {
             Row(children: [
               Icon(Icons.volunteer_activism, color: widget.color, size: 14),
               const SizedBox(width: 5),
-              Text('\$${widget.creator.totalTips.toStringAsFixed(0)} earned',
+              Text('R${widget.creator.totalTips.toStringAsFixed(0)} earned',
                   style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
             ]),
             const SizedBox(height: 12),

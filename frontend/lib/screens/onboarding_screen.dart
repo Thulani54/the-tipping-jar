@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme.dart';
+import '../widgets/app_logo.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -98,11 +99,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _header() => Column(children: [
     // Logo
     Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(
-        width: 32, height: 32,
-        decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
-        child: const Icon(Icons.volunteer_activism, color: Colors.white, size: 16),
-      ),
+      const AppLogoIcon(size: 32),
       const SizedBox(width: 8),
       Text('TippingJar', style: GoogleFonts.inter(
           color: Colors.white, fontWeight: FontWeight.w700,
@@ -405,7 +402,7 @@ class _StepProfile extends StatelessWidget {
   const _StepProfile({super.key,
       required this.taglineCtrl, required this.goalCtrl, required this.onChanged});
 
-  static const _goals = ['\$50', '\$200', '\$500', '\$1,000'];
+  static const _goals = ['R500', 'R2,000', 'R5,000', 'R10,000'];
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(

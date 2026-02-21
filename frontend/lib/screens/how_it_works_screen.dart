@@ -40,7 +40,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
     (
       Icons.volunteer_activism,
       'Choose your amount',
-      'Pick a quick amount (\$1 · \$5 · \$10 · \$25) or enter a custom value. No account needed — tip anonymously or leave your name and a message.',
+      'Pick a quick amount (R5 · R10 · R20 · R50) or enter a custom value. No account needed — tip anonymously or leave your name and a message.',
       kTeal,
     ),
     (
@@ -87,7 +87,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
   static const _faqs = [
     (
       'How much does TippingJar take?',
-      'TippingJar charges 0% platform fee. Stripe\'s standard processing fee (2.9% + \$0.30) applies to each transaction. That\'s it — no subscriptions, no hidden charges.'
+      'TippingJar charges 0% platform fee. Stripe\'s standard processing fee (2.9% + R0.30) applies to each transaction. That\'s it — no subscriptions, no hidden charges.'
     ),
     (
       'When do I get paid?',

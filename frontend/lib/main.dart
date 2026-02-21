@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'providers/auth_provider.dart';
@@ -8,21 +9,49 @@ const _primary = Color(0xFF00C896); // emerald green
 
 void main() {
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-      ],
+    ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
       child: const TippingJarApp(),
     ),
   );
 }
 
-class TippingJarApp extends StatelessWidget {
+class TippingJarApp extends StatefulWidget {
   const TippingJarApp({super.key});
+  @override
+  State<TippingJarApp> createState() => _TippingJarAppState();
+}
+
+class _TippingJarAppState extends State<TippingJarApp> {
+  GoRouter? _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final auth = context.read<AuthProvider>();
+    await auth.init(); // restore session from SharedPreferences
+    if (mounted) {
+      setState(() => _router = buildRouter(auth));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final router = buildRouter(context);
+    if (_router == null) {
+      // Splash while we restore the saved session
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Color(0xFF0D0D0D),
+          body: Center(child: CircularProgressIndicator(color: Color(0xFF00C896))),
+        ),
+      );
+    }
+
     return MaterialApp.router(
       title: 'The Tipping Jar',
       debugShowCheckedModeBanner: false,
@@ -73,7 +102,7 @@ class TippingJarApp extends StatelessWidget {
               borderRadius: BorderRadius.circular(36)),
         ),
       ),
-      routerConfig: router,
+      routerConfig: _router!,
     );
   }
 }

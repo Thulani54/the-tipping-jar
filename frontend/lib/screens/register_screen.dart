@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
+import '../widgets/app_logo.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -88,11 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return GestureDetector(
       onTap: () => ctx.go('/'),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 36, height: 36,
-          decoration: BoxDecoration(color: kPrimary, shape: BoxShape.circle),
-          child: const Icon(Icons.volunteer_activism, color: Colors.white, size: 18),
-        ),
+        const AppLogoIcon(size: 36),
         const SizedBox(width: 10),
         Text('TippingJar',
             style: GoogleFonts.inter(

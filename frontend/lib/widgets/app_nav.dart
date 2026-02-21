@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme.dart';
+import 'app_logo.dart';
 
 class AppNav extends StatelessWidget implements PreferredSizeWidget {
   final String? activeRoute;
@@ -17,6 +18,7 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
     ('Creators',     '/creators'),
     ('Enterprise',   '/enterprise'),
     ('Developers',   '/developers'),
+    ('Contact',      '/contact'),
   ];
 
   @override
@@ -34,16 +36,7 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
             GestureDetector(
               onTap: () => context.go('/'),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: const BoxDecoration(
-                    color: kPrimary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.volunteer_activism,
-                      color: Colors.white, size: 15),
-                ),
+                const AppLogoIcon(size: 30),
                 const SizedBox(width: 9),
                 Text('TippingJar',
                     style: GoogleFonts.inter(
