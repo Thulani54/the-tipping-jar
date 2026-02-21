@@ -179,3 +179,12 @@ SMS_PORTAL_ENDPOINT = env("SMS_PORTAL_ENDPOINT", default="https://api.smsportal.
 
 # ── Site ───────────────────────────────────────────────────────────────────────
 SITE_URL = env("SITE_URL", default="https://tippingjar.co.za")
+
+# ── Azure Blob Storage (media files) ───────────────────────────────────────────
+AZURE_ACCOUNT_NAME = env("AZURE_STORAGE_ACCOUNT_NAME", default="")
+AZURE_ACCOUNT_KEY  = env("AZURE_STORAGE_ACCOUNT_KEY", default="")
+AZURE_CONTAINER    = env("AZURE_STORAGE_CONTAINER", default="media")
+
+if AZURE_ACCOUNT_NAME:
+    DEFAULT_FILE_STORAGE = "storages.backends.azure_storage.AzureStorage"
+# else: falls back to local filesystem (dev)

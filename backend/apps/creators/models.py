@@ -50,6 +50,29 @@ class CreatorProfile(models.Model):
         )["total"] or 0
 
 
+class CreatorPost(models.Model):
+    class PostType(models.TextChoices):
+        TEXT  = "text",  "Text"
+        IMAGE = "image", "Image"
+        VIDEO = "video", "Video"
+        FILE  = "file",  "File"
+
+    creator      = models.ForeignKey(CreatorProfile, on_delete=models.CASCADE, related_name="posts")
+    title        = models.CharField(max_length=200)
+    body         = models.TextField(blank=True, default="")
+    media_file   = models.FileField(upload_to="posts/", blank=True, null=True)
+    video_url    = models.URLField(blank=True, default="")
+    post_type    = models.CharField(max_length=10, choices=PostType.choices, default=PostType.TEXT)
+    is_published = models.BooleanField(default=True)
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.creator.display_name} — {self.title}"
+
+
 class Jar(models.Model):
     """A named campaign / purpose a creator can collect tips into."""
 

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/creator.dart';
+import '../models/creator_post_model.dart';
 import '../models/jar_model.dart';
 import '../models/tip.dart';
 import '../services/api_service.dart';
@@ -25,6 +26,9 @@ class _CreatorScreenState extends State<CreatorScreen> {
   Creator? _creator;
   List<Tip> _tips = [];
   List<JarModel> _jars = [];
+  List<CreatorPostModel> _publicPosts = [];
+  // null = locked, non-null = unlocked (may be empty if no posts)
+  List<CreatorPostModel>? _unlockedPosts;
   bool _loading = true;
   String? _loadError;
 
@@ -42,16 +46,23 @@ class _CreatorScreenState extends State<CreatorScreen> {
         api.getCreator(widget.slug),
         api.getCreatorTips(widget.slug),
         api.getCreatorJars(widget.slug),
+        api.getPublicPosts(widget.slug),
       ]);
       if (mounted) setState(() {
-        _creator = results[0] as Creator;
-        _tips    = results[1] as List<Tip>;
-        _jars    = results[2] as List<JarModel>;
+        _creator     = results[0] as Creator;
+        _tips        = results[1] as List<Tip>;
+        _jars        = results[2] as List<JarModel>;
+        _publicPosts = results[3] as List<CreatorPostModel>;
+        _unlockedPosts = null;
         _loading = false;
       });
     } catch (e) {
       if (mounted) setState(() { _loadError = e.toString(); _loading = false; });
     }
+  }
+
+  void _onUnlocked(List<CreatorPostModel> posts) {
+    setState(() => _unlockedPosts = posts);
   }
 
   @override
@@ -68,8 +79,16 @@ class _CreatorScreenState extends State<CreatorScreen> {
         _MiniNav(creatorName: creator.displayName),
         Expanded(
           child: wide
-              ? _WideBody(creator: creator, tips: _tips, jars: _jars, onTipSent: _load)
-              : _NarrowBody(creator: creator, tips: _tips, jars: _jars, onTipSent: _load),
+              ? _WideBody(
+                  creator: creator, tips: _tips, jars: _jars,
+                  publicPosts: _publicPosts, unlockedPosts: _unlockedPosts,
+                  onTipSent: _load, onUnlocked: _onUnlocked,
+                )
+              : _NarrowBody(
+                  creator: creator, tips: _tips, jars: _jars,
+                  publicPosts: _publicPosts, unlockedPosts: _unlockedPosts,
+                  onTipSent: _load, onUnlocked: _onUnlocked,
+                ),
         ),
       ]),
     );
@@ -145,14 +164,25 @@ class _WideBody extends StatelessWidget {
   final Creator creator;
   final List<Tip> tips;
   final List<JarModel> jars;
+  final List<CreatorPostModel> publicPosts;
+  final List<CreatorPostModel>? unlockedPosts;
   final VoidCallback onTipSent;
-  const _WideBody({required this.creator, required this.tips, required this.jars, required this.onTipSent});
+  final void Function(List<CreatorPostModel>) onUnlocked;
+  const _WideBody({
+    required this.creator,
+    required this.tips,
+    required this.jars,
+    required this.publicPosts,
+    required this.unlockedPosts,
+    required this.onTipSent,
+    required this.onUnlocked,
+  });
 
   @override
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      // Left: profile + jars + recent tips (scrollable)
+      // Left: profile + jars + content + recent tips (scrollable)
       Expanded(
         flex: 4,
         child: SingleChildScrollView(
@@ -166,6 +196,15 @@ class _WideBody extends StatelessWidget {
             if (jars.isNotEmpty) ...[
               const SizedBox(height: 32),
               _JarsSection(jars: jars, creatorSlug: creator.slug),
+            ],
+            if (publicPosts.isNotEmpty) ...[
+              const SizedBox(height: 32),
+              _ContentSection(
+                creatorSlug: creator.slug,
+                publicPosts: publicPosts,
+                unlockedPosts: unlockedPosts,
+                onUnlocked: onUnlocked,
+              ),
             ],
             const SizedBox(height: 32),
             _TipFeed(tips: tips),
@@ -191,8 +230,19 @@ class _NarrowBody extends StatelessWidget {
   final Creator creator;
   final List<Tip> tips;
   final List<JarModel> jars;
+  final List<CreatorPostModel> publicPosts;
+  final List<CreatorPostModel>? unlockedPosts;
   final VoidCallback onTipSent;
-  const _NarrowBody({required this.creator, required this.tips, required this.jars, required this.onTipSent});
+  final void Function(List<CreatorPostModel>) onUnlocked;
+  const _NarrowBody({
+    required this.creator,
+    required this.tips,
+    required this.jars,
+    required this.publicPosts,
+    required this.unlockedPosts,
+    required this.onTipSent,
+    required this.onUnlocked,
+  });
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
@@ -206,6 +256,15 @@ class _NarrowBody extends StatelessWidget {
       if (jars.isNotEmpty) ...[
         const SizedBox(height: 24),
         _JarsSection(jars: jars, creatorSlug: creator.slug),
+      ],
+      if (publicPosts.isNotEmpty) ...[
+        const SizedBox(height: 24),
+        _ContentSection(
+          creatorSlug: creator.slug,
+          publicPosts: publicPosts,
+          unlockedPosts: unlockedPosts,
+          onUnlocked: onUnlocked,
+        ),
       ],
       const SizedBox(height: 28),
       _TipForm(creator: creator, onTipSent: onTipSent),
@@ -1093,6 +1152,327 @@ class _JarCardState extends State<_JarCard> {
       ),
     );
   }
+}
+
+// ─── Exclusive content section ────────────────────────────────────────────────
+class _ContentSection extends StatelessWidget {
+  final String creatorSlug;
+  final List<CreatorPostModel> publicPosts;
+  final List<CreatorPostModel>? unlockedPosts;
+  final void Function(List<CreatorPostModel>) onUnlocked;
+
+  const _ContentSection({
+    required this.creatorSlug,
+    required this.publicPosts,
+    required this.unlockedPosts,
+    required this.onUnlocked,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isUnlocked = unlockedPosts != null;
+    final posts = isUnlocked ? unlockedPosts! : publicPosts;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // Header
+      Row(children: [
+        const Icon(Icons.lock_rounded, color: kPrimary, size: 16),
+        const SizedBox(width: 8),
+        Text('Exclusive Content',
+            style: GoogleFonts.inter(
+                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+        const Spacer(),
+        if (!isUnlocked)
+          GestureDetector(
+            onTap: () => _showUnlockDialog(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: kPrimary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(36),
+                border: Border.all(color: kPrimary.withValues(alpha: 0.4)),
+              ),
+              child: Text('Unlock with email',
+                  style: GoogleFonts.inter(
+                      color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
+            ),
+          ),
+      ]),
+      const SizedBox(height: 12),
+
+      // Post cards
+      ...posts.asMap().entries.map((e) {
+        if (isUnlocked) {
+          return _UnlockedPostCard(post: e.value)
+              .animate()
+              .fadeIn(delay: (e.key * 60).ms, duration: 350.ms);
+        } else {
+          return _LockedPostCard(post: e.value, onUnlock: () => _showUnlockDialog(context))
+              .animate()
+              .fadeIn(delay: (e.key * 60).ms, duration: 350.ms);
+        }
+      }),
+    ]);
+  }
+
+  Future<void> _showUnlockDialog(BuildContext context) async {
+    final emailCtrl = TextEditingController();
+    bool loading = false;
+    String? error;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          backgroundColor: kCardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Unlock exclusive content',
+              style: GoogleFonts.inter(
+                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(
+              'Enter the email you used when tipping to unlock the content.',
+              style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'you@example.com',
+                hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+                prefixIcon: const Icon(Icons.email_outlined, color: kMuted, size: 18),
+                filled: true, fillColor: kDark,
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kBorder)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimary, width: 2)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 10),
+              Text(error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 12)),
+            ],
+          ]),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+            ),
+            StatefulBuilder(
+              builder: (_, setBtn) => ElevatedButton(
+                onPressed: loading ? null : () async {
+                  final email = emailCtrl.text.trim();
+                  if (email.isEmpty) return;
+                  setS(() { loading = true; error = null; });
+                  try {
+                    final posts = await ApiService().unlockPosts(creatorSlug, email);
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      onUnlocked(posts);
+                    }
+                  } catch (e) {
+                    setS(() {
+                      loading = false;
+                      error = e.toString().contains('no_tip')
+                          ? 'No tip found for this email. Tip the creator first!'
+                          : 'Something went wrong. Please try again.';
+                    });
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimary, foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+                child: loading
+                    ? const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text('Unlock', style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LockedPostCard extends StatelessWidget {
+  final CreatorPostModel post;
+  final VoidCallback onUnlock;
+  const _LockedPostCard({required this.post, required this.onUnlock});
+
+  IconData get _typeIcon => switch (post.postType) {
+    'image' => Icons.image_rounded,
+    'video' => Icons.play_circle_outline_rounded,
+    'file'  => Icons.attach_file_rounded,
+    _       => Icons.article_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onUnlock,
+    child: Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kCardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kBorder),
+      ),
+      child: Row(children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(
+              color: kMuted.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(9)),
+          child: Icon(_typeIcon, color: kMuted, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(post.title, style: GoogleFonts.inter(
+              color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 3),
+          Text('Tip to unlock', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+        ])),
+        const Icon(Icons.lock_rounded, color: kMuted, size: 16),
+      ]),
+    ),
+  );
+}
+
+class _UnlockedPostCard extends StatelessWidget {
+  final CreatorPostModel post;
+  const _UnlockedPostCard({required this.post});
+
+  IconData get _typeIcon => switch (post.postType) {
+    'image' => Icons.image_rounded,
+    'video' => Icons.play_circle_outline_rounded,
+    'file'  => Icons.attach_file_rounded,
+    _       => Icons.article_rounded,
+  };
+
+  Color get _typeColor => switch (post.postType) {
+    'image' => const Color(0xFF60A5FA),
+    'video' => const Color(0xFFF472B6),
+    'file'  => const Color(0xFFFBBF24),
+    _       => kPrimary,
+  };
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: kCardBg,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: kPrimary.withValues(alpha: 0.3)),
+    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(
+          width: 32, height: 32,
+          decoration: BoxDecoration(
+              color: _typeColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8)),
+          child: Icon(_typeIcon, color: _typeColor, size: 16),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Text(post.title, style: GoogleFonts.inter(
+            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+            maxLines: 1, overflow: TextOverflow.ellipsis)),
+        const Icon(Icons.lock_open_rounded, color: kPrimary, size: 15),
+      ]),
+
+      // Body text
+      if (post.body.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        Text(post.body, style: GoogleFonts.inter(
+            color: Colors.white.withValues(alpha: 0.85), fontSize: 13, height: 1.55)),
+      ],
+
+      // Image
+      if (post.postType == 'image' && post.mediaUrl != null) ...[
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.network(
+            post.mediaUrl!,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            errorBuilder: (_, __, _e) => Container(
+              height: 120,
+              color: kDark,
+              child: const Center(child: Icon(Icons.broken_image_rounded, color: kMuted)),
+            ),
+          ),
+        ),
+      ],
+
+      // Video link
+      if (post.postType == 'video' && post.videoUrl.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: () async {
+            final uri = Uri.tryParse(post.videoUrl);
+            if (uri != null && await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF472B6).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFF472B6).withValues(alpha: 0.3)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.play_circle_outline_rounded,
+                  color: Color(0xFFF472B6), size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(post.videoUrl, style: GoogleFonts.inter(
+                  color: const Color(0xFFF472B6), fontSize: 12),
+                  overflow: TextOverflow.ellipsis)),
+              const Icon(Icons.open_in_new_rounded,
+                  color: Color(0xFFF472B6), size: 13),
+            ]),
+          ),
+        ),
+      ],
+
+      // File download
+      if (post.postType == 'file' && post.mediaUrl != null) ...[
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: () async {
+            final uri = Uri.tryParse(post.mediaUrl!);
+            if (uri != null && await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFBBF24).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.3)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.download_rounded, color: Color(0xFFFBBF24), size: 18),
+              const SizedBox(width: 8),
+              Text('Download file', style: GoogleFonts.inter(
+                  color: const Color(0xFFFBBF24), fontWeight: FontWeight.w600,
+                  fontSize: 13)),
+            ]),
+          ),
+        ),
+      ],
+    ]),
+  );
 }
 
 // ─── Amount preset grid ───────────────────────────────────────────────────────

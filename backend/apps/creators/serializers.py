@@ -1,7 +1,32 @@
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from .models import CreatorProfile, Jar
+from .models import CreatorPost, CreatorProfile, Jar
+
+
+class CreatorPostPublicSerializer(serializers.ModelSerializer):
+    """Metadata only — safe for the public tip page."""
+
+    class Meta:
+        model  = CreatorPost
+        fields = ["id", "title", "post_type", "created_at"]
+
+
+class CreatorPostSerializer(serializers.ModelSerializer):
+    """Full content — returned only to verified tippers."""
+
+    media_url = serializers.SerializerMethodField()
+
+    def get_media_url(self, obj):
+        request = self.context.get("request")
+        if obj.media_file and request:
+            return request.build_absolute_uri(obj.media_file.url)
+        return None
+
+    class Meta:
+        model  = CreatorPost
+        fields = ["id", "title", "body", "post_type", "video_url", "media_url",
+                  "is_published", "created_at"]
 
 
 class CreatorProfileSerializer(serializers.ModelSerializer):

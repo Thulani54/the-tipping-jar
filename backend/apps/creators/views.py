@@ -3,15 +3,23 @@ import logging
 
 from django.conf import settings
 from django.db.models import Sum
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.payments import paystack as ps
+from apps.tips.models import Tip
 
-from .models import CreatorProfile, Jar
-from .serializers import CreatorProfileSerializer, JarSerializer
+from .models import CreatorPost, CreatorProfile, Jar
+from .serializers import (
+    CreatorPostPublicSerializer,
+    CreatorPostSerializer,
+    CreatorProfileSerializer,
+    JarSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -200,10 +208,97 @@ class PublicJarDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_object(self):
-        from django.shortcuts import get_object_or_404
         return get_object_or_404(
             Jar,
             creator__slug=self.kwargs["slug"],
             slug=self.kwargs["jar_slug"],
             is_active=True,
+        )
+
+
+# ── Creator post views ─────────────────────────────────────────────────────────
+
+class MyPostListCreateView(generics.ListCreateAPIView):
+    """Authenticated creator: list own posts or create a new one."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    serializer_class = CreatorPostSerializer
+
+    def get_queryset(self):
+        try:
+            profile = CreatorProfile.objects.get(user=self.request.user)
+            return CreatorPost.objects.filter(creator=profile)
+        except CreatorProfile.DoesNotExist:
+            return CreatorPost.objects.none()
+
+    def perform_create(self, serializer):
+        profile = CreatorProfile.objects.get(user=self.request.user)
+        serializer.save(creator=profile)
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["request"] = self.request
+        return ctx
+
+
+class MyPostDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Authenticated creator: retrieve, update, or delete a specific post."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    serializer_class = CreatorPostSerializer
+
+    def get_queryset(self):
+        try:
+            profile = CreatorProfile.objects.get(user=self.request.user)
+            return CreatorPost.objects.filter(creator=profile)
+        except CreatorProfile.DoesNotExist:
+            return CreatorPost.objects.none()
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["request"] = self.request
+        return ctx
+
+
+class PublicPostListView(generics.ListAPIView):
+    """Public: list published post teasers (title + type only) for a creator."""
+
+    serializer_class = CreatorPostPublicSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        return CreatorPost.objects.filter(
+            creator__slug=self.kwargs["slug"],
+            is_published=True,
+        )
+
+
+class PostAccessView(APIView):
+    """POST {email} → 200 with full posts if the email has a completed tip, else 403."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, slug):
+        email = request.data.get("email", "").strip().lower()
+        if not email:
+            return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        creator = get_object_or_404(CreatorProfile, slug=slug)
+        has_tipped = Tip.objects.filter(
+            creator=creator,
+            tipper_email__iexact=email,
+            status=Tip.Status.COMPLETED,
+        ).exists()
+
+        if not has_tipped:
+            return Response(
+                {"detail": "No completed tip found for this email."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        posts = creator.posts.filter(is_published=True)
+        return Response(
+            CreatorPostSerializer(posts, many=True, context={"request": request}).data
         )

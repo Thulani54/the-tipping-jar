@@ -1,10 +1,12 @@
 import 'dart:math' as math;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../models/creator_post_model.dart';
 import '../models/creator_profile_model.dart';
 import '../models/dashboard_stats.dart';
 import '../models/jar_model.dart';
@@ -107,6 +109,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         BottomNavigationBarItem(icon: Icon(Icons.volunteer_activism, size: 20), label: 'Tips'),
         BottomNavigationBarItem(icon: Icon(Icons.savings_rounded, size: 20), label: 'Jars'),
         BottomNavigationBarItem(icon: Icon(Icons.bar_chart_rounded, size: 20), label: 'Analytics'),
+        BottomNavigationBarItem(icon: Icon(Icons.photo_library_outlined, size: 20), label: 'Content'),
         BottomNavigationBarItem(icon: Icon(Icons.person_rounded, size: 20), label: 'Profile'),
       ],
     ),
@@ -124,7 +127,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       1 => _TipsPage(tips: d.tips, onRefresh: _load),
       2 => _JarsPage(profile: d.profile),
       3 => _AnalyticsPage(stats: d.stats, tips: d.tips),
-      4 => _ProfilePage(
+      4 => _ContentPage(),
+      5 => _ProfilePage(
           profile: d.profile,
           onCopyLink: _copyLink,
           onUpdated: _onProfileUpdated,
@@ -181,11 +185,12 @@ class _Sidebar extends StatelessWidget {
   const _Sidebar({required this.selected, required this.onSelect, required this.onLogout, this.creatorSlug});
 
   static const _items = [
-    (Icons.dashboard_rounded,  'Overview'),
-    (Icons.volunteer_activism, 'Tips'),
-    (Icons.savings_rounded,    'Jars'),
-    (Icons.bar_chart_rounded,  'Analytics'),
-    (Icons.person_rounded,     'Profile'),
+    (Icons.dashboard_rounded,     'Overview'),
+    (Icons.volunteer_activism,    'Tips'),
+    (Icons.savings_rounded,       'Jars'),
+    (Icons.bar_chart_rounded,     'Analytics'),
+    (Icons.photo_library_outlined,'Content'),
+    (Icons.person_rounded,        'Profile'),
   ];
 
   @override
@@ -1314,6 +1319,531 @@ class _BankCta extends StatelessWidget {
       ])),
     ]),
   );
+}
+
+// ─── Content page ─────────────────────────────────────────────────────────────
+class _ContentPage extends StatefulWidget {
+  @override
+  State<_ContentPage> createState() => _ContentPageState();
+}
+
+class _ContentPageState extends State<_ContentPage> {
+  List<CreatorPostModel> _posts = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final posts = await context.read<AuthProvider>().api.getMyPosts();
+      if (mounted) setState(() { _posts = posts; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      color: kPrimary, backgroundColor: kCardBg,
+      onRefresh: _load,
+      child: _loading
+          ? const Center(child: CircularProgressIndicator(color: kPrimary))
+          : _error != null
+              ? Center(child: Text(_error!, style: GoogleFonts.inter(color: kMuted)))
+              : ListView(
+                  padding: const EdgeInsets.all(28),
+                  children: [
+                    // Header
+                    Row(children: [
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Exclusive Content', style: GoogleFonts.inter(
+                            color: Colors.white, fontWeight: FontWeight.w800,
+                            fontSize: 22, letterSpacing: -0.5)),
+                        const SizedBox(height: 4),
+                        Text('Only tippers who have sent you money can unlock these posts.',
+                            style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+                      ])),
+                      const SizedBox(width: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => _showPostDialog(context),
+                        icon: const Icon(Icons.add_rounded, size: 16),
+                        label: Text('New post', style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w700, fontSize: 13)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kPrimary, foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 28),
+
+                    if (_posts.isEmpty)
+                      _emptyState()
+                    else
+                      ..._posts.asMap().entries.map((e) =>
+                        _PostCard(
+                          post: e.value,
+                          onEdit: () => _showPostDialog(context, post: e.value),
+                          onDelete: () => _confirmDelete(context, e.value),
+                        ).animate().fadeIn(delay: (e.key * 60).ms, duration: 350.ms)),
+                  ],
+                ),
+    );
+  }
+
+  Widget _emptyState() => Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Column(children: [
+        Container(
+          width: 72, height: 72,
+          decoration: BoxDecoration(
+              color: kPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
+          child: const Icon(Icons.photo_library_outlined, color: kPrimary, size: 32),
+        ),
+        const SizedBox(height: 20),
+        Text('No posts yet', style: GoogleFonts.inter(
+            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+        const SizedBox(height: 8),
+        Text('Create exclusive content that only your tippers can unlock.',
+            style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
+            textAlign: TextAlign.center),
+        const SizedBox(height: 24),
+        ElevatedButton.icon(
+          onPressed: () => _showPostDialog(context),
+          icon: const Icon(Icons.add_rounded, size: 16),
+          label: Text('Create your first post',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+          ),
+        ),
+      ]),
+    ),
+  );
+
+  Future<void> _confirmDelete(BuildContext context, CreatorPostModel post) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: kCardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Delete "${post.title}"?',
+            style: GoogleFonts.inter(color: Colors.white,
+                fontWeight: FontWeight.w700, fontSize: 16)),
+        content: Text('This post will be permanently deleted.',
+            style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent, foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+            child: Text('Delete', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      try {
+        await context.read<AuthProvider>().api.deletePost(post.id);
+        _load();
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to delete post')));
+        }
+      }
+    }
+  }
+
+  Future<void> _showPostDialog(BuildContext context, {CreatorPostModel? post}) async {
+    await showDialog(
+      context: context,
+      builder: (_) => _PostFormDialog(
+        post: post,
+        onSaved: _load,
+      ),
+    );
+  }
+}
+
+// ─── Post card (dashboard) ────────────────────────────────────────────────────
+class _PostCard extends StatelessWidget {
+  final CreatorPostModel post;
+  final VoidCallback onEdit, onDelete;
+  const _PostCard({required this.post, required this.onEdit, required this.onDelete});
+
+  IconData get _typeIcon => switch (post.postType) {
+    'image' => Icons.image_rounded,
+    'video' => Icons.play_circle_outline_rounded,
+    'file'  => Icons.attach_file_rounded,
+    _       => Icons.article_rounded,
+  };
+
+  Color get _typeColor => switch (post.postType) {
+    'image' => const Color(0xFF60A5FA),
+    'video' => const Color(0xFFF472B6),
+    'file'  => const Color(0xFFFBBF24),
+    _       => kPrimary,
+  };
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: 14),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: kCardBg, borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: kBorder),
+    ),
+    child: Row(children: [
+      Container(
+        width: 40, height: 40,
+        decoration: BoxDecoration(
+            color: _typeColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10)),
+        child: Icon(_typeIcon, color: _typeColor, size: 20),
+      ),
+      const SizedBox(width: 14),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(post.title, style: GoogleFonts.inter(
+            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 4),
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+                color: _typeColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(36)),
+            child: Text(post.postType.toUpperCase(), style: GoogleFonts.inter(
+                color: _typeColor, fontSize: 10, fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${post.createdAt.day}/${post.createdAt.month}/${post.createdAt.year}',
+            style: GoogleFonts.inter(color: kMuted, fontSize: 11),
+          ),
+          const SizedBox(width: 8),
+          if (!post.isPublished)
+            Text('Draft', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+        ]),
+      ])),
+      PopupMenuButton<String>(
+        color: kCardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: kBorder)),
+        onSelected: (v) {
+          if (v == 'edit') onEdit();
+          if (v == 'delete') onDelete();
+        },
+        itemBuilder: (_) => [
+          PopupMenuItem(value: 'edit', child: Row(children: [
+            const Icon(Icons.edit_rounded, color: Colors.white, size: 15),
+            const SizedBox(width: 10),
+            Text('Edit', style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+          ])),
+          PopupMenuItem(value: 'delete', child: Row(children: [
+            const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 15),
+            const SizedBox(width: 10),
+            Text('Delete', style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
+          ])),
+        ],
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: kDark, borderRadius: BorderRadius.circular(8)),
+          child: const Icon(Icons.more_horiz_rounded, color: kMuted, size: 18),
+        ),
+      ),
+    ]),
+  );
+}
+
+// ─── Post create/edit dialog ──────────────────────────────────────────────────
+class _PostFormDialog extends StatefulWidget {
+  final CreatorPostModel? post;
+  final VoidCallback onSaved;
+  const _PostFormDialog({this.post, required this.onSaved});
+  @override
+  State<_PostFormDialog> createState() => _PostFormDialogState();
+}
+
+class _PostFormDialogState extends State<_PostFormDialog> {
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _bodyCtrl;
+  late final TextEditingController _videoUrlCtrl;
+  late String _postType;
+  late bool _isPublished;
+  bool _saving = false;
+  String? _error;
+  String? _pickedFileName;
+  List<int>? _pickedFileBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.post;
+    _titleCtrl    = TextEditingController(text: p?.title ?? '');
+    _bodyCtrl     = TextEditingController(text: p?.body ?? '');
+    _videoUrlCtrl = TextEditingController(text: p?.videoUrl ?? '');
+    _postType     = p?.postType ?? 'text';
+    _isPublished  = p?.isPublished ?? true;
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _bodyCtrl.dispose();
+    _videoUrlCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(withData: true);
+    if (result != null && result.files.single.bytes != null) {
+      setState(() {
+        _pickedFileName = result.files.single.name;
+        _pickedFileBytes = result.files.single.bytes!.toList();
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    if (_titleCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'Title is required.');
+      return;
+    }
+    setState(() { _saving = true; _error = null; });
+
+    final fields = <String, String>{
+      'title':        _titleCtrl.text.trim(),
+      'body':         _bodyCtrl.text.trim(),
+      'post_type':    _postType,
+      'video_url':    _videoUrlCtrl.text.trim(),
+      'is_published': _isPublished.toString(),
+    };
+
+    try {
+      final api = context.read<AuthProvider>().api;
+      if (widget.post == null) {
+        await api.createPost(
+          fields,
+          fileBytes: _pickedFileBytes != null
+              ? Uint8List.fromList(_pickedFileBytes!) : null,
+          fileName: _pickedFileName,
+        );
+      } else {
+        await api.updatePost(
+          widget.post!.id,
+          fields,
+          fileBytes: _pickedFileBytes != null
+              ? Uint8List.fromList(_pickedFileBytes!) : null,
+          fileName: _pickedFileName,
+        );
+      }
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onSaved();
+      }
+    } catch (e) {
+      if (mounted) setState(() { _error = 'Failed to save. Try again.'; _saving = false; });
+    }
+  }
+
+  InputDecoration _deco(String hint) => InputDecoration(
+    hintText: hint,
+    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+    filled: true, fillColor: kDark,
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: kBorder)),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: kPrimary, width: 2)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.post != null;
+    return Dialog(
+      backgroundColor: kCardBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // Header
+              Row(children: [
+                Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                      color: kPrimary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.photo_library_outlined, color: kPrimary, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Text(isEdit ? 'Edit post' : 'New post', style: GoogleFonts.inter(
+                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded, color: kMuted),
+                ),
+              ]),
+              const SizedBox(height: 24),
+
+              // Title
+              Text('Title *', style: GoogleFonts.inter(
+                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _titleCtrl,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                decoration: _deco('Post title'),
+              ),
+              const SizedBox(height: 16),
+
+              // Post type
+              Text('Post type', style: GoogleFonts.inter(
+                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _postType,
+                dropdownColor: kCardBg,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                decoration: _deco(''),
+                items: const [
+                  DropdownMenuItem(value: 'text',  child: Text('Text')),
+                  DropdownMenuItem(value: 'image', child: Text('Image')),
+                  DropdownMenuItem(value: 'video', child: Text('Video')),
+                  DropdownMenuItem(value: 'file',  child: Text('File')),
+                ],
+                onChanged: (v) => setState(() => _postType = v ?? _postType),
+              ),
+              const SizedBox(height: 16),
+
+              // Body
+              Text('Body (optional)', style: GoogleFonts.inter(
+                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _bodyCtrl,
+                maxLines: 4,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                decoration: _deco('Write your exclusive content here…'),
+              ),
+              const SizedBox(height: 16),
+
+              // Video URL (only for video type)
+              if (_postType == 'video') ...[
+                Text('Video URL (YouTube / Vimeo)', style: GoogleFonts.inter(
+                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _videoUrlCtrl,
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                  decoration: _deco('https://youtube.com/watch?v=...'),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // File picker (for image/file types)
+              if (_postType == 'image' || _postType == 'file') ...[
+                Text('Upload file', style: GoogleFonts.inter(
+                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _pickFile,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: kDark, borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _pickedFileName != null ? kPrimary : kBorder),
+                    ),
+                    child: Row(children: [
+                      Icon(
+                        _pickedFileName != null ? Icons.check_circle_rounded : Icons.upload_file_rounded,
+                        color: _pickedFileName != null ? kPrimary : kMuted, size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(
+                        _pickedFileName ?? (widget.post?.mediaUrl != null
+                            ? 'Current file — tap to replace'
+                            : 'Tap to choose a file'),
+                        style: GoogleFonts.inter(
+                            color: _pickedFileName != null ? kPrimary : kMuted, fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      )),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Published toggle
+              Row(children: [
+                Expanded(child: Text('Published', style: GoogleFonts.inter(
+                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13))),
+                Switch(
+                  value: _isPublished,
+                  onChanged: (v) => setState(() => _isPublished = v),
+                  activeColor: kPrimary,
+                ),
+              ]),
+
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
+              ],
+              const SizedBox(height: 24),
+
+              Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel', style: GoogleFonts.inter(
+                      color: kMuted, fontWeight: FontWeight.w600)),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
+                    disabledBackgroundColor: kPrimary.withValues(alpha: 0.4),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                  ),
+                  child: _saving
+                      ? const SizedBox(width: 16, height: 16,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(isEdit ? 'Save changes' : 'Publish post',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                ),
+              ]),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ─── Jars page ────────────────────────────────────────────────────────────────

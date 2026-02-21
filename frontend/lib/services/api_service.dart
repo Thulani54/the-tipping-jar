@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/api_key_model.dart';
 import '../models/app_user.dart';
+import '../models/creator_post_model.dart';
 import '../models/dispute_model.dart';
 import '../models/creator.dart';
 import '../models/creator_profile_model.dart';
@@ -366,6 +368,126 @@ class ApiService {
       return jsonDecode(res.body) as Map<String, dynamic>;
     }
     throw Exception('Failed to verify tip: ${res.body}');
+  }
+
+  // ── Creator posts ─────────────────────────────────────────────────
+
+  Map<String, String> get _authHeaders => {
+        if (authToken != null) 'Authorization': 'Bearer $authToken',
+        if (apiKey != null) 'X-API-Key': apiKey!,
+      };
+
+  Future<List<CreatorPostModel>> getMyPosts() async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/creators/me/posts/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list
+          .map((e) => CreatorPostModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception('Failed to load posts');
+  }
+
+  Future<CreatorPostModel> createPost(
+    Map<String, String> fields, {
+    Uint8List? fileBytes,
+    String? fileName,
+  }) async {
+    final req = http.MultipartRequest(
+      'POST',
+      Uri.parse('$_baseUrl/creators/me/posts/'),
+    )
+      ..headers.addAll(_authHeaders)
+      ..fields.addAll(fields);
+
+    if (fileBytes != null && fileName != null) {
+      req.files.add(http.MultipartFile.fromBytes(
+        'media_file',
+        fileBytes,
+        filename: fileName,
+      ));
+    }
+
+    final streamed = await req.send();
+    final res = await http.Response.fromStream(streamed);
+    if (res.statusCode == 201) {
+      return CreatorPostModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to create post: ${res.body}');
+  }
+
+  Future<CreatorPostModel> updatePost(
+    int id,
+    Map<String, String> fields, {
+    Uint8List? fileBytes,
+    String? fileName,
+  }) async {
+    final req = http.MultipartRequest(
+      'PATCH',
+      Uri.parse('$_baseUrl/creators/me/posts/$id/'),
+    )
+      ..headers.addAll(_authHeaders)
+      ..fields.addAll(fields);
+
+    if (fileBytes != null && fileName != null) {
+      req.files.add(http.MultipartFile.fromBytes(
+        'media_file',
+        fileBytes,
+        filename: fileName,
+      ));
+    }
+
+    final streamed = await req.send();
+    final res = await http.Response.fromStream(streamed);
+    if (res.statusCode == 200) {
+      return CreatorPostModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to update post: ${res.body}');
+  }
+
+  Future<void> deletePost(int id) async {
+    final res = await http.delete(
+      Uri.parse('$_baseUrl/creators/me/posts/$id/'),
+      headers: _headers,
+    );
+    if (res.statusCode != 204) throw Exception('Failed to delete post');
+  }
+
+  Future<List<CreatorPostModel>> getPublicPosts(String slug) async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/creators/$slug/posts/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list
+          .map((e) => CreatorPostModel.fromPublicJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception('Failed to load posts');
+  }
+
+  /// Returns full post list if email has a completed tip, throws on 403.
+  Future<List<CreatorPostModel>> unlockPosts(String slug, String email) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/creators/$slug/posts/access/'),
+      headers: _headers,
+      body: jsonEncode({'email': email}),
+    );
+    if (res.statusCode == 200) {
+      return (jsonDecode(res.body) as List)
+          .map((e) => CreatorPostModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    if (res.statusCode == 403) {
+      throw Exception('no_tip');
+    }
+    throw Exception('Failed to unlock posts: ${res.body}');
   }
 
   // ── Enterprise ────────────────────────────────────────────────────
