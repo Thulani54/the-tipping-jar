@@ -69,7 +69,7 @@ class EnterpriseScreen extends StatelessWidget {
         const SizedBox(height: 40),
         Wrap(spacing: 14, runSpacing: 12, alignment: WrapAlignment.center, children: [
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () => context.go('/contact'),
             style: ElevatedButton.styleFrom(
               backgroundColor: kPrimary,
               foregroundColor: Colors.white,
@@ -82,14 +82,14 @@ class EnterpriseScreen extends StatelessWidget {
                 style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
           ),
           OutlinedButton(
-            onPressed: () {},
+            onPressed: () => context.go('/enterprise-portal'),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               side: const BorderSide(color: kBorder),
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
-            child: Text('View case studies',
+            child: Text('Go to portal',
                 style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15)),
           ),
         ]).animate().fadeIn(delay: 240.ms, duration: 500.ms),
@@ -291,7 +291,7 @@ class EnterpriseScreen extends StatelessWidget {
           textAlign: TextAlign.center),
       const SizedBox(height: 32),
       ElevatedButton(
-        onPressed: () {},
+        onPressed: () => context.go('/contact'),
         style: ElevatedButton.styleFrom(
           backgroundColor: kPrimary,
           foregroundColor: Colors.white,
@@ -417,11 +417,11 @@ class _PricingCard extends StatelessWidget {
           ]),
         )),
         const SizedBox(height: 24),
-        SizedBox(
+        Builder(builder: (ctx) => SizedBox(
           width: double.infinity,
           child: isPrimary
               ? ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => ctx.go('/enterprise-portal'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kPrimary, foregroundColor: Colors.white,
                     elevation: 0, shadowColor: Colors.transparent,
@@ -434,7 +434,7 @@ class _PricingCard extends StatelessWidget {
                           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
                 )
               : OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () => ctx.go('/contact'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     side: const BorderSide(color: kBorder),
@@ -446,7 +446,7 @@ class _PricingCard extends StatelessWidget {
                       style: GoogleFonts.inter(
                           color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
                 ),
-        ),
+        )),
       ]),
     );
   }

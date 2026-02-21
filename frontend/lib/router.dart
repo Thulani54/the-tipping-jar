@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'providers/auth_provider.dart';
 import 'screens/landing_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/creator_screen.dart';
@@ -10,6 +10,8 @@ import 'screens/register_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/features_screen.dart';
 import 'screens/how_it_works_screen.dart';
+import 'screens/fan_dashboard_screen.dart';
+import 'screens/jar_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/enterprise_screen.dart';
 import 'screens/developer_screen.dart';
@@ -19,10 +21,36 @@ import 'screens/about_screen.dart';
 import 'screens/blog_screen.dart';
 import 'screens/careers_screen.dart';
 import 'screens/legal_screen.dart';
+import 'screens/contact_screen.dart';
+import 'screens/dispute_screen.dart';
+import 'screens/enterprise_portal_screen.dart';
 
-GoRouter buildRouter(BuildContext context) {
+/// Routes that require the user to be signed in.
+const _protectedRoutes = {'/dashboard', '/onboarding', '/fan-dashboard', '/enterprise-portal'};
+
+/// Routes that signed-in users should not visit (e.g. login/register).
+const _authRoutes = {'/login', '/register'};
+
+GoRouter buildRouter(AuthProvider auth) {
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: auth, // re-evaluate redirect whenever auth changes
+    redirect: (context, state) {
+      final loggedIn = auth.isAuthenticated;
+      final path = state.matchedLocation;
+
+      // Bounce unauthenticated users away from protected pages
+      if (_protectedRoutes.contains(path) && !loggedIn) {
+        return '/login';
+      }
+
+      // Logged-in users visiting /login or /register go to their home
+      if (_authRoutes.contains(path) && loggedIn) {
+        return auth.isCreator ? '/dashboard' : '/fan-dashboard';
+      }
+
+      return null; // no redirect needed
+    },
     routes: [
       GoRoute(path: '/',             builder: (_, __) => const LandingScreen()),
       GoRoute(path: '/explore',      builder: (_, __) => const HomeScreen()),
@@ -31,9 +59,11 @@ GoRouter buildRouter(BuildContext context) {
       GoRoute(path: '/creators',     builder: (_, __) => const CreatorsScreen()),
       GoRoute(path: '/login',        builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register',     builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: '/onboarding',   builder: (_, __) => const OnboardingScreen()),
-      GoRoute(path: '/dashboard',    builder: (_, __) => const DashboardScreen()),
-      GoRoute(path: '/enterprise',   builder: (_, __) => const EnterpriseScreen()),
+      GoRoute(path: '/onboarding',     builder: (_, __) => const OnboardingScreen()),
+      GoRoute(path: '/dashboard',      builder: (_, __) => const DashboardScreen()),
+      GoRoute(path: '/fan-dashboard',  builder: (_, __) => const FanDashboardScreen()),
+      GoRoute(path: '/enterprise',        builder: (_, __) => const EnterpriseScreen()),
+      GoRoute(path: '/enterprise-portal', builder: (_, __) => const EnterprisePortalScreen()),
       GoRoute(path: '/developers',   builder: (_, __) => const DeveloperScreen()),
       GoRoute(path: '/pricing',      builder: (_, __) => const PricingScreen()),
       GoRoute(path: '/changelog',    builder: (_, __) => const ChangelogScreen()),
@@ -49,9 +79,23 @@ GoRouter buildRouter(BuildContext context) {
             CreatorScreen(slug: state.pathParameters['slug']!),
       ),
       GoRoute(
+        path: '/creator/:slug/jar/:jarSlug',
+        builder: (_, state) => JarScreen(
+          creatorSlug: state.pathParameters['slug']!,
+          jarSlug: state.pathParameters['jarSlug']!,
+        ),
+      ),
+      GoRoute(
         path: '/tip/:slug',
         builder: (_, state) =>
             TipScreen(slug: state.pathParameters['slug']!),
+      ),
+      GoRoute(path: '/contact',  builder: (_, __) => const ContactScreen()),
+      GoRoute(path: '/dispute',  builder: (_, __) => const DisputeScreen()),
+      GoRoute(
+        path: '/dispute/:token',
+        builder: (_, state) =>
+            DisputeTrackingScreen(token: state.pathParameters['token']!),
       ),
     ],
   );

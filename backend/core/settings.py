@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "apps.tips",
     "apps.payments",
     "apps.support",
+    "apps.enterprise",
 ]
 
 MIDDLEWARE = [
