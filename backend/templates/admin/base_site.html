@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+  <a href="{% url 'tippingjar_admin:index' %}" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+    <span style="
+      display:inline-flex;align-items:center;justify-content:center;
+      width:32px;height:32px;border-radius:8px;
+      background:linear-gradient(135deg,#00C896,#0097B2);
+      font-size:16px;font-weight:900;color:#fff;">T</span>
+    <span style="color:#fff;font-size:18px;font-weight:700;letter-spacing:-0.3px;">TippingJar</span>
+    <span style="
+      font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;
+      background:rgba(0,200,150,0.15);color:#00C896;letter-spacing:0.5px;
+      text-transform:uppercase;margin-left:4px;">Admin</span>
+  </a>
+</div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

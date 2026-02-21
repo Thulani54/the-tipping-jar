@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../theme.dart';
+import '../widgets/app_logo.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
-
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
@@ -15,119 +18,294 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _usernameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  String _role = 'fan';
+  bool _obscure = true;
+  String _role = 'creator';
   String? _error;
 
   @override
   Widget build(BuildContext context) {
+    final wide = MediaQuery.of(context).size.width > 860;
     return Scaffold(
-      appBar: AppBar(title: const Text('Create account')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  const Icon(Icons.volunteer_activism,
-                      size: 56, color: Color(0xFFFF6B35)),
-                  const SizedBox(height: 24),
-                  TextFormField(
-                    controller: _usernameCtrl,
-                    decoration: const InputDecoration(
-                        labelText: 'Username', border: OutlineInputBorder()),
-                    validator: (v) =>
-                        (v?.length ?? 0) >= 3 ? null : 'Min 3 characters',
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _emailCtrl,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                        labelText: 'Email', border: OutlineInputBorder()),
-                    validator: (v) =>
-                        (v?.contains('@') ?? false) ? null : 'Enter valid email',
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordCtrl,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                        labelText: 'Password', border: OutlineInputBorder()),
-                    validator: (v) =>
-                        (v?.length ?? 0) >= 8 ? null : 'Min 8 characters',
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('I am joining as…',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _roleChip('Fan', 'fan'),
-                      const SizedBox(width: 8),
-                      _roleChip('Creator', 'creator'),
-                    ],
-                  ),
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Text(_error!,
-                          style: const TextStyle(color: Colors.red)),
-                    ),
-                  const SizedBox(height: 24),
-                  Consumer<AuthProvider>(
-                    builder: (_, auth, __) => SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: auth.loading ? null : _submit,
-                        child: auth.loading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : const Text('Create account'),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => context.go('/login'),
-                    child: const Text('Already have an account? Sign in'),
-                  ),
-                ],
+      backgroundColor: kDark,
+      body: wide ? _wideLayout(context) : _narrowLayout(context),
+    );
+  }
+
+  Widget _wideLayout(BuildContext ctx) {
+    return Row(children: [
+      // Left — branding panel
+      Expanded(
+        child: Container(
+          color: kDarker,
+          padding: const EdgeInsets.all(56),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _logo(ctx),
+            const Spacer(),
+            Text('Start earning\nfrom day one.',
+                style: GoogleFonts.inter(
+                    color: Colors.white, fontWeight: FontWeight.w800,
+                    fontSize: 52, height: 1.1, letterSpacing: -2))
+                .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
+            const SizedBox(height: 20),
+            Text('Join 2,400+ creators already filling\ntheir jar every day.',
+                style: GoogleFonts.inter(color: kMuted, fontSize: 16, height: 1.65))
+                .animate().fadeIn(delay: 150.ms, duration: 500.ms),
+            const SizedBox(height: 48),
+            ..._perks().asMap().entries.map((e) =>
+              _PerkCard(icon: e.value.$1, title: e.value.$2, body: e.value.$3, delay: 200 + e.key * 100)),
+            const Spacer(),
+            Text('© 2026 TippingJar',
+                style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+          ]),
+        ),
+      ),
+      // Right — form
+      Expanded(
+        child: Container(
+          color: kDark,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.all(48),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: _form(ctx),
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _narrowLayout(BuildContext ctx) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      child: Column(children: [
+        _logo(ctx),
+        const SizedBox(height: 40),
+        _form(ctx),
+      ]),
+    );
+  }
+
+  Widget _logo(BuildContext ctx) {
+    return GestureDetector(
+      onTap: () => ctx.go('/'),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        const AppLogoIcon(size: 36),
+        const SizedBox(width: 10),
+        Text('TippingJar',
+            style: GoogleFonts.inter(
+                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -0.3)),
+      ]),
+    );
+  }
+
+  Widget _form(BuildContext ctx) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Create your account',
+          style: GoogleFonts.inter(
+              color: Colors.white, fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.8))
+          .animate().fadeIn(duration: 400.ms).slideY(begin: 0.15),
+      const SizedBox(height: 6),
+      Row(children: [
+        Text('Already have an account? ',
+            style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+        GestureDetector(
+          onTap: () => ctx.go('/login'),
+          child: Text('Sign in',
+              style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
+        ),
+      ]).animate().fadeIn(delay: 80.ms, duration: 400.ms),
+      const SizedBox(height: 28),
+
+      // Role toggle
+      Text('I want to…', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+      const SizedBox(height: 10),
+      Row(children: [
+        _roleBtn(Icons.volunteer_activism, 'Tip creators', 'fan'),
+        const SizedBox(width: 10),
+        _roleBtn(Icons.star_rounded, 'Receive tips', 'creator'),
+      ]).animate().fadeIn(delay: 100.ms, duration: 400.ms),
+      const SizedBox(height: 24),
+
+      Form(
+        key: _formKey,
+        child: Column(children: [
+          _field(
+            ctrl: _usernameCtrl,
+            label: 'Username',
+            hint: 'yourname',
+            icon: Icons.alternate_email_rounded,
+            validator: (v) => (v?.length ?? 0) >= 3 ? null : 'Min 3 characters',
+          ),
+          const SizedBox(height: 14),
+          _field(
+            ctrl: _emailCtrl,
+            label: 'Email address',
+            hint: 'you@example.com',
+            icon: Icons.email_outlined,
+            keyboardType: TextInputType.emailAddress,
+            validator: (v) => (v?.contains('@') ?? false) ? null : 'Enter a valid email',
+          ),
+          const SizedBox(height: 14),
+          _field(
+            ctrl: _passwordCtrl,
+            label: 'Password',
+            hint: '••••••••',
+            icon: Icons.lock_outline_rounded,
+            obscure: _obscure,
+            suffix: IconButton(
+              icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  color: kMuted, size: 18),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+            validator: (v) => (v?.length ?? 0) >= 8 ? null : 'Min 8 characters',
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
+                const SizedBox(width: 8),
+                Expanded(child: Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13))),
+              ]),
+            ),
+          ],
+          const SizedBox(height: 22),
+          Consumer<AuthProvider>(builder: (_, auth, __) =>
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: auth.loading ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimary,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: kPrimary.withOpacity(0.4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                  elevation: 0,
+                ),
+                child: auth.loading
+                    ? const SizedBox(width: 20, height: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text('Create account',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
               ),
             ),
           ),
+          const SizedBox(height: 14),
+          Text(
+            'By signing up you agree to our Terms of Service and Privacy Policy.',
+            style: GoogleFonts.inter(color: kMuted, fontSize: 11, height: 1.5),
+            textAlign: TextAlign.center,
+          ),
+        ]),
+      ),
+    ]);
+  }
+
+  Widget _roleBtn(IconData icon, String label, String value) {
+    final active = _role == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _role = value),
+        child: AnimatedContainer(
+          duration: 200.ms,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+          decoration: BoxDecoration(
+            color: active ? kPrimary.withOpacity(0.12) : kCardBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: active ? kPrimary : kBorder, width: active ? 2 : 1),
+          ),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(icon, color: active ? kPrimary : kMuted, size: 18),
+            const SizedBox(width: 8),
+            Text(label,
+                style: GoogleFonts.inter(
+                    color: active ? kPrimary : kMuted,
+                    fontWeight: FontWeight.w600, fontSize: 13)),
+          ]),
         ),
       ),
     );
   }
 
-  Widget _roleChip(String label, String value) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: _role == value,
-      onSelected: (_) => setState(() => _role = value),
-      selectedColor: const Color(0xFFFF6B35),
-      labelStyle: TextStyle(
-          color: _role == value ? Colors.white : null,
-          fontWeight: FontWeight.bold),
-    );
+  Widget _field({
+    required TextEditingController ctrl,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool obscure = false,
+    TextInputType? keyboardType,
+    Widget? suffix,
+    String? Function(String?)? validator,
+  }) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+      const SizedBox(height: 8),
+      TextFormField(
+        controller: ctrl,
+        obscureText: obscure,
+        keyboardType: keyboardType,
+        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        validator: validator,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+          prefixIcon: Icon(icon, color: kMuted, size: 18),
+          suffixIcon: suffix,
+          filled: true,
+          fillColor: kCardBg,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kBorder),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kPrimary, width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.red.withOpacity(0.5)),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+    ]);
   }
+
+  List<(IconData, String, String)> _perks() => [
+    (Icons.flash_on_rounded,       'Live in 60 seconds', 'Your tip page is public the moment you save.'),
+    (Icons.account_balance_rounded, '2-day payouts',     'Stripe sends funds direct to your bank.'),
+    (Icons.bar_chart_rounded,      'Real-time analytics','Watch tips roll in on your dashboard.'),
+  ];
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _error = null);
     try {
       await context.read<AuthProvider>().register(
-            username: _usernameCtrl.text.trim(),
-            email: _emailCtrl.text.trim(),
-            password: _passwordCtrl.text,
-            role: _role,
-          );
-      if (mounted) context.go('/login');
-    } catch (e) {
+          username: _usernameCtrl.text.trim(),
+          email: _emailCtrl.text.trim(),
+          password: _passwordCtrl.text,
+          role: _role);
+      if (mounted) {
+        // Creators go through onboarding; fans go straight to login
+        if (_role == 'creator') {
+          context.go('/onboarding');
+        } else {
+          context.go('/login');
+        }
+      }
+    } catch (_) {
       setState(() => _error = 'Registration failed. Try a different email.');
     }
   }
@@ -138,5 +316,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
+  }
+}
+
+class _PerkCard extends StatelessWidget {
+  final IconData icon;
+  final String title, body;
+  final int delay;
+  const _PerkCard({required this.icon, required this.title, required this.body, required this.delay});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(color: kPrimary.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: kPrimary, size: 17),
+        ),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+          Text(body,  style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5)),
+        ])),
+      ]),
+    ).animate().fadeIn(delay: delay.ms, duration: 400.ms).slideX(begin: -0.1, curve: Curves.easeOut);
   }
 }
