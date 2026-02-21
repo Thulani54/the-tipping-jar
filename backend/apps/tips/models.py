@@ -25,11 +25,22 @@ class Tip(models.Model):
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     message = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
-    stripe_payment_intent_id = models.CharField(max_length=200, blank=True)
+    jar = models.ForeignKey(
+        "creators.Jar",
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="jar_tips",
+    )
+    stripe_payment_intent_id = models.CharField(max_length=200, blank=True)  # legacy
+    paystack_reference = models.CharField(max_length=200, blank=True, db_index=True)
+    # Fee snapshot at the time of the tip
+    platform_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    service_fee  = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    creator_net  = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.tipper_name} → {self.creator} (${self.amount})"
+        return f"{self.tipper_name} → {self.creator} (R{self.amount})"

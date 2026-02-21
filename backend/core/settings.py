@@ -136,9 +136,17 @@ CORS_ALLOWED_ORIGINS = env.list(
     ],
 )
 
-# ── Stripe ────────────────────────────────────────────────────────
+# ── Stripe (legacy — kept for backward compat) ────────────────────
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
+
+# ── Paystack ──────────────────────────────────────────────────────
+PAYSTACK_SECRET_KEY = env("PAYSTACK_SECRET_KEY", default="")
+PAYSTACK_WEBHOOK_SECRET = env("PAYSTACK_WEBHOOK_SECRET", default="")
+# Platform fee taken from every tip (goes to TippingJar master account)
+PLATFORM_FEE_PERCENT = env.float("PLATFORM_FEE_PERCENT", default=3.0)
+# Service fee charged to creator (Paystack's own processing fee share)
+SERVICE_FEE_PERCENT = env.float("SERVICE_FEE_PERCENT", default=3.0)
 
 # ── Email ──────────────────────────────────────────────────────────────────────
 EMAIL_BACKEND      = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")

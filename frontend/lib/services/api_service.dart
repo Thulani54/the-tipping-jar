@@ -332,6 +332,7 @@ class ApiService {
     required String creatorSlug,
     required double amount,
     required String tipperName,
+    String tipperEmail = '',
     String message = '',
     int? jarId,
   }) async {
@@ -339,6 +340,7 @@ class ApiService {
       'creator_slug': creatorSlug,
       'amount': amount,
       'tipper_name': tipperName,
+      if (tipperEmail.isNotEmpty) 'tipper_email': tipperEmail,
       'message': message,
       if (jarId != null) 'jar_id': jarId,
     };
@@ -351,6 +353,18 @@ class ApiService {
       return jsonDecode(res.body) as Map<String, dynamic>;
     }
     throw Exception('Failed to initiate tip: ${res.body}');
+  }
+
+  /// Verify a tip's payment status via Paystack.
+  Future<Map<String, dynamic>> verifyTip(String reference) async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/tips/verify/$reference/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to verify tip: ${res.body}');
   }
 
   // ── Enterprise ────────────────────────────────────────────────────
