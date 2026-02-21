@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1305,41 +1306,135 @@ class _LockedPostCard extends StatelessWidget {
   final VoidCallback onUnlock;
   const _LockedPostCard({required this.post, required this.onUnlock});
 
-  IconData get _typeIcon => switch (post.postType) {
-    'image' => Icons.image_rounded,
-    'video' => Icons.play_circle_outline_rounded,
-    'file'  => Icons.attach_file_rounded,
-    _       => Icons.article_rounded,
-  };
+  // Fake placeholder rows that look like real content behind the blur
+  Widget _buildPlaceholderContent() {
+    if (post.postType == 'image') {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          height: 90, width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.image_rounded, color: Colors.white24, size: 36),
+        ),
+        const SizedBox(height: 10),
+        _fakeTextLine(width: 0.7),
+        const SizedBox(height: 6),
+        _fakeTextLine(width: 0.5),
+      ]);
+    }
+    if (post.postType == 'video') {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          height: 90, width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.play_circle_outline_rounded, color: Colors.white24, size: 36),
+        ),
+        const SizedBox(height: 10),
+        _fakeTextLine(width: 0.6),
+        const SizedBox(height: 6),
+        _fakeTextLine(width: 0.4),
+      ]);
+    }
+    // text / file
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _fakeTextLine(width: 1.0),
+      const SizedBox(height: 7),
+      _fakeTextLine(width: 0.85),
+      const SizedBox(height: 7),
+      _fakeTextLine(width: 0.65),
+      const SizedBox(height: 7),
+      _fakeTextLine(width: 0.75),
+    ]);
+  }
+
+  Widget _fakeTextLine({required double width}) => FractionallySizedBox(
+    widthFactor: width,
+    child: Container(
+      height: 10,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onUnlock,
     child: Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: kCardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: kBorder),
       ),
-      child: Row(children: [
-        Container(
-          width: 36, height: 36,
-          decoration: BoxDecoration(
-              color: kMuted.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(9)),
-          child: Icon(_typeIcon, color: kMuted, size: 18),
+      clipBehavior: Clip.hardEdge,
+      child: Stack(children: [
+        // ── Blurred placeholder content ──────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
+          child: _buildPlaceholderContent(),
         ),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(post.title, style: GoogleFonts.inter(
-              color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
-              maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 3),
-          Text('Tip to unlock', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
-        ])),
-        const Icon(Icons.lock_rounded, color: kMuted, size: 16),
+
+        // ── Frosted glass overlay ────────────────────────────────────────
+        Positioned.fill(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 4.5, sigmaY: 4.5),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    kCardBg.withValues(alpha: 0.55),
+                    kCardBg.withValues(alpha: 0.80),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // ── Title bar (always readable above blur) ───────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+          child: Row(children: [
+            Expanded(child: Text(
+              post.title,
+              style: GoogleFonts.inter(
+                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+            )),
+            const Icon(Icons.lock_rounded, color: kMuted, size: 15),
+          ]),
+        ),
+
+        // ── Centre CTA ───────────────────────────────────────────────────
+        Positioned(
+          bottom: 14, left: 0, right: 0,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+              decoration: BoxDecoration(
+                color: kPrimary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: kPrimary.withValues(alpha: 0.5)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.lock_open_rounded, color: kPrimary, size: 13),
+                const SizedBox(width: 6),
+                Text('Tip to unlock',
+                    style: GoogleFonts.inter(
+                        color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
+              ]),
+            ),
+          ),
+        ),
       ]),
     ),
   );
