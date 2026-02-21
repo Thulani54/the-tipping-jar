@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,6 +9,7 @@ import 'router.dart';
 const _primary = Color(0xFF00C896); // emerald green
 
 void main() {
+  usePathUrlStrategy(); // clean URLs — no /#/ hash prefix
   runApp(
     ChangeNotifierProvider(
       create: (_) => AuthProvider(),
