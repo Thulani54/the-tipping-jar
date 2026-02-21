@@ -73,11 +73,7 @@ GoRouter buildRouter(AuthProvider auth) {
       GoRoute(path: '/privacy',      builder: (_, __) => const PrivacyScreen()),
       GoRoute(path: '/terms',        builder: (_, __) => const TermsScreen()),
       GoRoute(path: '/cookies',      builder: (_, __) => const CookiesScreen()),
-      GoRoute(
-        path: '/creator/:slug',
-        builder: (_, state) =>
-            CreatorScreen(slug: state.pathParameters['slug']!),
-      ),
+      // More specific routes first
       GoRoute(
         path: '/creator/:slug/jar/:jarSlug',
         builder: (_, state) => JarScreen(
@@ -86,7 +82,18 @@ GoRouter buildRouter(AuthProvider auth) {
         ),
       ),
       GoRoute(
+        path: '/creator/:slug',
+        builder: (_, state) =>
+            CreatorScreen(slug: state.pathParameters['slug']!),
+      ),
+      GoRoute(
         path: '/tip/:slug',
+        builder: (_, state) =>
+            TipScreen(slug: state.pathParameters['slug']!),
+      ),
+      // /u/:slug is the short tip link shared from the dashboard
+      GoRoute(
+        path: '/u/:slug',
         builder: (_, state) =>
             TipScreen(slug: state.pathParameters['slug']!),
       ),
