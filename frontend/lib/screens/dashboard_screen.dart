@@ -2469,13 +2469,13 @@ class _MonetizePageState extends State<_MonetizePage> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(children: [
-              _TabChip('Tiers', 0),
+              _tabChip('Tiers', 0),
               const SizedBox(width: 8),
-              _TabChip('Pledges', 1),
+              _tabChip('Pledges', 1),
               const SizedBox(width: 8),
-              _TabChip('Milestones', 2),
+              _tabChip('Milestones', 2),
               const SizedBox(width: 8),
-              _TabChip('Commissions', 3),
+              _tabChip('Commissions', 3),
             ]),
           ),
           const SizedBox(height: 1),
@@ -2496,7 +2496,7 @@ class _MonetizePageState extends State<_MonetizePage> {
     ]);
   }
 
-  Widget _TabChip(String label, int index) => GestureDetector(
+  Widget _tabChip(String label, int index) => GestureDetector(
     onTap: () => setState(() => _tab = index),
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 150),

@@ -15,7 +15,6 @@ import logging
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 from apps.payments import paystack as ps
 from apps.tips.models import Pledge, Tip
@@ -44,7 +43,7 @@ class Command(BaseCommand):
 
             reference = ps.generate_reference()
             try:
-                tx = ps.charge_authorization(
+                ps.charge_authorization(
                     email=email,
                     amount_zar=float(pledge.amount),
                     authorization_code=pledge.paystack_authorization_code,
