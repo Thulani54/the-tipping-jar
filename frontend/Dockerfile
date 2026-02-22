@@ -27,8 +27,16 @@ RUN BUILD_TS=$(date +%s) && \
     sed -i "s|flutter_bootstrap\.js?v=[^\"]*|flutter_bootstrap.js?v=${BUILD_TS}|g" \
         /usr/share/nginx/html/index.html
 
-# nginx config for SPA routing (all 404s → index.html)
+# nginx config:
+#   - Redirect bare apex domain (tippingjar.co.za) → https://www.tippingjar.co.za
+#   - Serve Flutter SPA for www and any other hostname
 RUN printf 'server {\n\
+    listen 80;\n\
+    server_name tippingjar.co.za;\n\
+    return 301 https://www.tippingjar.co.za$request_uri;\n\
+}\n\
+\n\
+server {\n\
     listen 80;\n\
     server_name _;\n\
     root /usr/share/nginx/html;\n\
