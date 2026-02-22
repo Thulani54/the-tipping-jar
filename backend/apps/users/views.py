@@ -1,8 +1,14 @@
+import logging
+
+from django.conf import settings
+from django.core.mail import send_mail
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.support.sms import send_otp_via_sms
+
+logger = logging.getLogger(__name__)
 
 from .models import OTP, ApiKey, User
 from .serializers import ApiKeySerializer, RegisterSerializer, UserSerializer
@@ -65,10 +71,6 @@ class OtpRequestView(APIView):
             channel_info = f"SMS to {user.phone_number[:4]}****"
         else:
             # Email delivery
-            import logging
-            from django.conf import settings
-            from django.core.mail import send_mail
-            logger = logging.getLogger(__name__)
             try:
                 send_mail(
                     subject="TippingJar — Your verification code",
