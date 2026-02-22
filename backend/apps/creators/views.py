@@ -348,7 +348,7 @@ class MyTierListCreateView(generics.ListCreateAPIView):
         serializer.save(creator=profile)
 
 
-class MyTierDetailView(generics.UpdateDestroyAPIView):
+class MyTierDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Creator: update or delete a specific tier."""
 
     serializer_class = SupportTierSerializer
