@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -36,14 +34,16 @@ class TipTests(TestCase):
         self.assertEqual(len(res.data["results"]), 1)
         self.assertEqual(res.data["results"][0]["tipper_name"], "Fan2")
 
-    @patch("apps.tips.views.stripe.PaymentIntent.create")
-    def test_initiate_tip(self, mock_create):
-        mock_create.return_value = type("obj", (object,), {"id": "pi_test", "client_secret": "secret_test"})()
+    def test_initiate_tip_dev_mode(self):
+        """In dev mode (no PAYSTACK_SECRET_KEY), tip is created immediately as COMPLETED."""
         res = self.client.post(
             reverse("initiate-tip"),
             {"creator_slug": "creator-slug", "amount": "5.00", "tipper_name": "Fan"},
             format="json",
         )
-        self.assertEqual(res.status_code, 200)
-        self.assertIn("client_secret", res.data)
-        self.assertTrue(Tip.objects.filter(stripe_payment_intent_id="pi_test").exists())
+        self.assertEqual(res.status_code, 201)
+        self.assertTrue(res.data.get("dev_mode"))
+        self.assertIn("tip_id", res.data)
+        self.assertTrue(
+            Tip.objects.filter(id=res.data["tip_id"], status=Tip.Status.COMPLETED).exists()
+        )
