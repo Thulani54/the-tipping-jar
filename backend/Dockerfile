@@ -18,4 +18,4 @@ RUN python manage.py collectstatic --noinput 2>/dev/null || true
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile - --error-logfile -"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py createsuperuser --noinput 2>/dev/null || true && exec gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile - --error-logfile -"]
