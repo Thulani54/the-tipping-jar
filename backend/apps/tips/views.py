@@ -1,3 +1,4 @@
+import datetime
 from decimal import Decimal
 
 from django.conf import settings
@@ -10,8 +11,8 @@ from apps.creators.models import CreatorProfile, Jar
 from apps.payments import paystack as ps
 from apps.support.emails import send_tip_thank_you
 
-from .models import Tip
-from .serializers import CreateTipSerializer, TipSerializer
+from .models import Pledge, Tip, TipStreak
+from .serializers import CreateTipSerializer, PledgeSerializer, TipSerializer, TipStreakSerializer
 
 
 class CreatorTipsView(generics.ListAPIView):
@@ -236,3 +237,108 @@ class VerifyTipView(APIView):
             "creator_net": str(tip.creator_net),
             "paystack_status": paystack_status,
         })
+
+
+# ── Pledge views ──────────────────────────────────────────────────────────────
+
+class MyPledgeListCreateView(generics.ListCreateAPIView):
+    """Fan: list own pledges (GET) or create a new pledge (POST)."""
+
+    serializer_class = PledgeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Pledge.objects.filter(fan=self.request.user)
+
+    def post(self, request, *args, **kwargs):
+        creator_slug = request.data.get("creator_slug")
+        if not creator_slug:
+            return Response({"detail": "creator_slug required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            creator = CreatorProfile.objects.get(slug=creator_slug, is_active=True)
+        except CreatorProfile.DoesNotExist:
+            return Response({"detail": "Creator not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        amount = request.data.get("amount")
+        tier_id = request.data.get("tier_id")
+        fan_email = request.data.get("fan_email", "") or request.user.email
+        fan_name = request.data.get("fan_name", "") or request.user.username
+
+        tier = None
+        if tier_id:
+            from apps.creators.models import SupportTier
+            try:
+                tier = SupportTier.objects.get(id=tier_id, creator=creator, is_active=True)
+                if not amount:
+                    amount = tier.price
+            except SupportTier.DoesNotExist:
+                return Response({"detail": "Tier not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not amount:
+            return Response({"detail": "amount required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Dev mode — create immediately as ACTIVE
+        if not settings.PAYSTACK_SECRET_KEY:
+            pledge = Pledge.objects.create(
+                fan=request.user,
+                fan_email=fan_email,
+                fan_name=fan_name,
+                creator=creator,
+                tier=tier,
+                amount=amount,
+                status=Pledge.Status.ACTIVE,
+                next_charge_date=datetime.date.today() + datetime.timedelta(days=30),
+            )
+            return Response(PledgeSerializer(pledge).data, status=status.HTTP_201_CREATED)
+
+        # Production — initiate Paystack transaction for first charge
+        pledge = Pledge.objects.create(
+            fan=request.user,
+            fan_email=fan_email,
+            fan_name=fan_name,
+            creator=creator,
+            tier=tier,
+            amount=amount,
+            status=Pledge.Status.PAUSED,
+            paystack_email=fan_email,
+        )
+        reference = ps.generate_reference(pledge.id)
+        callback_url = f"{settings.SITE_URL}/payment/callback?ref={reference}&pledge=1"
+        try:
+            tx = ps.initialize_transaction(
+                email=fan_email,
+                amount_zar=float(amount),
+                reference=reference,
+                callback_url=callback_url,
+                metadata={"pledge_id": pledge.id, "creator_slug": creator.slug},
+            )
+        except RuntimeError as exc:
+            pledge.delete()
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response({
+            "pledge_id": pledge.id,
+            "authorization_url": tx["authorization_url"],
+            "reference": reference,
+        }, status=status.HTTP_201_CREATED)
+
+
+class MyPledgeDetailView(generics.UpdateAPIView):
+    """Fan: pause or cancel own pledge."""
+
+    serializer_class = PledgeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Pledge.objects.filter(fan=self.request.user)
+
+
+class MyStreakListView(generics.ListAPIView):
+    """Fan: list their own tip streaks."""
+
+    serializer_class = TipStreakSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return TipStreak.objects.filter(fan=self.request.user).select_related("creator")

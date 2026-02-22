@@ -18,6 +18,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _usernameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   bool _obscure = true;
   String _role = 'creator';
   String? _error;
@@ -123,6 +124,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _roleBtn(Icons.volunteer_activism, 'Tip creators', 'fan'),
         const SizedBox(width: 10),
         _roleBtn(Icons.star_rounded, 'Receive tips', 'creator'),
+        const SizedBox(width: 10),
+        _roleBtn(Icons.business_rounded, 'Manage creators', 'enterprise'),
       ]).animate().fadeIn(delay: 100.ms, duration: 400.ms),
       const SizedBox(height: 24),
 
@@ -158,6 +161,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               onPressed: () => setState(() => _obscure = !_obscure),
             ),
             validator: (v) => (v?.length ?? 0) >= 8 ? null : 'Min 8 characters',
+          ),
+          const SizedBox(height: 14),
+          _field(
+            ctrl: _phoneCtrl,
+            label: 'Phone number (optional)',
+            hint: '+27 82 123 4567',
+            icon: Icons.phone_outlined,
+            keyboardType: TextInputType.phone,
           ),
           if (_error != null) ...[
             const SizedBox(height: 14),
@@ -296,11 +307,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           username: _usernameCtrl.text.trim(),
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,
-          role: _role);
+          role: _role,
+          phoneNumber: _phoneCtrl.text.trim());
       if (mounted) {
-        // Creators go through onboarding; fans go straight to login
         if (_role == 'creator') {
           context.go('/onboarding');
+        } else if (_role == 'enterprise') {
+          context.go('/enterprise-portal');
         } else {
           context.go('/login');
         }
@@ -315,6 +328,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _usernameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _phoneCtrl.dispose();
     super.dispose();
   }
 }

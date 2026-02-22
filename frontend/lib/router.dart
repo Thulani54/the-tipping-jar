@@ -24,10 +24,11 @@ import 'screens/legal_screen.dart';
 import 'screens/contact_screen.dart';
 import 'screens/dispute_screen.dart';
 import 'screens/enterprise_portal_screen.dart';
+import 'screens/otp_screen.dart';
 import 'screens/payment_callback_screen.dart';
 
 /// Routes that require the user to be signed in.
-const _protectedRoutes = {'/dashboard', '/onboarding', '/fan-dashboard', '/enterprise-portal'};
+const _protectedRoutes = {'/dashboard', '/onboarding', '/fan-dashboard', '/enterprise-portal', '/otp-verify'};
 
 /// Routes that signed-in users should not visit (e.g. login/register).
 const _authRoutes = {'/login', '/register'};
@@ -45,9 +46,23 @@ GoRouter buildRouter(AuthProvider auth) {
         return '/login';
       }
 
+      // Logged-in but OTP not verified — gate to /otp-verify
+      if (loggedIn && !auth.otpVerified && path != '/otp-verify') {
+        return '/otp-verify';
+      }
+
+      // OTP verified — redirect away from OTP screen
+      if (loggedIn && auth.otpVerified && path == '/otp-verify') {
+        if (auth.isCreator) return '/dashboard';
+        if (auth.isEnterprise) return '/enterprise-portal';
+        return '/fan-dashboard';
+      }
+
       // Logged-in users visiting /login or /register go to their home
-      if (_authRoutes.contains(path) && loggedIn) {
-        return auth.isCreator ? '/dashboard' : '/fan-dashboard';
+      if (_authRoutes.contains(path) && loggedIn && auth.otpVerified) {
+        if (auth.isCreator) return '/dashboard';
+        if (auth.isEnterprise) return '/enterprise-portal';
+        return '/fan-dashboard';
       }
 
       return null; // no redirect needed
@@ -61,6 +76,7 @@ GoRouter buildRouter(AuthProvider auth) {
       GoRoute(path: '/login',        builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register',     builder: (_, __) => const RegisterScreen()),
       GoRoute(path: '/onboarding',     builder: (_, __) => const OnboardingScreen()),
+      GoRoute(path: '/otp-verify',     builder: (_, __) => const OtpScreen()),
       GoRoute(path: '/dashboard',      builder: (_, __) => const DashboardScreen()),
       GoRoute(path: '/fan-dashboard',  builder: (_, __) => const FanDashboardScreen()),
       GoRoute(path: '/enterprise',        builder: (_, __) => const EnterpriseScreen()),

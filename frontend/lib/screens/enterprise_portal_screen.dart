@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/enterprise_model.dart';
+import '../models/pledge_model.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../widgets/app_logo.dart';
@@ -469,8 +470,68 @@ class _OverviewTab extends StatelessWidget {
           const SizedBox(height: 16),
           ...s.perCreator.map((row) => _CreatorEarningsRow(row: row)),
         ],
+        const SizedBox(height: 36),
+        _EnterpriseRecurringCard(enterprise: enterprise),
       ]),
     );
+  }
+}
+
+// ─── Enterprise Recurring Revenue card ───────────────────────────────────────
+class _EnterpriseRecurringCard extends StatefulWidget {
+  final EnterpriseModel enterprise;
+  const _EnterpriseRecurringCard({required this.enterprise});
+  @override
+  State<_EnterpriseRecurringCard> createState() => _EnterpriseRecurringCardState();
+}
+
+class _EnterpriseRecurringCardState extends State<_EnterpriseRecurringCard> {
+  List<PledgeModel> _pledges = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final api = context.read<AuthProvider>().api;
+      final pledges = await api.getCreatorPledges();
+      if (mounted) setState(() { _pledges = pledges; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = _pledges.where((p) => p.isActive).toList();
+    final total = active.fold(0.0, (s, p) => s + p.amount);
+    final topCreator = active.isEmpty ? null : (() {
+      final byCreator = <String, double>{};
+      for (final p in active) {
+        byCreator[p.creatorDisplayName] = (byCreator[p.creatorDisplayName] ?? 0) + p.amount;
+      }
+      return byCreator.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    })();
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Recurring Revenue', style: GoogleFonts.inter(
+          color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: -0.3)),
+      const SizedBox(height: 16),
+      if (_loading)
+        const Center(child: CircularProgressIndicator(color: kPrimary))
+      else
+        Wrap(spacing: 16, runSpacing: 16, children: [
+          _StatCard(label: 'Active Pledges', value: '${active.length}', icon: Icons.repeat_rounded),
+          _StatCard(label: 'Monthly Recurring', value: 'R${total.toStringAsFixed(0)}',
+              icon: Icons.trending_up_rounded, highlight: true),
+          if (topCreator != null)
+            _StatCard(label: 'Top by Pledges', value: topCreator, icon: Icons.star_rounded),
+        ]),
+    ]);
   }
 }
 

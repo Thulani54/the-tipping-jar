@@ -1,7 +1,20 @@
+import datetime
+
+from django.db.models import Sum
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from .models import CreatorPost, CreatorProfile, Jar
+from apps.tips.models import Tip
+
+from .models import (
+    CommissionRequest,
+    CommissionSlot,
+    CreatorPost,
+    CreatorProfile,
+    Jar,
+    MilestoneGoal,
+    SupportTier,
+)
 
 
 class CreatorPostPublicSerializer(serializers.ModelSerializer):
@@ -42,6 +55,7 @@ class CreatorProfileSerializer(serializers.ModelSerializer):
             "id", "username", "avatar", "display_name", "slug",
             "tagline", "cover_image", "tip_goal", "total_tips",
             "thank_you_message",
+            "category", "platforms", "audience_size",
             "is_active", "created_at",
             # Banking
             "bank_name", "bank_account_holder",
@@ -125,3 +139,68 @@ class JarSerializer(serializers.ModelSerializer):
                 slugify(validated_data["name"]), instance.creator, exclude_id=instance.id
             )
         return super().update(instance, validated_data)
+
+
+class SupportTierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SupportTier
+        fields = (
+            "id", "name", "price", "description",
+            "perks", "is_active", "sort_order", "created_at",
+        )
+        read_only_fields = ("id", "created_at")
+
+
+class MilestoneGoalSerializer(serializers.ModelSerializer):
+    current_month_total = serializers.SerializerMethodField()
+    progress_pct = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MilestoneGoal
+        fields = (
+            "id", "title", "description", "target_amount",
+            "current_month_total", "progress_pct",
+            "bonus_post", "is_active", "is_achieved", "achieved_at", "created_at",
+        )
+        read_only_fields = ("id", "current_month_total", "progress_pct", "is_achieved", "achieved_at", "created_at")
+
+    def get_current_month_total(self, obj):
+        today = datetime.date.today()
+        total = Tip.objects.filter(
+            creator=obj.creator,
+            status=Tip.Status.COMPLETED,
+            created_at__year=today.year,
+            created_at__month=today.month,
+        ).aggregate(t=Sum("amount"))["t"] or 0
+        return float(total)
+
+    def get_progress_pct(self, obj):
+        total = self.get_current_month_total(obj)
+        if not obj.target_amount:
+            return 0
+        return round(min(total / float(obj.target_amount) * 100, 100), 1)
+
+
+class CommissionSlotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommissionSlot
+        fields = (
+            "id", "is_open", "base_price", "description",
+            "turnaround_days", "max_active_requests",
+        )
+        read_only_fields = ("id",)
+
+
+class CommissionRequestSerializer(serializers.ModelSerializer):
+    creator_display_name = serializers.CharField(source="creator.display_name", read_only=True)
+    creator_slug = serializers.CharField(source="creator.slug", read_only=True)
+
+    class Meta:
+        model = CommissionRequest
+        fields = (
+            "id", "creator", "creator_slug", "creator_display_name",
+            "fan_name", "fan_email",
+            "title", "description", "agreed_price",
+            "status", "delivery_note", "created_at",
+        )
+        read_only_fields = ("id", "creator_display_name", "creator_slug", "created_at")

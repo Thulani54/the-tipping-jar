@@ -1,11 +1,107 @@
+import datetime
 import json
 
 from django.http import HttpResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.payments import paystack as ps
 from apps.support.emails import send_tip_thank_you
 from apps.tips.models import Tip
+
+
+def _update_streak(tip: Tip) -> None:
+    """Create or update TipStreak for the tipper after a completed tip."""
+    from apps.tips.models import TipStreak
+
+    creator = tip.creator
+    fan = tip.tipper
+    fan_email = (tip.tipper_email or "").lower()
+    if not fan and not fan_email:
+        return
+
+    today = datetime.date.today()
+    this_month_start = today.replace(day=1)
+    prev_month = (this_month_start - datetime.timedelta(days=1)).replace(day=1)
+
+    # Find existing streak
+    streak = None
+    if fan:
+        streak = TipStreak.objects.filter(fan=fan, creator=creator).first()
+    if streak is None and fan_email:
+        streak = TipStreak.objects.filter(fan_email=fan_email, creator=creator).first()
+
+    badge_thresholds = {2: "2month", 3: "3month", 6: "6month", 12: "12month"}
+
+    if streak is None:
+        TipStreak.objects.create(
+            fan=fan,
+            fan_email=fan_email,
+            creator=creator,
+            current_streak=1,
+            max_streak=1,
+            last_tip_month=this_month_start,
+            badges=[],
+        )
+        return
+
+    # Already counted this month
+    if streak.last_tip_month >= this_month_start:
+        return
+
+    if streak.last_tip_month >= prev_month:
+        # Consecutive month — increment
+        streak.current_streak += 1
+        if streak.current_streak > streak.max_streak:
+            streak.max_streak = streak.current_streak
+        # Award badges
+        for threshold, badge in badge_thresholds.items():
+            if streak.current_streak >= threshold and badge not in streak.badges:
+                streak.badges.append(badge)
+    else:
+        # Streak broken — reset
+        streak.current_streak = 1
+
+    streak.last_tip_month = this_month_start
+    streak.save(update_fields=["current_streak", "max_streak", "last_tip_month", "badges"])
+
+
+def _check_milestones(tip: Tip) -> None:
+    """Check if any active milestone goals have been crossed this month."""
+    from django.db.models import Sum
+
+    from apps.creators.models import MilestoneGoal
+
+    creator = tip.creator
+    today = datetime.date.today()
+    month_total = Tip.objects.filter(
+        creator=creator,
+        status=Tip.Status.COMPLETED,
+        created_at__year=today.year,
+        created_at__month=today.month,
+    ).aggregate(t=Sum("amount"))["t"] or 0
+
+    for milestone in MilestoneGoal.objects.filter(
+        creator=creator, is_active=True, is_achieved=False
+    ):
+        if month_total >= milestone.target_amount:
+            milestone.is_achieved = True
+            milestone.achieved_at = timezone.now()
+            milestone.save(update_fields=["is_achieved", "achieved_at"])
+
+
+def _update_pledge(tip: Tip) -> None:
+    """After a completed tip, set next_charge_date on active pledges for this fan+creator."""
+    from apps.tips.models import Pledge
+
+    fan = tip.tipper
+    if not fan:
+        return
+    Pledge.objects.filter(
+        fan=fan, creator=tip.creator, status=Pledge.Status.ACTIVE
+    ).update(
+        next_charge_date=datetime.date.today() + datetime.timedelta(days=30)
+    )
 
 
 @csrf_exempt
@@ -17,7 +113,7 @@ def paystack_webhook(request):
     Verified events update Tip records accordingly.
 
     Key events handled:
-        charge.success   → Tip completed
+        charge.success   → Tip completed; stores auth code, updates streak, checks milestones
         charge.failed    → Tip failed
         refund.processed → Tip refunded
     """
@@ -42,9 +138,15 @@ def paystack_webhook(request):
     if event_type == "charge.success":
         tip = Tip.objects.filter(paystack_reference=reference).first()
         if tip and tip.status != Tip.Status.COMPLETED:
+            # Store Paystack authorization code for future recurring charges
+            auth_code = data.get("authorization", {}).get("authorization_code", "")
             tip.status = Tip.Status.COMPLETED
-            tip.save(update_fields=["status"])
+            tip.paystack_authorization_code = auth_code
+            tip.save(update_fields=["status", "paystack_authorization_code"])
             send_tip_thank_you(tip)
+            _update_streak(tip)
+            _check_milestones(tip)
+            _update_pledge(tip)
 
     elif event_type == "charge.failed":
         Tip.objects.filter(paystack_reference=reference).update(

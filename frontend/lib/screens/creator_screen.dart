@@ -7,9 +7,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/commission_model.dart';
 import '../models/creator.dart';
 import '../models/creator_post_model.dart';
 import '../models/jar_model.dart';
+import '../models/milestone_model.dart';
+import '../models/tier_model.dart';
 import '../models/tip.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
@@ -28,6 +31,9 @@ class _CreatorScreenState extends State<CreatorScreen> {
   List<Tip> _tips = [];
   List<JarModel> _jars = [];
   List<CreatorPostModel> _publicPosts = [];
+  List<TierModel> _tiers = [];
+  List<MilestoneModel> _milestones = [];
+  CommissionSlotModel? _commissionSlot;
   // null = locked, non-null = unlocked (may be empty if no posts)
   List<CreatorPostModel>? _unlockedPosts;
   bool _loading = true;
@@ -48,12 +54,16 @@ class _CreatorScreenState extends State<CreatorScreen> {
         api.getCreatorTips(widget.slug),
         api.getCreatorJars(widget.slug),
         api.getPublicPosts(widget.slug),
+        api.getPublicTiers(widget.slug).catchError((_) => <TierModel>[]),
+        api.getPublicMilestones(widget.slug).catchError((_) => <MilestoneModel>[]),
       ]);
       if (mounted) setState(() {
         _creator     = results[0] as Creator;
         _tips        = results[1] as List<Tip>;
         _jars        = results[2] as List<JarModel>;
         _publicPosts = results[3] as List<CreatorPostModel>;
+        _tiers       = results[4] as List<TierModel>;
+        _milestones  = results[5] as List<MilestoneModel>;
         _unlockedPosts = null;
         _loading = false;
       });
@@ -83,11 +93,15 @@ class _CreatorScreenState extends State<CreatorScreen> {
               ? _WideBody(
                   creator: creator, tips: _tips, jars: _jars,
                   publicPosts: _publicPosts, unlockedPosts: _unlockedPosts,
+                  tiers: _tiers, milestones: _milestones,
+                  commissionSlot: _commissionSlot,
                   onTipSent: _load, onUnlocked: _onUnlocked,
                 )
               : _NarrowBody(
                   creator: creator, tips: _tips, jars: _jars,
                   publicPosts: _publicPosts, unlockedPosts: _unlockedPosts,
+                  tiers: _tiers, milestones: _milestones,
+                  commissionSlot: _commissionSlot,
                   onTipSent: _load, onUnlocked: _onUnlocked,
                 ),
         ),
@@ -167,6 +181,9 @@ class _WideBody extends StatelessWidget {
   final List<JarModel> jars;
   final List<CreatorPostModel> publicPosts;
   final List<CreatorPostModel>? unlockedPosts;
+  final List<TierModel> tiers;
+  final List<MilestoneModel> milestones;
+  final CommissionSlotModel? commissionSlot;
   final VoidCallback onTipSent;
   final void Function(List<CreatorPostModel>) onUnlocked;
   const _WideBody({
@@ -175,6 +192,9 @@ class _WideBody extends StatelessWidget {
     required this.jars,
     required this.publicPosts,
     required this.unlockedPosts,
+    required this.tiers,
+    required this.milestones,
+    this.commissionSlot,
     required this.onTipSent,
     required this.onUnlocked,
   });
@@ -183,7 +203,7 @@ class _WideBody extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      // Left: profile + jars + content + recent tips (scrollable)
+      // Left: profile + jars + tiers + milestones + content + commissions + recent tips
       Expanded(
         flex: 4,
         child: SingleChildScrollView(
@@ -198,6 +218,14 @@ class _WideBody extends StatelessWidget {
               const SizedBox(height: 32),
               _JarsSection(jars: jars, creatorSlug: creator.slug),
             ],
+            if (tiers.isNotEmpty) ...[
+              const SizedBox(height: 32),
+              _TiersSection(tiers: tiers, creatorSlug: creator.slug, creatorName: creator.displayName),
+            ],
+            if (milestones.isNotEmpty) ...[
+              const SizedBox(height: 32),
+              _MilestonesSection(milestones: milestones),
+            ],
             if (publicPosts.isNotEmpty) ...[
               const SizedBox(height: 32),
               _ContentSection(
@@ -206,6 +234,10 @@ class _WideBody extends StatelessWidget {
                 unlockedPosts: unlockedPosts,
                 onUnlocked: onUnlocked,
               ),
+            ],
+            if (commissionSlot != null && commissionSlot!.isOpen) ...[
+              const SizedBox(height: 32),
+              _CommissionsSection(slot: commissionSlot!, creatorSlug: creator.slug, creatorName: creator.displayName),
             ],
             const SizedBox(height: 32),
             _TipFeed(tips: tips),
@@ -233,6 +265,9 @@ class _NarrowBody extends StatelessWidget {
   final List<JarModel> jars;
   final List<CreatorPostModel> publicPosts;
   final List<CreatorPostModel>? unlockedPosts;
+  final List<TierModel> tiers;
+  final List<MilestoneModel> milestones;
+  final CommissionSlotModel? commissionSlot;
   final VoidCallback onTipSent;
   final void Function(List<CreatorPostModel>) onUnlocked;
   const _NarrowBody({
@@ -241,6 +276,9 @@ class _NarrowBody extends StatelessWidget {
     required this.jars,
     required this.publicPosts,
     required this.unlockedPosts,
+    required this.tiers,
+    required this.milestones,
+    this.commissionSlot,
     required this.onTipSent,
     required this.onUnlocked,
   });
@@ -258,6 +296,14 @@ class _NarrowBody extends StatelessWidget {
         const SizedBox(height: 24),
         _JarsSection(jars: jars, creatorSlug: creator.slug),
       ],
+      if (tiers.isNotEmpty) ...[
+        const SizedBox(height: 24),
+        _TiersSection(tiers: tiers, creatorSlug: creator.slug, creatorName: creator.displayName),
+      ],
+      if (milestones.isNotEmpty) ...[
+        const SizedBox(height: 24),
+        _MilestonesSection(milestones: milestones),
+      ],
       if (publicPosts.isNotEmpty) ...[
         const SizedBox(height: 24),
         _ContentSection(
@@ -266,6 +312,10 @@ class _NarrowBody extends StatelessWidget {
           unlockedPosts: unlockedPosts,
           onUnlocked: onUnlocked,
         ),
+      ],
+      if (commissionSlot != null && commissionSlot!.isOpen) ...[
+        const SizedBox(height: 24),
+        _CommissionsSection(slot: commissionSlot!, creatorSlug: creator.slug, creatorName: creator.displayName),
       ],
       const SizedBox(height: 28),
       _TipForm(creator: creator, onTipSent: onTipSent),
@@ -1600,5 +1650,576 @@ class _AmountGrid extends StatelessWidget {
         ),
       );
     }).toList(),
+  );
+}
+
+// ─── Support Tiers section ────────────────────────────────────────────────────
+class _TiersSection extends StatelessWidget {
+  final List<TierModel> tiers;
+  final String creatorSlug;
+  final String creatorName;
+  const _TiersSection({required this.tiers, required this.creatorSlug, required this.creatorName});
+
+  @override
+  Widget build(BuildContext context) {
+    final active = tiers.where((t) => t.isActive).toList();
+    if (active.isEmpty) return const SizedBox.shrink();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 32),
+      Text('Support Tiers', style: GoogleFonts.inter(
+          color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20,
+          letterSpacing: -0.4)),
+      const SizedBox(height: 4),
+      Text('Choose a monthly support level', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      const SizedBox(height: 16),
+      Wrap(
+        spacing: 12, runSpacing: 12,
+        children: active.asMap().entries.map((e) => _TierCard(
+          tier: e.value,
+          creatorSlug: creatorSlug,
+          creatorName: creatorName,
+        ).animate().fadeIn(delay: (e.key * 60).ms, duration: 350.ms)).toList(),
+      ),
+    ]);
+  }
+}
+
+class _TierCard extends StatelessWidget {
+  final TierModel tier;
+  final String creatorSlug;
+  final String creatorName;
+  const _TierCard({required this.tier, required this.creatorSlug, required this.creatorName});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 240,
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: kCardBg,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: kBorder),
+    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(tier.name, style: GoogleFonts.inter(
+          color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+      const SizedBox(height: 4),
+      Text('R${tier.price.toStringAsFixed(0)}/month', style: GoogleFonts.inter(
+          color: kPrimary, fontWeight: FontWeight.w800, fontSize: 18)),
+      if (tier.description.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        Text(tier.description, style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.4)),
+      ],
+      if (tier.perks.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        ...tier.perks.map((p) => Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(children: [
+            const Icon(Icons.check_circle_outline_rounded, color: kPrimary, size: 14),
+            const SizedBox(width: 6),
+            Expanded(child: Text(p, style: GoogleFonts.inter(color: Colors.white70, fontSize: 12))),
+          ]),
+        )),
+      ],
+      const SizedBox(height: 16),
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => _PledgeDialog(
+              creatorSlug: creatorSlug,
+              creatorName: creatorName,
+              tier: tier,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+          ),
+          child: Text('Subscribe R${tier.price.toStringAsFixed(0)}/mo',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+        ),
+      ),
+    ]),
+  );
+}
+
+// ─── Pledge dialog ────────────────────────────────────────────────────────────
+class _PledgeDialog extends StatefulWidget {
+  final String creatorSlug;
+  final String creatorName;
+  final TierModel tier;
+  const _PledgeDialog({required this.creatorSlug, required this.creatorName, required this.tier});
+
+  @override
+  State<_PledgeDialog> createState() => _PledgeDialogState();
+}
+
+class _PledgeDialogState extends State<_PledgeDialog> {
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  bool _loading = false;
+  bool _done = false;
+  String? _error;
+  String? _payUrl;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final name = _nameCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) {
+      setState(() => _error = 'Email is required');
+      return;
+    }
+    setState(() { _loading = true; _error = null; });
+    try {
+      final result = await ApiService().createPledge(
+        creatorSlug: widget.creatorSlug,
+        amount: widget.tier.price,
+        tierId: widget.tier.id,
+        fanEmail: email,
+        fanName: name.isEmpty ? 'Anonymous' : name,
+      );
+      if (!mounted) return;
+      if (result['authorization_url'] != null) {
+        setState(() { _loading = false; _payUrl = result['authorization_url']; });
+        final uri = Uri.parse(_payUrl!);
+        if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        setState(() { _loading = false; _done = true; });
+      }
+    } catch (e) {
+      setState(() { _loading = false; _error = e.toString().replaceFirst('Exception: ', ''); });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    backgroundColor: kCardBg,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    title: Text(
+      _done ? 'Pledge Active!' : 'Subscribe to ${widget.tier.name}',
+      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+    ),
+    content: _done
+        ? Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.check_circle_rounded, color: kPrimary, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              'You\'re now supporting ${widget.creatorName} with R${widget.tier.price.toStringAsFixed(0)}/month.',
+              style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+          ])
+        : Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(
+              'R${widget.tier.price.toStringAsFixed(0)}/month · ${widget.tier.name}',
+              style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 15),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _nameCtrl,
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Your name (optional)',
+                hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+                prefixIcon: const Icon(Icons.person_outline_rounded, color: kMuted, size: 18),
+                filled: true, fillColor: kDark,
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kBorder)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimary, width: 2)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'your@email.com *',
+                hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+                prefixIcon: const Icon(Icons.email_outlined, color: kMuted, size: 18),
+                filled: true, fillColor: kDark,
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kBorder)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimary, width: 2)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 12)),
+            ],
+          ]),
+    actions: _done
+        ? [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+              child: Text('Done', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            ),
+          ]
+        : [
+            TextButton(
+              onPressed: _loading ? null : () => Navigator.pop(context),
+              child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+            ),
+            ElevatedButton(
+              onPressed: _loading ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+              child: _loading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text('Subscribe', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            ),
+          ],
+  );
+}
+
+// ─── Milestones section ───────────────────────────────────────────────────────
+class _MilestonesSection extends StatelessWidget {
+  final List<MilestoneModel> milestones;
+  const _MilestonesSection({required this.milestones});
+
+  @override
+  Widget build(BuildContext context) {
+    final active = milestones.where((m) => m.isActive).toList();
+    if (active.isEmpty) return const SizedBox.shrink();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 32),
+      Text('Milestones', style: GoogleFonts.inter(
+          color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.4)),
+      const SizedBox(height: 4),
+      Text('Help unlock these goals', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      const SizedBox(height: 16),
+      ...active.asMap().entries.map((e) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _MilestoneCard(milestone: e.value)
+            .animate().fadeIn(delay: (e.key * 60).ms, duration: 350.ms),
+      )),
+    ]);
+  }
+}
+
+class _MilestoneCard extends StatelessWidget {
+  final MilestoneModel milestone;
+  const _MilestoneCard({required this.milestone});
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = (milestone.progressPct / 100).clamp(0.0, 1.0);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: kCardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: milestone.isAchieved
+            ? kPrimary.withValues(alpha: 0.5)
+            : kBorder),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text(milestone.title, style: GoogleFonts.inter(
+              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15))),
+          if (milestone.isAchieved)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: kPrimary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: kPrimary.withValues(alpha: 0.4)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.check_circle_rounded, color: kPrimary, size: 13),
+                const SizedBox(width: 4),
+                Text('Unlocked!', style: GoogleFonts.inter(
+                    color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11)),
+              ]),
+            ),
+        ]),
+        if (milestone.description.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(milestone.description, style: GoogleFonts.inter(
+              color: kMuted, fontSize: 12, height: 1.4)),
+        ],
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 6,
+            backgroundColor: kDark,
+            valueColor: AlwaysStoppedAnimation<Color>(
+                milestone.isAchieved ? kPrimary : kPrimary.withValues(alpha: 0.7)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(
+            'R${milestone.currentMonthTotal.toStringAsFixed(0)} raised this month',
+            style: GoogleFonts.inter(color: kMuted, fontSize: 11),
+          ),
+          Text(
+            'Goal: R${milestone.targetAmount.toStringAsFixed(0)}',
+            style: GoogleFonts.inter(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 11),
+          ),
+        ]),
+      ]),
+    );
+  }
+}
+
+// ─── Commissions section ──────────────────────────────────────────────────────
+class _CommissionsSection extends StatelessWidget {
+  final CommissionSlotModel slot;
+  final String creatorSlug;
+  final String creatorName;
+  const _CommissionsSection({required this.slot, required this.creatorSlug, required this.creatorName});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!slot.isOpen) return const SizedBox.shrink();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 32),
+      Text('Commission Work', style: GoogleFonts.inter(
+          color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.4)),
+      const SizedBox(height: 4),
+      Text('Request custom work from $creatorName', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      const SizedBox(height: 16),
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: kCardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kBorder),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+              ),
+              child: Text('Open for commissions', style: GoogleFonts.inter(
+                  color: Colors.greenAccent, fontWeight: FontWeight.w600, fontSize: 11)),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          Text(
+            'From R${slot.basePrice.toStringAsFixed(0)}',
+            style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 22),
+          ),
+          if (slot.description.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(slot.description, style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5)),
+          ],
+          const SizedBox(height: 6),
+          Text('Turnaround: ${slot.turnaroundDays} days',
+              style: GoogleFonts.inter(color: Colors.white54, fontSize: 12)),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => showDialog(
+                context: context,
+                builder: (_) => _CommissionDialog(
+                  creatorSlug: creatorSlug,
+                  creatorName: creatorName,
+                  basePrice: slot.basePrice,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+              ),
+              child: Text('Request a Commission',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15)),
+            ),
+          ),
+        ]),
+      ),
+    ]);
+  }
+}
+
+// ─── Commission request dialog ────────────────────────────────────────────────
+class _CommissionDialog extends StatefulWidget {
+  final String creatorSlug;
+  final String creatorName;
+  final double basePrice;
+  const _CommissionDialog({required this.creatorSlug, required this.creatorName, required this.basePrice});
+
+  @override
+  State<_CommissionDialog> createState() => _CommissionDialogState();
+}
+
+class _CommissionDialogState extends State<_CommissionDialog> {
+  final _titleCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
+  bool _loading = false;
+  bool _done = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _priceCtrl.text = widget.basePrice.toStringAsFixed(0);
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _priceCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final title = _titleCtrl.text.trim();
+    final desc = _descCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final price = double.tryParse(_priceCtrl.text.trim()) ?? 0;
+    if (title.isEmpty || desc.isEmpty || email.isEmpty) {
+      setState(() => _error = 'Title, description, and email are required.');
+      return;
+    }
+    if (price < widget.basePrice) {
+      setState(() => _error = 'Price must be at least R${widget.basePrice.toStringAsFixed(0)}.');
+      return;
+    }
+    setState(() { _loading = true; _error = null; });
+    try {
+      await ApiService().submitCommissionRequest(widget.creatorSlug, {
+        'title': title,
+        'description': desc,
+        'fan_name': _nameCtrl.text.trim().isEmpty ? 'Anonymous' : _nameCtrl.text.trim(),
+        'fan_email': email,
+        'agreed_price': price,
+      });
+      if (mounted) setState(() { _loading = false; _done = true; });
+    } catch (e) {
+      if (mounted) setState(() {
+        _loading = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  InputDecoration _dec(String hint, IconData icon) => InputDecoration(
+    hintText: hint,
+    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+    prefixIcon: Icon(icon, color: kMuted, size: 18),
+    filled: true, fillColor: kDark,
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: kBorder)),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: kPrimary, width: 2)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  );
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    backgroundColor: kCardBg,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    title: Text(
+      _done ? 'Request Sent!' : 'Request a Commission',
+      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+    ),
+    content: _done
+        ? Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.check_circle_rounded, color: kPrimary, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              '${widget.creatorName} will review your request and get back to you.',
+              style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+          ])
+        : SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextFormField(
+                controller: _titleCtrl,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                decoration: _dec('Commission title *', Icons.title_rounded),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _descCtrl,
+                maxLines: 3,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                decoration: _dec('Describe what you want *', Icons.description_outlined).copyWith(prefixIcon: null),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _nameCtrl,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                decoration: _dec('Your name (optional)', Icons.person_outline_rounded),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                decoration: _dec('Your email *', Icons.email_outlined),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _priceCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                decoration: _dec('Agreed price (R) *', Icons.payments_outlined),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 12)),
+              ],
+            ]),
+          ),
+    actions: _done
+        ? [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+              child: Text('Done', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            ),
+          ]
+        : [
+            TextButton(
+              onPressed: _loading ? null : () => Navigator.pop(context),
+              child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+            ),
+            ElevatedButton(
+              onPressed: _loading ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+              child: _loading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text('Send Request', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            ),
+          ],
   );
 }

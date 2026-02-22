@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/api_key_model.dart';
 import '../models/app_user.dart';
+import '../models/commission_model.dart';
 import '../models/creator_post_model.dart';
 import '../models/dispute_model.dart';
 import '../models/creator.dart';
@@ -10,6 +11,9 @@ import '../models/creator_profile_model.dart';
 import '../models/dashboard_stats.dart';
 import '../models/enterprise_model.dart';
 import '../models/jar_model.dart';
+import '../models/milestone_model.dart';
+import '../models/pledge_model.dart';
+import '../models/tier_model.dart';
 import '../models/tip.dart';
 import '../models/tip_model.dart';
 
@@ -90,21 +94,65 @@ class ApiService {
     required String email,
     required String password,
     required String role,
+    String phoneNumber = '',
   }) async {
+    final body = <String, dynamic>{
+      'username': username,
+      'email': email,
+      'password': password,
+      'role': role,
+    };
+    if (phoneNumber.isNotEmpty) body['phone_number'] = phoneNumber;
     final res = await http.post(
       Uri.parse('$_baseUrl/users/register/'),
       headers: _headers,
-      body: jsonEncode({
-        'username': username,
-        'email': email,
-        'password': password,
-        'role': role,
-      }),
+      body: jsonEncode(body),
     );
     if (res.statusCode == 201) {
       return AppUser.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
     }
     throw Exception('Registration failed: ${res.body}');
+  }
+
+  Future<void> requestOtp({String method = 'email'}) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/users/otp/request/'),
+      headers: _headers,
+      body: jsonEncode({'method': method}),
+    );
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception('Failed to request OTP: ${res.body}');
+    }
+  }
+
+  Future<void> verifyOtp(String code) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/users/otp/verify/'),
+      headers: _headers,
+      body: jsonEncode({'code': code}),
+    );
+    if (res.statusCode == 200) return;
+    throw Exception('Invalid or expired code');
+  }
+
+  Future<void> switchOtpToSms() async {
+    await http.post(
+      Uri.parse('$_baseUrl/users/otp/switch-method/'),
+      headers: _headers,
+      body: jsonEncode({'method': 'sms'}),
+    );
+  }
+
+  Future<AppUser> updateUserProfile(Map<String, dynamic> data) async {
+    final res = await http.patch(
+      Uri.parse('$_baseUrl/users/me/'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (res.statusCode == 200) {
+      return AppUser.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to update user profile: ${res.body}');
   }
 
   Future<AppUser> getMe() async {
@@ -571,5 +619,245 @@ class ApiService {
       return FundDistribution.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
     }
     throw Exception('Failed to create distribution: ${res.body}');
+  }
+
+  // ── Pledges ───────────────────────────────────────────────────────
+
+  Future<List<PledgeModel>> getMyPledges() async {
+    final res = await http.get(Uri.parse('$_baseUrl/tips/pledges/'), headers: _headers);
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list.map((e) => PledgeModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load pledges');
+  }
+
+  Future<Map<String, dynamic>> createPledge({
+    required String creatorSlug,
+    required double amount,
+    int? tierId,
+    String fanEmail = '',
+    String fanName = '',
+  }) async {
+    final body = <String, dynamic>{
+      'creator_slug': creatorSlug,
+      'amount': amount,
+      if (tierId != null) 'tier_id': tierId,
+      if (fanEmail.isNotEmpty) 'fan_email': fanEmail,
+      if (fanName.isNotEmpty) 'fan_name': fanName,
+    };
+    final res = await http.post(
+      Uri.parse('$_baseUrl/tips/pledges/'),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to create pledge: ${res.body}');
+  }
+
+  Future<PledgeModel> updatePledge(int id, String status) async {
+    final res = await http.patch(
+      Uri.parse('$_baseUrl/tips/pledges/$id/'),
+      headers: _headers,
+      body: jsonEncode({'status': status}),
+    );
+    if (res.statusCode == 200) {
+      return PledgeModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to update pledge: ${res.body}');
+  }
+
+  Future<List<PledgeModel>> getCreatorPledges() async {
+    final res = await http.get(Uri.parse('$_baseUrl/creators/me/pledges/'), headers: _headers);
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list.map((e) => PledgeModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load creator pledges');
+  }
+
+  // ── Streaks ───────────────────────────────────────────────────────
+
+  Future<List<TipStreakModel>> getMyStreaks() async {
+    final res = await http.get(Uri.parse('$_baseUrl/tips/streaks/'), headers: _headers);
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list.map((e) => TipStreakModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load streaks');
+  }
+
+  // ── Tiers ─────────────────────────────────────────────────────────
+
+  Future<List<TierModel>> getPublicTiers(String slug) async {
+    final res = await http.get(Uri.parse('$_baseUrl/creators/$slug/tiers/'), headers: _headers);
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list.map((e) => TierModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load tiers');
+  }
+
+  Future<List<TierModel>> getMyTiers() async {
+    final res = await http.get(Uri.parse('$_baseUrl/creators/me/tiers/'), headers: _headers);
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list.map((e) => TierModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load tiers');
+  }
+
+  Future<TierModel> createTier(Map<String, dynamic> data) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/creators/me/tiers/'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (res.statusCode == 201) {
+      return TierModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to create tier: ${res.body}');
+  }
+
+  Future<TierModel> updateTier(int id, Map<String, dynamic> data) async {
+    final res = await http.patch(
+      Uri.parse('$_baseUrl/creators/me/tiers/$id/'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (res.statusCode == 200) {
+      return TierModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to update tier: ${res.body}');
+  }
+
+  Future<void> deleteTier(int id) async {
+    final res = await http.delete(Uri.parse('$_baseUrl/creators/me/tiers/$id/'), headers: _headers);
+    if (res.statusCode != 204) throw Exception('Failed to delete tier');
+  }
+
+  // ── Milestones ────────────────────────────────────────────────────
+
+  Future<List<MilestoneModel>> getPublicMilestones(String slug) async {
+    final res = await http.get(Uri.parse('$_baseUrl/creators/$slug/milestones/'), headers: _headers);
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list.map((e) => MilestoneModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load milestones');
+  }
+
+  Future<List<MilestoneModel>> getMyMilestones() async {
+    final res = await http.get(Uri.parse('$_baseUrl/creators/me/milestones/'), headers: _headers);
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list.map((e) => MilestoneModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load milestones');
+  }
+
+  Future<MilestoneModel> createMilestone(Map<String, dynamic> data) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/creators/me/milestones/'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (res.statusCode == 201) {
+      return MilestoneModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to create milestone: ${res.body}');
+  }
+
+  Future<MilestoneModel> updateMilestone(int id, Map<String, dynamic> data) async {
+    final res = await http.patch(
+      Uri.parse('$_baseUrl/creators/me/milestones/$id/'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (res.statusCode == 200) {
+      return MilestoneModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to update milestone: ${res.body}');
+  }
+
+  // ── Commissions ───────────────────────────────────────────────────
+
+  Future<CommissionSlotModel> getMyCommissionSlot() async {
+    final res = await http.get(Uri.parse('$_baseUrl/creators/me/commission-slot/'), headers: _headers);
+    if (res.statusCode == 200) {
+      return CommissionSlotModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to load commission slot');
+  }
+
+  Future<CommissionSlotModel> updateCommissionSlot(Map<String, dynamic> data) async {
+    final res = await http.put(
+      Uri.parse('$_baseUrl/creators/me/commission-slot/'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (res.statusCode == 200) {
+      return CommissionSlotModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to update commission slot: ${res.body}');
+  }
+
+  Future<List<CommissionRequestModel>> getMyCommissions() async {
+    final res = await http.get(Uri.parse('$_baseUrl/creators/me/commissions/'), headers: _headers);
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list.map((e) => CommissionRequestModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load commissions');
+  }
+
+  Future<CommissionRequestModel> updateCommission(int id, Map<String, dynamic> data) async {
+    final res = await http.patch(
+      Uri.parse('$_baseUrl/creators/me/commissions/$id/'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (res.statusCode == 200) {
+      return CommissionRequestModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to update commission: ${res.body}');
+  }
+
+  Future<void> submitCommissionRequest(String slug, Map<String, dynamic> data) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/creators/$slug/commission-requests/'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception('Failed to submit commission request: ${res.body}');
+    }
+  }
+
+  Future<CommissionSlotModel?> getPublicCommissionSlot(String slug) async {
+    // Reuse the creator detail endpoint — slot info is not directly exposed publicly.
+    // Instead, fetch creator commission slot via a dedicated check.
+    // We call the creator-level commission-requests endpoint to check if open.
+    try {
+      final res = await http.get(
+        Uri.parse('$_baseUrl/creators/$slug/commission-requests/'),
+        headers: _headers,
+      );
+      // If the endpoint returns 400 "not accepting commissions", slot is closed.
+      if (res.statusCode == 200 || res.statusCode == 201) return null;
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 }

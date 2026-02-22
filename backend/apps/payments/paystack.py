@@ -159,6 +159,40 @@ def verify_webhook_signature(payload_bytes: bytes, signature: str) -> bool:
     return hmac.compare_digest(computed, signature)
 
 
+# ── Recurring charge ──────────────────────────────────────────────────────────
+
+def charge_authorization(
+    email: str,
+    amount_zar: float,
+    authorization_code: str,
+    reference: str,
+) -> dict:
+    """
+    Re-charge a saved Paystack card using a stored authorization code.
+
+    Used for monthly pledge re-billing.
+    Returns the transaction data dict on success.
+    Raises RuntimeError if the charge fails.
+    """
+    payload = {
+        "email": email,
+        "amount": int(round(amount_zar * 100)),
+        "authorization_code": authorization_code,
+        "reference": reference,
+        "currency": "ZAR",
+    }
+    resp = requests.post(
+        f"{_BASE}/transaction/charge_authorization",
+        json=payload,
+        headers=_headers(),
+        timeout=15,
+    )
+    data = resp.json()
+    if not data.get("status"):
+        raise RuntimeError(data.get("message", "Paystack charge_authorization failed."))
+    return data["data"]
+
+
 # ── Reference generation ──────────────────────────────────────────────────────
 
 def generate_reference(tip_id: int | None = None) -> str:

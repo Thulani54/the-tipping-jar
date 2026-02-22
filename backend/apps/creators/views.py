@@ -13,12 +13,24 @@ from rest_framework.views import APIView
 from apps.payments import paystack as ps
 from apps.tips.models import Tip
 
-from .models import CreatorPost, CreatorProfile, Jar
+from .models import (
+    CommissionRequest,
+    CommissionSlot,
+    CreatorPost,
+    CreatorProfile,
+    Jar,
+    MilestoneGoal,
+    SupportTier,
+)
 from .serializers import (
+    CommissionRequestSerializer,
+    CommissionSlotSerializer,
     CreatorPostPublicSerializer,
     CreatorPostSerializer,
     CreatorProfileSerializer,
     JarSerializer,
+    MilestoneGoalSerializer,
+    SupportTierSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -302,3 +314,192 @@ class PostAccessView(APIView):
         return Response(
             CreatorPostSerializer(posts, many=True, context={"request": request}).data
         )
+
+
+# ── Support Tier views ────────────────────────────────────────────────────────
+
+class PublicTierListView(generics.ListAPIView):
+    """Public: list active support tiers for a creator."""
+
+    serializer_class = SupportTierSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        return SupportTier.objects.filter(
+            creator__slug=self.kwargs["slug"], is_active=True
+        )
+
+
+class MyTierListCreateView(generics.ListCreateAPIView):
+    """Creator: list own tiers or create a new one."""
+
+    serializer_class = SupportTierSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        try:
+            profile = CreatorProfile.objects.get(user=self.request.user)
+            return SupportTier.objects.filter(creator=profile)
+        except CreatorProfile.DoesNotExist:
+            return SupportTier.objects.none()
+
+    def perform_create(self, serializer):
+        profile = CreatorProfile.objects.get(user=self.request.user)
+        serializer.save(creator=profile)
+
+
+class MyTierDetailView(generics.UpdateDestroyAPIView):
+    """Creator: update or delete a specific tier."""
+
+    serializer_class = SupportTierSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        try:
+            profile = CreatorProfile.objects.get(user=self.request.user)
+            return SupportTier.objects.filter(creator=profile)
+        except CreatorProfile.DoesNotExist:
+            return SupportTier.objects.none()
+
+
+# ── Milestone views ───────────────────────────────────────────────────────────
+
+class PublicMilestoneListView(generics.ListAPIView):
+    """Public: list active milestones for a creator (includes current_month_total)."""
+
+    serializer_class = MilestoneGoalSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        return MilestoneGoal.objects.filter(
+            creator__slug=self.kwargs["slug"], is_active=True
+        )
+
+
+class MyMilestoneListCreateView(generics.ListCreateAPIView):
+    """Creator: list own milestones or create a new one."""
+
+    serializer_class = MilestoneGoalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        try:
+            profile = CreatorProfile.objects.get(user=self.request.user)
+            return MilestoneGoal.objects.filter(creator=profile)
+        except CreatorProfile.DoesNotExist:
+            return MilestoneGoal.objects.none()
+
+    def perform_create(self, serializer):
+        profile = CreatorProfile.objects.get(user=self.request.user)
+        serializer.save(creator=profile)
+
+
+class MyMilestoneDetailView(generics.RetrieveUpdateAPIView):
+    """Creator: update a specific milestone."""
+
+    serializer_class = MilestoneGoalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        try:
+            profile = CreatorProfile.objects.get(user=self.request.user)
+            return MilestoneGoal.objects.filter(creator=profile)
+        except CreatorProfile.DoesNotExist:
+            return MilestoneGoal.objects.none()
+
+
+# ── Commission views ──────────────────────────────────────────────────────────
+
+class MyCommissionSlotView(APIView):
+    """Creator: get or update their commission slot settings."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_profile(self):
+        return get_object_or_404(CreatorProfile, user=self.request.user)
+
+    def get(self, request):
+        profile = self._get_profile()
+        slot, _ = CommissionSlot.objects.get_or_create(creator=profile)
+        return Response(CommissionSlotSerializer(slot).data)
+
+    def put(self, request):
+        profile = self._get_profile()
+        slot, _ = CommissionSlot.objects.get_or_create(creator=profile)
+        serializer = CommissionSlotSerializer(slot, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+class MyCommissionRequestListView(generics.ListAPIView):
+    """Creator: list incoming commission requests."""
+
+    serializer_class = CommissionRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        try:
+            profile = CreatorProfile.objects.get(user=self.request.user)
+            return CommissionRequest.objects.filter(creator=profile)
+        except CreatorProfile.DoesNotExist:
+            return CommissionRequest.objects.none()
+
+
+class MyCommissionRequestDetailView(generics.UpdateAPIView):
+    """Creator: accept, decline, or complete a commission request."""
+
+    serializer_class = CommissionRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        try:
+            profile = CreatorProfile.objects.get(user=self.request.user)
+            return CommissionRequest.objects.filter(creator=profile)
+        except CreatorProfile.DoesNotExist:
+            return CommissionRequest.objects.none()
+
+
+class PublicCommissionRequestCreateView(APIView):
+    """Public: fan submits a commission request to a creator."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, slug):
+        creator = get_object_or_404(CreatorProfile, slug=slug)
+        slot = getattr(creator, "commission_slot", None)
+        if not slot or not slot.is_open:
+            return Response(
+                {"detail": "This creator is not accepting commissions."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        data = {**request.data, "creator": creator.id}
+        serializer = CommissionRequestSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        commission = serializer.save(
+            creator=creator,
+            fan=request.user if request.user.is_authenticated else None,
+        )
+        return Response(CommissionRequestSerializer(commission).data, status=status.HTTP_201_CREATED)
+
+
+# ── Creator incoming pledges ──────────────────────────────────────────────────
+
+class CreatorIncomingPledgesView(generics.ListAPIView):
+    """Creator: list incoming pledges from fans."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        from apps.tips.serializers import PledgeSerializer
+        return PledgeSerializer
+
+    def get_queryset(self):
+        from apps.tips.models import Pledge
+        try:
+            profile = CreatorProfile.objects.get(user=self.request.user)
+            return Pledge.objects.filter(creator=profile).select_related("fan", "tier")
+        except CreatorProfile.DoesNotExist:
+            from apps.tips.models import Pledge
+            return Pledge.objects.none()

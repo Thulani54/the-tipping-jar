@@ -6,10 +6,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../models/commission_model.dart';
 import '../models/creator_post_model.dart';
 import '../models/creator_profile_model.dart';
 import '../models/dashboard_stats.dart';
 import '../models/jar_model.dart';
+import '../models/milestone_model.dart';
+import '../models/pledge_model.dart';
+import '../models/tier_model.dart';
 import '../models/tip_model.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
@@ -77,10 +81,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final wide = MediaQuery.of(context).size.width > 900;
     return Scaffold(
       backgroundColor: kDark,
+      appBar: wide ? null : _narrowAppBar(),
       body: wide ? _wideLayout() : _narrowLayout(),
       bottomNavigationBar: wide ? null : _loading || _error != null ? null : _bottomNav(),
     );
   }
+
+  PreferredSizeWidget _narrowAppBar() => AppBar(
+    backgroundColor: kDarker,
+    elevation: 0,
+    titleSpacing: 16,
+    title: Row(mainAxisSize: MainAxisSize.min, children: [
+      const AppLogoIcon(size: 22),
+      const SizedBox(width: 8),
+      Text('TippingJar',
+          style: GoogleFonts.inter(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              letterSpacing: -0.3)),
+    ]),
+    actions: [
+      if (_navIndex != 4)
+        IconButton(
+          icon: const Icon(Icons.photo_library_outlined, color: kMuted),
+          tooltip: 'Content',
+          onPressed: () => setState(() => _navIndex = 4),
+        ),
+      if (_navIndex != 5)
+        IconButton(
+          icon: const Icon(Icons.monetization_on_outlined, color: kMuted),
+          tooltip: 'Monetize',
+          onPressed: () => setState(() => _navIndex = 5),
+        ),
+      IconButton(
+        icon: const Icon(Icons.person_rounded, color: kMuted),
+        tooltip: 'Profile',
+        onPressed: () => setState(() => _navIndex = 6),
+      ),
+    ],
+  );
 
   Widget _wideLayout() => Row(children: [
     _Sidebar(
@@ -110,6 +150,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         BottomNavigationBarItem(icon: Icon(Icons.savings_rounded, size: 20), label: 'Jars'),
         BottomNavigationBarItem(icon: Icon(Icons.bar_chart_rounded, size: 20), label: 'Analytics'),
         BottomNavigationBarItem(icon: Icon(Icons.photo_library_outlined, size: 20), label: 'Content'),
+        BottomNavigationBarItem(icon: Icon(Icons.monetization_on_outlined, size: 20), label: 'Monetize'),
         BottomNavigationBarItem(icon: Icon(Icons.person_rounded, size: 20), label: 'Profile'),
       ],
     ),
@@ -128,7 +169,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       2 => _JarsPage(profile: d.profile),
       3 => _AnalyticsPage(stats: d.stats, tips: d.tips),
       4 => _ContentPage(),
-      5 => _ProfilePage(
+      5 => _MonetizePage(),
+      6 => _ProfilePage(
           profile: d.profile,
           onCopyLink: _copyLink,
           onUpdated: _onProfileUpdated,
@@ -185,12 +227,13 @@ class _Sidebar extends StatelessWidget {
   const _Sidebar({required this.selected, required this.onSelect, required this.onLogout, this.creatorSlug});
 
   static const _items = [
-    (Icons.dashboard_rounded,     'Overview'),
-    (Icons.volunteer_activism,    'Tips'),
-    (Icons.savings_rounded,       'Jars'),
-    (Icons.bar_chart_rounded,     'Analytics'),
-    (Icons.photo_library_outlined,'Content'),
-    (Icons.person_rounded,        'Profile'),
+    (Icons.dashboard_rounded,          'Overview'),
+    (Icons.volunteer_activism,         'Tips'),
+    (Icons.savings_rounded,            'Jars'),
+    (Icons.bar_chart_rounded,          'Analytics'),
+    (Icons.photo_library_outlined,     'Content'),
+    (Icons.monetization_on_outlined,   'Monetize'),
+    (Icons.person_rounded,             'Profile'),
   ];
 
   @override
@@ -2346,4 +2389,827 @@ class _JarFormDialogState extends State<_JarFormDialog> {
         borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
   );
+}
+
+// ─── Monetize page ────────────────────────────────────────────────────────────
+class _MonetizePage extends StatefulWidget {
+  @override
+  State<_MonetizePage> createState() => _MonetizePageState();
+}
+
+class _MonetizePageState extends State<_MonetizePage> {
+  int _tab = 0; // 0=Tiers, 1=Pledges, 2=Milestones, 3=Commissions
+  List<TierModel> _tiers = [];
+  List<PledgeModel> _pledges = [];
+  List<MilestoneModel> _milestones = [];
+  CommissionSlotModel? _slot;
+  List<CommissionRequestModel> _commissions = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final api = context.read<AuthProvider>().api;
+      final results = await Future.wait([
+        api.getMyTiers(),
+        api.getCreatorPledges(),
+        api.getMyMilestones(),
+        api.getMyCommissionSlot(),
+        api.getMyCommissions(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _tiers = results[0] as List<TierModel>;
+          _pledges = results[1] as List<PledgeModel>;
+          _milestones = results[2] as List<MilestoneModel>;
+          _slot = results[3] as CommissionSlotModel;
+          _commissions = results[4] as List<CommissionRequestModel>;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator(color: kPrimary));
+    if (_error != null) {
+      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('Failed to load', style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Text(_error!, style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+        const SizedBox(height: 16),
+        ElevatedButton(onPressed: _load,
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+            child: const Text('Retry')),
+      ]));
+    }
+
+    return Column(children: [
+      // Segment tabs
+      Container(
+        color: kDarker,
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Monetize', style: GoogleFonts.inter(
+              color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
+          const SizedBox(height: 4),
+          Text('Manage recurring revenue streams', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+          const SizedBox(height: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              _TabChip('Tiers', 0),
+              const SizedBox(width: 8),
+              _TabChip('Pledges', 1),
+              const SizedBox(width: 8),
+              _TabChip('Milestones', 2),
+              const SizedBox(width: 8),
+              _TabChip('Commissions', 3),
+            ]),
+          ),
+          const SizedBox(height: 1),
+        ]),
+      ),
+      const Divider(color: kBorder, height: 1),
+      Expanded(child: RefreshIndicator(
+        color: kPrimary, backgroundColor: kCardBg,
+        onRefresh: _load,
+        child: switch (_tab) {
+          0 => _TiersSubView(tiers: _tiers, onRefresh: _load),
+          1 => _PledgesSubView(pledges: _pledges),
+          2 => _MilestonesSubView(milestones: _milestones, onRefresh: _load),
+          3 => _CommissionsSubView(slot: _slot, commissions: _commissions, onRefresh: _load),
+          _ => const SizedBox.shrink(),
+        },
+      )),
+    ]);
+  }
+
+  Widget _TabChip(String label, int index) => GestureDetector(
+    onTap: () => setState(() => _tab = index),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+      decoration: BoxDecoration(
+        color: _tab == index ? kPrimary.withValues(alpha: 0.12) : Colors.transparent,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+        border: Border(bottom: BorderSide(
+          color: _tab == index ? kPrimary : Colors.transparent, width: 2,
+        )),
+      ),
+      child: Text(label, style: GoogleFonts.inter(
+          color: _tab == index ? kPrimary : kMuted,
+          fontWeight: _tab == index ? FontWeight.w700 : FontWeight.w500,
+          fontSize: 13)),
+    ),
+  );
+}
+
+// ─── Tiers sub-view ───────────────────────────────────────────────────────────
+class _TiersSubView extends StatelessWidget {
+  final List<TierModel> tiers;
+  final VoidCallback onRefresh;
+  const _TiersSubView({required this.tiers, required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(padding: const EdgeInsets.all(28), children: [
+      Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Support Tiers', style: GoogleFonts.inter(
+              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
+          Text('Named price tiers fans can subscribe to monthly.',
+              style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+        ])),
+        ElevatedButton.icon(
+          onPressed: () => _showTierDialog(context),
+          icon: const Icon(Icons.add_rounded, size: 16),
+          label: Text('Add Tier', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+          style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
+              elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13)),
+        ),
+      ]),
+      const SizedBox(height: 24),
+      if (tiers.isEmpty)
+        _empty('No tiers yet', 'Create a tier like "Super Fan – R100/month" with perks.',
+            Icons.workspace_premium_outlined)
+      else
+        ...tiers.asMap().entries.map((e) => _TierCard(tier: e.value, onRefresh: onRefresh)
+            .animate().fadeIn(delay: (e.key * 60).ms, duration: 350.ms)),
+    ]);
+  }
+
+  Future<void> _showTierDialog(BuildContext context, {TierModel? tier}) async {
+    await showDialog(context: context, builder: (_) => _TierFormDialog(tier: tier, onSaved: onRefresh));
+  }
+
+  Widget _empty(String title, String sub, IconData icon) => Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Column(children: [
+        Container(width: 72, height: 72,
+            decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: kPrimary, size: 32)),
+        const SizedBox(height: 20),
+        Text(title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+        const SizedBox(height: 8),
+        Text(sub, style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5), textAlign: TextAlign.center),
+      ]),
+    ),
+  );
+}
+
+class _TierCard extends StatelessWidget {
+  final TierModel tier;
+  final VoidCallback onRefresh;
+  const _TierCard({required this.tier, required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kBorder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 40, height: 40,
+              decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.workspace_premium_outlined, color: kPrimary, size: 20)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(tier.name, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+            Text('R${tier.price.toStringAsFixed(0)}/month', style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+          ])),
+          // Active badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: (tier.isActive ? const Color(0xFF10B981) : kMuted).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(36),
+            ),
+            child: Text(tier.isActive ? 'Active' : 'Inactive', style: GoogleFonts.inter(
+                color: tier.isActive ? const Color(0xFF10B981) : kMuted, fontSize: 11, fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 8),
+          PopupMenuButton<String>(
+            color: kCardBg,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: kBorder)),
+            onSelected: (v) async {
+              final api = context.read<AuthProvider>().api;
+              if (v == 'toggle') {
+                await api.updateTier(tier.id, {'is_active': !tier.isActive});
+                onRefresh();
+              } else if (v == 'delete') {
+                await api.deleteTier(tier.id);
+                onRefresh();
+              } else if (v == 'edit') {
+                await showDialog(context: context, builder: (_) => _TierFormDialog(tier: tier, onSaved: onRefresh));
+              }
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'edit', child: _popItem(Icons.edit_rounded, 'Edit', Colors.white)),
+              PopupMenuItem(value: 'toggle', child: _popItem(
+                  tier.isActive ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  tier.isActive ? 'Deactivate' : 'Activate', Colors.white)),
+              PopupMenuItem(value: 'delete', child: _popItem(Icons.delete_outline_rounded, 'Delete', Colors.redAccent)),
+            ],
+            child: Container(padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: kDark, borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.more_horiz_rounded, color: kMuted, size: 18)),
+          ),
+        ]),
+        if (tier.description.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(tier.description, style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.4)),
+        ],
+        if (tier.perks.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(spacing: 8, runSpacing: 6, children: tier.perks.map((p) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(color: kDark, borderRadius: BorderRadius.circular(36), border: Border.all(color: kBorder)),
+            child: Text(p, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+          )).toList()),
+        ],
+      ]),
+    );
+  }
+
+  Widget _popItem(IconData icon, String label, Color color) => Row(children: [
+    Icon(icon, color: color, size: 15), const SizedBox(width: 10),
+    Text(label, style: GoogleFonts.inter(color: color, fontSize: 13)),
+  ]);
+}
+
+class _TierFormDialog extends StatefulWidget {
+  final TierModel? tier;
+  final VoidCallback onSaved;
+  const _TierFormDialog({this.tier, required this.onSaved});
+  @override
+  State<_TierFormDialog> createState() => _TierFormDialogState();
+}
+
+class _TierFormDialogState extends State<_TierFormDialog> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _priceCtrl;
+  late final TextEditingController _descCtrl;
+  late final TextEditingController _perkCtrl;
+  late List<String> _perks;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final t = widget.tier;
+    _nameCtrl = TextEditingController(text: t?.name ?? '');
+    _priceCtrl = TextEditingController(text: t?.price.toStringAsFixed(0) ?? '');
+    _descCtrl = TextEditingController(text: t?.description ?? '');
+    _perkCtrl = TextEditingController();
+    _perks = List<String>.from(t?.perks ?? []);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose(); _priceCtrl.dispose();
+    _descCtrl.dispose(); _perkCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_nameCtrl.text.trim().isEmpty || _priceCtrl.text.trim().isEmpty) return;
+    setState(() => _saving = true);
+    final data = {
+      'name': _nameCtrl.text.trim(),
+      'price': double.tryParse(_priceCtrl.text.trim()) ?? 0,
+      'description': _descCtrl.text.trim(),
+      'perks': _perks,
+    };
+    try {
+      final api = context.read<AuthProvider>().api;
+      if (widget.tier == null) {
+        await api.createTier(data);
+      } else {
+        await api.updateTier(widget.tier!.id, data);
+      }
+      if (mounted) { Navigator.pop(context); widget.onSaved(); }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  InputDecoration _deco(String hint) => InputDecoration(
+    hintText: hint, hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+    filled: true, fillColor: kDark,
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 2)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  );
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    backgroundColor: kCardBg,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 480),
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(width: 36, height: 36,
+                decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.workspace_premium_outlined, color: kPrimary, size: 18)),
+            const SizedBox(width: 12),
+            Text(widget.tier == null ? 'New Tier' : 'Edit Tier', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+            const Spacer(),
+            IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: kMuted)),
+          ]),
+          const SizedBox(height: 24),
+          Text('Tier name *', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(height: 8),
+          TextField(controller: _nameCtrl, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('e.g. Super Fan')),
+          const SizedBox(height: 16),
+          Text('Monthly price (R) *', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(height: 8),
+          TextField(controller: _priceCtrl, keyboardType: TextInputType.number, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('e.g. 100')),
+          const SizedBox(height: 16),
+          Text('Description', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(height: 8),
+          TextField(controller: _descCtrl, maxLines: 3, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('What do subscribers get?')),
+          const SizedBox(height: 16),
+          Text('Perks', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: TextField(controller: _perkCtrl, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('Add a perk…'))),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: () {
+                final p = _perkCtrl.text.trim();
+                if (p.isNotEmpty) { setState(() { _perks.add(p); _perkCtrl.clear(); }); }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
+                  elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+              child: const Icon(Icons.add_rounded, size: 18),
+            ),
+          ]),
+          if (_perks.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 6, children: _perks.map((p) => Chip(
+              label: Text(p, style: GoogleFonts.inter(color: Colors.white, fontSize: 12)),
+              backgroundColor: kDark,
+              side: const BorderSide(color: kBorder),
+              deleteIcon: const Icon(Icons.close, size: 14, color: kMuted),
+              onDeleted: () => setState(() => _perks.remove(p)),
+            )).toList()),
+          ],
+          const SizedBox(height: 24),
+          Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: GoogleFonts.inter(color: kMuted, fontWeight: FontWeight.w600))),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: _saving ? null : _save,
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+              child: _saving
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text(widget.tier == null ? 'Create Tier' : 'Save Changes', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+            ),
+          ]),
+        ])),
+      ),
+    ),
+  );
+}
+
+// ─── Pledges sub-view ─────────────────────────────────────────────────────────
+class _PledgesSubView extends StatelessWidget {
+  final List<PledgeModel> pledges;
+  const _PledgesSubView({required this.pledges});
+
+  @override
+  Widget build(BuildContext context) {
+    final activePledges = pledges.where((p) => p.isActive).toList();
+    final totalMonthly = activePledges.fold(0.0, (s, p) => s + p.amount);
+
+    return ListView(padding: const EdgeInsets.all(28), children: [
+      Text('Incoming Pledges', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
+      const SizedBox(height: 4),
+      Text('Monthly commitments from your fans.', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      const SizedBox(height: 16),
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: kPrimary.withValues(alpha: 0.25))),
+        child: Row(children: [
+          const Icon(Icons.repeat_rounded, color: kPrimary, size: 22),
+          const SizedBox(width: 14),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('R${totalMonthly.toStringAsFixed(2)}/month recurring', style: GoogleFonts.inter(
+                color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: -0.5)),
+            Text('${activePledges.length} active pledge${activePledges.length == 1 ? '' : 's'}',
+                style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+          ]),
+        ]),
+      ),
+      const SizedBox(height: 24),
+      if (pledges.isEmpty)
+        Center(child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Text('No pledges yet. Fans pledge via your public page.',
+              style: GoogleFonts.inter(color: kMuted, fontSize: 14), textAlign: TextAlign.center),
+        ))
+      else
+        ...pledges.asMap().entries.map((e) {
+          final p = e.value;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(14), border: Border.all(color: kBorder)),
+            child: Row(children: [
+              Container(width: 38, height: 38,
+                  decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  child: Center(child: Text(
+                    p.fanName.isNotEmpty ? p.fanName[0].toUpperCase() : '?',
+                    style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 15),
+                  ))),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(p.fanName, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                Text(p.fanEmail, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                if (p.tierName != null)
+                  Text('Tier: ${p.tierName}', style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                if (p.nextChargeDate != null)
+                  Text('Next charge: ${p.nextChargeDate}', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+              ])),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text('R${p.amount.toStringAsFixed(0)}/mo', style: GoogleFonts.inter(
+                    color: kPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: (p.isActive ? const Color(0xFF10B981) : kMuted).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(36),
+                  ),
+                  child: Text(p.status.toUpperCase(), style: GoogleFonts.inter(
+                      color: p.isActive ? const Color(0xFF10B981) : kMuted, fontSize: 10, fontWeight: FontWeight.w700)),
+                ),
+              ]),
+            ]),
+          ).animate().fadeIn(delay: (e.key * 50).ms, duration: 300.ms);
+        }),
+    ]);
+  }
+}
+
+// ─── Milestones sub-view ──────────────────────────────────────────────────────
+class _MilestonesSubView extends StatelessWidget {
+  final List<MilestoneModel> milestones;
+  final VoidCallback onRefresh;
+  const _MilestonesSubView({required this.milestones, required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(padding: const EdgeInsets.all(28), children: [
+      Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Milestone Goals', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
+          Text('Monthly revenue targets for your supporters to rally behind.',
+              style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+        ])),
+        ElevatedButton.icon(
+          onPressed: () => _showMilestoneDialog(context),
+          icon: const Icon(Icons.add_rounded, size: 16),
+          label: Text('Add Goal', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+          style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
+              elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13)),
+        ),
+      ]),
+      const SizedBox(height: 24),
+      if (milestones.isEmpty)
+        Center(child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 48),
+          child: Column(children: [
+            Container(width: 72, height: 72,
+                decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.flag_rounded, color: kPrimary, size: 32)),
+            const SizedBox(height: 20),
+            Text('No milestones yet', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+            const SizedBox(height: 8),
+            Text('Set a monthly goal to motivate your community.',
+                style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5), textAlign: TextAlign.center),
+          ]),
+        ))
+      else
+        ...milestones.asMap().entries.map((e) {
+          final m = e.value;
+          final progress = (m.progressPct / 100).clamp(0.0, 1.0);
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: m.isAchieved ? const Color(0xFF10B981).withValues(alpha: 0.4) : kBorder)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text(m.title, style: GoogleFonts.inter(
+                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15))),
+                if (m.isAchieved)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: const Color(0xFF10B981).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(36)),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 12),
+                      const SizedBox(width: 4),
+                      Text('Achieved!', style: GoogleFonts.inter(color: const Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w700)),
+                    ]),
+                  )
+                else
+                  Text('${m.progressPct.toStringAsFixed(1)}%', style: GoogleFonts.inter(
+                      color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+              ]),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(36),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: kBorder,
+                  valueColor: AlwaysStoppedAnimation(m.isAchieved ? const Color(0xFF10B981) : kPrimary),
+                  minHeight: 8,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text('R${m.currentMonthTotal.toStringAsFixed(0)} / R${m.targetAmount.toStringAsFixed(0)} this month',
+                  style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+              if (m.description.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(m.description, style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.4)),
+              ],
+            ]),
+          ).animate().fadeIn(delay: (e.key * 60).ms, duration: 350.ms);
+        }),
+    ]);
+  }
+
+  Future<void> _showMilestoneDialog(BuildContext context) async {
+    await showDialog(context: context, builder: (_) => _MilestoneFormDialog(onSaved: onRefresh));
+  }
+}
+
+class _MilestoneFormDialog extends StatefulWidget {
+  final VoidCallback onSaved;
+  const _MilestoneFormDialog({required this.onSaved});
+  @override
+  State<_MilestoneFormDialog> createState() => _MilestoneFormDialogState();
+}
+
+class _MilestoneFormDialogState extends State<_MilestoneFormDialog> {
+  final _titleCtrl = TextEditingController();
+  final _targetCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() { _titleCtrl.dispose(); _targetCtrl.dispose(); _descCtrl.dispose(); super.dispose(); }
+
+  InputDecoration _deco(String hint) => InputDecoration(
+    hintText: hint, hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+    filled: true, fillColor: kDark,
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 2)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  );
+
+  Future<void> _save() async {
+    if (_titleCtrl.text.trim().isEmpty || _targetCtrl.text.trim().isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      final api = context.read<AuthProvider>().api;
+      await api.createMilestone({
+        'title': _titleCtrl.text.trim(),
+        'target_amount': double.tryParse(_targetCtrl.text.trim()) ?? 0,
+        'description': _descCtrl.text.trim(),
+      });
+      if (mounted) { Navigator.pop(context); widget.onSaved(); }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    backgroundColor: kCardBg,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 460),
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(width: 36, height: 36, decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.flag_rounded, color: kPrimary, size: 18)),
+            const SizedBox(width: 12),
+            Text('New Milestone', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+            const Spacer(),
+            IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: kMuted)),
+          ]),
+          const SizedBox(height: 24),
+          Text('Title *', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(height: 8),
+          TextField(controller: _titleCtrl, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('e.g. Studio upgrade')),
+          const SizedBox(height: 16),
+          Text('Target amount (R) *', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(height: 8),
+          TextField(controller: _targetCtrl, keyboardType: TextInputType.number, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('e.g. 5000')),
+          const SizedBox(height: 16),
+          Text('Description', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(height: 8),
+          TextField(controller: _descCtrl, maxLines: 3, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('Tell your audience what this milestone unlocks...')),
+          const SizedBox(height: 24),
+          Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: GoogleFonts.inter(color: kMuted, fontWeight: FontWeight.w600))),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: _saving ? null : _save,
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+              child: _saving
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text('Create Goal', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+            ),
+          ]),
+        ]),
+      ),
+    ),
+  );
+}
+
+// ─── Commissions sub-view ─────────────────────────────────────────────────────
+class _CommissionsSubView extends StatefulWidget {
+  final CommissionSlotModel? slot;
+  final List<CommissionRequestModel> commissions;
+  final VoidCallback onRefresh;
+  const _CommissionsSubView({required this.slot, required this.commissions, required this.onRefresh});
+  @override
+  State<_CommissionsSubView> createState() => _CommissionsSubViewState();
+}
+
+class _CommissionsSubViewState extends State<_CommissionsSubView> {
+  bool _toggling = false;
+
+  Color _statusColor(String status) => switch (status) {
+    'accepted' => const Color(0xFF10B981),
+    'declined' => Colors.redAccent,
+    'completed' => const Color(0xFF60A5FA),
+    _ => const Color(0xFFFBBF24),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final slot = widget.slot;
+    return ListView(padding: const EdgeInsets.all(28), children: [
+      Text('Commissions', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
+      const SizedBox(height: 4),
+      Text('Accept custom commission requests from fans.', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      const SizedBox(height: 20),
+
+      // Open/closed toggle
+      Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(14), border: Border.all(color: kBorder)),
+        child: Column(children: [
+          Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Accept commissions', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+              Text('When on, fans can submit requests from your public page.',
+                  style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+            ])),
+            _toggling
+                ? const SizedBox(width: 36, height: 36, child: CircularProgressIndicator(color: kPrimary, strokeWidth: 2))
+                : Switch(
+                    value: slot?.isOpen ?? false,
+                    onChanged: slot == null ? null : (v) async {
+                      setState(() => _toggling = true);
+                      try {
+                        final api = context.read<AuthProvider>().api;
+                        await api.updateCommissionSlot({...slot.toJson(), 'is_open': v});
+                        widget.onRefresh();
+                      } finally {
+                        if (mounted) setState(() => _toggling = false);
+                      }
+                    },
+                    activeThumbColor: kPrimary,
+                  ),
+          ]),
+          if (slot != null && slot.isOpen) ...[
+            const SizedBox(height: 16),
+            const Divider(color: kBorder),
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(child: Text('Base price: R${slot.basePrice.toStringAsFixed(0)}',
+                  style: GoogleFonts.inter(color: kMuted, fontSize: 13))),
+              Text('${slot.turnaroundDays} day turnaround',
+                  style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+            ]),
+            if (slot.description.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(slot.description, style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.4)),
+            ],
+          ],
+        ]),
+      ),
+      const SizedBox(height: 28),
+
+      Text('Requests (${widget.commissions.length})', style: GoogleFonts.inter(
+          color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+      const SizedBox(height: 12),
+      if (widget.commissions.isEmpty)
+        Center(child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Text('No commission requests yet.', style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+        ))
+      else
+        ...widget.commissions.asMap().entries.map((e) {
+          final c = e.value;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(14), border: Border.all(color: kBorder)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text(c.title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: _statusColor(c.status).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(36)),
+                  child: Text(c.status.toUpperCase(), style: GoogleFonts.inter(color: _statusColor(c.status), fontSize: 10, fontWeight: FontWeight.w700)),
+                ),
+              ]),
+              const SizedBox(height: 6),
+              Text('${c.fanName} (${c.fanEmail})', style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+              Text('R${c.agreedPrice.toStringAsFixed(0)} agreed', style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 8),
+              Text(c.description, style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
+              if (c.deliveryNote.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text('Delivery: ${c.deliveryNote}', style: GoogleFonts.inter(color: const Color(0xFF60A5FA), fontSize: 12, height: 1.4)),
+              ],
+              if (c.isPending) ...[
+                const SizedBox(height: 14),
+                Row(children: [
+                  ElevatedButton(
+                    onPressed: () async {
+                      await context.read<AuthProvider>().api.updateCommission(c.id, {'status': 'accepted'});
+                      widget.onRefresh();
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white,
+                        elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10)),
+                    child: Text('Accept', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+                  ),
+                  const SizedBox(width: 10),
+                  OutlinedButton(
+                    onPressed: () async {
+                      await context.read<AuthProvider>().api.updateCommission(c.id, {'status': 'declined'});
+                      widget.onRefresh();
+                    },
+                    style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent, side: const BorderSide(color: Colors.redAccent),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10)),
+                    child: Text('Decline', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.redAccent)),
+                  ),
+                ]),
+              ],
+              if (c.isAccepted) ...[
+                const SizedBox(height: 14),
+                ElevatedButton(
+                  onPressed: () async {
+                    await context.read<AuthProvider>().api.updateCommission(c.id, {'status': 'completed'});
+                    widget.onRefresh();
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF60A5FA), foregroundColor: Colors.white,
+                      elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10)),
+                  child: Text('Mark Complete', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+                ),
+              ],
+            ]),
+          ).animate().fadeIn(delay: (e.key * 60).ms, duration: 350.ms);
+        }),
+    ]);
+  }
 }

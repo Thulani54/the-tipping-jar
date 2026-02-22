@@ -3,7 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../models/commission_model.dart';
 import '../models/creator.dart';
+import '../models/pledge_model.dart';
 import '../models/tip_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -24,6 +26,9 @@ class FanDashboardScreen extends StatefulWidget {
 class _FanDashboardScreenState extends State<FanDashboardScreen> {
   List<TipModel> _tips = [];
   List<Creator> _creators = [];
+  List<PledgeModel> _pledges = [];
+  List<TipStreakModel> _streaks = [];
+  List<CommissionRequestModel> _commissions = [];
   bool _loading = true;
   String? _error;
 
@@ -41,11 +46,17 @@ class _FanDashboardScreenState extends State<FanDashboardScreen> {
       final results = await Future.wait([
         api.getSentTips(),
         api.getCreators(),
+        api.getMyPledges().catchError((_) => <PledgeModel>[]),
+        api.getMyStreaks().catchError((_) => <TipStreakModel>[]),
+        api.getMyCommissions().catchError((_) => <CommissionRequestModel>[]),
       ]);
       if (!mounted) return;
       setState(() {
         _tips = results[0] as List<TipModel>;
         _creators = results[1] as List<Creator>;
+        _pledges = results[2] as List<PledgeModel>;
+        _streaks = results[3] as List<TipStreakModel>;
+        _commissions = results[4] as List<CommissionRequestModel>;
         _loading = false;
       });
     } catch (e) {
@@ -120,17 +131,35 @@ class _FanDashboardScreenState extends State<FanDashboardScreen> {
   // ── Wide layout: left rail + right content ────────────────────────────────
   Widget _wideLayout(String username) {
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // Left: welcome + stats + recent tips
+      // Left: welcome + stats + recent tips + pledges + streaks + commissions
       SizedBox(
-        width: 380,
+        width: 400,
         child: ListView(padding: const EdgeInsets.all(32), children: [
           _WelcomeCard(greeting: _greeting, username: username, tipCount: _tipCount),
           const SizedBox(height: 20),
           _StatsRow(tipCount: _tipCount, totalSpent: _totalSpent, creatorsSupported: _creatorsSupported),
           const SizedBox(height: 32),
-          _SectionHeader(title: 'Your tips', trailing: _tipCount > 0 ? '${_tipCount} total' : null),
+          _SectionHeader(title: 'Your tips', trailing: _tipCount > 0 ? '$_tipCount total' : null),
           const SizedBox(height: 12),
           _tips.isEmpty ? _emptyTips() : _tipsList(),
+          if (_pledges.isNotEmpty) ...[
+            const SizedBox(height: 32),
+            _SectionHeader(title: 'My Pledges', subtitle: 'Your monthly commitments'),
+            const SizedBox(height: 12),
+            ..._pledges.map((p) => _PledgeCard(pledge: p, onRefresh: _load)),
+          ],
+          if (_streaks.isNotEmpty) ...[
+            const SizedBox(height: 32),
+            _SectionHeader(title: 'Supporter Streaks', subtitle: 'Consecutive months tipping'),
+            const SizedBox(height: 12),
+            ..._streaks.map((s) => _StreakCard(streak: s)),
+          ],
+          if (_commissions.isNotEmpty) ...[
+            const SizedBox(height: 32),
+            _SectionHeader(title: 'My Commissions', subtitle: 'Requests you\'ve submitted'),
+            const SizedBox(height: 12),
+            ..._commissions.map((c) => _FanCommissionCard(commission: c)),
+          ],
         ]),
       ),
       // Divider
@@ -153,9 +182,27 @@ class _FanDashboardScreenState extends State<FanDashboardScreen> {
       const SizedBox(height: 20),
       _StatsRow(tipCount: _tipCount, totalSpent: _totalSpent, creatorsSupported: _creatorsSupported),
       const SizedBox(height: 32),
-      _SectionHeader(title: 'Your tips', trailing: _tipCount > 0 ? '${_tipCount} total' : null),
+      _SectionHeader(title: 'Your tips', trailing: _tipCount > 0 ? '$_tipCount total' : null),
       const SizedBox(height: 12),
       _tips.isEmpty ? _emptyTips() : _tipsList(),
+      if (_pledges.isNotEmpty) ...[
+        const SizedBox(height: 32),
+        _SectionHeader(title: 'My Pledges', subtitle: 'Your monthly commitments'),
+        const SizedBox(height: 12),
+        ..._pledges.map((p) => _PledgeCard(pledge: p, onRefresh: _load)),
+      ],
+      if (_streaks.isNotEmpty) ...[
+        const SizedBox(height: 32),
+        _SectionHeader(title: 'Supporter Streaks', subtitle: 'Consecutive months tipping'),
+        const SizedBox(height: 12),
+        ..._streaks.map((s) => _StreakCard(streak: s)),
+      ],
+      if (_commissions.isNotEmpty) ...[
+        const SizedBox(height: 32),
+        _SectionHeader(title: 'My Commissions', subtitle: 'Requests you\'ve submitted'),
+        const SizedBox(height: 12),
+        ..._commissions.map((c) => _FanCommissionCard(commission: c)),
+      ],
       const SizedBox(height: 32),
       _SectionHeader(
         title: 'Discover creators',
@@ -408,20 +455,25 @@ class _StatChip extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   final String title;
   final String? trailing;
+  final String? subtitle;
   final VoidCallback? onTrailingTap;
-  const _SectionHeader({required this.title, this.trailing, this.onTrailingTap});
+  const _SectionHeader({required this.title, this.trailing, this.subtitle, this.onTrailingTap});
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      Text(title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
-      const Spacer(),
-      if (trailing != null)
-        GestureDetector(
-          onTap: onTrailingTap,
-          child: Text(trailing!, style: GoogleFonts.inter(color: kMuted, fontSize: 12,
-              decoration: onTrailingTap != null ? TextDecoration.underline : null)),
-        ),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Text(title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+        const Spacer(),
+        if (trailing != null)
+          GestureDetector(
+            onTap: onTrailingTap,
+            child: Text(trailing!, style: GoogleFonts.inter(color: kMuted, fontSize: 12,
+                decoration: onTrailingTap != null ? TextDecoration.underline : null)),
+          ),
+      ]),
+      if (subtitle != null)
+        Text(subtitle!, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
     ]);
   }
 }
@@ -553,5 +605,129 @@ class _CreatorCardState extends State<_CreatorCard> {
         ),
       ),
     ).animate().fadeIn(delay: widget.delay.ms, duration: 400.ms).slideY(begin: 0.1, curve: Curves.easeOut);
+  }
+}
+
+// ─── Pledge card (fan dashboard) ──────────────────────────────────────────────
+class _PledgeCard extends StatelessWidget {
+  final PledgeModel pledge;
+  final VoidCallback onRefresh;
+  const _PledgeCard({required this.pledge, required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = pledge.isActive ? const Color(0xFF10B981) : kMuted;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(14), border: Border.all(color: kBorder)),
+      child: Row(children: [
+        Container(width: 40, height: 40,
+            decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.repeat_rounded, color: kPrimary, size: 20)),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(pledge.creatorDisplayName, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+          if (pledge.tierName != null)
+            Text(pledge.tierName!, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+          if (pledge.nextChargeDate != null)
+            Text('Next: ${pledge.nextChargeDate}', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+        ])),
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('R${pledge.amount.toStringAsFixed(0)}/mo', style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(36)),
+            child: Text(pledge.status.toUpperCase(), style: GoogleFonts.inter(color: statusColor, fontSize: 10, fontWeight: FontWeight.w700)),
+          ),
+        ]),
+        if (pledge.isActive) ...[
+          const SizedBox(width: 10),
+          TextButton(
+            onPressed: () async {
+              final api = context.read<AuthProvider>().api;
+              await api.updatePledge(pledge.id, 'cancelled');
+              onRefresh();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent, padding: EdgeInsets.zero, minimumSize: const Size(0, 32)),
+            child: Text('Cancel', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.redAccent)),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
+// ─── Streak card (fan dashboard) ──────────────────────────────────────────────
+class _StreakCard extends StatelessWidget {
+  final TipStreakModel streak;
+  const _StreakCard({required this.streak});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(14), border: Border.all(color: kBorder)),
+      child: Row(children: [
+        const Text('\u{1F525}', style: TextStyle(fontSize: 24)),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${streak.currentStreak} month${streak.currentStreak == 1 ? '' : 's'} streak',
+              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+          Text(streak.creatorDisplayName, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+          if (streak.badges.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(spacing: 6, children: streak.badges.map((b) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(36),
+                  border: Border.all(color: kPrimary.withValues(alpha: 0.3))),
+              child: Text(b, style: GoogleFonts.inter(color: kPrimary, fontSize: 10, fontWeight: FontWeight.w700)),
+            )).toList()),
+          ],
+        ])),
+        Text('Best: ${streak.maxStreak}mo', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+      ]),
+    );
+  }
+}
+
+// ─── Fan commission card ──────────────────────────────────────────────────────
+class _FanCommissionCard extends StatelessWidget {
+  final CommissionRequestModel commission;
+  const _FanCommissionCard({required this.commission});
+
+  Color get _statusColor => switch (commission.status) {
+    'accepted' => const Color(0xFF10B981),
+    'declined' => Colors.redAccent,
+    'completed' => const Color(0xFF60A5FA),
+    _ => const Color(0xFFFBBF24),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(14), border: Border.all(color: kBorder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text(commission.title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13))),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: _statusColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(36)),
+            child: Text(commission.status.toUpperCase(), style: GoogleFonts.inter(color: _statusColor, fontSize: 10, fontWeight: FontWeight.w700)),
+          ),
+        ]),
+        const SizedBox(height: 4),
+        Text(commission.creatorDisplayName, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+        Text('R${commission.agreedPrice.toStringAsFixed(0)} agreed', style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 12)),
+        if (commission.deliveryNote.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(commission.deliveryNote, style: GoogleFonts.inter(color: const Color(0xFF60A5FA), fontSize: 12, height: 1.4)),
+        ],
+      ]),
+    );
   }
 }

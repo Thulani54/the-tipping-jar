@@ -8,11 +8,14 @@ class AuthProvider extends ChangeNotifier {
   String? _accessToken;
   String? _refreshToken;
   bool _loading = false;
+  bool _otpVerified = false;
 
   AppUser? get user => _user;
   String? get accessToken => _accessToken;
   bool get isAuthenticated => _accessToken != null && _user != null;
   bool get isCreator => _user?.isCreator ?? false;
+  bool get isEnterprise => _user?.role == 'enterprise';
+  bool get otpVerified => _otpVerified;
   bool get loading => _loading;
 
   ApiService get api => ApiService(authToken: _accessToken);
@@ -27,6 +30,8 @@ class AuthProvider extends ChangeNotifier {
       try {
         // Restore full user profile. If the access token is expired, try refresh.
         _user = await ApiService(authToken: _accessToken).getMe();
+        // Persistent session — skip OTP on reload
+        _otpVerified = true;
       } catch (_) {
         await _tryRefresh();
       }
@@ -41,11 +46,23 @@ class AuthProvider extends ChangeNotifier {
     try {
       final data = await ApiService().login(email, password);
       _user = AppUser.fromJson(data['user'] as Map<String, dynamic>);
+      _otpVerified = false;
       await _saveTokens(data['access'] as String, data['refresh'] as String);
+      // Trigger OTP — errors are non-fatal (user can resend on OTP screen)
+      try {
+        await api.requestOtp();
+      } catch (_) {}
     } finally {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  // ── Verify OTP ────────────────────────────────────────────────────
+  Future<void> verifyOtp(String code) async {
+    await api.verifyOtp(code);
+    _otpVerified = true;
+    notifyListeners();
   }
 
   // ── Register (creates account; does NOT log in automatically) ─────
@@ -54,6 +71,7 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     required String role,
+    String phoneNumber = '',
   }) async {
     _loading = true;
     notifyListeners();
@@ -63,6 +81,7 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
         role: role,
+        phoneNumber: phoneNumber,
       );
     } finally {
       _loading = false;
@@ -78,6 +97,7 @@ class AuthProvider extends ChangeNotifier {
     _accessToken = null;
     _refreshToken = null;
     _user = null;
+    _otpVerified = false;
     notifyListeners();
   }
 

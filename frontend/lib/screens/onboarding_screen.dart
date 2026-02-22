@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../widgets/app_logo.dart';
 
@@ -14,6 +16,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   int _step = 0;
   final int _totalSteps = 4;
+  bool _saving = false;
 
   // Step 1 — Platforms
   final Set<String> _platforms = {};
@@ -36,11 +39,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _ => false,
   };
 
-  void _next() {
+  Future<void> _next() async {
     if (_step < _totalSteps - 1) {
       setState(() => _step++);
     } else {
-      context.go('/dashboard');
+      setState(() => _saving = true);
+      try {
+        await context.read<AuthProvider>().api.updateMyCreatorProfile({
+          'tagline': _taglineCtrl.text.trim(),
+          'category': _niche ?? '',
+          'platforms': _platforms.join(','),
+          'audience_size': _audienceSize ?? '',
+        });
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Profile saved with some issues. You can update it later.',
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+            backgroundColor: Colors.orange.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 3),
+          ));
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _saving = false);
+          context.go('/dashboard');
+        }
+      }
     }
   }
 
@@ -153,16 +180,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _footer() => Row(children: [
     if (_step > 0)
       TextButton(
-        onPressed: _back,
+        onPressed: _saving ? null : _back,
         child: Text('Back', style: GoogleFonts.inter(
             color: kMuted, fontWeight: FontWeight.w500)),
       ),
     const Spacer(),
     AnimatedOpacity(
-      opacity: _canProceed ? 1 : 0.4,
+      opacity: _canProceed && !_saving ? 1 : 0.4,
       duration: 200.ms,
       child: ElevatedButton(
-        onPressed: _canProceed ? _next : null,
+        onPressed: (_canProceed && !_saving) ? _next : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: kPrimary, foregroundColor: Colors.white,
           elevation: 0, shadowColor: Colors.transparent,
@@ -170,9 +197,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
           disabledBackgroundColor: kPrimary.withOpacity(0.4),
         ),
-        child: Text(_step == _totalSteps - 1 ? 'Go to dashboard →' : 'Continue',
-            style: GoogleFonts.inter(
-                fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white)),
+        child: _saving
+            ? const SizedBox(
+                width: 18, height: 18,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            : Text(_step == _totalSteps - 1 ? 'Go to dashboard →' : 'Continue',
+                style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white)),
       ),
     ),
   ]);

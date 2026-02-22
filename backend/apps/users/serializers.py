@@ -5,10 +5,11 @@ from .models import OTP, ApiKey, User
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
+    phone_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "password", "role")
+        fields = ("id", "username", "email", "password", "role", "phone_number")
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
