@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 
 from apps.users.models import User
@@ -61,11 +62,11 @@ def seed_demo_users(apps=None, schema_editor=None):
             user = UserModel(
                 email=spec["email"],
                 username=spec["username"],
+                password=make_password(spec["password"]),
                 role=spec["role"],
                 first_name=spec["first_name"],
                 last_name=spec["last_name"],
             )
-            user.set_password(spec["password"])
             user.save()
         else:
             user = UserModel.objects.create_user(
