@@ -37,7 +37,7 @@ class User(AbstractUser):
         help_text="Preferred OTP delivery channel.",
     )
     two_fa_enabled = models.BooleanField(
-        default=True,
+        default=False,
         help_text="When False, login skips the OTP step entirely.",
     )
 
