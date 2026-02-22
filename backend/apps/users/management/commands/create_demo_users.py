@@ -76,6 +76,7 @@ def seed_demo_users(apps=None, schema_editor=None):
                 role=spec["role"],
                 first_name=spec["first_name"],
                 last_name=spec["last_name"],
+                two_fa_enabled=False,
             )
 
         if profile_spec:

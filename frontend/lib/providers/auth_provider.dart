@@ -46,12 +46,17 @@ class AuthProvider extends ChangeNotifier {
     try {
       final data = await ApiService().login(email, password);
       _user = AppUser.fromJson(data['user'] as Map<String, dynamic>);
-      _otpVerified = false;
       await _saveTokens(data['access'] as String, data['refresh'] as String);
-      // Trigger OTP — errors are non-fatal (user can resend on OTP screen)
-      try {
-        await api.requestOtp();
-      } catch (_) {}
+      if (_user!.twoFaEnabled) {
+        _otpVerified = false;
+        // Trigger OTP — errors are non-fatal (user can resend on OTP screen)
+        try {
+          await api.requestOtp();
+        } catch (_) {}
+      } else {
+        // 2FA disabled — skip OTP screen entirely
+        _otpVerified = true;
+      }
     } finally {
       _loading = false;
       notifyListeners();
@@ -87,6 +92,13 @@ class AuthProvider extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  // ── Toggle 2FA ────────────────────────────────────────────────────
+  Future<void> setTwoFa(bool enabled) async {
+    await api.updateUserProfile({'two_fa_enabled': enabled});
+    _user = _user?.copyWith(twoFaEnabled: enabled);
+    notifyListeners();
   }
 
   // ── Logout ────────────────────────────────────────────────────────

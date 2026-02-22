@@ -680,6 +680,10 @@ class _ProfilePageState extends State<_ProfilePage> {
             widget.onUpdated(updated);
           },
         ),
+        const SizedBox(height: 20),
+
+        // Security settings
+        const _SecurityCard(),
       ]),
     );
   }
@@ -2389,6 +2393,85 @@ class _JarFormDialogState extends State<_JarFormDialog> {
         borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
   );
+}
+
+// ─── Security card ────────────────────────────────────────────────────────────
+class _SecurityCard extends StatefulWidget {
+  const _SecurityCard();
+  @override
+  State<_SecurityCard> createState() => _SecurityCardState();
+}
+
+class _SecurityCardState extends State<_SecurityCard> {
+  bool _saving = false;
+
+  Future<void> _toggle(bool enabled) async {
+    setState(() => _saving = true);
+    try {
+      await context.read<AuthProvider>().setTwoFa(enabled);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            enabled ? '2FA enabled — you will need a code on next login.' : '2FA disabled — no code required on login.',
+            style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+          ),
+          backgroundColor: kPrimary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to update 2FA setting.',
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final twoFaEnabled = context.watch<AuthProvider>().user?.twoFaEnabled ?? true;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+          color: kCardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Security', style: GoogleFonts.inter(
+            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Two-factor authentication (2FA)',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 4),
+            Text(
+              twoFaEnabled
+                  ? 'A verification code is sent to your email on each login.'
+                  : '2FA is off — anyone with your password can log in.',
+              style: GoogleFonts.inter(color: kMuted, fontSize: 12),
+            ),
+          ])),
+          const SizedBox(width: 16),
+          _saving
+              ? const SizedBox(width: 24, height: 24,
+                  child: CircularProgressIndicator(color: kPrimary, strokeWidth: 2))
+              : Switch(
+                  value: twoFaEnabled,
+                  onChanged: _toggle,
+                  activeColor: kPrimary,
+                ),
+        ]),
+      ]),
+    );
+  }
 }
 
 // ─── Monetize page ────────────────────────────────────────────────────────────

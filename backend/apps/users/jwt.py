@@ -12,6 +12,7 @@ class TippingJarTokenSerializer(TokenObtainPairSerializer):
             "email": self.user.email,
             "username": self.user.username,
             "role": self.user.role,
+            "two_fa_enabled": self.user.two_fa_enabled,
         }
         return data
 

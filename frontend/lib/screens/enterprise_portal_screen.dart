@@ -104,6 +104,7 @@ class _EnterprisePortalScreenState extends State<EnterprisePortalScreen> {
           members: _members,
           onCreated: _load,
         ),
+      3 => const _EnterpriseSettingsTab(),
       _ => const SizedBox.shrink(),
     };
   }
@@ -123,6 +124,7 @@ class _Sidebar extends StatelessWidget {
       (Icons.dashboard_rounded, 'Overview'),
       (Icons.people_rounded, 'Creators'),
       (Icons.account_balance_wallet_rounded, 'Distributions'),
+      (Icons.settings_rounded, 'Settings'),
     ];
 
     return Container(
@@ -260,7 +262,7 @@ class _TabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = ['Overview', 'Creators', 'Distributions'];
+    final tabs = ['Overview', 'Creators', 'Distributions', 'Settings'];
     return Container(
       color: kDarker,
       child: Row(children: tabs.asMap().entries.map((e) {
@@ -1228,6 +1230,90 @@ class _CreateDistributionDialogState extends State<_CreateDistributionDialog> {
           ]),
         ),
       ),
+    );
+  }
+}
+
+// ─── Enterprise Settings tab ──────────────────────────────────────────────────
+class _EnterpriseSettingsTab extends StatefulWidget {
+  const _EnterpriseSettingsTab();
+  @override
+  State<_EnterpriseSettingsTab> createState() => _EnterpriseSettingsTabState();
+}
+
+class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
+  bool _saving = false;
+
+  Future<void> _toggle(bool enabled) async {
+    setState(() => _saving = true);
+    try {
+      await context.read<AuthProvider>().setTwoFa(enabled);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            enabled ? '2FA enabled.' : '2FA disabled — no code required on login.',
+            style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+          ),
+          backgroundColor: kPrimary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to update 2FA setting.',
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final twoFaEnabled = context.watch<AuthProvider>().user?.twoFaEnabled ?? true;
+    final w = MediaQuery.of(context).size.width;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(w > 860 ? 32 : 20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Settings', style: GoogleFonts.inter(
+            color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+              color: kCardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Security', style: GoogleFonts.inter(
+                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Two-factor authentication (2FA)',
+                    style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 4),
+                Text(
+                  twoFaEnabled
+                      ? 'A verification code is sent to your email on each login.'
+                      : '2FA is off — anyone with your password can log in.',
+                  style: GoogleFonts.inter(color: kMuted, fontSize: 12),
+                ),
+              ])),
+              const SizedBox(width: 16),
+              _saving
+                  ? const SizedBox(width: 24, height: 24,
+                      child: CircularProgressIndicator(color: kPrimary, strokeWidth: 2))
+                  : Switch(value: twoFaEnabled, onChanged: _toggle, activeColor: kPrimary),
+            ]),
+          ]),
+        ),
+      ]),
     );
   }
 }

@@ -36,6 +36,10 @@ class User(AbstractUser):
         max_length=5, choices=OtpMethod.choices, default=OtpMethod.EMAIL,
         help_text="Preferred OTP delivery channel.",
     )
+    two_fa_enabled = models.BooleanField(
+        default=True,
+        help_text="When False, login skips the OTP step entirely.",
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

@@ -37,6 +37,12 @@ class OtpRequestView(APIView):
 
     def post(self, request):
         user = request.user
+
+        # 2FA disabled — no OTP needed, treat as already verified
+        if not user.two_fa_enabled:
+            return Response({"detail": "2FA is disabled for this account.", "skipped": True},
+                            status=status.HTTP_200_OK)
+
         method = request.data.get("method") or user.otp_method
 
         if method == OTP.Method.SMS and not user.phone_number:
@@ -87,6 +93,10 @@ class OtpVerifyView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        # 2FA disabled — no OTP to verify
+        if not request.user.two_fa_enabled:
+            return Response({"detail": "OTP verified successfully."}, status=status.HTTP_200_OK)
+
         code = (request.data.get("code") or "").strip()
         if not code:
             return Response({"detail": "code is required."}, status=status.HTTP_400_BAD_REQUEST)
