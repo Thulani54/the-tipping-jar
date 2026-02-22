@@ -169,7 +169,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       2 => _JarsPage(profile: d.profile),
       3 => _AnalyticsPage(stats: d.stats, tips: d.tips),
       4 => _ContentPage(),
-      5 => _MonetizePage(),
+      5 => _MonetizePage(creatorSlug: d.profile.slug),
       6 => _ProfilePage(
           profile: d.profile,
           onCopyLink: _copyLink,
@@ -2393,6 +2393,8 @@ class _JarFormDialogState extends State<_JarFormDialog> {
 
 // ─── Monetize page ────────────────────────────────────────────────────────────
 class _MonetizePage extends StatefulWidget {
+  final String creatorSlug;
+  const _MonetizePage({required this.creatorSlug});
   @override
   State<_MonetizePage> createState() => _MonetizePageState();
 }
@@ -2486,7 +2488,7 @@ class _MonetizePageState extends State<_MonetizePage> {
         color: kPrimary, backgroundColor: kCardBg,
         onRefresh: _load,
         child: switch (_tab) {
-          0 => _TiersSubView(tiers: _tiers, onRefresh: _load),
+          0 => _TiersSubView(tiers: _tiers, onRefresh: _load, creatorSlug: widget.creatorSlug),
           1 => _PledgesSubView(pledges: _pledges),
           2 => _MilestonesSubView(milestones: _milestones, onRefresh: _load),
           3 => _CommissionsSubView(slot: _slot, commissions: _commissions, onRefresh: _load),
@@ -2520,7 +2522,8 @@ class _MonetizePageState extends State<_MonetizePage> {
 class _TiersSubView extends StatelessWidget {
   final List<TierModel> tiers;
   final VoidCallback onRefresh;
-  const _TiersSubView({required this.tiers, required this.onRefresh});
+  final String creatorSlug;
+  const _TiersSubView({required this.tiers, required this.onRefresh, required this.creatorSlug});
 
   @override
   Widget build(BuildContext context) {
@@ -2532,14 +2535,38 @@ class _TiersSubView extends StatelessWidget {
           Text('Named price tiers fans can subscribe to monthly.',
               style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
         ])),
-        ElevatedButton.icon(
-          onPressed: () => _showTierDialog(context),
-          icon: const Icon(Icons.add_rounded, size: 16),
-          label: Text('Add Tier', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
-          style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
-              elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13)),
-        ),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          OutlinedButton.icon(
+            onPressed: () {
+              final link = 'www.tippingjar.co.za/creator/$creatorSlug/subscribe';
+              Clipboard.setData(ClipboardData(text: link));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('Subscribe page link copied!',
+                    style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+                backgroundColor: kPrimary,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                duration: const Duration(seconds: 2),
+              ));
+            },
+            icon: const Icon(Icons.share_rounded, size: 15),
+            label: Text('Share page', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: kPrimary,
+              side: const BorderSide(color: kPrimary),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => _showTierDialog(context),
+            icon: const Icon(Icons.add_rounded, size: 16),
+            label: Text('Add Tier', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
+                elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13)),
+          ),
+        ]),
       ]),
       const SizedBox(height: 24),
       if (tiers.isEmpty)

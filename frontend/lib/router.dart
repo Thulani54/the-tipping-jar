@@ -26,6 +26,7 @@ import 'screens/dispute_screen.dart';
 import 'screens/enterprise_portal_screen.dart';
 import 'screens/otp_screen.dart';
 import 'screens/payment_callback_screen.dart';
+import 'screens/subscribe_screen.dart';
 
 /// Routes that require the user to be signed in.
 const _protectedRoutes = {'/dashboard', '/onboarding', '/fan-dashboard', '/enterprise-portal', '/otp-verify'};
@@ -91,6 +92,11 @@ GoRouter buildRouter(AuthProvider auth) {
       GoRoute(path: '/terms',        builder: (_, __) => const TermsScreen()),
       GoRoute(path: '/cookies',      builder: (_, __) => const CookiesScreen()),
       // More specific routes first
+      GoRoute(
+        path: '/creator/:slug/subscribe',
+        builder: (_, state) =>
+            SubscribeScreen(slug: state.pathParameters['slug']!),
+      ),
       GoRoute(
         path: '/creator/:slug/jar/:jarSlug',
         builder: (_, state) => JarScreen(
