@@ -79,6 +79,35 @@ class ApiService {
 
   // ── Auth ─────────────────────────────────────────────────────────
 
+  /// Converts a DRF error response body into a single readable string.
+  /// Handles: {"detail": "..."}, {"non_field_errors": [...]}, {"email": [...], ...}
+  static String _parseApiError(String body, String fallback) {
+    try {
+      final data = jsonDecode(body);
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('detail')) return data['detail'] as String;
+        if (data.containsKey('non_field_errors')) {
+          final errs = data['non_field_errors'] as List<dynamic>;
+          return errs.map((e) => e.toString()).join(' ');
+        }
+        // Field errors — collect the first message per field
+        const fieldLabels = {
+          'email': 'Email', 'username': 'Username',
+          'password': 'Password', 'phone_number': 'Phone',
+        };
+        final msgs = <String>[];
+        data.forEach((field, errors) {
+          if (errors is List && errors.isNotEmpty) {
+            final label = fieldLabels[field] ?? field;
+            msgs.add('$label: ${errors.first}');
+          }
+        });
+        if (msgs.isNotEmpty) return msgs.join('\n');
+      }
+    } catch (_) {}
+    return fallback;
+  }
+
   Future<Map<String, dynamic>> login(String email, String password) async {
     final res = await http.post(
       Uri.parse('$_baseUrl/auth/token/'),
@@ -86,7 +115,7 @@ class ApiService {
       body: jsonEncode({'email': email, 'password': password}),
     );
     if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
-    throw Exception('Login failed: ${res.body}');
+    throw Exception(_parseApiError(res.body, 'Invalid email or password.'));
   }
 
   Future<AppUser> register({
@@ -111,7 +140,7 @@ class ApiService {
     if (res.statusCode == 201) {
       return AppUser.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
     }
-    throw Exception('Registration failed: ${res.body}');
+    throw Exception(_parseApiError(res.body, 'Registration failed. Please try again.'));
   }
 
   Future<void> requestOtp({String method = 'email'}) async {

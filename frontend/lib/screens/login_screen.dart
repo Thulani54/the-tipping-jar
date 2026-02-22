@@ -304,11 +304,13 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       if (auth.isCreator) {
         context.go('/dashboard');
+      } else if (auth.isEnterprise) {
+        context.go('/enterprise-portal');
       } else {
         context.go('/fan-dashboard');
       }
-    } catch (_) {
-      setState(() => _error = 'Invalid email or password. Please try again.');
+    } catch (e) {
+      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     }
   }
 

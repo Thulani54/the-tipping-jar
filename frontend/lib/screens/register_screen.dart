@@ -303,23 +303,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _error = null);
     try {
-      await context.read<AuthProvider>().register(
+      final auth = context.read<AuthProvider>();
+      final email = _emailCtrl.text.trim();
+      final password = _passwordCtrl.text;
+      await auth.register(
           username: _usernameCtrl.text.trim(),
-          email: _emailCtrl.text.trim(),
-          password: _passwordCtrl.text,
+          email: email,
+          password: password,
           role: _role,
           phoneNumber: _phoneCtrl.text.trim());
-      if (mounted) {
-        if (_role == 'creator') {
-          context.go('/onboarding');
-        } else if (_role == 'enterprise') {
-          context.go('/enterprise-portal');
-        } else {
-          context.go('/login');
-        }
+      // Auto-login so the user lands on their home page without a second sign-in step
+      await auth.login(email, password);
+      if (!mounted) return;
+      if (_role == 'creator') {
+        context.go('/onboarding');
+      } else if (_role == 'enterprise') {
+        context.go('/enterprise-portal');
+      } else {
+        context.go('/fan-dashboard');
       }
-    } catch (_) {
-      setState(() => _error = 'Registration failed. Try a different email.');
+    } catch (e) {
+      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
