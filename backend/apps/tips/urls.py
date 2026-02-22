@@ -8,6 +8,7 @@ from .views import (
     MyPledgeListCreateView,
     MyStreakListView,
     MyTipsView,
+    PublicPledgeCreateView,
     VerifyTipView,
 )
 
@@ -16,6 +17,7 @@ urlpatterns = [
     path("verify/<str:reference>/",  VerifyTipView.as_view(),          name="verify-tip"),
     path("me/",                      MyTipsView.as_view(),             name="my-tips"),
     path("sent/",                    FanTipsView.as_view(),            name="fan-tips-sent"),
+    path("subscribe/",               PublicPledgeCreateView.as_view(), name="public-subscribe"),
     path("pledges/",                 MyPledgeListCreateView.as_view(), name="my-pledges"),
     path("pledges/<int:pk>/",        MyPledgeDetailView.as_view(),     name="my-pledge-detail"),
     path("streaks/",                 MyStreakListView.as_view(),        name="my-streaks"),

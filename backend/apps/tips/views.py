@@ -324,6 +324,95 @@ class MyPledgeListCreateView(generics.ListCreateAPIView):
         }, status=status.HTTP_201_CREATED)
 
 
+class PublicPledgeCreateView(APIView):
+    """
+    POST /api/tips/subscribe/
+    Anonymous OR authenticated fans subscribe to a creator tier.
+    fan_email is required for guest pledges; authenticated users default to their account email.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        from apps.creators.models import SupportTier  # noqa: PLC0415
+
+        creator_slug = request.data.get("creator_slug")
+        if not creator_slug:
+            return Response({"detail": "creator_slug required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            creator = CreatorProfile.objects.get(slug=creator_slug, is_active=True)
+        except CreatorProfile.DoesNotExist:
+            return Response({"detail": "Creator not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        fan = request.user if request.user.is_authenticated else None
+        fan_email = request.data.get("fan_email", "") or (fan.email if fan else "")
+        fan_name = request.data.get("fan_name", "") or (fan.username if fan else "Anonymous")
+
+        if not fan_email:
+            return Response({"detail": "fan_email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        tier_id = request.data.get("tier_id")
+        amount = request.data.get("amount")
+
+        tier = None
+        if tier_id:
+            try:
+                tier = SupportTier.objects.get(id=tier_id, creator=creator, is_active=True)
+                if not amount:
+                    amount = tier.price
+            except SupportTier.DoesNotExist:
+                return Response({"detail": "Tier not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not amount:
+            return Response({"detail": "amount required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Dev mode — create pledge immediately as ACTIVE
+        if not settings.PAYSTACK_SECRET_KEY:
+            pledge = Pledge.objects.create(
+                fan=fan,
+                fan_email=fan_email,
+                fan_name=fan_name,
+                creator=creator,
+                tier=tier,
+                amount=amount,
+                status=Pledge.Status.ACTIVE,
+                next_charge_date=datetime.date.today() + datetime.timedelta(days=30),
+            )
+            return Response(PledgeSerializer(pledge).data, status=status.HTTP_201_CREATED)
+
+        # Production — initiate Paystack transaction for first charge
+        pledge = Pledge.objects.create(
+            fan=fan,
+            fan_email=fan_email,
+            fan_name=fan_name,
+            creator=creator,
+            tier=tier,
+            amount=amount,
+            status=Pledge.Status.PAUSED,
+            paystack_email=fan_email,
+        )
+        reference = ps.generate_reference(pledge.id)
+        callback_url = f"{settings.SITE_URL}/payment/callback?ref={reference}&pledge=1"
+        try:
+            tx = ps.initialize_transaction(
+                email=fan_email,
+                amount_zar=float(amount),
+                reference=reference,
+                callback_url=callback_url,
+                metadata={"pledge_id": pledge.id, "creator_slug": creator.slug},
+            )
+        except RuntimeError as exc:
+            pledge.delete()
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response({
+            "pledge_id": pledge.id,
+            "authorization_url": tx["authorization_url"],
+            "reference": reference,
+        }, status=status.HTTP_201_CREATED)
+
+
 class MyPledgeDetailView(generics.UpdateAPIView):
     """Fan: pause or cancel own pledge."""
 

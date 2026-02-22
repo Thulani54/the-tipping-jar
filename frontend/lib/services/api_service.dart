@@ -667,6 +667,7 @@ class ApiService {
     throw Exception('Failed to load pledges');
   }
 
+  /// Public subscribe — works for both anonymous and logged-in fans.
   Future<Map<String, dynamic>> createPledge({
     required String creatorSlug,
     required double amount,
@@ -682,14 +683,14 @@ class ApiService {
       if (fanName.isNotEmpty) 'fan_name': fanName,
     };
     final res = await http.post(
-      Uri.parse('$_baseUrl/tips/pledges/'),
+      Uri.parse('$_baseUrl/tips/subscribe/'),
       headers: _headers,
       body: jsonEncode(body),
     );
     if (res.statusCode == 200 || res.statusCode == 201) {
       return jsonDecode(res.body) as Map<String, dynamic>;
     }
-    throw Exception('Failed to create pledge: ${res.body}');
+    throw Exception(_parseApiError(res.body, 'Failed to create subscription.'));
   }
 
   Future<PledgeModel> updatePledge(int id, String status) async {
