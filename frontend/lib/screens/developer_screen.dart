@@ -25,24 +25,28 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
   int _activeSidebarIdx = 0;
 
   final ScrollController _scroll = ScrollController();
-  final _heroKey     = GlobalKey();
-  final _authKey     = GlobalKey();
+  final _heroKey       = GlobalKey();
+  final _authKey       = GlobalKey();
   final _quickstartKey = GlobalKey();
   final _referenceKey  = GlobalKey();
-  final _errorsKey   = GlobalKey();
-  final _rateKey     = GlobalKey();
-  final _webhooksKey = GlobalKey();
-  final _sdksKey     = GlobalKey();
+  final _errorsKey     = GlobalKey();
+  final _rateKey       = GlobalKey();
+  final _webhooksKey   = GlobalKey();
+  final _sdksKey       = GlobalKey();
+  final _platformApiKey  = GlobalKey();
+  final _partnerKey      = GlobalKey();
 
   static const _sidebarItems = [
-    (Icons.home_rounded,         'Overview'),
-    (Icons.lock_rounded,         'Authentication'),
-    (Icons.flash_on_rounded,     'Quick Start'),
-    (Icons.list_alt_rounded,     'API Reference'),
-    (Icons.error_outline_rounded,'Error Codes'),
-    (Icons.speed_rounded,        'Rate Limits'),
-    (Icons.webhook_rounded,      'Webhooks'),
-    (Icons.code_rounded,         'SDKs'),
+    (Icons.home_rounded,           'Overview'),
+    (Icons.lock_rounded,           'Authentication'),
+    (Icons.flash_on_rounded,       'Quick Start'),
+    (Icons.list_alt_rounded,       'API Reference'),
+    (Icons.error_outline_rounded,  'Error Codes'),
+    (Icons.speed_rounded,          'Rate Limits'),
+    (Icons.webhook_rounded,        'Webhooks'),
+    (Icons.code_rounded,           'SDKs'),
+    (Icons.api_rounded,            'Platform API'),
+    (Icons.handshake_rounded,      'Partner Program'),
   ];
 
   @override
@@ -68,6 +72,8 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
     if (o > 3400) idx = 5;
     if (o > 4000) idx = 6;
     if (o > 5000) idx = 7;
+    if (o > 6200) idx = 8;
+    if (o > 7400) idx = 9;
     if (idx != _activeSidebarIdx) setState(() => _activeSidebarIdx = idx);
   }
 
@@ -82,7 +88,8 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
   void _scrollToIdx(int idx) {
     setState(() => _activeSidebarIdx = idx);
     final keys = [_heroKey, _authKey, _quickstartKey, _referenceKey,
-                  _errorsKey, _rateKey, _webhooksKey, _sdksKey];
+                  _errorsKey, _rateKey, _webhooksKey, _sdksKey,
+                  _platformApiKey, _partnerKey];
     _scrollTo(keys[idx]);
   }
 
@@ -101,6 +108,8 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         _rateLimits(context),
         _webhooks(context),
         _sdks(context),
+        _platformApiSection(context),
+        _partnerProgramSection(context),
         _cta(context),
         _footer(),
       ]),
@@ -915,6 +924,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
       (Icons.person_rounded,        'Authenticated',     '300 req / min',  'Per user token'),
       (Icons.volunteer_activism_rounded, 'Tip creation', '30 req / hour',  'Per IP / user'),
       (Icons.refresh_rounded,       'Token refresh',     '20 req / hour',  'Per user'),
+      (Icons.api_rounded,           'Platform API',      '1 000 req / min','Per platform key'),
     ];
 
     return Container(
@@ -1099,6 +1109,225 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
                 install: 'go get github.com/tippingjar/go', version: 'v1.1.0',
                 lang: 'Go 1.21+'),
           ],
+        ),
+      ]),
+    );
+  }
+
+  // ─── Platform API ──────────────────────────────────────────────────────────
+  Widget _platformApiSection(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    const px = '''# Authenticate with your platform key
+curl -H "X-Platform-Key: tj_platform_sk_v1_..." \\
+  https://api.tippingjar.co.za/api/platform/creators/''';
+
+    const py = '''import requests
+
+PLATFORM_KEY = "tj_platform_sk_v1_..."
+headers = {"X-Platform-Key": PLATFORM_KEY}
+
+# List creators
+creators = requests.get(
+    "https://api.tippingjar.co.za/api/platform/creators/",
+    headers=headers,
+).json()
+
+# Register an end-user
+user = requests.post(
+    "https://api.tippingjar.co.za/api/platform/users/",
+    headers=headers,
+    json={"email": "fan@example.com", "external_id": "usr_123"},
+).json()
+
+# Initiate a tip
+tip = requests.post(
+    "https://api.tippingjar.co.za/api/platform/tips/",
+    headers=headers,
+    json={
+        "creator_slug": "john-doe",
+        "amount": 50,
+        "tipper_email": "fan@example.com",
+    },
+).json()''';
+
+    const endpoints = [
+      ('GET',  '/api/platform/me/',        'Get platform info + key prefix'),
+      ('GET',  '/api/platform/creators/',  'List active creators (public)'),
+      ('GET',  '/api/platform/users/',     'List end-users on this platform'),
+      ('POST', '/api/platform/users/',     'Register or update an end-user'),
+      ('POST', '/api/platform/tips/',      'Initiate a tip as a platform user'),
+    ];
+
+    return Container(
+      key: _platformApiKey,
+      padding: EdgeInsets.symmetric(horizontal: w > 900 ? 80 : 28, vertical: 80),
+      color: kDarker,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _SectionLabel(icon: Icons.api_rounded, label: 'Platform API'),
+        const SizedBox(height: 16),
+        Text('Embed tipping in your app',
+            style: GoogleFonts.inter(color: Colors.white,
+                fontWeight: FontWeight.w800, fontSize: 30, letterSpacing: -0.8)),
+        const SizedBox(height: 12),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Text(
+            'The Platform API lets third-party applications integrate TippingJar tipping without '
+            'requiring end-users to create TippingJar accounts directly. Authenticate requests '
+            'using the X-Platform-Key header. Each platform has its own isolated user pool and '
+            'rate limit envelope.',
+            style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.65),
+          ),
+        ),
+        const SizedBox(height: 32),
+
+        // Key format card
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: kCardBg, borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: kBorder)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const Icon(Icons.key_rounded, color: kPrimary, size: 16),
+              const SizedBox(width: 8),
+              Text('Key format', style: GoogleFonts.inter(
+                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+            ]),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: kDarker, borderRadius: BorderRadius.circular(8)),
+              child: Text('X-Platform-Key: tj_platform_sk_v1_<32-char-hex>',
+                  style: GoogleFonts.jetBrainsMono(color: kPrimary, fontSize: 13)),
+            ),
+            const SizedBox(height: 10),
+            Text('Platform keys are generated once on approval and hashed server-side. '
+                'Store them as environment secrets — they cannot be retrieved again.',
+                style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.5)),
+          ]),
+        ),
+        const SizedBox(height: 32),
+
+        // Endpoints table
+        Text('Endpoints', style: GoogleFonts.inter(
+            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -0.3)),
+        const SizedBox(height: 14),
+        ...endpoints.map((ep) => Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: kCardBg, borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kBorder)),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: (ep.$1 == 'GET' ? kPrimary : Colors.orange).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6)),
+              child: Text(ep.$1, style: GoogleFonts.jetBrainsMono(
+                  color: ep.$1 == 'GET' ? kPrimary : Colors.orange,
+                  fontSize: 11, fontWeight: FontWeight.w700)),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Text(ep.$2, style: GoogleFonts.jetBrainsMono(
+                color: Colors.white, fontSize: 12))),
+            Text(ep.$3, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+          ]),
+        )),
+
+        const SizedBox(height: 32),
+
+        // Code examples
+        _DevCodeBlock(
+          tabs: const ['cURL', 'Python'],
+          snippets: const [px, py],
+          selectedIdx: _codeTab,
+          onTab: (i) => setState(() => _codeTab = i),
+        ),
+      ]),
+    );
+  }
+
+  // ─── Partner Program ──────────────────────────────────────────────────────
+  Widget _partnerProgramSection(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    return Container(
+      key: _partnerKey,
+      padding: EdgeInsets.symmetric(horizontal: w > 900 ? 80 : 28, vertical: 80),
+      color: kDark,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _SectionLabel(icon: Icons.handshake_rounded, label: 'Partner Program'),
+        const SizedBox(height: 16),
+        Text('Become a TippingJar partner',
+            style: GoogleFonts.inter(color: Colors.white,
+                fontWeight: FontWeight.w800, fontSize: 30, letterSpacing: -0.8)),
+        const SizedBox(height: 12),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Text(
+            'The Partner Program gives SA-registered businesses access to the Platform API '
+            'and dedicated support. Applications are reviewed within 48 business hours.',
+            style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.65),
+          ),
+        ),
+        const SizedBox(height: 36),
+        Wrap(spacing: 20, runSpacing: 20, children: const [
+          _RequirementCard(
+            icon: Icons.business_rounded,
+            title: 'SA-registered business',
+            body: 'Your company must be registered with CIPC (Pty Ltd, CC, or NPC).',
+          ),
+          _RequirementCard(
+            icon: Icons.description_rounded,
+            title: 'Company documents',
+            body: 'CIPC certificate, VAT letter, director ID, and bank confirmation letter.',
+          ),
+          _RequirementCard(
+            icon: Icons.schedule_rounded,
+            title: '48 h review',
+            body: 'Our compliance team reviews every application within two business days.',
+          ),
+          _RequirementCard(
+            icon: Icons.support_agent_rounded,
+            title: 'Dedicated support',
+            body: 'Approved partners receive a dedicated integration engineer contact.',
+          ),
+        ]),
+        const SizedBox(height: 48),
+        Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [kPrimary.withOpacity(0.08), const Color(0xFF14B8A6).withOpacity(0.06)],
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: kPrimary.withOpacity(0.25)),
+          ),
+          child: Column(children: [
+            Text('Ready to apply?', style: GoogleFonts.inter(
+                color: Colors.white, fontWeight: FontWeight.w800, fontSize: 24, letterSpacing: -0.5),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 10),
+            Text('Complete a short multi-step form with your business details.',
+                style: GoogleFonts.inter(color: kMuted, fontSize: 14),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => context.go('/partner-apply'),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 16, color: Colors.white),
+              label: Text('Apply for Platform API access',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimary, foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+              ),
+            ),
+          ]),
         ),
       ]),
     );
@@ -2163,3 +2392,96 @@ const _errorShape = '''{
   // Rate limit errors (HTTP 429) include:
   "retry_after": 42   // seconds until limit resets
 }''';
+
+// ── Shared widget: tabbed code block ──────────────────────────────────────────
+class _DevCodeBlock extends StatelessWidget {
+  final List<String> tabs;
+  final List<String> snippets;
+  final int selectedIdx;
+  final ValueChanged<int> onTab;
+
+  const _DevCodeBlock({
+    required this.tabs,
+    required this.snippets,
+    required this.selectedIdx,
+    required this.onTab,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final idx = selectedIdx.clamp(0, tabs.length - 1);
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D1A14),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kBorder),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: kBorder))),
+          child: Row(children: [
+            ...tabs.asMap().entries.map((e) => GestureDetector(
+              onTap: () => onTab(e.key),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(
+                    color: idx == e.key ? kPrimary : Colors.transparent, width: 2)),
+                ),
+                child: Text(e.value,
+                    style: GoogleFonts.jetBrainsMono(
+                        color: idx == e.key ? kPrimary : kMuted,
+                        fontWeight: FontWeight.w600, fontSize: 11)),
+              ),
+            )),
+            const Spacer(),
+            _CopyButton(code: snippets[idx]),
+            const SizedBox(width: 12),
+          ]),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.all(20),
+          child: Text(snippets[idx],
+              style: GoogleFonts.jetBrainsMono(
+                  color: const Color(0xFFCDD6F4), fontSize: 12, height: 1.75)),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Shared widget: requirement card ──────────────────────────────────────────
+class _RequirementCard extends StatelessWidget {
+  final IconData icon;
+  final String title, body;
+  const _RequirementCard({required this.icon, required this.title, required this.body});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 220,
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: kCardBg, borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: kBorder),
+    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        width: 38, height: 38,
+        decoration: BoxDecoration(
+          color: kPrimary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: kPrimary, size: 18),
+      ),
+      const SizedBox(height: 14),
+      Text(title, style: GoogleFonts.inter(
+          color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+      const SizedBox(height: 6),
+      Text(body, style: GoogleFonts.inter(
+          color: kMuted, fontSize: 12, height: 1.55)),
+    ]),
+  );
+}

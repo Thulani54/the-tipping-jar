@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -37,20 +38,33 @@ class _EnterprisePortalScreenState extends State<EnterprisePortalScreen> {
     setState(() { _loading = true; _error = null; });
     try {
       final api = context.read<AuthProvider>().api;
-      final results = await Future.wait([
-        api.getMyEnterprise(),
-        api.getEnterpriseStats(),
-        api.getEnterpriseMembers(),
-        api.getEnterpriseDistributions(),
-      ]);
-      if (mounted) {
-        setState(() {
-          _enterprise = results[0] as EnterpriseModel;
-          _stats = results[1] as EnterpriseStats;
-          _members = results[2] as List<EnterpriseMember>;
-          _distributions = results[3] as List<FundDistribution>;
-          _loading = false;
-        });
+      // Load enterprise profile first — pending/rejected enterprises don't
+      // have access to the stat/member/distribution endpoints.
+      final enterprise = await api.getMyEnterprise();
+      if (!mounted) return;
+
+      if (enterprise.isApproved) {
+        final results = await Future.wait([
+          api.getEnterpriseStats(),
+          api.getEnterpriseMembers(),
+          api.getEnterpriseDistributions(),
+        ]);
+        if (mounted) {
+          setState(() {
+            _enterprise = enterprise;
+            _stats = results[0] as EnterpriseStats;
+            _members = results[1] as List<EnterpriseMember>;
+            _distributions = results[2] as List<FundDistribution>;
+            _loading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _enterprise = enterprise;
+            _loading = false;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -96,6 +110,11 @@ class _EnterprisePortalScreenState extends State<EnterprisePortalScreen> {
     if (_error != null && _enterprise == null) {
       return _NoEnterprise(onCreated: _load);
     }
+    final ent = _enterprise;
+    if (ent != null) {
+      if (ent.isPending) return _PendingApprovalState(enterprise: ent);
+      if (ent.isRejected) return _RejectedState(enterprise: ent);
+    }
     return switch (_tab) {
       0 => _OverviewTab(enterprise: _enterprise!, stats: _stats),
       1 => _CreatorsTab(members: _members, onRefresh: _load, enterprise: _enterprise!),
@@ -104,7 +123,7 @@ class _EnterprisePortalScreenState extends State<EnterprisePortalScreen> {
           members: _members,
           onCreated: _load,
         ),
-      3 => const _EnterpriseSettingsTab(),
+      3 => _EnterpriseSettingsTab(enterprise: _enterprise!),
       _ => const SizedBox.shrink(),
     };
   }
@@ -302,12 +321,26 @@ class _NoEnterprise extends StatefulWidget {
 class _NoEnterpriseState extends State<_NoEnterprise> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
+  final _websiteCtrl = TextEditingController();
+  final _legalNameCtrl = TextEditingController();
+  final _regNumCtrl = TextEditingController();
+  final _vatCtrl = TextEditingController();
+  final _contactNameCtrl = TextEditingController();
+  final _contactEmailCtrl = TextEditingController();
+  final _contactPhoneCtrl = TextEditingController();
   bool _saving = false;
   String? _error;
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _websiteCtrl.dispose();
+    _legalNameCtrl.dispose();
+    _regNumCtrl.dispose();
+    _vatCtrl.dispose();
+    _contactNameCtrl.dispose();
+    _contactEmailCtrl.dispose();
+    _contactPhoneCtrl.dispose();
     super.dispose();
   }
 
@@ -316,7 +349,16 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
     setState(() { _saving = true; _error = null; });
     try {
       final api = context.read<AuthProvider>().api;
-      await api.createEnterprise({'name': _nameCtrl.text.trim()});
+      await api.createEnterprise({
+        'name': _nameCtrl.text.trim(),
+        'website': _websiteCtrl.text.trim(),
+        'company_name_legal': _legalNameCtrl.text.trim(),
+        'company_registration_number': _regNumCtrl.text.trim(),
+        'vat_number': _vatCtrl.text.trim(),
+        'contact_name': _contactNameCtrl.text.trim(),
+        'contact_email': _contactEmailCtrl.text.trim(),
+        'contact_phone': _contactPhoneCtrl.text.trim(),
+      });
       widget.onCreated();
     } catch (e) {
       setState(() {
@@ -326,12 +368,32 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
     }
   }
 
+  InputDecoration _inputDec(String hint) => InputDecoration(
+    hintText: hint,
+    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 13),
+    filled: true, fillColor: kCardBg,
+    enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: kBorder)),
+    focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: kPrimary, width: 2)),
+    errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.red.withOpacity(0.5))),
+    focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+    isDense: true,
+  );
+
   @override
   Widget build(BuildContext context) {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: Padding(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(
@@ -350,42 +412,93 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
                 textAlign: TextAlign.center)
                 .animate().fadeIn(delay: 100.ms),
             const SizedBox(height: 8),
-            Text('Give your enterprise account a name to get started.',
+            Text('Your account will be reviewed before portal access is granted.',
                 style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
                 textAlign: TextAlign.center)
                 .animate().fadeIn(delay: 180.ms),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
             Form(
               key: _formKey,
-              child: Column(children: [
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                // ── Account ──────────────────────────────────────────────────
+                _SectionLabel('Account'),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _nameCtrl,
                   style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
                   validator: (v) => (v?.trim().isNotEmpty ?? false) ? null : 'Name is required',
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Acme Media Group',
-                    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
-                    filled: true, fillColor: kCardBg,
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: kBorder)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: kPrimary, width: 2)),
-                    errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.red.withOpacity(0.5))),
-                    focusedErrorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
+                  decoration: _inputDec('Enterprise name (e.g. Acme Media Group)'),
                 ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _websiteCtrl,
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                  decoration: _inputDec('Website (optional)'),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Company info ──────────────────────────────────────────────
+                _SectionLabel('Company Info'),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _legalNameCtrl,
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                  decoration: _inputDec('Legal company name'),
+                ),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _regNumCtrl,
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                      decoration: _inputDec('CIPC / Registration number'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _vatCtrl,
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                      decoration: _inputDec('VAT number (optional)'),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 20),
+
+                // ── Contact ───────────────────────────────────────────────────
+                _SectionLabel('Primary Contact'),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _contactNameCtrl,
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                  decoration: _inputDec('Contact full name'),
+                ),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _contactEmailCtrl,
+                      keyboardType: TextInputType.emailAddress,
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                      decoration: _inputDec('Contact email'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _contactPhoneCtrl,
+                      keyboardType: TextInputType.phone,
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                      decoration: _inputDec('Contact phone'),
+                    ),
+                  ),
+                ]),
+
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
                 ],
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -401,11 +514,148 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
                     child: _saving
                         ? const SizedBox(width: 20, height: 20,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : Text('Create enterprise',
+                        : Text('Submit for review',
                             style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
                   ),
                 ),
               ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Section label helper ─────────────────────────────────────────────────────
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+  @override
+  Widget build(BuildContext context) => Text(text,
+      style: GoogleFonts.inter(
+          color: kMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.8));
+}
+
+// ─── Pending approval state ───────────────────────────────────────────────────
+class _PendingApprovalState extends StatelessWidget {
+  final EnterpriseModel enterprise;
+  const _PendingApprovalState({required this.enterprise});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 72, height: 72,
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.amber.withOpacity(0.4)),
+              ),
+              child: const Icon(Icons.hourglass_top_rounded, color: Colors.amber, size: 32),
+            ).animate().scale(duration: 400.ms),
+            const SizedBox(height: 24),
+            Text('Under review',
+                style: GoogleFonts.inter(
+                    color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.5),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 10),
+            Text(
+              'Your enterprise account for ${enterprise.name} has been submitted and is currently under review. '
+              'You\'ll receive an email once approved. This typically takes 1–2 business days.',
+              style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 28),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withOpacity(0.25)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.info_outline_rounded, color: Colors.amber, size: 15),
+                const SizedBox(width: 8),
+                Text('Status: PENDING', style: GoogleFonts.inter(
+                    color: Colors.amber, fontSize: 12, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: () => context.go('/contact'),
+              child: Text('Contact support',
+                  style: GoogleFonts.inter(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Rejected state ───────────────────────────────────────────────────────────
+class _RejectedState extends StatelessWidget {
+  final EnterpriseModel enterprise;
+  const _RejectedState({required this.enterprise});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 72, height: 72,
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withOpacity(0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
+              ),
+              child: const Icon(Icons.cancel_rounded, color: Colors.redAccent, size: 32),
+            ).animate().scale(duration: 400.ms),
+            const SizedBox(height: 24),
+            Text('Application rejected',
+                style: GoogleFonts.inter(
+                    color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.5),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 10),
+            Text(
+              'We were unable to approve the enterprise account for ${enterprise.name} at this time.',
+              style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6),
+              textAlign: TextAlign.center,
+            ),
+            if (enterprise.rejectionReason.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.25)),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Reason:', style: GoogleFonts.inter(
+                      color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Text(enterprise.rejectionReason,
+                      style: GoogleFonts.inter(color: Colors.white70, fontSize: 13, height: 1.5)),
+                ]),
+              ),
+            ],
+            const SizedBox(height: 28),
+            TextButton.icon(
+              onPressed: () => context.go('/contact'),
+              icon: const Icon(Icons.support_agent_rounded, size: 16, color: kPrimary),
+              label: Text('Contact support to appeal',
+                  style: GoogleFonts.inter(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
             ),
           ]),
         ),
@@ -1236,16 +1486,28 @@ class _CreateDistributionDialogState extends State<_CreateDistributionDialog> {
 
 // ─── Enterprise Settings tab ──────────────────────────────────────────────────
 class _EnterpriseSettingsTab extends StatefulWidget {
-  const _EnterpriseSettingsTab();
+  final EnterpriseModel enterprise;
+  const _EnterpriseSettingsTab({required this.enterprise});
   @override
   State<_EnterpriseSettingsTab> createState() => _EnterpriseSettingsTabState();
 }
 
 class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
-  bool _saving = false;
+  bool _saving2fa = false;
+  final Map<String, bool> _uploading = {};
+  final Map<String, bool> _uploaded = {};
 
-  Future<void> _toggle(bool enabled) async {
-    setState(() => _saving = true);
+  @override
+  void initState() {
+    super.initState();
+    // Pre-populate uploaded state from existing documents
+    for (final doc in widget.enterprise.documents) {
+      _uploaded[doc.docType] = true;
+    }
+  }
+
+  Future<void> _toggle2fa(bool enabled) async {
+    setState(() => _saving2fa = true);
     try {
       await context.read<AuthProvider>().setTwoFa(enabled);
       if (mounted) {
@@ -1271,20 +1533,178 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
         ));
       }
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) setState(() => _saving2fa = false);
     }
+  }
+
+  Future<void> _uploadDoc(String docType) async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      withData: true,
+    );
+    if (picked == null || picked.files.isEmpty) return;
+    final file = picked.files.first;
+    if (file.bytes == null) return;
+    setState(() => _uploading[docType] = true);
+    try {
+      final api = context.read<AuthProvider>().api;
+      await api.uploadEnterpriseDocument(docType, file.bytes!, file.name);
+      if (mounted) setState(() { _uploading[docType] = false; _uploaded[docType] = true; });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _uploading[docType] = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Upload failed: ${e.toString().replaceFirst('Exception: ', '')}',
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+      }
+    }
+  }
+
+  Widget _docRow(String docType, String label) {
+    final uploading = _uploading[docType] ?? false;
+    final uploaded = _uploaded[docType] ?? false;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(children: [
+        Expanded(
+          child: Row(children: [
+            Icon(
+              uploaded ? Icons.check_circle_rounded : Icons.upload_file_rounded,
+              color: uploaded ? kPrimary : kMuted, size: 18,
+            ),
+            const SizedBox(width: 10),
+            Text(label, style: GoogleFonts.inter(
+                color: uploaded ? Colors.white : kMuted, fontSize: 13,
+                fontWeight: uploaded ? FontWeight.w500 : FontWeight.w400)),
+          ]),
+        ),
+        uploading
+            ? const SizedBox(width: 20, height: 20,
+                child: CircularProgressIndicator(color: kPrimary, strokeWidth: 2))
+            : TextButton(
+                onPressed: () => _uploadDoc(docType),
+                style: TextButton.styleFrom(
+                  foregroundColor: kPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  side: const BorderSide(color: kBorder),
+                ),
+                child: Text(uploaded ? 'Replace' : 'Upload',
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+              ),
+      ]),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final twoFaEnabled = context.watch<AuthProvider>().user?.twoFaEnabled ?? true;
+    final ent = widget.enterprise;
     final w = MediaQuery.of(context).size.width;
+
+    // Approval status badge
+    final Color statusColor;
+    final String statusLabel;
+    switch (ent.approvalStatus) {
+      case 'approved':
+        statusColor = kPrimary;
+        statusLabel = 'APPROVED';
+      case 'rejected':
+        statusColor = Colors.redAccent;
+        statusLabel = 'REJECTED';
+      default:
+        statusColor = Colors.amber;
+        statusLabel = 'PENDING';
+    }
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(w > 860 ? 32 : 20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Settings', style: GoogleFonts.inter(
             color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
         const SizedBox(height: 24),
+
+        // ── Approval status ───────────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+              color: kCardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Text('Approval Status', style: GoogleFonts.inter(
+                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(36),
+                  border: Border.all(color: statusColor.withOpacity(0.35)),
+                ),
+                child: Text(statusLabel, style: GoogleFonts.inter(
+                    color: statusColor, fontSize: 11, fontWeight: FontWeight.w700)),
+              ),
+            ]),
+            if (ent.isRejected && ent.rejectionReason.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('Reason: ${ent.rejectionReason}',
+                  style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 12, height: 1.5)),
+            ],
+            if (ent.isPending) ...[
+              const SizedBox(height: 10),
+              Text('Your application is under review. Upload your documents below to speed up the process.',
+                  style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.5)),
+            ],
+          ]),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Company info ──────────────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+              color: kCardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Company Info', style: GoogleFonts.inter(
+                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+            const SizedBox(height: 14),
+            _InfoRow('Legal name', ent.companyNameLegal.isNotEmpty ? ent.companyNameLegal : '—'),
+            _InfoRow('Registration #', ent.companyRegNumber.isNotEmpty ? ent.companyRegNumber : '—'),
+            _InfoRow('VAT number', ent.vatNumber.isNotEmpty ? ent.vatNumber : '—'),
+            _InfoRow('Contact', ent.contactName.isNotEmpty ? ent.contactName : '—'),
+            _InfoRow('Email', ent.contactEmail.isNotEmpty ? ent.contactEmail : '—'),
+            _InfoRow('Phone', ent.contactPhone.isNotEmpty ? ent.contactPhone : '—'),
+          ]),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Documents ─────────────────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+              color: kCardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Compliance Documents', style: GoogleFonts.inter(
+                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+            const SizedBox(height: 6),
+            Text('Upload supporting documents for approval.',
+                style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+            const SizedBox(height: 16),
+            _docRow('cipc', 'Company Registration (CIPC)'),
+            _docRow('vat', 'VAT Certificate'),
+            _docRow('id', 'Director ID / Passport'),
+            _docRow('bank', 'Bank Confirmation Letter'),
+          ]),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Security ──────────────────────────────────────────────────────────
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -1306,13 +1726,30 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
                 ),
               ])),
               const SizedBox(width: 16),
-              _saving
+              _saving2fa
                   ? const SizedBox(width: 24, height: 24,
                       child: CircularProgressIndicator(color: kPrimary, strokeWidth: 2))
-                  : Switch(value: twoFaEnabled, onChanged: _toggle, activeColor: kPrimary),
+                  : Switch(value: twoFaEnabled, onChanged: _toggle2fa, activeColor: kPrimary),
             ]),
           ]),
         ),
+      ]),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label, value;
+  const _InfoRow(this.label, this.value);
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(children: [
+        SizedBox(width: 120,
+            child: Text(label, style: GoogleFonts.inter(color: kMuted, fontSize: 12))),
+        Expanded(child: Text(value,
+            style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500))),
       ]),
     );
   }

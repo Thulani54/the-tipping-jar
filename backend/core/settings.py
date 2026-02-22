@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "apps.payments",
     "apps.support",
     "apps.enterprise",
+    "apps.platform",
 ]
 
 MIDDLEWARE = [
@@ -106,8 +107,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ── REST Framework ────────────────────────────────────────────────
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        # API key checked first — if the Bearer token starts with tj_live_sk_v1_
-        # it is resolved via the ApiKey table; otherwise falls through to JWT.
+        # Platform key checked first (X-Platform-Key header)
+        "apps.platform.authentication.PlatformKeyAuthentication",
+        # API key (tj_live_sk_v1_...) checked second
         "apps.users.authentication.ApiKeyAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),

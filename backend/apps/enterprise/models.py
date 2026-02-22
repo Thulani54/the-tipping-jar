@@ -10,6 +10,11 @@ class Enterprise(models.Model):
         SCALE = "scale", "Scale"
         CUSTOM = "custom", "Custom"
 
+    class ApprovalStatus(models.TextChoices):
+        PENDING  = "pending",  "Pending"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
     admin = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -24,6 +29,20 @@ class Enterprise(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # ── Approval workflow ──────────────────────────────────────────────────────
+    approval_status = models.CharField(
+        max_length=10, choices=ApprovalStatus.choices, default=ApprovalStatus.PENDING
+    )
+    rejection_reason = models.TextField(blank=True)
+
+    # ── Company info ───────────────────────────────────────────────────────────
+    company_name_legal = models.CharField(max_length=200, blank=True)
+    company_registration_number = models.CharField(max_length=100, blank=True)
+    vat_number = models.CharField(max_length=50, blank=True)
+    contact_name = models.CharField(max_length=100, blank=True)
+    contact_email = models.EmailField(blank=True)
+    contact_phone = models.CharField(max_length=20, blank=True)
+
     class Meta:
         ordering = ["name"]
 
@@ -33,6 +52,26 @@ class Enterprise(models.Model):
     @property
     def creator_count(self):
         return self.memberships.filter(is_active=True).count()
+
+
+class EnterpriseDocument(models.Model):
+    """A compliance document uploaded for enterprise approval."""
+
+    class DocType(models.TextChoices):
+        CIPC = "cipc", "Company Registration (CIPC)"
+        VAT  = "vat",  "VAT Certificate"
+        ID   = "id",   "Director ID / Passport"
+        BANK = "bank", "Bank Confirmation Letter"
+
+    enterprise = models.ForeignKey(
+        Enterprise, on_delete=models.CASCADE, related_name="documents"
+    )
+    doc_type = models.CharField(max_length=10, choices=DocType.choices)
+    file = models.FileField(upload_to="enterprise_docs/%Y/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.enterprise.name} — {self.get_doc_type_display()}"
 
 
 class EnterpriseMembership(models.Model):

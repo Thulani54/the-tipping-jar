@@ -1,7 +1,13 @@
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from .models import Enterprise, EnterpriseMembership, FundDistribution, FundDistributionItem
+from .models import (
+    Enterprise,
+    EnterpriseDocument,
+    EnterpriseMembership,
+    FundDistribution,
+    FundDistributionItem,
+)
 
 
 class EnterpriseMembershipSerializer(serializers.ModelSerializer):
@@ -21,17 +27,38 @@ class EnterpriseMembershipSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "joined_at")
 
 
+class EnterpriseDocumentSerializer(serializers.ModelSerializer):
+    doc_type_display = serializers.CharField(source="get_doc_type_display", read_only=True)
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EnterpriseDocument
+        fields = ("id", "doc_type", "doc_type_display", "file_url", "uploaded_at")
+        read_only_fields = ("id", "doc_type_display", "file_url", "uploaded_at")
+
+    def get_file_url(self, obj):
+        request = self.context.get("request")
+        if obj.file and request:
+            return request.build_absolute_uri(obj.file.url)
+        return None
+
+
 class EnterpriseSerializer(serializers.ModelSerializer):
     creator_count = serializers.ReadOnlyField()
     logo = serializers.ImageField(required=False)
+    documents = EnterpriseDocumentSerializer(many=True, read_only=True)
 
     class Meta:
         model = Enterprise
         fields = (
             "id", "name", "slug", "logo", "website",
             "plan", "is_active", "creator_count", "created_at",
+            "approval_status", "rejection_reason",
+            "company_name_legal", "company_registration_number", "vat_number",
+            "contact_name", "contact_email", "contact_phone",
+            "documents",
         )
-        read_only_fields = ("id", "slug", "creator_count", "created_at")
+        read_only_fields = ("id", "slug", "creator_count", "created_at", "approval_status", "rejection_reason")
 
     def create(self, validated_data):
         if not validated_data.get("slug"):

@@ -860,4 +860,57 @@ class ApiService {
       return null;
     }
   }
+
+  // ── Enterprise document upload ────────────────────────────────────
+
+  Future<void> uploadEnterpriseDocument(
+    String docType,
+    Uint8List bytes,
+    String filename,
+  ) async {
+    final uri = Uri.parse('$_baseUrl/enterprise/me/documents/');
+    final request = http.MultipartRequest('POST', uri);
+    if (authToken != null) request.headers['Authorization'] = 'Bearer $authToken';
+    if (apiKey != null) request.headers['X-API-Key'] = apiKey!;
+    request.fields['doc_type'] = docType;
+    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+    final streamed = await request.send();
+    if (streamed.statusCode != 201) {
+      final body = await streamed.stream.bytesToString();
+      throw Exception('Upload failed: $body');
+    }
+  }
+
+  // ── Platform (Partner Program) ────────────────────────────────────
+
+  Future<Map<String, dynamic>> applyForPlatform(Map<String, dynamic> data) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/platform/apply/'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (res.statusCode == 201) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to submit application: ${res.body}');
+  }
+
+  Future<void> uploadPlatformDocument(
+    int platformId,
+    String docType,
+    Uint8List bytes,
+    String filename,
+  ) async {
+    final uri = Uri.parse('$_baseUrl/platform/apply/$platformId/documents/');
+    final request = http.MultipartRequest('POST', uri);
+    if (authToken != null) request.headers['Authorization'] = 'Bearer $authToken';
+    if (apiKey != null) request.headers['X-API-Key'] = apiKey!;
+    request.fields['doc_type'] = docType;
+    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+    final streamed = await request.send();
+    if (streamed.statusCode != 201) {
+      final body = await streamed.stream.bytesToString();
+      throw Exception('Upload failed: $body');
+    }
+  }
 }

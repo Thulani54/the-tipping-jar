@@ -1,3 +1,27 @@
+class EnterpriseDocument {
+  final int id;
+  final String docType;
+  final String docTypeDisplay;
+  final String? fileUrl;
+  final String uploadedAt;
+
+  const EnterpriseDocument({
+    required this.id,
+    required this.docType,
+    required this.docTypeDisplay,
+    this.fileUrl,
+    required this.uploadedAt,
+  });
+
+  factory EnterpriseDocument.fromJson(Map<String, dynamic> j) => EnterpriseDocument(
+        id: j['id'] as int,
+        docType: j['doc_type'] as String? ?? '',
+        docTypeDisplay: j['doc_type_display'] as String? ?? '',
+        fileUrl: j['file_url'] as String?,
+        uploadedAt: j['uploaded_at'] as String? ?? '',
+      );
+}
+
 class EnterpriseModel {
   final int id;
   final String name;
@@ -8,6 +32,17 @@ class EnterpriseModel {
   final bool isActive;
   final int creatorCount;
   final String createdAt;
+  // Approval
+  final String approvalStatus;
+  final String rejectionReason;
+  // Company info
+  final String companyNameLegal;
+  final String companyRegNumber;
+  final String vatNumber;
+  final String contactName;
+  final String contactEmail;
+  final String contactPhone;
+  final List<EnterpriseDocument> documents;
 
   const EnterpriseModel({
     required this.id,
@@ -19,7 +54,20 @@ class EnterpriseModel {
     required this.isActive,
     required this.creatorCount,
     required this.createdAt,
+    required this.approvalStatus,
+    required this.rejectionReason,
+    required this.companyNameLegal,
+    required this.companyRegNumber,
+    required this.vatNumber,
+    required this.contactName,
+    required this.contactEmail,
+    required this.contactPhone,
+    required this.documents,
   });
+
+  bool get isPending  => approvalStatus == 'pending';
+  bool get isApproved => approvalStatus == 'approved';
+  bool get isRejected => approvalStatus == 'rejected';
 
   factory EnterpriseModel.fromJson(Map<String, dynamic> j) => EnterpriseModel(
         id: j['id'] as int,
@@ -31,6 +79,17 @@ class EnterpriseModel {
         isActive: j['is_active'] as bool? ?? true,
         creatorCount: j['creator_count'] as int? ?? 0,
         createdAt: j['created_at'] as String? ?? '',
+        approvalStatus: j['approval_status'] as String? ?? 'pending',
+        rejectionReason: j['rejection_reason'] as String? ?? '',
+        companyNameLegal: j['company_name_legal'] as String? ?? '',
+        companyRegNumber: j['company_registration_number'] as String? ?? '',
+        vatNumber: j['vat_number'] as String? ?? '',
+        contactName: j['contact_name'] as String? ?? '',
+        contactEmail: j['contact_email'] as String? ?? '',
+        contactPhone: j['contact_phone'] as String? ?? '',
+        documents: (j['documents'] as List? ?? [])
+            .map((e) => EnterpriseDocument.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 }
 

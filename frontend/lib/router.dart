@@ -27,6 +27,7 @@ import 'screens/enterprise_portal_screen.dart';
 import 'screens/otp_screen.dart';
 import 'screens/payment_callback_screen.dart';
 import 'screens/subscribe_screen.dart';
+import 'screens/partner_apply_screen.dart';
 
 /// Routes that require the user to be signed in.
 const _protectedRoutes = {'/dashboard', '/onboarding', '/fan-dashboard', '/enterprise-portal', '/otp-verify'};
@@ -126,6 +127,7 @@ GoRouter buildRouter(AuthProvider auth) {
           reference: state.uri.queryParameters['ref'] ?? '',
         ),
       ),
+      GoRoute(path: '/partner-apply', builder: (_, __) => const PartnerApplyScreen()),
       GoRoute(path: '/contact',  builder: (_, __) => const ContactScreen()),
       GoRoute(path: '/dispute',  builder: (_, __) => const DisputeScreen()),
       GoRoute(

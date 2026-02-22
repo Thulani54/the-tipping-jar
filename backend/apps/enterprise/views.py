@@ -3,15 +3,23 @@ from decimal import Decimal
 from django.db.models import Count, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.creators.models import CreatorProfile
 from apps.tips.models import Tip
 
-from .models import Enterprise, EnterpriseMembership, FundDistribution, FundDistributionItem
+from .models import (
+    Enterprise,
+    EnterpriseDocument,
+    EnterpriseMembership,
+    FundDistribution,
+    FundDistributionItem,
+)
 from .serializers import (
     CreateFundDistributionSerializer,
+    EnterpriseDocumentSerializer,
     EnterpriseMembershipSerializer,
     EnterpriseSerializer,
     FundDistributionItemSerializer,
@@ -21,10 +29,14 @@ from .serializers import (
 # ── Permission helper ──────────────────────────────────────────────────────────
 
 class IsEnterpriseAdmin(permissions.BasePermission):
-    """Allows access only to users who own an Enterprise account."""
+    """Allows access only to users who own an approved Enterprise account."""
 
     def has_permission(self, request, view):
-        return request.user.is_authenticated and hasattr(request.user, "enterprise")
+        return (
+            request.user.is_authenticated
+            and hasattr(request.user, "enterprise")
+            and request.user.enterprise.approval_status == Enterprise.ApprovalStatus.APPROVED
+        )
 
 
 def _get_enterprise(request) -> Enterprise:
@@ -254,3 +266,64 @@ class FundDistributionItemUpdateView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+# ── Document upload ────────────────────────────────────────────────────────────
+
+class EnterpriseDocumentUploadView(APIView):
+    """Upload a compliance document for the authenticated enterprise."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        try:
+            enterprise = request.user.enterprise
+        except Enterprise.DoesNotExist:
+            return Response({"detail": "No enterprise account found."}, status=status.HTTP_404_NOT_FOUND)
+
+        doc_type = request.data.get("doc_type", "").strip()
+        file_obj = request.FILES.get("file")
+
+        if not doc_type:
+            return Response({"detail": "doc_type is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if doc_type not in [c[0] for c in EnterpriseDocument.DocType.choices]:
+            return Response({"detail": f"Invalid doc_type: {doc_type}."}, status=status.HTTP_400_BAD_REQUEST)
+        if not file_obj:
+            return Response({"detail": "file is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Replace existing document of same type
+        EnterpriseDocument.objects.filter(enterprise=enterprise, doc_type=doc_type).delete()
+        doc = EnterpriseDocument.objects.create(enterprise=enterprise, doc_type=doc_type, file=file_obj)
+        return Response(EnterpriseDocumentSerializer(doc, context={"request": request}).data, status=status.HTTP_201_CREATED)
+
+
+# ── Admin approval ─────────────────────────────────────────────────────────────
+
+class AdminEnterpriseApproveView(APIView):
+    """Admin-only: approve an enterprise account."""
+
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, pk):
+        enterprise = get_object_or_404(Enterprise, pk=pk)
+        enterprise.approval_status = Enterprise.ApprovalStatus.APPROVED
+        enterprise.rejection_reason = ""
+        enterprise.save(update_fields=["approval_status", "rejection_reason"])
+        return Response({"detail": "Enterprise approved.", "approval_status": enterprise.approval_status})
+
+
+class AdminEnterpriseRejectView(APIView):
+    """Admin-only: reject an enterprise account with a reason."""
+
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, pk):
+        enterprise = get_object_or_404(Enterprise, pk=pk)
+        reason = request.data.get("reason", "").strip()
+        if not reason:
+            return Response({"detail": "reason is required."}, status=status.HTTP_400_BAD_REQUEST)
+        enterprise.approval_status = Enterprise.ApprovalStatus.REJECTED
+        enterprise.rejection_reason = reason
+        enterprise.save(update_fields=["approval_status", "rejection_reason"])
+        return Response({"detail": "Enterprise rejected.", "approval_status": enterprise.approval_status})
