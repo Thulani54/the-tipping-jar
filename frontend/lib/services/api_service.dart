@@ -121,7 +121,12 @@ class ApiService {
       body: jsonEncode({'method': method}),
     );
     if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception('Failed to request OTP: ${res.body}');
+      String detail = 'Failed to send verification code.';
+      try {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        detail = body['detail'] as String? ?? detail;
+      } catch (_) {}
+      throw Exception(detail);
     }
   }
 

@@ -9,6 +9,7 @@ class AuthProvider extends ChangeNotifier {
   String? _refreshToken;
   bool _loading = false;
   bool _otpVerified = false;
+  String? _otpSendError;
 
   AppUser? get user => _user;
   String? get accessToken => _accessToken;
@@ -17,6 +18,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isEnterprise => _user?.role == 'enterprise';
   bool get otpVerified => _otpVerified;
   bool get loading => _loading;
+  String? get otpSendError => _otpSendError;
 
   ApiService get api => ApiService(authToken: _accessToken);
 
@@ -49,10 +51,13 @@ class AuthProvider extends ChangeNotifier {
       await _saveTokens(data['access'] as String, data['refresh'] as String);
       if (_user!.twoFaEnabled) {
         _otpVerified = false;
-        // Trigger OTP — errors are non-fatal (user can resend on OTP screen)
+        _otpSendError = null;
         try {
           await api.requestOtp();
-        } catch (_) {}
+        } catch (e) {
+          // Store error so the OTP screen can surface it — user can still resend
+          _otpSendError = e.toString().replaceFirst('Exception: ', '');
+        }
       } else {
         // 2FA disabled — skip OTP screen entirely
         _otpVerified = true;
@@ -67,6 +72,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> verifyOtp(String code) async {
     await api.verifyOtp(code);
     _otpVerified = true;
+    _otpSendError = null;
     notifyListeners();
   }
 
@@ -110,6 +116,7 @@ class AuthProvider extends ChangeNotifier {
     _refreshToken = null;
     _user = null;
     _otpVerified = false;
+    _otpSendError = null;
     notifyListeners();
   }
 

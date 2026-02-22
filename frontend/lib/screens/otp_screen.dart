@@ -110,6 +110,7 @@ class _OtpScreenState extends State<OtpScreen> {
     final auth = context.watch<AuthProvider>();
     final email = auth.user?.email ?? 'your email';
     final hasPhone = (auth.user?.phoneNumber ?? '').isNotEmpty;
+    final sendError = auth.otpSendError;
 
     return Scaffold(
       backgroundColor: kDark,
@@ -136,27 +137,45 @@ class _OtpScreenState extends State<OtpScreen> {
                 const SizedBox(height: 40),
 
                 // Title
-                Text('Check your email',
+                Text(sendError != null ? 'Verification code' : 'Check your email',
                     style: GoogleFonts.inter(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
                         fontSize: 28,
                         letterSpacing: -0.8)),
                 const SizedBox(height: 8),
-                RichText(
-                  text: TextSpan(
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
-                    children: [
-                      const TextSpan(text: 'We sent a 6-digit code to '),
-                      TextSpan(
-                        text: email,
-                        style: GoogleFonts.inter(
-                            color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
-                      ),
-                      const TextSpan(text: '. Enter it below to continue.'),
-                    ],
+                if (sendError != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.orange.withOpacity(0.4)),
+                    ),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(
+                        'Could not send verification email. Tap "Resend code" below to try again.',
+                        style: GoogleFonts.inter(color: Colors.orange.shade200, fontSize: 13, height: 1.4),
+                      )),
+                    ]),
                   ),
-                ),
+                ] else
+                  RichText(
+                    text: TextSpan(
+                      style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
+                      children: [
+                        const TextSpan(text: 'We sent a 6-digit code to '),
+                        TextSpan(
+                          text: email,
+                          style: GoogleFonts.inter(
+                              color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                        ),
+                        const TextSpan(text: '. Enter it below to continue.'),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 32),
 
                 // Code input

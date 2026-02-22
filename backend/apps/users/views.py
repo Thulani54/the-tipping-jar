@@ -65,15 +65,26 @@ class OtpRequestView(APIView):
             channel_info = f"SMS to {user.phone_number[:4]}****"
         else:
             # Email delivery
+            import logging
             from django.conf import settings
             from django.core.mail import send_mail
-            send_mail(
-                subject="TippingJar — Your verification code",
-                message=f"Your TippingJar code is: {raw_code}\n\nValid for 10 minutes.",
-                from_email=settings.NO_REPLY_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
+            logger = logging.getLogger(__name__)
+            try:
+                send_mail(
+                    subject="TippingJar — Your verification code",
+                    message=f"Your TippingJar code is: {raw_code}\n\nValid for 10 minutes.",
+                    from_email=settings.NO_REPLY_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.error("OTP email delivery failed for %s: %s", user.email, exc)
+                otp_obj.is_used = True
+                otp_obj.save(update_fields=["is_used"])
+                return Response(
+                    {"detail": "Failed to send verification email. Please try again or contact support."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
             channel_info = f"email to {user.email}"
 
         return Response(
