@@ -2,7 +2,6 @@ from django.core.management.base import BaseCommand
 
 from apps.users.models import User
 
-
 DEMO_USERS = [
     {
         "email": "enterprise@tippingjar.co.za",
