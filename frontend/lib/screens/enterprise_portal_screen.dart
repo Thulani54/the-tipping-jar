@@ -99,7 +99,7 @@ class _EnterprisePortalScreenState extends State<EnterprisePortalScreen> {
 
   Widget _narrowLayout() => Column(children: [
     _AppBarNarrow(enterprise: _enterprise),
-    _TabBar(selected: _tab, onTab: (i) => setState(() => _tab = i)),
+    _TabBar(selected: _tab, onTab: (i) => setState(() => _tab = i), enterprise: _enterprise),
     Expanded(child: _content()),
   ]);
 
@@ -111,7 +111,8 @@ class _EnterprisePortalScreenState extends State<EnterprisePortalScreen> {
       return _NoEnterprise(onCreated: _load);
     }
     final ent = _enterprise;
-    if (ent != null) {
+    if (ent != null && _tab != 3) {
+      // Settings tab (idx 3) is always accessible — lets pending users upload docs.
       if (ent.isPending) return _PendingApprovalState(enterprise: ent);
       if (ent.isRejected) return _RejectedState(enterprise: ent);
     }
@@ -196,12 +197,18 @@ class _Sidebar extends StatelessWidget {
           ),
           const SizedBox(height: 24),
         ],
-        ...tabs.asMap().entries.map((e) => _NavItem(
-          icon: e.value.$1,
-          label: e.value.$2,
-          selected: selectedTab == e.key,
-          onTap: () => onTab(e.key),
-        )),
+        ...tabs.asMap().entries.map((e) {
+          final approved = enterprise?.isApproved ?? false;
+          // Only Settings tab (idx 3) is accessible when not approved.
+          final locked = !approved && e.key != 3;
+          return _NavItem(
+            icon: e.value.$1,
+            label: e.value.$2,
+            selected: selectedTab == e.key,
+            locked: locked,
+            onTap: locked ? null : () => onTab(e.key),
+          );
+        }),
         const Spacer(),
         _NavItem(
           icon: Icons.arrow_back_rounded,
@@ -218,31 +225,33 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool selected;
-  final VoidCallback onTap;
+  final bool locked;
+  final VoidCallback? onTap;
 
   const _NavItem({required this.icon, required this.label,
-      required this.selected, required this.onTap});
+      required this.selected, this.locked = false, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final color = locked ? kMuted.withOpacity(0.35) : (selected ? kPrimary : kMuted);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? kPrimary.withOpacity(0.1) : Colors.transparent,
+          color: selected && !locked ? kPrimary.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-              color: selected ? kPrimary.withOpacity(0.3) : Colors.transparent),
+              color: selected && !locked ? kPrimary.withOpacity(0.3) : Colors.transparent),
         ),
         child: Row(children: [
-          Icon(icon, color: selected ? kPrimary : kMuted, size: 18),
+          Icon(locked ? Icons.lock_outline_rounded : icon, color: color, size: 18),
           const SizedBox(width: 10),
           Text(label,
               style: GoogleFonts.inter(
-                  color: selected ? Colors.white : kMuted,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: locked ? kMuted.withOpacity(0.35) : (selected ? Colors.white : kMuted),
+                  fontWeight: selected && !locked ? FontWeight.w600 : FontWeight.w400,
                   fontSize: 14)),
         ]),
       ),
@@ -277,29 +286,34 @@ class _AppBarNarrow extends StatelessWidget {
 class _TabBar extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onTab;
-  const _TabBar({required this.selected, required this.onTab});
+  final EnterpriseModel? enterprise;
+  const _TabBar({required this.selected, required this.onTab, required this.enterprise});
 
   @override
   Widget build(BuildContext context) {
     final tabs = ['Overview', 'Creators', 'Distributions', 'Settings'];
+    final approved = enterprise?.isApproved ?? false;
     return Container(
       color: kDarker,
       child: Row(children: tabs.asMap().entries.map((e) {
         final active = e.key == selected;
+        final locked = !approved && e.key != 3;
         return Expanded(
           child: GestureDetector(
-            onTap: () => onTab(e.key),
+            onTap: locked ? null : () => onTab(e.key),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(
-                    color: active ? kPrimary : kBorder, width: active ? 2 : 1)),
+                    color: active && !locked ? kPrimary : kBorder,
+                    width: active && !locked ? 2 : 1)),
               ),
               child: Text(e.value,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
-                      color: active ? kPrimary : kMuted,
-                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                      color: locked ? kMuted.withOpacity(0.35)
+                           : active ? kPrimary : kMuted,
+                      fontWeight: active && !locked ? FontWeight.w600 : FontWeight.w400,
                       fontSize: 13)),
             ),
           ),
