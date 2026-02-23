@@ -168,27 +168,27 @@ class _HeroSection extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: _dark,
+      color: const Color(0xFFF7F9F8),
       child: Stack(
         children: [
           // Subtle dot-grid background
           Positioned.fill(
             child: CustomPaint(painter: _DotGridPainter()),
           ),
-          // Single soft radial glow — centred at top, brand green only
+          // Very soft green bloom at top-centre — warmth without distraction
           Positioned(
-            top: -200,
+            top: -240,
             left: 0,
             right: 0,
             child: Center(
               child: Container(
-                width: 900,
-                height: 700,
+                width: 800,
+                height: 640,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      _orange.withOpacity(0.09),
+                      _orange.withOpacity(0.07),
                       Colors.transparent,
                     ],
                     stops: const [0.0, 1.0],
@@ -218,7 +218,7 @@ class _HeroSection extends StatelessWidget {
                     'Get paid by the people\nwho love your work.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
-                      color: _white,
+                      color: const Color(0xFF0C1510),
                       fontSize: narrow ? 40 : 72,
                       fontWeight: FontWeight.w800,
                       height: 1.07,
@@ -239,7 +239,7 @@ class _HeroSection extends StatelessWidget {
                     'Let fans support you — no subscriptions, no friction.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
-                        color: _textMuted, fontSize: 17, height: 1.65),
+                        color: const Color(0xFF4D6159), fontSize: 17, height: 1.65),
                   ),
                 )
                     .animate()
@@ -273,12 +273,13 @@ class _HeroSection extends StatelessWidget {
                             color: _white),
                       ),
                     ),
-                    OutlinedButton(
+                    ElevatedButton(
                       onPressed: () => context.go('/creators'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _white.withOpacity(0.75),
-                        side: BorderSide(
-                            color: _white.withOpacity(0.15), width: 1),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0C1510),
+                        foregroundColor: _white,
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 28, vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -287,7 +288,9 @@ class _HeroSection extends StatelessWidget {
                       child: Text(
                         'See live examples',
                         style: GoogleFonts.inter(
-                            fontSize: 15, fontWeight: FontWeight.w500),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: _white),
                       ),
                     ),
                   ],
@@ -306,19 +309,19 @@ class _HeroSection extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text('No credit card required',
                         style: GoogleFonts.inter(
-                            color: _textMuted.withOpacity(0.7), fontSize: 13)),
+                            color: const Color(0xFF7A9088), fontSize: 13)),
                     const SizedBox(width: 20),
                     _dot(),
                     const SizedBox(width: 8),
                     Text('Trusted by 2,400+ creators',
                         style: GoogleFonts.inter(
-                            color: _textMuted.withOpacity(0.7), fontSize: 13)),
+                            color: const Color(0xFF7A9088), fontSize: 13)),
                     const SizedBox(width: 20),
                     _dot(),
                     const SizedBox(width: 8),
                     Text('ZA-built · Powered by Paystack',
                         style: GoogleFonts.inter(
-                            color: _textMuted.withOpacity(0.7), fontSize: 13)),
+                            color: const Color(0xFF7A9088), fontSize: 13)),
                   ],
                 )
                     .animate()
@@ -341,8 +344,8 @@ class _HeroSection extends StatelessWidget {
   Widget _badge() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: _white.withOpacity(0.04),
-          border: Border.all(color: _white.withOpacity(0.1)),
+          color: _orange.withOpacity(0.07),
+          border: Border.all(color: _orange.withOpacity(0.25)),
           borderRadius: BorderRadius.circular(100),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -354,7 +357,7 @@ class _HeroSection extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                      color: _orange.withOpacity(0.6),
+                      color: _orange.withOpacity(0.5),
                       blurRadius: 6,
                       spreadRadius: 1)
                 ]),
@@ -363,9 +366,9 @@ class _HeroSection extends StatelessWidget {
           Text(
             "South Africa's creator tipping platform",
             style: GoogleFonts.inter(
-                color: _white.withOpacity(0.55),
+                color: const Color(0xFF0A7A5A),
                 fontSize: 12,
-                fontWeight: FontWeight.w500),
+                fontWeight: FontWeight.w600),
           ),
         ]),
       );
@@ -374,7 +377,7 @@ class _HeroSection extends StatelessWidget {
         width: 3,
         height: 3,
         decoration: BoxDecoration(
-          color: _textMuted.withOpacity(0.4),
+          color: const Color(0xFFB0C4BC),
           shape: BoxShape.circle,
         ),
       );
@@ -385,7 +388,7 @@ class _DotGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF00C896).withOpacity(0.032)
+      ..color = const Color(0xFF0C1510).withOpacity(0.055)
       ..style = PaintingStyle.fill;
 
     const spacing = 30.0;
