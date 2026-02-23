@@ -52,7 +52,6 @@ class _LandingScreenState extends State<LandingScreen> {
             child: Column(
               children: [
                 const _HeroSection(),
-                _StatsSection(),
                 _HowItWorksSection(),
                 _FeaturesSection(),
                 _CreatorSpotlightSection(),
@@ -134,7 +133,7 @@ class _NavBar extends StatelessWidget {
           foregroundColor: _white,
           side: const BorderSide(color: _border),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         ),
         child: Text(label,
             style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
@@ -149,7 +148,7 @@ class _NavBar extends StatelessWidget {
           shadowColor: Colors.transparent,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         ),
         child: Text(label,
             style: GoogleFonts.inter(
@@ -273,8 +272,8 @@ class _HeroSection extends StatelessWidget {
                         shadowColor: Colors.transparent,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 28, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                        shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
                       ),
                       child: Text(
                         'Create your free page →',
@@ -292,8 +291,8 @@ class _HeroSection extends StatelessWidget {
                         backgroundColor: Colors.transparent,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 28, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                        shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
                       ),
                       child: Text(
                         'See live examples',
@@ -323,13 +322,13 @@ class _HeroSection extends StatelessWidget {
                     const SizedBox(width: 20),
                     _dot(),
                     const SizedBox(width: 8),
-                    Text('Trusted by 2,400+ creators',
+                    Text('Free to get started',
                         style: GoogleFonts.inter(
                             color: Colors.white.withOpacity(0.40), fontSize: 13)),
                     const SizedBox(width: 20),
                     _dot(),
                     const SizedBox(width: 8),
-                    Text('ZA-built · Powered by Paystack',
+                    Text('Built in South Africa',
                         style: GoogleFonts.inter(
                             color: Colors.white.withOpacity(0.40), fontSize: 13)),
                   ],
@@ -664,7 +663,7 @@ class _AmountChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
       decoration: BoxDecoration(
         color: selected ? _orange : _dark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
         border: Border.all(
           color: selected ? _orange : _border,
           width: selected ? 1.5 : 1,
@@ -690,7 +689,7 @@ class _SendButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
         color: _orange,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.zero,
         boxShadow: [
           BoxShadow(
               color: _orange.withOpacity(0.3),
@@ -802,46 +801,6 @@ class _GlowBlob extends StatelessWidget {
       );
 }
 
-// ─── Stats ────────────────────────────────────────────────────────────────────
-class _StatsSection extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final stats = [
-      ('2,400+', 'Creators'),
-      ('R3.6M+', 'Tips sent'),
-      ('48', 'Countries'),
-      ('4.9★', 'Avg rating'),
-    ];
-    return Container(
-      color: _darker,
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-      child: Wrap(
-        alignment: WrapAlignment.spaceEvenly,
-        runSpacing: 24,
-        spacing: 40,
-        children: stats.asMap().entries.map((e) {
-          return Column(children: [
-            Text(e.value.$1,
-                style: GoogleFonts.inter(
-                    color: _white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 32,
-                    letterSpacing: -1))
-                .animate()
-                .fadeIn(delay: (e.key * 100).ms, duration: 500.ms),
-            const SizedBox(height: 4),
-            Text(e.value.$2,
-                style: GoogleFonts.inter(
-                    color: _textMuted,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500)),
-          ]);
-        }).toList(),
-      ),
-    );
-  }
-}
-
 // ─── How it works ─────────────────────────────────────────────────────────────
 class _HowItWorksSection extends StatelessWidget {
   @override
@@ -862,7 +821,7 @@ class _HowItWorksSection extends StatelessWidget {
       (
         Icons.account_balance_wallet_rounded,
         'Collect tips',
-        'Fans drop tips instantly via card. Funds land in your Paystack account — no waiting, no middleman.',
+        'Fans drop tips instantly via card. Funds land in your account — no waiting, no middleman.',
         _purple,
       ),
     ];
@@ -991,13 +950,13 @@ class _FeaturesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final features = [
       (Icons.flash_on_rounded, 'Instant payouts',
-          'No holding periods. Paystack sends money straight to your bank.', _orange),
+          'No holding periods. Funds go straight to your bank — fast and reliable.', _orange),
       (Icons.face_rounded, 'Anonymous tips',
           'Fans can tip without creating an account — zero friction.', _pink),
       (Icons.bar_chart_rounded, 'Live analytics',
           'Watch tips roll in with a real-time dashboard built for creators.', _purple),
       (Icons.lock_rounded, 'Bank-grade security',
-          'All payments processed by Paystack — PCI-DSS compliant, always.', const Color(0xFF22D3EE)),
+          'Bank-grade encryption. PCI-DSS compliant payments, always.', const Color(0xFF22D3EE)),
       (Icons.palette_rounded, 'Custom pages',
           'Personalise your tip page with cover art, a tagline, and a monthly goal.', const Color(0xFF4ADE80)),
       (Icons.public_rounded, 'Works worldwide',
@@ -1252,8 +1211,8 @@ class _CreatorCard extends StatelessWidget {
               foregroundColor: color,
               side: BorderSide(color: color.withOpacity(0.4)),
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(36)),
+              shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero),
             ),
             child: Text('Send a tip',
                 style: GoogleFonts.inter(
@@ -1322,8 +1281,8 @@ class _CtaSection extends StatelessWidget {
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 36, vertical: 18),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(36)),
+                  shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero),
                 ),
                 child: Text('Create your free page →',
                     style: GoogleFonts.inter(
