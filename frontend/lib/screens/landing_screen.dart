@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -6,16 +5,16 @@ import 'package:google_fonts/google_fonts.dart';
 import '../widgets/app_logo.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
-const _dark = Color(0xFF0A0F0D);
-const _darker = Color(0xFF060A08);
-const _orange = Color(0xFF00C896);      // primary green
-const _orangeLight = Color(0xFF34D8A0); // light green
-const _pink = Color(0xFF0097B2);        // ocean teal
-const _purple = Color(0xFF2563EB);      // electric blue
-const _cardBg = Color(0xFF111A16);
-const _border = Color(0xFF1E2E26);
-const _textMuted = Color(0xFF7A9088);
-const _white = Colors.white;
+const _dark        = Color(0xFF0A0F0D);
+const _darker      = Color(0xFF060A08);
+const _orange      = Color(0xFF00C896);
+const _orangeLight = Color(0xFF34D8A0);
+const _pink        = Color(0xFF0097B2);
+const _purple      = Color(0xFF2563EB);
+const _cardBg      = Color(0xFF111A16);
+const _border      = Color(0xFF1E2E26);
+const _textMuted   = Color(0xFF7A9088);
+const _white       = Colors.white;
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -23,20 +22,13 @@ class LandingScreen extends StatefulWidget {
   State<LandingScreen> createState() => _LandingScreenState();
 }
 
-class _LandingScreenState extends State<LandingScreen>
-    with TickerProviderStateMixin {
+class _LandingScreenState extends State<LandingScreen> {
   final _scroll = ScrollController();
-  late final AnimationController _floatCtrl;
   bool _navSolid = false;
 
   @override
   void initState() {
     super.initState();
-    _floatCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat(reverse: true);
-
     _scroll.addListener(() {
       final solid = _scroll.offset > 60;
       if (solid != _navSolid) setState(() => _navSolid = solid);
@@ -45,7 +37,6 @@ class _LandingScreenState extends State<LandingScreen>
 
   @override
   void dispose() {
-    _floatCtrl.dispose();
     _scroll.dispose();
     super.dispose();
   }
@@ -60,7 +51,7 @@ class _LandingScreenState extends State<LandingScreen>
             controller: _scroll,
             child: Column(
               children: [
-                _HeroSection(floatCtrl: _floatCtrl),
+                const _HeroSection(),
                 _StatsSection(),
                 _HowItWorksSection(),
                 _FeaturesSection(),
@@ -94,7 +85,6 @@ class _NavBar extends StatelessWidget {
               horizontal: w > 900 ? 64 : 24, vertical: 18),
           child: Row(
             children: [
-              // Logo
               Row(children: [
                 const AppLogoIcon(size: 32),
                 const SizedBox(width: 10),
@@ -124,7 +114,8 @@ class _NavBar extends StatelessWidget {
     );
   }
 
-  Widget _navLink(String label, BuildContext ctx, String route) => GestureDetector(
+  Widget _navLink(String label, BuildContext ctx, String route) =>
+      GestureDetector(
         onTap: () => ctx.go(route),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -162,409 +153,630 @@ class _NavBar extends StatelessWidget {
         ),
         child: Text(label,
             style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: _white)),
+                fontSize: 13, fontWeight: FontWeight.w600, color: _white)),
       );
 }
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 class _HeroSection extends StatelessWidget {
-  final AnimationController floatCtrl;
-  const _HeroSection({required this.floatCtrl});
+  const _HeroSection();
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final narrow = w < 900;
+    final narrow = w < 860;
 
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 760),
-      decoration: const BoxDecoration(
-        color: _dark,
-      ),
+      color: _dark,
       child: Stack(
         children: [
-          // Mesh blobs
+          // Subtle dot-grid background
+          Positioned.fill(
+            child: CustomPaint(painter: _DotGridPainter()),
+          ),
+          // Single soft radial glow — centred at top, brand green only
           Positioned(
-              top: 100, left: -80,
-              child: _GlowBlob(color: _purple.withOpacity(0.10), size: 420)),
-          Positioned(
-              top: 200, right: -60,
-              child: _GlowBlob(color: _pink.withOpacity(0.07), size: 360)),
-          Positioned(
-              bottom: 60, left: 200,
-              child: _GlowBlob(color: _orange.withOpacity(0.08), size: 280)),
-
+            top: -200,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                width: 900,
+                height: 700,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      _orange.withOpacity(0.09),
+                      Colors.transparent,
+                    ],
+                    stops: const [0.0, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
           // Content
           Padding(
-            padding: EdgeInsets.only(
-                top: 140,
-                bottom: 100,
-                left: narrow ? 24 : 80,
-                right: narrow ? 24 : 80),
-            child: narrow
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _heroText(context),
-                      const SizedBox(height: 56),
-                      _floatingCard(floatCtrl),
-                    ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(flex: 5, child: _heroText(context)),
-                      const SizedBox(width: 48),
-                      Expanded(flex: 4, child: _floatingCard(floatCtrl)),
-                    ],
+            padding: EdgeInsets.fromLTRB(
+              narrow ? 24 : 48, 136, narrow ? 24 : 48, 96),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // ── Announcement pill ──
+                _badge()
+                    .animate()
+                    .fadeIn(duration: 500.ms)
+                    .slideY(begin: 0.2, curve: Curves.easeOut),
+                const SizedBox(height: 32),
+
+                // ── Headline ──
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 700),
+                  child: Text(
+                    'Get paid by the people\nwho love your work.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      color: _white,
+                      fontSize: narrow ? 40 : 72,
+                      fontWeight: FontWeight.w800,
+                      height: 1.07,
+                      letterSpacing: narrow ? -1.5 : -3.0,
+                    ),
                   ),
+                )
+                    .animate()
+                    .fadeIn(delay: 120.ms, duration: 600.ms)
+                    .slideY(begin: 0.2, curve: Curves.easeOut),
+                const SizedBox(height: 22),
+
+                // ── Subtext ──
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Text(
+                    'Set up your TippingJar page in 60 seconds. Share one link. '
+                    'Let fans support you — no subscriptions, no friction.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                        color: _textMuted, fontSize: 17, height: 1.65),
+                  ),
+                )
+                    .animate()
+                    .fadeIn(delay: 240.ms, duration: 600.ms)
+                    .slideY(begin: 0.2, curve: Curves.easeOut),
+                const SizedBox(height: 40),
+
+                // ── CTAs ──
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => context.go('/register'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _orange,
+                        foregroundColor: _white,
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 28, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text(
+                        'Create your free page →',
+                        style: GoogleFonts.inter(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: _white),
+                      ),
+                    ),
+                    OutlinedButton(
+                      onPressed: () => context.go('/creators'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _white.withOpacity(0.75),
+                        side: BorderSide(
+                            color: _white.withOpacity(0.15), width: 1),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 28, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text(
+                        'See live examples',
+                        style: GoogleFonts.inter(
+                            fontSize: 15, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                )
+                    .animate()
+                    .fadeIn(delay: 360.ms, duration: 500.ms)
+                    .slideY(begin: 0.15, curve: Curves.easeOut),
+                const SizedBox(height: 24),
+
+                // ── Trust line ──
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _dot(),
+                    const SizedBox(width: 8),
+                    Text('No credit card required',
+                        style: GoogleFonts.inter(
+                            color: _textMuted.withOpacity(0.7), fontSize: 13)),
+                    const SizedBox(width: 20),
+                    _dot(),
+                    const SizedBox(width: 8),
+                    Text('Trusted by 2,400+ creators',
+                        style: GoogleFonts.inter(
+                            color: _textMuted.withOpacity(0.7), fontSize: 13)),
+                    const SizedBox(width: 20),
+                    _dot(),
+                    const SizedBox(width: 8),
+                    Text('ZA-built · Powered by Paystack',
+                        style: GoogleFonts.inter(
+                            color: _textMuted.withOpacity(0.7), fontSize: 13)),
+                  ],
+                )
+                    .animate()
+                    .fadeIn(delay: 480.ms, duration: 500.ms),
+                const SizedBox(height: 72),
+
+                // ── Product preview ──
+                const _ProductPreview()
+                    .animate()
+                    .fadeIn(delay: 580.ms, duration: 700.ms)
+                    .slideY(begin: 0.12, curve: Curves.easeOut),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _heroText(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            border: Border.all(color: _orange.withOpacity(0.4)),
-            borderRadius: BorderRadius.circular(100),
-            color: _orange.withOpacity(0.08),
+  Widget _badge() => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: _white.withOpacity(0.04),
+          border: Border.all(color: _white.withOpacity(0.1)),
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+                color: _orange,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                      color: _orange.withOpacity(0.6),
+                      blurRadius: 6,
+                      spreadRadius: 1)
+                ]),
           ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.bolt, color: _orange, size: 14),
-            const SizedBox(width: 6),
-            Text('Creator monetisation, simplified',
-                style: GoogleFonts.inter(
-                    color: _orange, fontSize: 12, fontWeight: FontWeight.w600)),
-          ]),
-        )
-            .animate()
-            .fadeIn(duration: 500.ms)
-            .slideY(begin: 0.3, curve: Curves.easeOut),
-        const SizedBox(height: 28),
-
-        // Headline
-        Builder(builder: (ctx) {
-          final fs = MediaQuery.of(ctx).size.width < 700 ? 42.0 : 60.0;
-          final gradientPaint = Paint()
-            ..shader = const LinearGradient(colors: [_orange, _pink])
-                .createShader(const Rect.fromLTWH(0, 0, 400, 80));
-          return RichText(
-            text: TextSpan(
-              style: GoogleFonts.inter(
-                  fontSize: fs,
-                  fontWeight: FontWeight.w800,
-                  color: _white,
-                  height: 1.08,
-                  letterSpacing: -2.5),
-              children: [
-                const TextSpan(text: 'The easiest way\nfor fans to '),
-                TextSpan(
-                    text: 'tip\nthe creators',
-                    style: TextStyle(foreground: gradientPaint)),
-                const TextSpan(text: ' they love.'),
-              ],
-            ),
-          );
-        })
-            .animate()
-            .fadeIn(delay: 150.ms, duration: 600.ms)
-            .slideY(begin: 0.25, curve: Curves.easeOut),
-        const SizedBox(height: 24),
-
-        // Subtitle
-        Text(
-          'TippingJar lets you support creators with a single tap — no subscriptions, no friction. Just genuine appreciation.',
-          style: GoogleFonts.inter(
-              color: _textMuted, fontSize: 17, height: 1.65),
-        )
-            .animate()
-            .fadeIn(delay: 300.ms, duration: 600.ms)
-            .slideY(begin: 0.25, curve: Curves.easeOut),
-        const SizedBox(height: 40),
-
-        // CTAs
-        Wrap(spacing: 14, runSpacing: 12, children: [
-          ElevatedButton(
-            onPressed: () => context.go('/register'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _orange,
-              foregroundColor: _white,
-              shadowColor: Colors.transparent,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(36)),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('Start tipping for free',
-                  style: GoogleFonts.inter(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: _white)),
-              const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward, size: 16, color: _white),
-            ]),
-          ),
-          OutlinedButton(
-            onPressed: () => context.go('/login'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _white,
-              side: const BorderSide(color: _border, width: 1.5),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 28, vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(36)),
-            ),
-            child: Text('Browse creators',
-                style: GoogleFonts.inter(
-                    fontSize: 15, fontWeight: FontWeight.w600)),
-          ),
-        ])
-            .animate()
-            .fadeIn(delay: 450.ms, duration: 600.ms)
-            .slideY(begin: 0.25, curve: Curves.easeOut),
-        const SizedBox(height: 32),
-
-        // Trust line
-        Row(children: [
-          ...List.generate(
-              5,
-              (_) => const Icon(Icons.star_rounded,
-                  color: _orange, size: 16)),
           const SizedBox(width: 10),
-          Text('Loved by 2,400+ creators worldwide',
-              style: GoogleFonts.inter(
-                  color: _textMuted, fontSize: 13)),
-        ])
-            .animate()
-            .fadeIn(delay: 600.ms, duration: 500.ms),
-      ],
-    );
-  }
+          Text(
+            "South Africa's creator tipping platform",
+            style: GoogleFonts.inter(
+                color: _white.withOpacity(0.55),
+                fontSize: 12,
+                fontWeight: FontWeight.w500),
+          ),
+        ]),
+      );
 
-  Widget _floatingCard(AnimationController ctrl) {
-    return AnimatedBuilder(
-      animation: ctrl,
-      builder: (_, __) {
-        final offset = math.sin(ctrl.value * math.pi) * 10;
-        return Transform.translate(
-          offset: Offset(0, offset),
-          child: const _MockupCard(),
-        );
-      },
-    )
-        .animate()
-        .fadeIn(delay: 400.ms, duration: 700.ms)
-        .scale(begin: const Offset(0.9, 0.9), curve: Curves.easeOut);
-  }
+  Widget _dot() => Container(
+        width: 3,
+        height: 3,
+        decoration: BoxDecoration(
+          color: _textMuted.withOpacity(0.4),
+          shape: BoxShape.circle,
+        ),
+      );
 }
 
-// ─── Floating UI mockup ───────────────────────────────────────────────────────
-class _MockupCard extends StatelessWidget {
-  const _MockupCard();
+// ─── Dot grid background ─────────────────────────────────────────────────────
+class _DotGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF00C896).withOpacity(0.032)
+      ..style = PaintingStyle.fill;
+
+    const spacing = 30.0;
+    const radius = 1.0;
+
+    for (double x = 0; x <= size.width + spacing; x += spacing) {
+      for (double y = 0; y <= size.height + spacing; y += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─── Product preview ─────────────────────────────────────────────────────────
+class _ProductPreview extends StatelessWidget {
+  const _ProductPreview();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _border),
-        boxShadow: [
-          BoxShadow(
-              color: _purple.withOpacity(0.2),
-              blurRadius: 60,
-              offset: const Offset(0, 20)),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Profile row
-          Row(children: [
-            _avatar('AJ', _orange),
-            const SizedBox(width: 12),
-            Expanded(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 720),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _cardBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _border),
+          boxShadow: [
+            BoxShadow(
+              color: _orange.withOpacity(0.06),
+              blurRadius: 100,
+              offset: const Offset(0, 32),
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 40,
+              offset: const Offset(0, 16),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Browser chrome
+            _BrowserBar(),
+            // App content
+            Padding(
+              padding: const EdgeInsets.all(28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Alex Johnson',
-                      style: GoogleFonts.inter(
-                          color: _white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15)),
-                  Text('@alexcreates',
-                      style: GoogleFonts.inter(
-                          color: _textMuted, fontSize: 12)),
+                  // Creator header
+                  _CreatorRow(),
+                  const SizedBox(height: 24),
+                  // Amount picker
+                  _AmountRow(),
+                  const SizedBox(height: 20),
+                  // Send button
+                  _SendButton(),
+                  const SizedBox(height: 28),
+                  // Divider
+                  Row(children: [
+                    Expanded(child: Divider(color: _border, thickness: 1)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: Text('Recent tips',
+                          style: GoogleFonts.inter(
+                              color: _textMuted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.6)),
+                    ),
+                    Expanded(child: Divider(color: _border, thickness: 1)),
+                  ]),
+                  const SizedBox(height: 16),
+                  // Tip feed
+                  _TipRow(
+                      initials: 'SK',
+                      name: 'Sarah K.',
+                      amount: 'R50',
+                      message: 'Love your beats! Keep going 🔥',
+                      timeAgo: '2m'),
+                  const SizedBox(height: 10),
+                  _TipRow(
+                      initials: 'JD',
+                      name: 'James D.',
+                      amount: 'R100',
+                      message: 'Best producer in SA, no debate.',
+                      timeAgo: '14m'),
+                  const SizedBox(height: 10),
+                  _TipRow(
+                      initials: '?',
+                      name: 'Anonymous',
+                      amount: 'R20',
+                      message: '',
+                      timeAgo: '1h',
+                      muted: true),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: _orange.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Text('Creator',
-                  style: GoogleFonts.inter(
-                      color: _orange,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600)),
-            )
-          ]),
-          const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-          // Tip amount selector
-          Container(
-            padding: const EdgeInsets.all(16),
+class _BrowserBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 42,
+      color: _darker,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(children: [
+        // Traffic lights
+        Row(children: [
+          _trafficDot(const Color(0xFFFF5F57)),
+          const SizedBox(width: 6),
+          _trafficDot(const Color(0xFFFFBD2E)),
+          const SizedBox(width: 6),
+          _trafficDot(const Color(0xFF28CA41)),
+        ]),
+        const SizedBox(width: 16),
+        // URL bar
+        Expanded(
+          child: Container(
+            height: 26,
             decoration: BoxDecoration(
-              color: _dark,
-              borderRadius: BorderRadius.circular(14),
+              color: const Color(0xFF0A0F0D),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(color: _border),
-            ),
-            child: Column(children: [
-              Text('Choose an amount',
-                  style: GoogleFonts.inter(
-                      color: _textMuted, fontSize: 12)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: ['R5', 'R10', 'R20', 'R50'].map((a) {
-                  final selected = a == 'R10';
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: selected ? _orange : _cardBg,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: selected ? Colors.transparent : _border),
-                    ),
-                    child: Text(a,
-                        style: GoogleFonts.inter(
-                            color: _white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13)),
-                  );
-                }).toList(),
-              ),
-            ]),
-          ),
-          const SizedBox(height: 14),
-
-          // Tip feed items
-          ..._tipItems(),
-          const SizedBox(height: 16),
-
-          // Send button
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: _orange,
-              borderRadius: BorderRadius.circular(36),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.volunteer_activism,
-                    color: _white, size: 16),
-                const SizedBox(width: 8),
-                Text('Send R50 tip',
-                    style: GoogleFonts.inter(
-                        color: _white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14)),
+                Icon(Icons.lock_rounded, size: 10, color: _textMuted.withOpacity(0.5)),
+                const SizedBox(width: 5),
+                Text(
+                  'tippingjar.co.za/thulani',
+                  style: GoogleFonts.inter(
+                      color: _textMuted.withOpacity(0.7),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w400),
+                ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 16),
+        Icon(Icons.more_horiz_rounded, size: 16, color: _textMuted.withOpacity(0.3)),
+      ]),
     );
   }
 
-  List<Widget> _tipItems() {
-    final items = [
-      ('Sarah M.', 'R50', 'Keep up the amazing work! 🔥', 'SM', _pink),
-      ('David K.', 'R100', 'Best creator on the internet.', 'DK', _purple),
-    ];
-    return items.map((t) {
-      return Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: _dark,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _border),
-        ),
-        child: Row(children: [
-          _avatar(t.$1.split(' ').map((w) => w[0]).join(), t.$5,
-              size: 30, fontSize: 11),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Text(t.$1,
-                      style: GoogleFonts.inter(
-                          color: _white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12)),
-                  const Spacer(),
-                  Text(t.$2,
-                      style: GoogleFonts.inter(
-                          color: _orange,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12)),
-                ]),
-                Text(t.$3,
-                    style: GoogleFonts.inter(
-                        color: _textMuted, fontSize: 11),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-        ]),
-      );
-    }).toList();
-  }
+  Widget _trafficDot(Color color) => Container(
+      width: 11,
+      height: 11,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle));
+}
 
-  Widget _avatar(String initials, Color color,
-      {double size = 40, double fontSize = 14}) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-            colors: [color, color.withOpacity(0.5)],
+class _CreatorRow extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      // Avatar
+      Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_orange, Color(0xFF0097B2)],
             begin: Alignment.topLeft,
-            end: Alignment.bottomRight),
-        shape: BoxShape.circle,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text('TM',
+              style: GoogleFonts.inter(
+                  color: _white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15)),
+        ),
       ),
-      child: Center(
-        child: Text(initials,
-            style: GoogleFonts.inter(
-                color: _white,
-                fontWeight: FontWeight.w700,
-                fontSize: fontSize)),
+      const SizedBox(width: 14),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Thulani M.',
+              style: GoogleFonts.inter(
+                  color: _white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  letterSpacing: -0.3)),
+          const SizedBox(height: 2),
+          Text('Music Producer & Beatmaker',
+              style: GoogleFonts.inter(color: _textMuted, fontSize: 13)),
+        ]),
       ),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: _orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: _orange.withOpacity(0.2)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+                color: _orange,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                      color: _orange.withOpacity(0.7),
+                      blurRadius: 4,
+                      spreadRadius: 1)
+                ]),
+          ),
+          const SizedBox(width: 6),
+          Text('Live',
+              style: GoogleFonts.inter(
+                  color: _orange,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600)),
+        ]),
+      ),
+    ]);
+  }
+}
+
+class _AmountRow extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Choose an amount',
+          style: GoogleFonts.inter(
+              color: _textMuted, fontSize: 12, fontWeight: FontWeight.w500)),
+      const SizedBox(height: 10),
+      Row(children: [
+        for (final entry in [
+          ('R20', false),
+          ('R50', true),
+          ('R100', false),
+          ('R200', false),
+        ]) ...[
+          _AmountChip(label: entry.$1, selected: entry.$2),
+          const SizedBox(width: 8),
+        ],
+      ]),
+    ]);
+  }
+}
+
+class _AmountChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  const _AmountChip({required this.label, required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+      decoration: BoxDecoration(
+        color: selected ? _orange : _dark,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: selected ? _orange : _border,
+          width: selected ? 1.5 : 1,
+        ),
+        boxShadow: selected
+            ? [BoxShadow(color: _orange.withOpacity(0.25), blurRadius: 12)]
+            : [],
+      ),
+      child: Text(label,
+          style: GoogleFonts.inter(
+              color: _white,
+              fontWeight: FontWeight.w700,
+              fontSize: 13)),
     );
   }
 }
 
-// ─── Glow blob ────────────────────────────────────────────────────────────────
+class _SendButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: _orange,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+              color: _orange.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 6)),
+        ],
+      ),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Icon(Icons.favorite_rounded, color: _white, size: 15),
+        const SizedBox(width: 8),
+        Text('Send R50 tip',
+            style: GoogleFonts.inter(
+                color: _white, fontWeight: FontWeight.w700, fontSize: 14)),
+      ]),
+    );
+  }
+}
+
+class _TipRow extends StatelessWidget {
+  final String initials, name, amount, message, timeAgo;
+  final bool muted;
+  const _TipRow({
+    required this.initials,
+    required this.name,
+    required this.amount,
+    required this.message,
+    required this.timeAgo,
+    this.muted = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _dark,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _border),
+      ),
+      child: Row(children: [
+        // Avatar
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: muted
+                ? _border
+                : _orange.withOpacity(0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(initials,
+                style: GoogleFonts.inter(
+                    color: muted ? _textMuted : _orange,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Content
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Text(name,
+                  style: GoogleFonts.inter(
+                      color: muted ? _textMuted : _white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12)),
+              const Spacer(),
+              Text(amount,
+                  style: GoogleFonts.inter(
+                      color: _orange,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13)),
+              const SizedBox(width: 8),
+              Text(timeAgo,
+                  style: GoogleFonts.inter(
+                      color: _textMuted.withOpacity(0.5), fontSize: 11)),
+            ]),
+            if (message.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(message,
+                  style: GoogleFonts.inter(
+                      color: _textMuted, fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ],
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+// ─── Glow blob (used in CTA section) ─────────────────────────────────────────
 class _GlowBlob extends StatelessWidget {
   final Color color;
   final double size;
@@ -641,7 +853,7 @@ class _HowItWorksSection extends StatelessWidget {
       (
         Icons.account_balance_wallet_rounded,
         'Collect tips',
-        'Fans drop tips instantly via card. Funds land in your Stripe account — no waiting, no middleman.',
+        'Fans drop tips instantly via card. Funds land in your Paystack account — no waiting, no middleman.',
         _purple,
       ),
     ];
@@ -770,13 +982,13 @@ class _FeaturesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final features = [
       (Icons.flash_on_rounded, 'Instant payouts',
-          'No holding periods. Stripe sends money straight to your bank.', _orange),
+          'No holding periods. Paystack sends money straight to your bank.', _orange),
       (Icons.face_rounded, 'Anonymous tips',
           'Fans can tip without creating an account — zero friction.', _pink),
       (Icons.bar_chart_rounded, 'Live analytics',
           'Watch tips roll in with a real-time dashboard built for creators.', _purple),
       (Icons.lock_rounded, 'Bank-grade security',
-          'All payments processed by Stripe — PCI-DSS compliant, always.', const Color(0xFF22D3EE)),
+          'All payments processed by Paystack — PCI-DSS compliant, always.', const Color(0xFF22D3EE)),
       (Icons.palette_rounded, 'Custom pages',
           'Personalise your tip page with cover art, a tagline, and a monthly goal.', const Color(0xFF4ADE80)),
       (Icons.public_rounded, 'Works worldwide',
@@ -959,7 +1171,6 @@ class _CreatorCard extends StatelessWidget {
         border: Border.all(color: _border),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Cover strip
         Container(
           height: 72,
           decoration: BoxDecoration(
@@ -1075,11 +1286,13 @@ class _CtaSection extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-                top: -40, right: -40,
+                top: -40,
+                right: -40,
                 child: _GlowBlob(
                     color: _orange.withOpacity(0.2), size: 300)),
             Positioned(
-                bottom: -60, left: 40,
+                bottom: -60,
+                left: 40,
                 child: _GlowBlob(
                     color: _purple.withOpacity(0.2), size: 260)),
             Column(children: [
@@ -1143,7 +1356,6 @@ class _Footer extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Brand
             Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1168,7 +1380,6 @@ class _Footer extends StatelessWidget {
                             height: 1.6)),
                   ]),
             ),
-            // Links
             ...[
               ('Product',  [('Features', '/features'), ('Pricing', '/pricing'), ('Changelog', '/changelog')]),
               ('Company',  [('About', '/about'), ('Blog', '/blog'), ('Careers', '/careers')]),
