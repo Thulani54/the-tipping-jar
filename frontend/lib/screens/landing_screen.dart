@@ -210,140 +210,132 @@ class _HeroSection extends StatelessWidget {
           // Content
           Padding(
             padding: EdgeInsets.fromLTRB(
-              narrow ? 24 : 48, 136, narrow ? 24 : 48, 96),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // ── Announcement pill ──
-                _badge()
-                    .animate()
-                    .fadeIn(duration: 500.ms)
-                    .slideY(begin: 0.2, curve: Curves.easeOut),
-                const SizedBox(height: 32),
-
-                // ── Headline ──
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 700),
-                  child: Text(
-                    'Get paid by the people\nwho love your work.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: narrow ? 40 : 72,
-                      fontWeight: FontWeight.w800,
-                      height: 1.07,
-                      letterSpacing: narrow ? -1.5 : -3.0,
-                    ),
+                narrow ? 24 : 64, 120, narrow ? 24 : 64, 80),
+            child: narrow
+                // ── Mobile: stacked, centred ──────────────────────────
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _badge()
+                          .animate()
+                          .fadeIn(duration: 500.ms)
+                          .slideY(begin: 0.2, curve: Curves.easeOut),
+                      const SizedBox(height: 28),
+                      Text(
+                        'Get paid by the people\nwho love your work.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 38,
+                          fontWeight: FontWeight.w800,
+                          height: 1.07,
+                          letterSpacing: -1.5,
+                        ),
+                      )
+                          .animate()
+                          .fadeIn(delay: 120.ms, duration: 600.ms)
+                          .slideY(begin: 0.2, curve: Curves.easeOut),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Set up your TippingJar page in 60 seconds. Share one link. '
+                        'Let fans support you — no subscriptions, no friction.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                            color: Colors.white.withOpacity(0.62),
+                            fontSize: 16,
+                            height: 1.65),
+                      )
+                          .animate()
+                          .fadeIn(delay: 240.ms, duration: 600.ms)
+                          .slideY(begin: 0.2, curve: Curves.easeOut),
+                      const SizedBox(height: 32),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 10,
+                        alignment: WrapAlignment.center,
+                        children: [_primaryCta(context), _secondaryCta(context)],
+                      )
+                          .animate()
+                          .fadeIn(delay: 360.ms, duration: 500.ms)
+                          .slideY(begin: 0.15, curve: Curves.easeOut),
+                      const SizedBox(height: 20),
+                      _trustLine()
+                          .animate()
+                          .fadeIn(delay: 480.ms, duration: 500.ms),
+                      const SizedBox(height: 48),
+                      const _ProductPreview()
+                          .animate()
+                          .fadeIn(delay: 580.ms, duration: 700.ms)
+                          .slideY(begin: 0.12, curve: Curves.easeOut),
+                    ],
+                  )
+                // ── Desktop: text left · preview right ────────────────
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _badge()
+                                .animate()
+                                .fadeIn(duration: 500.ms)
+                                .slideY(begin: 0.2, curve: Curves.easeOut),
+                            const SizedBox(height: 32),
+                            Text(
+                              'Get paid by the people\nwho love your work.',
+                              textAlign: TextAlign.left,
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 58,
+                                fontWeight: FontWeight.w800,
+                                height: 1.07,
+                                letterSpacing: -2.5,
+                              ),
+                            )
+                                .animate()
+                                .fadeIn(delay: 120.ms, duration: 600.ms)
+                                .slideY(begin: 0.2, curve: Curves.easeOut),
+                            const SizedBox(height: 22),
+                            Text(
+                              'Set up your TippingJar page in 60 seconds. Share one link. '
+                              'Let fans support you — no subscriptions, no friction.',
+                              textAlign: TextAlign.left,
+                              style: GoogleFonts.inter(
+                                  color: Colors.white.withOpacity(0.62),
+                                  fontSize: 17,
+                                  height: 1.65),
+                            )
+                                .animate()
+                                .fadeIn(delay: 240.ms, duration: 600.ms)
+                                .slideY(begin: 0.2, curve: Curves.easeOut),
+                            const SizedBox(height: 36),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 10,
+                              alignment: WrapAlignment.start,
+                              children: [_primaryCta(context), _secondaryCta(context)],
+                            )
+                                .animate()
+                                .fadeIn(delay: 360.ms, duration: 500.ms)
+                                .slideY(begin: 0.15, curve: Curves.easeOut),
+                            const SizedBox(height: 24),
+                            _trustLine()
+                                .animate()
+                                .fadeIn(delay: 480.ms, duration: 500.ms),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 64),
+                      Expanded(
+                        child: const _ProductPreview()
+                            .animate()
+                            .fadeIn(delay: 400.ms, duration: 700.ms)
+                            .slideX(begin: 0.08, curve: Curves.easeOut),
+                      ),
+                    ],
                   ),
-                )
-                    .animate()
-                    .fadeIn(delay: 120.ms, duration: 600.ms)
-                    .slideY(begin: 0.2, curve: Curves.easeOut),
-                const SizedBox(height: 22),
-
-                // ── Subtext ──
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
-                  child: Text(
-                    'Set up your TippingJar page in 60 seconds. Share one link. '
-                    'Let fans support you — no subscriptions, no friction.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                        color: Colors.white.withOpacity(0.62), fontSize: 17, height: 1.65),
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 240.ms, duration: 600.ms)
-                    .slideY(begin: 0.2, curve: Curves.easeOut),
-                const SizedBox(height: 40),
-
-                // ── CTAs ──
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 10,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () => context.go('/register'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _orange,
-                        foregroundColor: _white,
-                        elevation: 0,
-                        shadowColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 28, vertical: 16),
-                        shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero),
-                      ),
-                      child: Text(
-                        'Create your free page →',
-                        style: GoogleFonts.inter(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: _white),
-                      ),
-                    ),
-                    OutlinedButton(
-                      onPressed: () => context.go('/creators'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _white,
-                        side: BorderSide(color: _white.withOpacity(0.3)),
-                        backgroundColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 28, vertical: 16),
-                        shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero),
-                      ),
-                      child: Text(
-                        'See live examples',
-                        style: GoogleFonts.inter(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: _white),
-                      ),
-                    ),
-                  ],
-                )
-                    .animate()
-                    .fadeIn(delay: 360.ms, duration: 500.ms)
-                    .slideY(begin: 0.15, curve: Curves.easeOut),
-                const SizedBox(height: 24),
-
-                // ── Trust line ──
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _dot(),
-                    const SizedBox(width: 8),
-                    Text('No credit card required',
-                        style: GoogleFonts.inter(
-                            color: Colors.white.withOpacity(0.40), fontSize: 13)),
-                    const SizedBox(width: 20),
-                    _dot(),
-                    const SizedBox(width: 8),
-                    Text('Free to get started',
-                        style: GoogleFonts.inter(
-                            color: Colors.white.withOpacity(0.40), fontSize: 13)),
-                    const SizedBox(width: 20),
-                    _dot(),
-                    const SizedBox(width: 8),
-                    Text('Built in South Africa',
-                        style: GoogleFonts.inter(
-                            color: Colors.white.withOpacity(0.40), fontSize: 13)),
-                  ],
-                )
-                    .animate()
-                    .fadeIn(delay: 480.ms, duration: 500.ms),
-                const SizedBox(height: 72),
-
-                // ── Product preview ──
-                const _ProductPreview()
-                    .animate()
-                    .fadeIn(delay: 580.ms, duration: 700.ms)
-                    .slideY(begin: 0.12, curve: Curves.easeOut),
-              ],
-            ),
           ),
         ],
       ),
@@ -389,6 +381,58 @@ class _HeroSection extends StatelessWidget {
           color: Colors.white.withOpacity(0.25),
           shape: BoxShape.circle,
         ),
+      );
+
+  Widget _primaryCta(BuildContext context) => ElevatedButton(
+        onPressed: () => context.go('/register'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _orange,
+          foregroundColor: _white,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        ),
+        child: Text('Create your free page →',
+            style: GoogleFonts.inter(
+                fontSize: 15, fontWeight: FontWeight.w600, color: _white)),
+      );
+
+  Widget _secondaryCta(BuildContext context) => OutlinedButton(
+        onPressed: () => context.go('/creators'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _white,
+          side: BorderSide(color: _white.withOpacity(0.3)),
+          backgroundColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        ),
+        child: Text('View Creators',
+            style: GoogleFonts.inter(
+                fontSize: 15, fontWeight: FontWeight.w600, color: _white)),
+      );
+
+  Widget _trustLine() => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _dot(),
+          const SizedBox(width: 8),
+          Text('No credit card required',
+              style: GoogleFonts.inter(
+                  color: Colors.white.withOpacity(0.40), fontSize: 13)),
+          const SizedBox(width: 20),
+          _dot(),
+          const SizedBox(width: 8),
+          Text('Free to get started',
+              style: GoogleFonts.inter(
+                  color: Colors.white.withOpacity(0.40), fontSize: 13)),
+          const SizedBox(width: 20),
+          _dot(),
+          const SizedBox(width: 8),
+          Text('Built in South Africa',
+              style: GoogleFonts.inter(
+                  color: Colors.white.withOpacity(0.40), fontSize: 13)),
+        ],
       );
 }
 
