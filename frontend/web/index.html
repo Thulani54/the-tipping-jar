@@ -101,6 +101,20 @@
       }
     })();
 
+    // Force an immediate SW update check on every page load.
+    // By default browsers throttle SW update checks to once per 24 h — on iOS
+    // this means users can be stuck on a stale SW for up to a day.
+    // reg.update() bypasses the throttle: the browser re-fetches
+    // flutter_service_worker.js right now and installs our stub if it changed.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (reg) {
+          console.log('[TippingJar] forcing SW update check');
+          reg.update();
+        }
+      });
+    }
+
     var storedVersion = localStorage.getItem(VERSION_KEY);
 
     if (storedVersion !== APP_VERSION) {

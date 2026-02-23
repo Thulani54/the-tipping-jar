@@ -25,21 +25,34 @@ RUN flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL}
 #   4. passes ALL fetch requests straight to the network (no new caching)
 #   5. responds to Flutter's getVersion message so the bootstrap proceeds normally
 RUN printf '%s\n' \
+  "// TippingJar pass-through SW — clears old caches and forces a fresh reload." \
   "var _v=new URL(self.location).searchParams.get('v')||'1';" \
   "self.addEventListener('install',function(e){" \
-  "  e.waitUntil(caches.keys().then(function(n){" \
-  "    return Promise.all(n.map(function(c){" \
-  "      console.log('[TJ SW] clearing cache:',c);" \
-  "      return caches.delete(c);" \
-  "    }));" \
-  "  }).then(function(){return self.skipWaiting();}));" \
+  "  e.waitUntil(" \
+  "    caches.keys().then(function(n){" \
+  "      return Promise.all(n.map(function(c){" \
+  "        console.log('[TJ SW] deleting cache:',c);" \
+  "        return caches.delete(c);" \
+  "      }));" \
+  "    }).then(function(){" \
+  "      console.log('[TJ SW] skipWaiting');" \
+  "      return self.skipWaiting();" \
+  "    })" \
+  "  );" \
   "});" \
   "self.addEventListener('activate',function(e){" \
-  "  e.waitUntil(self.clients.claim());" \
+  "  e.waitUntil(" \
+  "    self.clients.claim().then(function(){" \
+  "      return self.clients.matchAll({type:'window'});" \
+  "    }).then(function(clients){" \
+  "      console.log('[TJ SW] navigating',clients.length,'client(s) to force fresh load');" \
+  "      return Promise.all(clients.map(function(c){" \
+  "        return c.navigate(c.url).catch(function(){});" \
+  "      }));" \
+  "    })" \
+  "  );" \
   "});" \
-  "self.addEventListener('fetch',function(e){" \
-  "  e.respondWith(fetch(e.request));" \
-  "});" \
+  "// No fetch handler — all requests go straight to the network." \
   "self.addEventListener('message',function(e){" \
   "  if(e.data&&e.data.type==='getVersion')e.ports[0].postMessage(_v);" \
   "});" \
