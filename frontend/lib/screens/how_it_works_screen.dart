@@ -136,6 +136,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
 
   // ─── Hero ────────────────────────────────────────────────────────────────
   Widget _hero(BuildContext ctx) {
+    final w = MediaQuery.of(ctx).size.width;
     return Container(
       width: double.infinity,
       color: kDarker,
@@ -146,20 +147,32 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
             child: CustomPaint(painter: _DotGridPainter()),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
-            child: Column(children: [
+            padding: const EdgeInsets.symmetric(vertical: 96, horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
               _tag('How it works'),
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
               Text('Simple for fans.\nPowerful for creators.',
-                  style: headingXL(ctx),
+                  style: GoogleFonts.dmSans(
+                    color: Colors.white,
+                    fontSize: w < 700 ? 38 : 58,
+                    fontWeight: FontWeight.w800,
+                    height: 1.07,
+                    letterSpacing: w < 700 ? -1.5 : -2.5,
+                  ),
                   textAlign: TextAlign.center)
                   .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 560),
-                child: const Text(
+                child: Text(
                   'TippingJar removes every barrier between appreciation and action. No complicated setup, no waiting periods — just simple, transparent fees.',
-                  style: kBodyStyle,
+                  style: GoogleFonts.dmSans(
+                    color: Colors.white.withOpacity(0.62),
+                    fontSize: 17,
+                    height: 1.65,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ).animate().fadeIn(delay: 150.ms, duration: 500.ms),

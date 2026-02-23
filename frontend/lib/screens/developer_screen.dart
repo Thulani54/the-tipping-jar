@@ -198,10 +198,13 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
     return Container(
       key: _heroKey,
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
-          horizontal: w > 900 ? 80 : 28, vertical: 96),
       decoration: const BoxDecoration(color: kDarker),
-      child: Column(children: [
+      child: Stack(children: [
+        Positioned.fill(child: CustomPaint(painter: _DotGridPainter())),
+        Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: w > 900 ? 80 : 28, vertical: 96),
+          child: Column(children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
@@ -269,6 +272,8 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
             _Stat(value: 'Free', label: 'Sandbox included'),
           ],
         ).animate().fadeIn(delay: 320.ms, duration: 500.ms),
+      ]),
+        ),
       ]),
     );
   }
@@ -2484,4 +2489,24 @@ class _RequirementCard extends StatelessWidget {
           color: kMuted, fontSize: 12, height: 1.55)),
     ]),
   );
+}
+
+// ─── Dot grid background ─────────────────────────────────────────────────────
+class _DotGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..style = PaintingStyle.fill;
+    const spacing = 30.0;
+    const radius = 1.0;
+    for (double x = 0; x <= size.width + spacing; x += spacing) {
+      for (double y = 0; y <= size.height + spacing; y += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

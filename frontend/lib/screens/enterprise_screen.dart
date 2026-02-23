@@ -37,7 +37,9 @@ class EnterpriseScreen extends StatelessWidget {
         Padding(
           padding: EdgeInsets.symmetric(
               horizontal: w > 900 ? 80 : 28, vertical: 96),
-          child: Column(children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(

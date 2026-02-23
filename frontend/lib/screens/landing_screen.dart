@@ -134,7 +134,7 @@ class _NavBar extends StatelessWidget {
           foregroundColor: _white,
           side: const BorderSide(color: _border),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
         child: Text(label,
             style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w500)),
@@ -149,7 +149,7 @@ class _NavBar extends StatelessWidget {
           shadowColor: Colors.transparent,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
         child: Text(label,
             style: GoogleFonts.dmSans(
