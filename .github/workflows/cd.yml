@@ -55,6 +55,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Inject build version into index.html
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          SHORT_SHA="${GITHUB_SHA:0:8}"
+          sed -i "s/__BUILD_VERSION__/${SHORT_SHA}/g" frontend/web/index.html
+          echo "Injected version: ${SHORT_SHA}"
+
       - name: Log in to Azure Container Registry
         uses: docker/login-action@v3
         with:

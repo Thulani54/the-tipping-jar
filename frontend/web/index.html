@@ -20,6 +20,11 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="TippingJar — tip your favourite creators instantly. Support the people who inspire you.">
 
+  <!-- Prevent the browser from caching index.html itself -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -31,16 +36,60 @@
 
   <title>TippingJar</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- ── Version & Cache Management ────────────────────────────────────────
+       APP_VERSION is replaced with the short git SHA by the CD pipeline on
+       every push to main (see .github/workflows/cd.yml).
+       When the version stored in localStorage differs from this value, ALL
+       service-worker caches are wiped and every SW is unregistered so users
+       always receive the latest build without a manual hard-refresh.
+  ──────────────────────────────────────────────────────────────────────── -->
+  <script>
+    const APP_VERSION = '__BUILD_VERSION__';
+    const VERSION_KEY = 'tj_app_version';
+
+    function clearAllCachesAndReload() {
+      // Clear ALL Service Worker caches (Flutter registers its own)
+      if ('caches' in window) {
+        caches.keys().then(function (names) {
+          return Promise.all(names.map(function (name) {
+            console.log('[TippingJar] Deleting cache:', name);
+            return caches.delete(name);
+          }));
+        });
+      }
+
+      // Unregister every service worker so Flutter fetches fresh assets
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (reg) {
+            console.log('[TippingJar] Unregistering SW:', reg.scope);
+            reg.unregister();
+          });
+        });
+      }
+
+      // Clear session storage (preserve localStorage so version key survives)
+      sessionStorage.clear();
+
+      console.log('[TippingJar] Cache cleared — reloading for version', APP_VERSION);
+      window.location.reload(true);
+    }
+
+    var storedVersion = localStorage.getItem(VERSION_KEY);
+
+    if (storedVersion !== APP_VERSION) {
+      console.log('[TippingJar] Version change:', storedVersion, '→', APP_VERSION);
+      // Persist new version BEFORE reloading so the reload doesn't loop
+      localStorage.setItem(VERSION_KEY, APP_VERSION);
+      // Only reload when upgrading from a previous version (not first-ever visit)
+      if (storedVersion !== null) {
+        clearAllCachesAndReload();
+      }
+    }
+  </script>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js?v=2" async></script>
+  <script src="flutter_bootstrap.js?v=__BUILD_VERSION__" async></script>
 </body>
 </html>
