@@ -90,6 +90,14 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# Reduce PBKDF2 iterations from Django 5's default 870k → 300k.
+# Still > 30× above NIST minimum; ~3× faster on small containers.
+# Legacy passwords (870k) still verify; they're auto-upgraded on next login.
+PASSWORD_HASHERS = [
+    "core.hashers.TippingJarPasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+]
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True

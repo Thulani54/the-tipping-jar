@@ -189,6 +189,18 @@ class ApiService {
     throw Exception('Failed to update user profile: ${res.body}');
   }
 
+  /// Upload (or replace) the authenticated user's avatar.
+  /// Uses multipart PATCH so the server stores it as an image file.
+  Future<void> updateAvatar(Uint8List bytes, String filename) async {
+    final req = http.MultipartRequest('PATCH', Uri.parse('$_baseUrl/users/me/'))
+      ..headers.addAll(_authHeaders)
+      ..files.add(http.MultipartFile.fromBytes('avatar', bytes, filename: filename));
+    final streamed = await req.send();
+    if (streamed.statusCode != 200) {
+      throw Exception('Avatar upload failed (${streamed.statusCode})');
+    }
+  }
+
   Future<AppUser> getMe() async {
     final res = await http.get(Uri.parse('$_baseUrl/users/me/'), headers: _headers);
     if (res.statusCode == 200) {
