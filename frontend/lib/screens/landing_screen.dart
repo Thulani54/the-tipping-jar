@@ -464,232 +464,410 @@ class _DotGridPainter extends CustomPainter {
 class _PhoneMockup extends StatelessWidget {
   const _PhoneMockup();
 
+  // Titanium frame palette (Space Black iPhone 15 Pro)
+  static const _bodyColor = Color(0xFF1C1C1E);
+  static const _frameEdge = Color(0xFF48484A);
+  static const _frameFlat = Color(0xFF3A3A3C);
+
   @override
   Widget build(BuildContext context) {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 300),
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF060A08),
-            borderRadius: BorderRadius.circular(44),
-            border: Border.all(color: const Color(0xFF2A3530), width: 2.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.65),
-                blurRadius: 64,
-                offset: const Offset(0, 28),
-              ),
-              BoxShadow(
-                color: const Color(0xFF34D8A0).withOpacity(0.07),
-                blurRadius: 80,
-                offset: const Offset(0, 20),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(42),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── Status bar ──
-                Container(
-                  height: 50,
-                  color: _darker,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Dynamic island
-                      Container(
-                        width: 90,
-                        height: 26,
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(13),
-                        ),
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 6),
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              // ── Screen glow pool beneath phone ──────────────────────
+              Positioned(
+                left: 28, right: 28, bottom: -24,
+                child: Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(60),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF004423).withOpacity(0.70),
+                        blurRadius: 90,
+                        spreadRadius: 18,
                       ),
-                      // Status icons
-                      Row(children: [
-                        Text('9:41',
-                            style: GoogleFonts.inter(
-                                color: _white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600)),
-                        const Spacer(),
-                        const Icon(Icons.signal_cellular_alt,
-                            color: _white, size: 11),
-                        const SizedBox(width: 3),
-                        const Icon(Icons.wifi, color: _white, size: 11),
-                        const SizedBox(width: 3),
-                        const Icon(Icons.battery_full, color: _white, size: 11),
-                      ]),
                     ],
                   ),
                 ),
+              ),
 
-                // ── App screen ──
-                Container(
-                  color: _cardBg,
-                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // App nav bar
-                      Row(children: [
-                        const Icon(Icons.arrow_back_ios_rounded,
-                            color: _textMuted, size: 14),
-                        const Spacer(),
-                        Text('TippingJar',
-                            style: GoogleFonts.inter(
-                                color: _white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13)),
-                        const Spacer(),
-                        const Icon(Icons.ios_share_rounded,
-                            color: _textMuted, size: 14),
-                      ]),
-                      const SizedBox(height: 18),
-
-                      // Creator profile (centred)
-                      Center(
-                        child: Column(children: [
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: const BoxDecoration(
-                              color: _orange,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Text('TM',
-                                  style: GoogleFonts.inter(
-                                      color: _white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 17)),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text('Thulani M.',
-                              style: GoogleFonts.inter(
-                                  color: _white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14)),
-                          const SizedBox(height: 2),
-                          Text('Music Producer & Beatmaker',
-                              style: GoogleFonts.inter(
-                                  color: _textMuted, fontSize: 11)),
-                        ]),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Amount label
-                      Text('Choose an amount',
-                          style: GoogleFonts.inter(
-                              color: _textMuted,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 8),
-
-                      // Amount chips
-                      Row(children: [
-                        for (final e in [
-                          ('R20', false),
-                          ('R50', true),
-                          ('R100', false),
-                          ('R200', false),
-                        ]) ...[
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 7),
-                              decoration: BoxDecoration(
-                                color: e.$2 ? _orange : _dark,
-                                border: Border.all(
-                                  color: e.$2 ? _orange : _border,
-                                ),
-                              ),
-                              child: Text(e.$1,
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.inter(
-                                      color: _white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 11)),
-                            ),
-                          ),
-                          if (e.$1 != 'R200') const SizedBox(width: 5),
+              // ── Phone + physical side buttons ────────────────────────
+              IntrinsicHeight(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Left: silent switch + volume
+                    Padding(
+                      padding: const EdgeInsets.only(right: 2.5),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 82),
+                          _sideBtn(22),   // silent switch
+                          const SizedBox(height: 16),
+                          _sideBtn(52),   // vol +
+                          const SizedBox(height: 10),
+                          _sideBtn(52),   // vol −
                         ],
-                      ]),
-                      const SizedBox(height: 12),
-
-                      // Send button
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        color: _orange,
-                        child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.favorite_rounded,
-                                  color: _white, size: 12),
-                              const SizedBox(width: 6),
-                              Text('Send R50 tip',
-                                  style: GoogleFonts.inter(
-                                      color: _white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 12)),
-                            ]),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Recent tips label
-                      Text('Recent tips',
-                          style: GoogleFonts.inter(
-                              color: _textMuted,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.4)),
-                      const SizedBox(height: 10),
-
-                      // Tip rows
-                      _tipItem('SK', 'Sarah K.', 'R50', '2m'),
-                      const SizedBox(height: 8),
-                      _tipItem('JD', 'James D.', 'R100', '14m'),
-                      const SizedBox(height: 8),
-                      _tipItem('?', 'Anonymous', 'R20', '1h', muted: true),
-                    ],
-                  ),
-                ),
-
-                // ── Home indicator ──
-                Container(
-                  height: 28,
-                  color: _darker,
-                  child: Center(
-                    child: Container(
-                      width: 90,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                  ),
+
+                    // Centre: phone body
+                    Flexible(child: _phoneBody()),
+
+                    // Right: power button
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2.5),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 130),
+                          _sideBtn(72),   // power
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
+  Widget _sideBtn(double h) => Container(
+        width: 4,
+        height: h,
+        decoration: BoxDecoration(
+          color: _frameFlat,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      );
+
+  Widget _phoneBody() => Container(
+        decoration: BoxDecoration(
+          color: _bodyColor,
+          borderRadius: BorderRadius.circular(50),
+          // Outer titanium edge highlight
+          border: Border.all(color: _frameEdge, width: 1.2),
+          boxShadow: [
+            // Deep drop shadow
+            BoxShadow(
+              color: Colors.black.withOpacity(0.92),
+              blurRadius: 70,
+              offset: const Offset(0, 36),
+            ),
+            // Ambient green screen glow
+            BoxShadow(
+              color: const Color(0xFF004423).withOpacity(0.30),
+              blurRadius: 90,
+              spreadRadius: -8,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(49),
+          child: Stack(
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _statusBar(),
+                  _appScreen(),
+                  _homeIndicator(),
+                ],
+              ),
+              // Glass sheen — diagonal highlight across top-left
+              Positioned(
+                top: 0, left: 0, right: 0,
+                child: IgnorePointer(
+                  child: Container(
+                    height: 240,
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(49)),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withOpacity(0.055),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.55],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _statusBar() => Container(
+        height: 54,
+        color: Colors.black,
+        padding: const EdgeInsets.symmetric(horizontal: 22),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Dynamic island pill
+            Container(
+              width: 112,
+              height: 30,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: const Color(0xFF2A2A2E), width: 1),
+              ),
+            ),
+            // Status row
+            Row(children: [
+              Text('9:41',
+                  style: GoogleFonts.inter(
+                      color: _white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.3)),
+              const Spacer(),
+              // Signal bars (hand-drawn, more realistic)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (final h in [4.0, 7.0, 10.0, 13.0])
+                    Padding(
+                      padding: const EdgeInsets.only(left: 1.5),
+                      child: Container(
+                        width: 3,
+                        height: h,
+                        decoration: BoxDecoration(
+                          color: _white,
+                          borderRadius: BorderRadius.circular(0.5),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.wifi_rounded, color: _white, size: 13),
+              const SizedBox(width: 5),
+              // Battery pill
+              Row(children: [
+                Container(
+                  width: 24,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(3),
+                    border: Border.all(
+                        color: _white.withOpacity(0.45), width: 1),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(1.5),
+                    child: FractionallySizedBox(
+                      widthFactor: 0.80,
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _white,
+                          borderRadius: BorderRadius.circular(1.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 1.5),
+                Container(
+                  width: 2,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: _white.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+              ]),
+            ]),
+          ],
+        ),
+      );
+
+  Widget _appScreen() => Container(
+        color: _cardBg,
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Nav bar
+            Row(children: [
+              const Icon(Icons.arrow_back_ios_rounded,
+                  color: _textMuted, size: 14),
+              const Spacer(),
+              Text('TippingJar',
+                  style: GoogleFonts.inter(
+                      color: _white, fontWeight: FontWeight.w700, fontSize: 13)),
+              const Spacer(),
+              const Icon(Icons.ios_share_rounded, color: _textMuted, size: 14),
+            ]),
+            const SizedBox(height: 16),
+
+            // Creator profile — avatar with glowing ring
+            Center(
+              child: Column(children: [
+                Container(
+                  width: 68, height: 68,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: _orange.withOpacity(0.45),
+                        blurRadius: 18,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                    border: Border.all(
+                        color: _orange.withOpacity(0.5), width: 2.5),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.5),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                          color: _orange, shape: BoxShape.circle),
+                      child: Center(
+                        child: Text('TM',
+                            style: GoogleFonts.inter(
+                                color: _white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18)),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Text('Thulani M.',
+                    style: GoogleFonts.inter(
+                        color: _white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        letterSpacing: -0.2)),
+                const SizedBox(height: 2),
+                Text('Music Producer & Beatmaker',
+                    style: GoogleFonts.inter(
+                        color: _textMuted, fontSize: 10.5)),
+              ]),
+            ),
+            const SizedBox(height: 18),
+
+            // Amount chips
+            Text('Choose an amount',
+                style: GoogleFonts.inter(
+                    color: _textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 7),
+            Row(children: [
+              for (final e in [
+                ('R20', false),
+                ('R50', true),
+                ('R100', false),
+                ('R200', false),
+              ]) ...[
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    decoration: BoxDecoration(
+                      color: e.$2 ? _orange : _dark,
+                      border: Border.all(
+                          color: e.$2 ? _orange : _border),
+                    ),
+                    child: Text(e.$1,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                            color: _white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11)),
+                  ),
+                ),
+                if (e.$1 != 'R200') const SizedBox(width: 5),
+              ],
+            ]),
+            const SizedBox(height: 11),
+
+            // Send tip button
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: _orange,
+                boxShadow: [
+                  BoxShadow(
+                    color: _orange.withOpacity(0.40),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.favorite_rounded,
+                      color: _white, size: 12),
+                  const SizedBox(width: 6),
+                  Text('Send R50 tip',
+                      style: GoogleFonts.inter(
+                          color: _white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Recent tips
+            Text('Recent tips',
+                style: GoogleFonts.inter(
+                    color: _textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4)),
+            const SizedBox(height: 9),
+            _tipItem('SK', 'Sarah K.', 'R50', '2m'),
+            const SizedBox(height: 7),
+            _tipItem('JD', 'James D.', 'R100', '14m'),
+            const SizedBox(height: 7),
+            _tipItem('?', 'Anonymous', 'R20', '1h', muted: true),
+          ],
+        ),
+      );
+
+  Widget _homeIndicator() => Container(
+        height: 30,
+        color: Colors.black,
+        child: Center(
+          child: Container(
+            width: 104,
+            height: 4.5,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.25),
+              borderRadius: BorderRadius.circular(2.5),
+            ),
+          ),
+        ),
+      );
+
   Widget _tipItem(String initials, String name, String amount, String time,
       {bool muted = false}) {
     return Row(children: [
       Container(
-        width: 28,
-        height: 28,
+        width: 28, height: 28,
         decoration: BoxDecoration(
           color: muted ? _border : _orange.withOpacity(0.15),
           shape: BoxShape.circle,
