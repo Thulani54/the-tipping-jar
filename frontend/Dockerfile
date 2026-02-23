@@ -49,11 +49,22 @@ FROM nginx:alpine
 # Copy the built Flutter web app
 COPY --from=builder /app/build/web /usr/share/nginx/html
 
-# Stamp a unique build version into the flutter_bootstrap.js reference so that
-# the browser always fetches a fresh copy of the bootstrap on every deploy.
+# Stamp a unique build version so every deploy busts the browser's HTTP cache.
+#
+# 1. flutter_bootstrap.js?v=TS in index.html → browser always fetches fresh bootstrap
+# 2. main.dart.js?v=TS inside flutter_bootstrap.js → browser treats each deploy
+#    as a new URL, bypassing any "public, immutable" cache entry from older nginx configs.
+#    Without this, users who visited before the no-cache nginx fix arrived would keep
+#    loading the old main.dart.js for up to 1 year.
 RUN BUILD_TS=$(date +%s) && \
     sed -i "s|flutter_bootstrap\.js?v=[^\"]*|flutter_bootstrap.js?v=${BUILD_TS}|g" \
-        /usr/share/nginx/html/index.html
+        /usr/share/nginx/html/index.html && \
+    sed -i "s|\"main\.dart\.js\"|\"main.dart.js?v=${BUILD_TS}\"|g" \
+        /usr/share/nginx/html/flutter_bootstrap.js && \
+    if [ -f /usr/share/nginx/html/flutter.js ]; then \
+        sed -i "s|\"main\.dart\.js\"|\"main.dart.js?v=${BUILD_TS}\"|g" \
+            /usr/share/nginx/html/flutter.js; \
+    fi
 
 # nginx: serve Flutter web with correct cache semantics
 # ─ index.html, all JS, all JSON → no-cache (Flutter doesn't hash filenames)
@@ -76,10 +87,13 @@ RUN printf 'server {\n\
         expires 0;\n\
     }\n\
 \n\
-    # SPA fallback — never cache HTML\n\
+    # SPA fallback — never cache HTML.\n\
+    # Clear-Site-Data nukes any stale HTTP-cached JS that was previously served\n\
+    # with "public, immutable" (Chrome/Firefox only; Safari uses the URL-stamping above).\n\
     location / {\n\
         try_files $uri $uri/ /index.html;\n\
         add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
+        add_header Clear-Site-Data '"cache"';\n\
     }\n\
 \n\
     # Binary assets (images, fonts, wasm) — safe to cache for a year\n\

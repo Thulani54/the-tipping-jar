@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -36,6 +39,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // Step 5 — Profile setup
   final _taglineCtrl = TextEditingController();
   final _goalCtrl = TextEditingController();
+  final _bioCtrl = TextEditingController();
+  Uint8List? _avatarBytes;
+  String _avatarFilename = 'avatar.jpg';
 
   bool get _canProceed => switch (_step) {
     0 => _platforms.isNotEmpty,
@@ -53,7 +59,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } else {
       setState(() => _saving = true);
       try {
-        await context.read<AuthProvider>().api.updateMyCreatorProfile({
+        final api = context.read<AuthProvider>().api;
+        // Upload avatar if the user picked one
+        if (_avatarBytes != null) {
+          try { await api.updateAvatar(_avatarBytes!, _avatarFilename); } catch (_) {}
+        }
+        // Save bio to user profile
+        if (_bioCtrl.text.trim().isNotEmpty) {
+          try { await api.updateUserProfile({'bio': _bioCtrl.text.trim()}); } catch (_) {}
+        }
+        // Save creator-specific onboarding data
+        await api.updateMyCreatorProfile({
           'tagline': _taglineCtrl.text.trim(),
           'category': _niche ?? '',
           'platforms': _platforms.join(','),
@@ -89,6 +105,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void dispose() {
     _taglineCtrl.dispose();
     _goalCtrl.dispose();
+    _bioCtrl.dispose();
     super.dispose();
   }
 
@@ -191,7 +208,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           key: const ValueKey(5),
           taglineCtrl: _taglineCtrl,
           goalCtrl: _goalCtrl,
+          bioCtrl: _bioCtrl,
+          avatarBytes: _avatarBytes,
           onChanged: () => setState(() {}),
+          onAvatarPicked: (bytes, name) => setState(() {
+            _avatarBytes = bytes;
+            _avatarFilename = name;
+          }),
         ),
       _ => const SizedBox.shrink(),
     };
@@ -596,12 +619,26 @@ class _StepGender extends StatelessWidget {
 
 // ─── Step 6: Profile setup ────────────────────────────────────────────────────
 class _StepProfile extends StatelessWidget {
-  final TextEditingController taglineCtrl, goalCtrl;
+  final TextEditingController taglineCtrl, goalCtrl, bioCtrl;
+  final Uint8List? avatarBytes;
   final VoidCallback onChanged;
+  final void Function(Uint8List bytes, String name) onAvatarPicked;
   const _StepProfile({super.key,
-      required this.taglineCtrl, required this.goalCtrl, required this.onChanged});
+      required this.taglineCtrl, required this.goalCtrl,
+      required this.bioCtrl, required this.avatarBytes,
+      required this.onChanged, required this.onAvatarPicked});
 
   static const _goals = ['R500', 'R2,000', 'R5,000', 'R10,000'];
+
+  Future<void> _pickAvatar() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    if (result != null && result.files.single.bytes != null) {
+      onAvatarPicked(
+        result.files.single.bytes!,
+        result.files.single.name.isNotEmpty ? result.files.single.name : 'avatar.jpg',
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
@@ -614,7 +651,41 @@ class _StepProfile extends StatelessWidget {
       Text('You can always change these later.',
           style: GoogleFonts.dmSans(color: kMuted, fontSize: 14))
           .animate().fadeIn(delay: 60.ms),
-      const SizedBox(height: 28),
+      const SizedBox(height: 24),
+
+      // ── Profile picture ──────────────────────────────────────────
+      Center(
+        child: GestureDetector(
+          onTap: _pickAvatar,
+          child: Stack(clipBehavior: Clip.none, children: [
+            CircleAvatar(
+              radius: 52,
+              backgroundColor: kCardBg,
+              backgroundImage: avatarBytes != null ? MemoryImage(avatarBytes!) : null,
+              child: avatarBytes == null
+                  ? const Icon(Icons.person_rounded, color: kMuted, size: 48)
+                  : null,
+            ),
+            Positioned(
+              bottom: 0, right: -4,
+              child: Container(
+                width: 32, height: 32,
+                decoration: BoxDecoration(
+                  color: kPrimary, shape: BoxShape.circle,
+                  border: Border.all(color: kDark, width: 2),
+                ),
+                child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 15),
+              ),
+            ),
+          ]),
+        ),
+      ),
+      const SizedBox(height: 6),
+      Center(
+        child: Text('Tap to add a profile photo',
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+      ),
+      const SizedBox(height: 24),
 
       // Tagline
       Text('Your tagline',
@@ -640,7 +711,37 @@ class _StepProfile extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 20),
+
+      // Bio
+      Text('Short bio (optional)',
+          style: GoogleFonts.dmSans(color: Colors.white,
+              fontWeight: FontWeight.w600, fontSize: 13)),
+      const SizedBox(height: 4),
+      Text('Visible on your public tip page.',
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+      const SizedBox(height: 8),
+      TextFormField(
+        controller: bioCtrl,
+        onChanged: (_) => onChanged(),
+        maxLength: 200,
+        maxLines: 3,
+        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: 'Tell your fans a bit about you…',
+          hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
+          counterStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 11),
+          filled: true, fillColor: kCardBg,
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kBorder)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kPrimary, width: 2)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+      const SizedBox(height: 16),
 
       // Monthly goal
       Text('Monthly tip goal (optional)',

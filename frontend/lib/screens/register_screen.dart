@@ -29,6 +29,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _avatarFilename = 'avatar.jpg';
   String? _error;
 
+  // OTP verification step (shown after successful registration)
+  bool _showOtp = false;
+  bool _otpLoading = false;
+  String? _otpError;
+  String _otpMethod = 'email';
+  final _otpCtrl = TextEditingController();
+
   static const _niches = [
     'Music', 'Comedy', 'Fitness', 'Art', 'Gaming',
     'Food', 'Tech', 'Lifestyle', 'Education', 'Fashion',
@@ -119,6 +126,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _form(BuildContext ctx) {
+    if (_showOtp) return _otpStep(ctx);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Create your account',
           style: GoogleFonts.dmSans(
@@ -244,6 +252,180 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ]),
       ),
     ]);
+  }
+
+  // ── OTP verification step ──────────────────────────────────────────────────
+  Widget _otpStep(BuildContext ctx) {
+    final hasPhone = _phoneCtrl.text.trim().isNotEmpty;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Center(
+        child: Container(
+          width: 64, height: 64,
+          decoration: BoxDecoration(
+            color: kPrimary.withOpacity(0.12),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.mark_email_read_outlined, color: kPrimary, size: 30),
+        ),
+      ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.8, 0.8)),
+      const SizedBox(height: 24),
+      Text('Check your ${_otpMethod == 'sms' ? 'phone' : 'email'}',
+          style: GoogleFonts.dmSans(
+              color: Colors.white, fontWeight: FontWeight.w800,
+              fontSize: 26, letterSpacing: -0.8))
+          .animate().fadeIn(delay: 80.ms),
+      const SizedBox(height: 6),
+      Text(
+        _otpMethod == 'sms'
+            ? 'We sent a 6-digit code to your phone number.'
+            : 'We sent a 6-digit code to ${_emailCtrl.text.trim()}.',
+        style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.5),
+      ).animate().fadeIn(delay: 120.ms),
+      const SizedBox(height: 32),
+
+      // Code input
+      Text('Verification code',
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+      const SizedBox(height: 8),
+      TextFormField(
+        controller: _otpCtrl,
+        keyboardType: TextInputType.number,
+        maxLength: 6,
+        style: GoogleFonts.dmSans(
+            color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: 8),
+        textAlign: TextAlign.center,
+        decoration: InputDecoration(
+          hintText: '------',
+          hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 22, letterSpacing: 8),
+          counterText: '',
+          filled: true,
+          fillColor: kCardBg,
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kBorder)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kPrimary, width: 2)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        ),
+        onChanged: (v) {
+          if (v.length == 6) _submitOtp();
+        },
+      ),
+
+      if (_otpError != null) ...[
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.red.withOpacity(0.3)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
+            const SizedBox(width: 8),
+            Expanded(child: Text(_otpError!,
+                style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13))),
+          ]),
+        ),
+      ],
+
+      const SizedBox(height: 22),
+      SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton(
+          onPressed: _otpLoading ? null : _submitOtp,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimary,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: kPrimary.withOpacity(0.4),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+            elevation: 0,
+          ),
+          child: _otpLoading
+              ? const SizedBox(width: 20, height: 20,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : Text('Verify →',
+                  style: GoogleFonts.dmSans(
+                      fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
+        ),
+      ),
+      const SizedBox(height: 16),
+
+      // Resend options
+      Wrap(spacing: 16, runSpacing: 8, alignment: WrapAlignment.center, children: [
+        GestureDetector(
+          onTap: _otpLoading ? null : () => _resendOtp('email'),
+          child: Text('Resend via email',
+              style: GoogleFonts.dmSans(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+        ),
+        if (hasPhone)
+          GestureDetector(
+            onTap: _otpLoading ? null : () => _resendOtp('sms'),
+            child: Text('Resend via SMS',
+                style: GoogleFonts.dmSans(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+      ]),
+      const SizedBox(height: 20),
+      Center(
+        child: GestureDetector(
+          onTap: _otpLoading ? null : _skipVerification,
+          child: Text('Skip for now →',
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
+        ),
+      ),
+    ]);
+  }
+
+  Future<void> _resendOtp(String method) async {
+    setState(() { _otpLoading = true; _otpError = null; _otpMethod = method; });
+    try {
+      final auth = context.read<AuthProvider>();
+      await auth.api.sendRegistrationOtp(method: method);
+    } catch (e) {
+      setState(() => _otpError = e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      setState(() => _otpLoading = false);
+    }
+  }
+
+  Future<void> _submitOtp() async {
+    final code = _otpCtrl.text.trim();
+    if (code.length < 6) return;
+    setState(() { _otpLoading = true; _otpError = null; });
+    try {
+      final auth = context.read<AuthProvider>();
+      await auth.api.confirmRegistrationOtp(code);
+      await _finishRegistration(auth);
+    } catch (e) {
+      setState(() => _otpError = e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      setState(() => _otpLoading = false);
+    }
+  }
+
+  Future<void> _skipVerification() async {
+    final auth = context.read<AuthProvider>();
+    await _finishRegistration(auth);
+  }
+
+  Future<void> _finishRegistration(dynamic auth) async {
+    if (_avatarBytes != null) {
+      try { await auth.api.updateAvatar(_avatarBytes!, _avatarFilename); } catch (_) {}
+    }
+    if (_role == 'creator' && _niche != null) {
+      try { await auth.api.updateMyCreatorProfile({'category': _niche}); } catch (_) {}
+    }
+    if (!mounted) return;
+    if (_role == 'creator') {
+      context.go('/onboarding');
+    } else if (_role == 'enterprise') {
+      context.go('/enterprise-portal');
+    } else {
+      context.go('/fan-dashboard');
+    }
   }
 
   // ── Avatar picker ───────────────────────────────────────────────────────────
@@ -432,36 +614,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
           password: password,
           role: _role,
           phoneNumber: _phoneCtrl.text.trim());
-      // Auto-login so the user lands on their home page without a second sign-in step
+      // Auto-login to get auth token
       await auth.login(email, password);
       if (!mounted) return;
 
-      // Upload avatar if the user picked one
-      if (_avatarBytes != null) {
-        try {
-          await auth.api.updateAvatar(_avatarBytes!, _avatarFilename);
-        } catch (_) {
-          // Non-blocking — avatar can be set later from profile settings
-        }
+      // Send verification OTP then show OTP step
+      try {
+        await auth.api.sendRegistrationOtp(method: 'email');
+      } catch (_) {
+        // If email delivery fails, still show the OTP screen so they can retry
       }
-
-      // Pre-set creator niche so onboarding is pre-filled
-      if (_role == 'creator' && _niche != null) {
-        try {
-          await auth.api.updateMyCreatorProfile({'category': _niche});
-        } catch (_) {
-          // Non-blocking
-        }
-      }
-
-      if (!mounted) return;
-      if (_role == 'creator') {
-        context.go('/onboarding');
-      } else if (_role == 'enterprise') {
-        context.go('/enterprise-portal');
-      } else {
-        context.go('/fan-dashboard');
-      }
+      setState(() { _showOtp = true; _otpMethod = 'email'; });
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     }
@@ -473,6 +636,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _phoneCtrl.dispose();
+    _otpCtrl.dispose();
     super.dispose();
   }
 }

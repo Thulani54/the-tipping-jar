@@ -30,6 +30,106 @@ class MeView(generics.RetrieveUpdateAPIView):
 
 # ── OTP management ─────────────────────────────────────────────────────────────
 
+class RegistrationVerifyRequestView(APIView):
+    """
+    POST /api/users/verify-registration/
+    Body: { "method": "email" | "sms" }  (optional, defaults to "email")
+
+    Sends a 6-digit OTP for new-user email/phone verification.
+    Unlike the 2FA OTP flow, this does NOT check two_fa_enabled — it is
+    called once immediately after registration to verify the account.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        method = request.data.get("method", "email")
+
+        if method == OTP.Method.SMS and not user.phone_number:
+            return Response(
+                {"detail": "No phone number on file. Use email verification instead."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        otp_obj, raw_code = OTP.generate_for(user, method=method)
+
+        if method == OTP.Method.SMS:
+            result = send_otp_via_sms(user.phone_number, raw_code)
+            if not result["success"]:
+                otp_obj.is_used = True
+                otp_obj.save(update_fields=["is_used"])
+                return Response(
+                    {"detail": f"SMS delivery failed: {result.get('error')}"},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+            channel_info = f"SMS to {user.phone_number[:4]}****"
+        else:
+            try:
+                send_mail(
+                    subject="TippingJar — Verify your email",
+                    message=(
+                        f"Welcome to TippingJar!\n\n"
+                        f"Your verification code is: {raw_code}\n\n"
+                        f"Valid for 10 minutes. If you didn't create this account, ignore this email."
+                    ),
+                    from_email=settings.NO_REPLY_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+            except Exception as exc:
+                logger.error("Registration OTP email failed for %s: %s", user.email, exc)
+                otp_obj.is_used = True
+                otp_obj.save(update_fields=["is_used"])
+                return Response(
+                    {"detail": "Could not send verification email. Please try again or skip for now."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+            channel_info = f"email to {user.email}"
+
+        return Response(
+            {"detail": f"Verification code sent via {channel_info}.", "method": method},
+            status=status.HTTP_200_OK,
+        )
+
+
+class RegistrationVerifyConfirmView(APIView):
+    """
+    POST /api/users/verify-registration/confirm/
+    Body: { "code": "123456" }
+
+    Confirms the registration OTP. Does NOT check two_fa_enabled.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        code = (request.data.get("code") or "").strip()
+        if not code:
+            return Response({"detail": "code is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            otp_obj = OTP.objects.filter(user=request.user, is_used=False).latest("created_at")
+        except OTP.DoesNotExist:
+            return Response(
+                {"detail": "No pending OTP. Request a new one."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not otp_obj.is_valid():
+            return Response(
+                {"detail": "Code expired. Request a new one."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if otp_obj.code != code:
+            return Response({"detail": "Invalid code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp_obj.is_used = True
+        otp_obj.save(update_fields=["is_used"])
+        return Response({"detail": "Email verified successfully."}, status=status.HTTP_200_OK)
+
+
 class OtpRequestView(APIView):
     """
     POST /api/users/otp/request/

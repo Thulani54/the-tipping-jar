@@ -143,6 +143,39 @@ class ApiService {
     throw Exception(_parseApiError(res.body, 'Registration failed. Please try again.'));
   }
 
+  /// Send a one-time verification code for new-user email/phone confirmation.
+  /// Does not require 2FA to be enabled on the account.
+  Future<void> sendRegistrationOtp({String method = 'email'}) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/users/verify-registration/'),
+      headers: _headers,
+      body: jsonEncode({'method': method}),
+    );
+    if (res.statusCode != 200) {
+      String detail = 'Failed to send verification code.';
+      try {
+        detail = (jsonDecode(res.body) as Map<String, dynamic>)['detail'] as String? ?? detail;
+      } catch (_) {}
+      throw Exception(detail);
+    }
+  }
+
+  /// Confirm the registration verification OTP.
+  Future<void> confirmRegistrationOtp(String code) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/users/verify-registration/confirm/'),
+      headers: _headers,
+      body: jsonEncode({'code': code}),
+    );
+    if (res.statusCode != 200) {
+      String detail = 'Invalid or expired code.';
+      try {
+        detail = (jsonDecode(res.body) as Map<String, dynamic>)['detail'] as String? ?? detail;
+      } catch (_) {}
+      throw Exception(detail);
+    }
+  }
+
   Future<void> requestOtp({String method = 'email'}) async {
     final res = await http.post(
       Uri.parse('$_baseUrl/users/otp/request/'),
