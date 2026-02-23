@@ -98,7 +98,8 @@ class _NavBar extends StatelessWidget {
               if (w > 1000) ...[
                 _navLink('Features', context, '/features'),
                 _navLink('How it works', context, '/how-it-works'),
-                _navLink('Creators', context, '/creators'),
+                if (DateTime.now().isAfter(DateTime(2026, 3, 23)))
+                  _navLink('Creators', context, '/creators'),
                 _navLink('Enterprise', context, '/enterprise'),
                 _navLink('Developers', context, '/developers'),
                 const SizedBox(width: 8),
@@ -399,7 +400,9 @@ class _HeroSection extends StatelessWidget {
                 fontSize: 15, fontWeight: FontWeight.w600, color: _white)),
       );
 
-  Widget _secondaryCta(BuildContext context) => OutlinedButton(
+  Widget _secondaryCta(BuildContext context) =>
+      DateTime.now().isAfter(DateTime(2026, 3, 23))
+          ? OutlinedButton(
         onPressed: () => context.go('/creators'),
         style: OutlinedButton.styleFrom(
           foregroundColor: _white,
@@ -412,7 +415,8 @@ class _HeroSection extends StatelessWidget {
         child: Text('View Creators',
             style: GoogleFonts.dmSans(
                 fontSize: 15, fontWeight: FontWeight.w600, color: _white)),
-      );
+          )
+          : const SizedBox.shrink();
 
   Widget _trustLine() => Row(
         mainAxisSize: MainAxisSize.min,

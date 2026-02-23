@@ -48,11 +48,14 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
             ),
             const Spacer(),
             if (w > 1000) ...[
-              ..._links.map((l) => _NavLink(
-                    label: l.$1,
-                    route: l.$2,
-                    active: activeRoute == l.$2,
-                  )),
+              ..._links
+                  .where((l) => l.$2 != '/creators' ||
+                      DateTime.now().isAfter(DateTime(2026, 3, 23)))
+                  .map((l) => _NavLink(
+                        label: l.$1,
+                        route: l.$2,
+                        active: activeRoute == l.$2,
+                      )),
               const SizedBox(width: 12),
             ],
             _outlineBtn('Sign in', () => context.go('/login')),
