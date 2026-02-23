@@ -52,6 +52,24 @@ RUN printf 'server {\n\
         add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
     }\n\
 \n\
+    # Flutter runtime files — filenames never change, so must NOT be cached\n\
+    location = /flutter_service_worker.js {\n\
+        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
+        expires 0;\n\
+    }\n\
+    location = /flutter.js {\n\
+        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
+        expires 0;\n\
+    }\n\
+    location = /version.json {\n\
+        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
+        expires 0;\n\
+    }\n\
+    location = /manifest.json {\n\
+        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
+        expires 0;\n\
+    }\n\
+\n\
     # Hashed Flutter assets can be cached forever (filenames change each build)\n\
     location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {\n\
         expires 1y;\n\
