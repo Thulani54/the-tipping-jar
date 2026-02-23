@@ -15,19 +15,25 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   int _step = 0;
-  final int _totalSteps = 4;
+  final int _totalSteps = 6;
   bool _saving = false;
 
-  // Step 1 — Platforms
+  // Step 0 — Platforms
   final Set<String> _platforms = {};
 
-  // Step 2 — Niche
+  // Step 1 — Niche
   String? _niche;
 
-  // Step 3 — Audience size
+  // Step 2 — Audience size
   String? _audienceSize;
 
-  // Step 4 — Profile setup
+  // Step 3 — Age group
+  String? _ageGroup;
+
+  // Step 4 — Audience gender
+  String? _audienceGender;
+
+  // Step 5 — Profile setup
   final _taglineCtrl = TextEditingController();
   final _goalCtrl = TextEditingController();
 
@@ -35,7 +41,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     0 => _platforms.isNotEmpty,
     1 => _niche != null,
     2 => _audienceSize != null,
-    3 => _taglineCtrl.text.trim().isNotEmpty,
+    3 => _ageGroup != null,
+    4 => _audienceGender != null,
+    5 => _taglineCtrl.text.trim().isNotEmpty,
     _ => false,
   };
 
@@ -50,6 +58,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           'category': _niche ?? '',
           'platforms': _platforms.join(','),
           'audience_size': _audienceSize ?? '',
+          'age_group': _ageGroup ?? '',
+          'audience_gender': _audienceGender ?? '',
         });
       } catch (_) {
         if (mounted) {
@@ -167,8 +177,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           selected: _audienceSize,
           onSelect: (a) => setState(() => _audienceSize = a),
         ),
-      3 => _StepProfile(
+      3 => _StepAgeGroup(
           key: const ValueKey(3),
+          selected: _ageGroup,
+          onSelect: (a) => setState(() => _ageGroup = a),
+        ),
+      4 => _StepGender(
+          key: const ValueKey(4),
+          selected: _audienceGender,
+          onSelect: (g) => setState(() => _audienceGender = g),
+        ),
+      5 => _StepProfile(
+          key: const ValueKey(5),
           taglineCtrl: _taglineCtrl,
           goalCtrl: _goalCtrl,
           onChanged: () => setState(() {}),
@@ -426,7 +446,155 @@ class _StepAudience extends StatelessWidget {
   );
 }
 
-// ─── Step 4: Profile setup ────────────────────────────────────────────────────
+// ─── Step 4: Age group ────────────────────────────────────────────────────────
+class _StepAgeGroup extends StatelessWidget {
+  final String? selected;
+  final void Function(String) onSelect;
+  const _StepAgeGroup({super.key, required this.selected, required this.onSelect});
+
+  static const _groups = [
+    ('Under 13',  'Kids — safe, family-friendly content',     Icons.child_care_rounded),
+    ('13 – 17',   'Teens — school-age to late adolescence',   Icons.school_rounded),
+    ('18 – 24',   'Young adults — Gen Z',                     Icons.sports_esports_rounded),
+    ('25 – 34',   'Millennials — early career adults',        Icons.work_rounded),
+    ('35 – 44',   'Mid-life adults',                          Icons.home_rounded),
+    ('45+',       'Mature audiences',                         Icons.auto_awesome_rounded),
+    ('All ages',  'My content is for everyone',               Icons.diversity_3_rounded),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Who is your content for?',
+          style: GoogleFonts.dmSans(color: Colors.white,
+              fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.8))
+          .animate().fadeIn(duration: 400.ms),
+      const SizedBox(height: 6),
+      Text('Select the primary age group you create for.',
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14))
+          .animate().fadeIn(delay: 60.ms),
+      const SizedBox(height: 20),
+      Expanded(
+        child: ListView(
+          children: _groups.asMap().entries.map((e) {
+            final s = e.value;
+            final active = selected == s.$1;
+            return GestureDetector(
+              onTap: () => onSelect(s.$1),
+              child: AnimatedContainer(
+                duration: 180.ms,
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                decoration: BoxDecoration(
+                  color: active ? kPrimary.withOpacity(0.08) : kCardBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: active ? kPrimary : kBorder,
+                      width: active ? 2 : 1),
+                ),
+                child: Row(children: [
+                  Container(
+                    width: 38, height: 38,
+                    decoration: BoxDecoration(
+                      color: active ? kPrimary.withOpacity(0.15) : kBorder.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(s.$3, color: active ? kPrimary : kMuted, size: 18),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(s.$1, style: GoogleFonts.dmSans(
+                        color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                    Text(s.$2, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+                  ])),
+                  if (active)
+                    const Icon(Icons.check_circle_rounded, color: kPrimary, size: 20),
+                ]),
+              ),
+            ).animate().fadeIn(
+                delay: Duration(milliseconds: 40 * e.key), duration: 320.ms);
+          }).toList(),
+        ),
+      ),
+    ],
+  );
+}
+
+// ─── Step 5: Audience gender ──────────────────────────────────────────────────
+class _StepGender extends StatelessWidget {
+  final String? selected;
+  final void Function(String) onSelect;
+  const _StepGender({super.key, required this.selected, required this.onSelect});
+
+  static const _options = [
+    ('Mostly female',    Icons.female_rounded,        Color(0xFFF472B6)),
+    ('Mostly male',      Icons.male_rounded,           Color(0xFF60A5FA)),
+    ('Both equally',     Icons.people_rounded,         Color(0xFF34D399)),
+    ('Prefer not to say', Icons.more_horiz_rounded,   kMuted),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Who watches your content?',
+          style: GoogleFonts.dmSans(color: Colors.white,
+              fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.8))
+          .animate().fadeIn(duration: 400.ms),
+      const SizedBox(height: 6),
+      Text('Helps match you with the right opportunities.',
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14))
+          .animate().fadeIn(delay: 60.ms),
+      const SizedBox(height: 28),
+      Expanded(
+        child: GridView.count(
+          crossAxisCount: 2,
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 14,
+          children: _options.asMap().entries.map((e) {
+            final opt = e.value;
+            final active = selected == opt.$1;
+            return GestureDetector(
+              onTap: () => onSelect(opt.$1),
+              child: AnimatedContainer(
+                duration: 180.ms,
+                decoration: BoxDecoration(
+                  color: active ? opt.$3.withOpacity(0.10) : kCardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: active ? opt.$3 : kBorder,
+                      width: active ? 2 : 1),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(opt.$2,
+                        color: active ? opt.$3 : kMuted, size: 36),
+                    const SizedBox(height: 10),
+                    Text(opt.$1,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.dmSans(
+                            color: active ? opt.$3 : Colors.white,
+                            fontWeight: FontWeight.w700, fontSize: 13)),
+                    if (active) ...[
+                      const SizedBox(height: 6),
+                      Icon(Icons.check_circle_rounded,
+                          color: opt.$3, size: 16),
+                    ],
+                  ],
+                ),
+              ),
+            ).animate().fadeIn(
+                delay: Duration(milliseconds: 60 * e.key), duration: 350.ms);
+          }).toList(),
+        ),
+      ),
+    ],
+  );
+}
+
+// ─── Step 6: Profile setup ────────────────────────────────────────────────────
 class _StepProfile extends StatelessWidget {
   final TextEditingController taglineCtrl, goalCtrl;
   final VoidCallback onChanged;

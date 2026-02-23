@@ -55,7 +55,7 @@ class CreatorProfileSerializer(serializers.ModelSerializer):
             "id", "username", "avatar", "display_name", "slug",
             "tagline", "cover_image", "tip_goal", "total_tips",
             "thank_you_message",
-            "category", "platforms", "audience_size",
+            "category", "platforms", "audience_size", "age_group", "audience_gender",
             "is_active", "created_at",
             # Banking
             "bank_name", "bank_account_holder",

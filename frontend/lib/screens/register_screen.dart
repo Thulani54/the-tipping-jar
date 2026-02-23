@@ -407,7 +407,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   List<(IconData, String, String)> _perks() => [
     (Icons.flash_on_rounded,       'Live in 60 seconds', 'Your tip page is public the moment you save.'),
-    (Icons.account_balance_rounded, '2-day payouts',     'Paystack sends funds direct to your bank.'),
+    (Icons.account_balance_rounded, '2-day payouts',     'Receive money directly to your bank within 2 days.'),
     (Icons.bar_chart_rounded,      'Real-time analytics','Watch tips roll in on your dashboard.'),
   ];
 

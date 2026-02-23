@@ -29,6 +29,8 @@ class CreatorProfile(models.Model):
     category = models.CharField(max_length=50, blank=True, default="")
     platforms = models.CharField(max_length=200, blank=True, default="")  # comma-separated
     audience_size = models.CharField(max_length=50, blank=True, default="")
+    age_group = models.CharField(max_length=50, blank=True, default="")
+    audience_gender = models.CharField(max_length=30, blank=True, default="")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
