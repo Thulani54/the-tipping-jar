@@ -38,31 +38,36 @@ class _LoginScreenState extends State<LoginScreen> {
       Expanded(
         child: Container(
           color: kDarker,
-          padding: const EdgeInsets.all(56),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _logo(ctx),
-              const Spacer(),
-              Text('Welcome\nback.',
-                  style: GoogleFonts.dmSans(
-                      color: Colors.white, fontWeight: FontWeight.w800,
-                      fontSize: 52, height: 1.1, letterSpacing: -2))
-                  .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
-              const SizedBox(height: 20),
-              Text('Sign in to manage your tip page,\ntrack earnings, and connect with fans.',
-                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 16, height: 1.65))
-                  .animate().fadeIn(delay: 150.ms, duration: 500.ms),
-              const SizedBox(height: 48),
-              ..._benefits()
-                  .asMap()
-                  .entries
-                  .map((e) => _BenefitRow(text: e.value, delay: 200 + e.key * 80)),
-              const Spacer(),
-              Text('© 2026 TippingJar',
-                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
-            ],
-          ),
+          child: Stack(children: [
+            Positioned.fill(child: CustomPaint(painter: _DotGridPainter())),
+            Padding(
+              padding: const EdgeInsets.all(56),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _logo(ctx),
+                  const Spacer(),
+                  Text('Welcome\nback.',
+                      style: GoogleFonts.dmSans(
+                          color: Colors.white, fontWeight: FontWeight.w800,
+                          fontSize: 52, height: 1.1, letterSpacing: -2))
+                      .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
+                  const SizedBox(height: 20),
+                  Text('Sign in to manage your tip page,\ntrack earnings, and connect with fans.',
+                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 16, height: 1.65))
+                      .animate().fadeIn(delay: 150.ms, duration: 500.ms),
+                  const SizedBox(height: 48),
+                  ..._benefits()
+                      .asMap()
+                      .entries
+                      .map((e) => _BenefitRow(text: e.value, delay: 200 + e.key * 80)),
+                  const Spacer(),
+                  Text('© 2026 TippingJar',
+                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+                ],
+              ),
+            ),
+          ]),
         ),
       ),
       // Right panel — form
@@ -82,14 +87,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // ─── Narrow: stacked ────────────────────────────────────────────────────
   Widget _narrowLayout(BuildContext ctx) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-      child: Column(children: [
-        _logo(ctx),
-        const SizedBox(height: 40),
-        _form(ctx),
-      ]),
-    );
+    return Stack(children: [
+      Positioned.fill(child: CustomPaint(painter: _DotGridPainter())),
+      SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        child: Column(children: [
+          _logo(ctx),
+          const SizedBox(height: 40),
+          _form(ctx),
+        ]),
+      ),
+    ]);
   }
 
   // ─── Logo row ────────────────────────────────────────────────────────────
@@ -291,7 +299,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   List<String> _benefits() => [
     'Real-time tip notifications',
-    'Stripe payouts in 2 days',
+    'Receive money within 2 days',
     'Live fan activity dashboard',
   ];
 
@@ -320,6 +328,26 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordCtrl.dispose();
     super.dispose();
   }
+}
+
+// ─── Dot grid background ─────────────────────────────────────────────────────
+class _DotGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..style = PaintingStyle.fill;
+    const spacing = 30.0;
+    const radius = 1.0;
+    for (double x = 0; x <= size.width + spacing; x += spacing) {
+      for (double y = 0; y <= size.height + spacing; y += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _BenefitRow extends StatelessWidget {

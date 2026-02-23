@@ -49,25 +49,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
       Expanded(
         child: Container(
           color: kDarker,
-          padding: const EdgeInsets.all(56),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _logo(ctx),
-            const Spacer(),
-            Text('Start earning\nfrom day one.',
-                style: GoogleFonts.dmSans(
-                    color: Colors.white, fontWeight: FontWeight.w800,
-                    fontSize: 52, height: 1.1, letterSpacing: -2))
-                .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
-            const SizedBox(height: 20),
-            Text('Join 2,400+ creators already filling\ntheir jar every day.',
-                style: GoogleFonts.dmSans(color: kMuted, fontSize: 16, height: 1.65))
-                .animate().fadeIn(delay: 150.ms, duration: 500.ms),
-            const SizedBox(height: 48),
-            ..._perks().asMap().entries.map((e) =>
-              _PerkCard(icon: e.value.$1, title: e.value.$2, body: e.value.$3, delay: 200 + e.key * 100)),
-            const Spacer(),
-            Text('© 2026 TippingJar',
-                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+          child: Stack(children: [
+            Positioned.fill(child: CustomPaint(painter: _DotGridPainter())),
+            Padding(
+              padding: const EdgeInsets.all(56),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _logo(ctx),
+                const Spacer(),
+                Text('Start earning\nfrom day one.',
+                    style: GoogleFonts.dmSans(
+                        color: Colors.white, fontWeight: FontWeight.w800,
+                        fontSize: 52, height: 1.1, letterSpacing: -2))
+                    .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
+                const SizedBox(height: 20),
+                Text('Join 2,400+ creators already filling\ntheir jar every day.',
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 16, height: 1.65))
+                    .animate().fadeIn(delay: 150.ms, duration: 500.ms),
+                const SizedBox(height: 48),
+                ..._perks().asMap().entries.map((e) =>
+                  _PerkCard(icon: e.value.$1, title: e.value.$2, body: e.value.$3, delay: 200 + e.key * 100)),
+                const Spacer(),
+                Text('© 2026 TippingJar',
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+              ]),
+            ),
           ]),
         ),
       ),
@@ -87,14 +92,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _narrowLayout(BuildContext ctx) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-      child: Column(children: [
-        _logo(ctx),
-        const SizedBox(height: 40),
-        _form(ctx),
-      ]),
-    );
+    return Stack(children: [
+      Positioned.fill(child: CustomPaint(painter: _DotGridPainter())),
+      SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        child: Column(children: [
+          _logo(ctx),
+          const SizedBox(height: 40),
+          _form(ctx),
+        ]),
+      ),
+    ]);
   }
 
   Widget _logo(BuildContext ctx) {
@@ -140,7 +148,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SizedBox(width: 10),
         _roleBtn(Icons.star_rounded, 'Receive tips', 'creator'),
         const SizedBox(width: 10),
-        _roleBtn(Icons.business_rounded, 'Manage creators', 'enterprise'),
+        _roleBtn(Icons.business_rounded, 'Enterprise', 'enterprise'),
       ]).animate().fadeIn(delay: 100.ms, duration: 400.ms),
 
       // ── Creator-specific: niche selector ─────────────────────────
@@ -467,6 +475,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _phoneCtrl.dispose();
     super.dispose();
   }
+}
+
+// ─── Dot grid background ─────────────────────────────────────────────────────
+class _DotGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..style = PaintingStyle.fill;
+    const spacing = 30.0;
+    const radius = 1.0;
+    for (double x = 0; x <= size.width + spacing; x += spacing) {
+      for (double y = 0; y <= size.height + spacing; y += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _PerkCard extends StatelessWidget {
