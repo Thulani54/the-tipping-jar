@@ -263,7 +263,7 @@ class _HeroSection extends StatelessWidget {
                           .animate()
                           .fadeIn(delay: 480.ms, duration: 500.ms),
                       const SizedBox(height: 48),
-                      const _ProductPreview()
+                      const _PhoneMockup()
                           .animate()
                           .fadeIn(delay: 580.ms, duration: 700.ms)
                           .slideY(begin: 0.12, curve: Curves.easeOut),
@@ -329,7 +329,7 @@ class _HeroSection extends StatelessWidget {
                       ),
                       const SizedBox(width: 64),
                       Expanded(
-                        child: const _ProductPreview()
+                        child: const _PhoneMockup()
                             .animate()
                             .fadeIn(delay: 400.ms, duration: 700.ms)
                             .slideX(begin: 0.08, curve: Curves.easeOut),
@@ -391,7 +391,8 @@ class _HeroSection extends StatelessWidget {
           elevation: 0,
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(32)),
         ),
         child: Text('Create your free page →',
             style: GoogleFonts.inter(
@@ -405,7 +406,8 @@ class _HeroSection extends StatelessWidget {
           side: BorderSide(color: _white.withOpacity(0.3)),
           backgroundColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(32)),
         ),
         child: Text('View Creators',
             style: GoogleFonts.inter(
@@ -458,373 +460,264 @@ class _DotGridPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ─── Product preview ─────────────────────────────────────────────────────────
-class _ProductPreview extends StatelessWidget {
-  const _ProductPreview();
+// ─── Phone mockup ─────────────────────────────────────────────────────────────
+class _PhoneMockup extends StatelessWidget {
+  const _PhoneMockup();
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 720),
-      child: Container(
-        decoration: BoxDecoration(
-          color: _cardBg,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _border),
-          boxShadow: [
-            BoxShadow(
-              color: _orange.withOpacity(0.06),
-              blurRadius: 100,
-              offset: const Offset(0, 32),
-            ),
-            BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              blurRadius: 40,
-              offset: const Offset(0, 16),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Browser chrome
-            _BrowserBar(),
-            // App content
-            Padding(
-              padding: const EdgeInsets.all(28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Creator header
-                  _CreatorRow(),
-                  const SizedBox(height: 24),
-                  // Amount picker
-                  _AmountRow(),
-                  const SizedBox(height: 20),
-                  // Send button
-                  _SendButton(),
-                  const SizedBox(height: 28),
-                  // Divider
-                  Row(children: [
-                    Expanded(child: Divider(color: _border, thickness: 1)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: Text('Recent tips',
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 300),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF060A08),
+            borderRadius: BorderRadius.circular(44),
+            border: Border.all(color: const Color(0xFF2A3530), width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.65),
+                blurRadius: 64,
+                offset: const Offset(0, 28),
+              ),
+              BoxShadow(
+                color: const Color(0xFF34D8A0).withOpacity(0.07),
+                blurRadius: 80,
+                offset: const Offset(0, 20),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(42),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Status bar ──
+                Container(
+                  height: 50,
+                  color: _darker,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Dynamic island
+                      Container(
+                        width: 90,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                      ),
+                      // Status icons
+                      Row(children: [
+                        Text('9:41',
+                            style: GoogleFonts.inter(
+                                color: _white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        const Icon(Icons.signal_cellular_alt,
+                            color: _white, size: 11),
+                        const SizedBox(width: 3),
+                        const Icon(Icons.wifi, color: _white, size: 11),
+                        const SizedBox(width: 3),
+                        const Icon(Icons.battery_full, color: _white, size: 11),
+                      ]),
+                    ],
+                  ),
+                ),
+
+                // ── App screen ──
+                Container(
+                  color: _cardBg,
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // App nav bar
+                      Row(children: [
+                        const Icon(Icons.arrow_back_ios_rounded,
+                            color: _textMuted, size: 14),
+                        const Spacer(),
+                        Text('TippingJar',
+                            style: GoogleFonts.inter(
+                                color: _white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13)),
+                        const Spacer(),
+                        const Icon(Icons.ios_share_rounded,
+                            color: _textMuted, size: 14),
+                      ]),
+                      const SizedBox(height: 18),
+
+                      // Creator profile (centred)
+                      Center(
+                        child: Column(children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: const BoxDecoration(
+                              color: _orange,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text('TM',
+                                  style: GoogleFonts.inter(
+                                      color: _white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 17)),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text('Thulani M.',
+                              style: GoogleFonts.inter(
+                                  color: _white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14)),
+                          const SizedBox(height: 2),
+                          Text('Music Producer & Beatmaker',
+                              style: GoogleFonts.inter(
+                                  color: _textMuted, fontSize: 11)),
+                        ]),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Amount label
+                      Text('Choose an amount',
                           style: GoogleFonts.inter(
                               color: _textMuted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.6)),
-                    ),
-                    Expanded(child: Divider(color: _border, thickness: 1)),
-                  ]),
-                  const SizedBox(height: 16),
-                  // Tip feed
-                  _TipRow(
-                      initials: 'SK',
-                      name: 'Sarah K.',
-                      amount: 'R50',
-                      message: 'Love your beats! Keep going 🔥',
-                      timeAgo: '2m'),
-                  const SizedBox(height: 10),
-                  _TipRow(
-                      initials: 'JD',
-                      name: 'James D.',
-                      amount: 'R100',
-                      message: 'Best producer in SA, no debate.',
-                      timeAgo: '14m'),
-                  const SizedBox(height: 10),
-                  _TipRow(
-                      initials: '?',
-                      name: 'Anonymous',
-                      amount: 'R20',
-                      message: '',
-                      timeAgo: '1h',
-                      muted: true),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 8),
 
-class _BrowserBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 42,
-      color: _darker,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(children: [
-        // Traffic lights
-        Row(children: [
-          _trafficDot(const Color(0xFFFF5F57)),
-          const SizedBox(width: 6),
-          _trafficDot(const Color(0xFFFFBD2E)),
-          const SizedBox(width: 6),
-          _trafficDot(const Color(0xFF28CA41)),
-        ]),
-        const SizedBox(width: 16),
-        // URL bar
-        Expanded(
-          child: Container(
-            height: 26,
-            decoration: BoxDecoration(
-              color: const Color(0xFF0A0F0D),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: _border),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.lock_rounded, size: 10, color: _textMuted.withOpacity(0.5)),
-                const SizedBox(width: 5),
-                Text(
-                  'tippingjar.co.za/thulani',
-                  style: GoogleFonts.inter(
-                      color: _textMuted.withOpacity(0.7),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400),
+                      // Amount chips
+                      Row(children: [
+                        for (final e in [
+                          ('R20', false),
+                          ('R50', true),
+                          ('R100', false),
+                          ('R200', false),
+                        ]) ...[
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 7),
+                              decoration: BoxDecoration(
+                                color: e.$2 ? _orange : _dark,
+                                border: Border.all(
+                                  color: e.$2 ? _orange : _border,
+                                ),
+                              ),
+                              child: Text(e.$1,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.inter(
+                                      color: _white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11)),
+                            ),
+                          ),
+                          if (e.$1 != 'R200') const SizedBox(width: 5),
+                        ],
+                      ]),
+                      const SizedBox(height: 12),
+
+                      // Send button
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        color: _orange,
+                        child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.favorite_rounded,
+                                  color: _white, size: 12),
+                              const SizedBox(width: 6),
+                              Text('Send R50 tip',
+                                  style: GoogleFonts.inter(
+                                      color: _white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12)),
+                            ]),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Recent tips label
+                      Text('Recent tips',
+                          style: GoogleFonts.inter(
+                              color: _textMuted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.4)),
+                      const SizedBox(height: 10),
+
+                      // Tip rows
+                      _tipItem('SK', 'Sarah K.', 'R50', '2m'),
+                      const SizedBox(height: 8),
+                      _tipItem('JD', 'James D.', 'R100', '14m'),
+                      const SizedBox(height: 8),
+                      _tipItem('?', 'Anonymous', 'R20', '1h', muted: true),
+                    ],
+                  ),
+                ),
+
+                // ── Home indicator ──
+                Container(
+                  height: 28,
+                  color: _darker,
+                  child: Center(
+                    child: Container(
+                      width: 90,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(width: 16),
-        Icon(Icons.more_horiz_rounded, size: 16, color: _textMuted.withOpacity(0.3)),
-      ]),
+      ),
     );
   }
 
-  Widget _trafficDot(Color color) => Container(
-      width: 11,
-      height: 11,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle));
-}
-
-class _CreatorRow extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
+  Widget _tipItem(String initials, String name, String amount, String time,
+      {bool muted = false}) {
     return Row(children: [
-      // Avatar
       Container(
-        width: 48,
-        height: 48,
-        decoration: const BoxDecoration(
-          color: _orange,
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: muted ? _border : _orange.withOpacity(0.15),
           shape: BoxShape.circle,
         ),
         child: Center(
-          child: Text('TM',
+          child: Text(initials,
               style: GoogleFonts.inter(
-                  color: _white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15)),
-        ),
-      ),
-      const SizedBox(width: 14),
-      Expanded(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Thulani M.',
-              style: GoogleFonts.inter(
-                  color: _white,
+                  color: muted ? _textMuted : _orange,
                   fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  letterSpacing: -0.3)),
-          const SizedBox(height: 2),
-          Text('Music Producer & Beatmaker',
-              style: GoogleFonts.inter(color: _textMuted, fontSize: 13)),
-        ]),
-      ),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: _orange.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: _orange.withOpacity(0.2)),
+                  fontSize: 9)),
         ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-            width: 5,
-            height: 5,
-            decoration: BoxDecoration(
-                color: _orange,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                      color: _orange.withOpacity(0.7),
-                      blurRadius: 4,
-                      spreadRadius: 1)
-                ]),
-          ),
-          const SizedBox(width: 6),
-          Text('Live',
-              style: GoogleFonts.inter(
-                  color: _orange,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600)),
-        ]),
       ),
-    ]);
-  }
-}
-
-class _AmountRow extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Choose an amount',
-          style: GoogleFonts.inter(
-              color: _textMuted, fontSize: 12, fontWeight: FontWeight.w500)),
-      const SizedBox(height: 10),
-      Row(children: [
-        for (final entry in [
-          ('R20', false),
-          ('R50', true),
-          ('R100', false),
-          ('R200', false),
-        ]) ...[
-          _AmountChip(label: entry.$1, selected: entry.$2),
-          const SizedBox(width: 8),
-        ],
-      ]),
-    ]);
-  }
-}
-
-class _AmountChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  const _AmountChip({required this.label, required this.selected});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-      decoration: BoxDecoration(
-        color: selected ? _orange : _dark,
-        borderRadius: BorderRadius.zero,
-        border: Border.all(
-          color: selected ? _orange : _border,
-          width: selected ? 1.5 : 1,
-        ),
-        boxShadow: selected
-            ? [BoxShadow(color: _orange.withOpacity(0.25), blurRadius: 12)]
-            : [],
-      ),
-      child: Text(label,
-          style: GoogleFonts.inter(
-              color: _white,
-              fontWeight: FontWeight.w700,
-              fontSize: 13)),
-    );
-  }
-}
-
-class _SendButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: _orange,
-        borderRadius: BorderRadius.zero,
-        boxShadow: [
-          BoxShadow(
-              color: _orange.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 6)),
-        ],
-      ),
-      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.favorite_rounded, color: _white, size: 15),
-        const SizedBox(width: 8),
-        Text('Send R50 tip',
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(name,
             style: GoogleFonts.inter(
-                color: _white, fontWeight: FontWeight.w700, fontSize: 14)),
-      ]),
-    );
-  }
-}
-
-class _TipRow extends StatelessWidget {
-  final String initials, name, amount, message, timeAgo;
-  final bool muted;
-  const _TipRow({
-    required this.initials,
-    required this.name,
-    required this.amount,
-    required this.message,
-    required this.timeAgo,
-    this.muted = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: _dark,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _border),
+                color: muted ? _textMuted : _white,
+                fontSize: 11,
+                fontWeight: FontWeight.w500)),
       ),
-      child: Row(children: [
-        // Avatar
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: muted
-                ? _border
-                : _orange.withOpacity(0.15),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(initials,
-                style: GoogleFonts.inter(
-                    color: muted ? _textMuted : _orange,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        // Content
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Text(name,
-                  style: GoogleFonts.inter(
-                      color: muted ? _textMuted : _white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12)),
-              const Spacer(),
-              Text(amount,
-                  style: GoogleFonts.inter(
-                      color: _orange,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13)),
-              const SizedBox(width: 8),
-              Text(timeAgo,
-                  style: GoogleFonts.inter(
-                      color: _textMuted.withOpacity(0.5), fontSize: 11)),
-            ]),
-            if (message.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(message,
-                  style: GoogleFonts.inter(
-                      color: _textMuted, fontSize: 12),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-            ],
-          ]),
-        ),
-      ]),
-    );
+      Text(amount,
+          style: GoogleFonts.inter(
+              color: _orange, fontWeight: FontWeight.w800, fontSize: 12)),
+      const SizedBox(width: 6),
+      Text(time,
+          style: GoogleFonts.inter(
+              color: _textMuted.withOpacity(0.5), fontSize: 10)),
+    ]);
   }
 }
 
