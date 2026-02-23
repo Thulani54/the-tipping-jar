@@ -32,8 +32,12 @@ import 'screens/partner_apply_screen.dart';
 /// Routes that require the user to be signed in.
 const _protectedRoutes = {'/dashboard', '/onboarding', '/fan-dashboard', '/enterprise-portal', '/otp-verify'};
 
-/// Routes that signed-in users should not visit (e.g. login/register).
-const _authRoutes = {'/login', '/register'};
+/// Routes that signed-in users should not visit.
+/// Note: /register is intentionally excluded — the register screen manages
+/// its own post-registration navigation (OTP step → onboarding → dashboard).
+/// Redirecting away from /register while the user is still in the OTP flow
+/// would break that flow.
+const _authRoutes = {'/login'};
 
 GoRouter buildRouter(AuthProvider auth) {
   return GoRouter(

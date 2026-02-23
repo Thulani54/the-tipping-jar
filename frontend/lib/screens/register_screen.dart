@@ -63,15 +63,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 _logo(ctx),
                 const Spacer(),
-                Text('Start earning\nfrom day one.',
+                Text(_panelHeading(),
                     style: GoogleFonts.dmSans(
                         color: Colors.white, fontWeight: FontWeight.w800,
                         fontSize: 52, height: 1.1, letterSpacing: -2))
-                    .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
+                    .animate(key: ValueKey('heading-$_role')).fadeIn(duration: 400.ms).slideY(begin: 0.15),
                 const SizedBox(height: 20),
-                Text('Join 2,400+ creators already filling\ntheir jar every day.',
+                Text(_panelSubheading(),
                     style: GoogleFonts.dmSans(color: kMuted, fontSize: 16, height: 1.65))
-                    .animate().fadeIn(delay: 150.ms, duration: 500.ms),
+                    .animate(key: ValueKey('sub-$_role')).fadeIn(delay: 100.ms, duration: 400.ms),
                 const SizedBox(height: 48),
                 ..._perks().asMap().entries.map((e) =>
                   _PerkCard(icon: e.value.$1, title: e.value.$2, body: e.value.$3, delay: 200 + e.key * 100)),
@@ -595,11 +595,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
     ]);
   }
 
-  List<(IconData, String, String)> _perks() => [
-    (Icons.flash_on_rounded,       'Live in 60 seconds', 'Your tip page is public the moment you save.'),
-    (Icons.account_balance_rounded, '2-day payouts',     'Receive money directly to your bank within 2 days.'),
-    (Icons.bar_chart_rounded,      'Real-time analytics','Watch tips roll in on your dashboard.'),
-  ];
+  String _panelHeading() {
+    switch (_role) {
+      case 'fan':        return 'Support creators\nyou love.';
+      case 'enterprise': return 'Scale tipping\nfor your platform.';
+      default:           return 'Start earning\nfrom day one.';
+    }
+  }
+
+  String _panelSubheading() {
+    switch (_role) {
+      case 'fan':        return 'Tip your favourite creators instantly\n— no account needed.';
+      case 'enterprise': return 'White-label tipping for teams,\nagencies and platforms.';
+      default:           return 'Join 2,400+ creators already filling\ntheir jar every day.';
+    }
+  }
+
+  List<(IconData, String, String)> _perks() {
+    switch (_role) {
+      case 'fan':
+        return [
+          (Icons.bolt_rounded,      'Instant tips',      'Support your favourite creators in seconds.'),
+          (Icons.attach_money_rounded, 'Any amount',     'Tip R5 or R5 000 — totally up to you.'),
+          (Icons.favorite_rounded,  'Support directly',  'Every cent goes straight to the creator.'),
+        ];
+      case 'enterprise':
+        return [
+          (Icons.layers_rounded,        'White-label ready',  'Embed tipping directly into your product.'),
+          (Icons.support_agent_rounded, 'Dedicated support',  'Priority onboarding and a dedicated manager.'),
+          (Icons.handshake_rounded,     'Custom contracts',   'Revenue share and SLA terms available.'),
+        ];
+      default: // creator
+        return [
+          (Icons.flash_on_rounded,        'Live in 60 seconds',  'Your tip page is public the moment you save.'),
+          (Icons.account_balance_rounded, '2-day payouts',       'Receive money directly to your bank within 2 days.'),
+          (Icons.bar_chart_rounded,       'Real-time analytics', 'Watch tips roll in on your dashboard.'),
+        ];
+    }
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
