@@ -15,6 +15,36 @@ COPY . .
 ARG API_BASE_URL=https://api.tippingjar.co.za
 RUN flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL}
 
+# ── Replace Flutter's generated service worker with a pass-through stub ────────
+# Flutter's default SW does NOT call skipWaiting(), so on iOS the new SW sits in
+# "waiting" state until every tab is closed — which can be indefinitely.
+# This stub fixes that permanently:
+#   1. skipWaiting()   → activates immediately, no tab-close required
+#   2. clients.claim() → takes control of all open clients right away
+#   3. clears all old caches on install
+#   4. passes ALL fetch requests straight to the network (no new caching)
+#   5. responds to Flutter's getVersion message so the bootstrap proceeds normally
+RUN printf '%s\n' \
+  "var _v=new URL(self.location).searchParams.get('v')||'1';" \
+  "self.addEventListener('install',function(e){" \
+  "  e.waitUntil(caches.keys().then(function(n){" \
+  "    return Promise.all(n.map(function(c){" \
+  "      console.log('[TJ SW] clearing cache:',c);" \
+  "      return caches.delete(c);" \
+  "    }));" \
+  "  }).then(function(){return self.skipWaiting();}));" \
+  "});" \
+  "self.addEventListener('activate',function(e){" \
+  "  e.waitUntil(self.clients.claim());" \
+  "});" \
+  "self.addEventListener('fetch',function(e){" \
+  "  e.respondWith(fetch(e.request));" \
+  "});" \
+  "self.addEventListener('message',function(e){" \
+  "  if(e.data&&e.data.type==='getVersion')e.ports[0].postMessage(_v);" \
+  "});" \
+  > /app/build/web/flutter_service_worker.js
+
 # ── Stage 2: Serve with nginx ──────────────────────────────────────────────────
 FROM nginx:alpine
 
