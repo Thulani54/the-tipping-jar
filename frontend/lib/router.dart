@@ -48,8 +48,9 @@ GoRouter buildRouter(AuthProvider auth) {
         return '/login';
       }
 
-      // Logged-in but OTP not verified — gate to /otp-verify
-      if (loggedIn && !auth.otpVerified && path != '/otp-verify') {
+      // Logged-in but OTP not verified — only gate protected routes to /otp-verify.
+      // Public pages (creator profiles, jar pages, etc.) are always accessible.
+      if (loggedIn && !auth.otpVerified && _protectedRoutes.contains(path)) {
         return '/otp-verify';
       }
 

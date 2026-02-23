@@ -140,6 +140,8 @@ class AuthProvider extends ChangeNotifier {
       await prefs.setString('access_token', newAccess);
       _accessToken = newAccess;
       _user = await ApiService(authToken: _accessToken).getMe();
+      // Restored session via refresh — skip OTP just like the direct init() path
+      _otpVerified = true;
     } catch (_) {
       // Refresh also failed — clear everything
       await logout();
