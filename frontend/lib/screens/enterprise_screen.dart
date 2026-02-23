@@ -18,7 +18,6 @@ class EnterpriseScreen extends StatelessWidget {
           _hero(context),
           _logos(),
           _features(context),
-          _pricing(context),
           _testimonials(),
           _cta(context),
           _footer(),
@@ -32,10 +31,13 @@ class EnterpriseScreen extends StatelessWidget {
     final w = MediaQuery.of(context).size.width;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
-          horizontal: w > 900 ? 80 : 28, vertical: 96),
       decoration: const BoxDecoration(color: kDarker),
-      child: Column(children: [
+      child: Stack(children: [
+        Positioned.fill(child: CustomPaint(painter: _DotGridPainter())),
+        Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: w > 900 ? 80 : 28, vertical: 96),
+          child: Column(children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
@@ -93,6 +95,8 @@ class EnterpriseScreen extends StatelessWidget {
                 style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15)),
           ),
         ]).animate().fadeIn(delay: 240.ms, duration: 500.ms),
+          ]),
+        ),
       ]),
     );
   }
@@ -160,71 +164,6 @@ class EnterpriseScreen extends StatelessWidget {
               delay: 60 * e.key,
             ),
           ).toList(),
-        ),
-      ]),
-    );
-  }
-
-  // ─── Pricing ───────────────────────────────────────────────────────────────
-  Widget _pricing(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: w > 900 ? 80 : 28, vertical: 72),
-      color: kDark,
-      child: Column(children: [
-        Text('Transparent pricing',
-            style: GoogleFonts.inter(color: Colors.white,
-                fontWeight: FontWeight.w800, fontSize: 32, letterSpacing: -1),
-            textAlign: TextAlign.center),
-        const SizedBox(height: 8),
-        Text('No surprises. Scale pricing with your growth.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 16),
-            textAlign: TextAlign.center),
-        const SizedBox(height: 48),
-        Wrap(spacing: 24, runSpacing: 24, alignment: WrapAlignment.center,
-          children: [
-            _PricingCard(
-              name: 'Growth',
-              price: '\$499',
-              period: '/month',
-              features: [
-                'Up to 50K tips / month',
-                '1.5% platform fee',
-                'Custom domain',
-                'Analytics dashboard',
-                'Email support',
-              ],
-              isPrimary: false,
-            ),
-            _PricingCard(
-              name: 'Scale',
-              price: '\$1,499',
-              period: '/month',
-              features: [
-                'Up to 500K tips / month',
-                '1.0% platform fee',
-                'White-label branding',
-                'SSO & SCIM',
-                'Dedicated Slack channel',
-                'Custom payouts',
-              ],
-              isPrimary: true,
-            ),
-            _PricingCard(
-              name: 'Custom',
-              price: 'Contact us',
-              period: '',
-              features: [
-                'Unlimited tips',
-                'Custom fee structure',
-                'On-premise option',
-                'SLA guarantee',
-                'Named account manager',
-                'Data processing agreement',
-              ],
-              isPrimary: false,
-            ),
-          ],
         ),
       ]),
     );
@@ -354,102 +293,24 @@ class _FeatureCard extends StatelessWidget {
   }
 }
 
-// ─── Pricing Card ─────────────────────────────────────────────────────────────
-class _PricingCard extends StatelessWidget {
-  final String name, price, period;
-  final List<String> features;
-  final bool isPrimary;
-  const _PricingCard({required this.name, required this.price,
-      required this.period, required this.features, required this.isPrimary});
+// ─── Dot grid background ─────────────────────────────────────────────────────
+class _DotGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..style = PaintingStyle.fill;
+    const spacing = 30.0;
+    const radius = 1.0;
+    for (double x = 0; x <= size.width + spacing; x += spacing) {
+      for (double y = 0; y <= size.height + spacing; y += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 280,
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: kCardBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: isPrimary ? kPrimary.withOpacity(0.5) : kBorder,
-            width: isPrimary ? 2 : 1),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (isPrimary) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: kPrimary,
-              borderRadius: BorderRadius.circular(36),
-            ),
-            child: Text('Most popular',
-                style: GoogleFonts.inter(
-                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11)),
-          ),
-          const SizedBox(height: 12),
-        ],
-        Text(name, style: GoogleFonts.inter(
-            color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
-        const SizedBox(height: 8),
-        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(price, style: GoogleFonts.inter(
-              color: isPrimary ? kPrimary : Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: price.length > 6 ? 24 : 38,
-              letterSpacing: -1.5)),
-          if (period.isNotEmpty) ...[
-            const SizedBox(width: 4),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(period,
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
-            ),
-          ],
-        ]),
-        const SizedBox(height: 24),
-        ...features.map((f) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Row(children: [
-            Icon(Icons.check_circle_rounded, color: kPrimary, size: 16),
-            const SizedBox(width: 10),
-            Expanded(child: Text(f,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 13))),
-          ]),
-        )),
-        const SizedBox(height: 24),
-        Builder(builder: (ctx) => SizedBox(
-          width: double.infinity,
-          child: isPrimary
-              ? ElevatedButton(
-                  onPressed: () => ctx.go('/enterprise-portal'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimary, foregroundColor: Colors.white,
-                    elevation: 0, shadowColor: Colors.transparent,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(36)),
-                  ),
-                  child: Text('Get started',
-                      style: GoogleFonts.inter(
-                          color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
-                )
-              : OutlinedButton(
-                  onPressed: () => ctx.go('/contact'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: kBorder),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(36)),
-                  ),
-                  child: Text('Contact sales',
-                      style: GoogleFonts.inter(
-                          color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
-                ),
-        )),
-      ]),
-    );
-  }
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // ─── Testimonial Card ─────────────────────────────────────────────────────────
