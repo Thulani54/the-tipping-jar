@@ -431,7 +431,7 @@ class _HeroSection extends StatelessWidget {
           const SizedBox(width: 20),
           _dot(),
           const SizedBox(width: 8),
-          Text('Built in South Africa',
+          Text('Proudly South African',
               style: GoogleFonts.inter(
                   color: Colors.white.withOpacity(0.40), fontSize: 13)),
         ],
