@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../models/app_user.dart';
 import '../models/commission_model.dart';
 import '../models/creator_post_model.dart';
 import '../models/creator_profile_model.dart';
@@ -164,6 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       0 => _OverviewPage(
           profile: d.profile, stats: d.stats, tips: d.tips,
           onCopyLink: _copyLink, onRefresh: _load,
+          onNavigateToProfile: () => setState(() => _navIndex = 6),
         ),
       1 => _TipsPage(tips: d.tips, onRefresh: _load),
       2 => _JarsPage(profile: d.profile),
@@ -312,8 +314,10 @@ class _OverviewPage extends StatelessWidget {
   final DashboardStats stats;
   final List<TipModel> tips;
   final VoidCallback onCopyLink, onRefresh;
+  final VoidCallback onNavigateToProfile;
   const _OverviewPage({required this.profile, required this.stats,
-      required this.tips, required this.onCopyLink, required this.onRefresh});
+      required this.tips, required this.onCopyLink, required this.onRefresh,
+      required this.onNavigateToProfile});
 
   @override
   Widget build(BuildContext context) {
@@ -350,6 +354,13 @@ class _OverviewPage extends StatelessWidget {
               ),
             ),
           ]).animate().fadeIn(duration: 400.ms),
+
+          // Bank warning — shown immediately below greeting when not connected
+          if (!profile.hasBankConnected) ...[
+            const SizedBox(height: 16),
+            _BankWarningBanner(onConnect: onNavigateToProfile)
+                .animate().fadeIn(delay: 200.ms, duration: 400.ms).slideY(begin: -0.1),
+          ],
           const SizedBox(height: 28),
 
           // Stats
@@ -389,10 +400,6 @@ class _OverviewPage extends StatelessWidget {
             _PayoutBanner(pendingPayout: stats.pendingPayout),
           ],
 
-          if (!profile.hasBankConnected) ...[
-            const SizedBox(height: 20),
-            _BankCta(),
-          ],
         ]),
       ),
     );
@@ -672,8 +679,32 @@ class _ProfilePageState extends State<_ProfilePage> {
         ),
         const SizedBox(height: 20),
 
+        // Basic information (gender, DOB)
+        const _BasicInfoCard(),
+        const SizedBox(height: 20),
+
+        // Creator info (niche, platforms, audience)
+        _CreatorInfoCard(
+          profile: _profile,
+          onUpdated: (updated) {
+            setState(() => _profile = updated);
+            widget.onUpdated(updated);
+          },
+        ),
+        const SizedBox(height: 20),
+
         // Banking details
         _BankingCard(
+          profile: _profile,
+          onUpdated: (updated) {
+            setState(() => _profile = updated);
+            widget.onUpdated(updated);
+          },
+        ),
+        const SizedBox(height: 20),
+
+        // KYC documents
+        _KycDocumentsCard(
           profile: _profile,
           onUpdated: (updated) {
             setState(() => _profile = updated);
@@ -755,6 +786,23 @@ class _ProfilePageState extends State<_ProfilePage> {
   }
 }
 
+// ─── SA Banks list ─────────────────────────────────────────────────────────────
+const _saBanks = [
+  ('ABSA Bank',                 '632005'),
+  ('African Bank',              '430000'),
+  ('Bidvest Bank',              '462005'),
+  ('Capitec Bank',              '470010'),
+  ('Discovery Bank',            '679000'),
+  ('FNB (First National Bank)', '250655'),
+  ('Investec Bank',             '580105'),
+  ('Mercantile Bank',           '450905'),
+  ('Nedbank',                   '198765'),
+  ('Old Mutual Bank',           '462005'),
+  ('PostBank',                  '460005'),
+  ('Standard Bank',             '051001'),
+  ('TymeBank',                  '678910'),
+];
+
 // ─── Banking details card ─────────────────────────────────────────────────────
 class _BankingCard extends StatelessWidget {
   final CreatorProfileModel profile;
@@ -787,18 +835,14 @@ class _BankingCard extends StatelessWidget {
           ElevatedButton(
             onPressed: () => _showBankingDialog(context),
             style: ElevatedButton.styleFrom(
-              backgroundColor: profile.hasBankConnected
-                  ? kCardBg : kPrimary,
-              foregroundColor: Colors.white,
-              elevation: 0, shadowColor: Colors.transparent,
-              side: profile.hasBankConnected
-                  ? const BorderSide(color: kBorder) : BorderSide.none,
+              backgroundColor: profile.hasBankConnected ? kCardBg : kPrimary,
+              foregroundColor: Colors.white, elevation: 0,
+              side: profile.hasBankConnected ? const BorderSide(color: kBorder) : BorderSide.none,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
             child: Text(profile.hasBankConnected ? 'Edit' : 'Connect',
-                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13,
-                    color: profile.hasBankConnected ? Colors.white : Colors.white)),
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
           ),
         ]),
         if (profile.hasBankConnected) ...[
@@ -808,25 +852,29 @@ class _BankingCard extends StatelessWidget {
           _BankRow(Icons.business_rounded, 'Bank', profile.bankName),
           _BankRow(Icons.person_rounded, 'Account holder', profile.bankAccountHolder),
           _BankRow(Icons.credit_card_rounded, 'Account number',
-              profile.bankAccountNumberMasked.isEmpty
-                  ? '—' : profile.bankAccountNumberMasked),
-          _BankRow(Icons.route_rounded, 'Routing / sort code', profile.bankRoutingNumber.isEmpty ? '—' : profile.bankRoutingNumber),
+              profile.bankAccountNumberMasked.isEmpty ? '—' : profile.bankAccountNumberMasked),
           _BankRow(Icons.account_balance_wallet_rounded, 'Account type',
-              profile.bankAccountType == 'savings' ? 'Savings' : 'Checking'),
-          _BankRow(Icons.public_rounded, 'Country', profile.bankCountry),
+              profile.bankAccountType == 'savings' ? 'Savings' : 'Cheque / Current'),
+          _BankRow(Icons.public_rounded, 'Country', 'South Africa (ZAR)'),
         ],
       ]),
     );
   }
 
   Future<void> _showBankingDialog(BuildContext context) async {
-    final bankNameCtrl = TextEditingController(text: profile.bankName);
+    // Find current bank in _saBanks list, or default to first
+    final currentBankName = profile.bankName;
+    String selectedBank = _saBanks.any((b) => b.$1 == currentBankName)
+        ? currentBankName
+        : _saBanks[0].$1;
+    String selectedBankCode = _saBanks.firstWhere(
+        (b) => b.$1 == selectedBank, orElse: () => _saBanks[0]).$2;
+
     final holderCtrl = TextEditingController(text: profile.bankAccountHolder);
     final accountCtrl = TextEditingController();
-    final routingCtrl = TextEditingController(text: profile.bankRoutingNumber);
-    String accountType = profile.bankAccountType.isEmpty ? 'checking' : profile.bankAccountType;
-    String country = profile.bankCountry.isEmpty ? 'US' : profile.bankCountry;
+    String accountType = profile.bankAccountType.isEmpty ? 'cheque' : profile.bankAccountType;
     bool saving = false;
+    String? error;
 
     await showDialog(
       context: context,
@@ -854,39 +902,15 @@ class _BankingCard extends StatelessWidget {
               ]),
             ),
             const SizedBox(height: 16),
-            _DlgField('Bank name', bankNameCtrl, hint: 'e.g. Chase, Barclays'),
-            const SizedBox(height: 12),
-            _DlgField('Account holder name', holderCtrl, hint: 'Full legal name'),
-            const SizedBox(height: 12),
-            _DlgField('Account number', accountCtrl,
-                hint: profile.bankAccountNumberMasked.isNotEmpty
-                    ? profile.bankAccountNumberMasked
-                    : 'Enter account number',
-                obscure: true),
-            const SizedBox(height: 12),
-            _DlgField('Routing / sort code / BSB', routingCtrl,
-                hint: 'e.g. 021000021'),
-            const SizedBox(height: 12),
-            // Account type
+            // Bank selector
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Account type', style: GoogleFonts.dmSans(
-                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-              const SizedBox(height: 8),
-              Row(children: [
-                _TypeChip('Checking', accountType == 'checking', () => setS(() => accountType = 'checking')),
-                const SizedBox(width: 8),
-                _TypeChip('Savings', accountType == 'savings', () => setS(() => accountType = 'savings')),
-              ]),
-            ]),
-            const SizedBox(height: 12),
-            // Country
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Country', style: GoogleFonts.dmSans(
+              Text('Bank', style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: country,
+                value: selectedBank,
                 dropdownColor: kCardBg,
+                isExpanded: true,
                 style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
                   filled: true, fillColor: kDark,
@@ -896,20 +920,56 @@ class _BankingCard extends StatelessWidget {
                       borderSide: const BorderSide(color: kPrimary, width: 2)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'US', child: Text('United States (USD)')),
-                  DropdownMenuItem(value: 'ZA', child: Text('South Africa (ZAR)')),
-                  DropdownMenuItem(value: 'GB', child: Text('United Kingdom (GBP)')),
-                  DropdownMenuItem(value: 'AU', child: Text('Australia (AUD)')),
-                  DropdownMenuItem(value: 'NG', child: Text('Nigeria (NGN)')),
-                  DropdownMenuItem(value: 'KE', child: Text('Kenya (KES)')),
-                  DropdownMenuItem(value: 'GH', child: Text('Ghana (GHS)')),
-                  DropdownMenuItem(value: 'EU', child: Text('Europe (EUR)')),
-                  DropdownMenuItem(value: 'CA', child: Text('Canada (CAD)')),
-                ],
-                onChanged: (v) => setS(() => country = v ?? country),
+                items: _saBanks.map((b) => DropdownMenuItem(
+                  value: b.$1,
+                  child: Text(b.$1, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14)),
+                )).toList(),
+                onChanged: (v) => setS(() {
+                  selectedBank = v ?? selectedBank;
+                  selectedBankCode = _saBanks.firstWhere((b) => b.$1 == selectedBank).$2;
+                }),
               ),
             ]),
+            const SizedBox(height: 12),
+            _DlgField('Account holder name', holderCtrl, hint: 'Full legal name'),
+            const SizedBox(height: 12),
+            _DlgField('Account number', accountCtrl,
+                hint: profile.bankAccountNumberMasked.isNotEmpty
+                    ? profile.bankAccountNumberMasked
+                    : 'Enter account number',
+                obscure: true),
+            const SizedBox(height: 12),
+            // Account type
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Account type', style: GoogleFonts.dmSans(
+                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+              const SizedBox(height: 8),
+              Row(children: [
+                _TypeChip('Cheque / Current', accountType == 'cheque', () => setS(() => accountType = 'cheque')),
+                const SizedBox(width: 8),
+                _TypeChip('Savings', accountType == 'savings', () => setS(() => accountType = 'savings')),
+              ]),
+            ]),
+            const SizedBox(height: 12),
+            // Country — locked to South Africa
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: kDark, borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kBorder),
+              ),
+              child: Row(children: [
+                const Icon(Icons.public_rounded, color: kMuted, size: 16),
+                const SizedBox(width: 10),
+                Text('South Africa (ZAR)', style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14)),
+                const Spacer(),
+                Text('Locked', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+              ]),
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 10),
+              Text(error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
+            ],
           ])),
         ),
         actions: [
@@ -919,15 +979,22 @@ class _BankingCard extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: saving ? null : () async {
-              if (bankNameCtrl.text.trim().isEmpty || holderCtrl.text.trim().isEmpty) return;
-              setS(() => saving = true);
+              if (holderCtrl.text.trim().isEmpty) {
+                setS(() => error = 'Account holder name is required.');
+                return;
+              }
+              if (accountCtrl.text.trim().isEmpty && !profile.hasBankConnected) {
+                setS(() => error = 'Account number is required.');
+                return;
+              }
+              setS(() { saving = true; error = null; });
               try {
                 final payload = <String, dynamic>{
-                  'bank_name': bankNameCtrl.text.trim(),
+                  'bank_name': selectedBank,
                   'bank_account_holder': holderCtrl.text.trim(),
-                  'bank_routing_number': routingCtrl.text.trim(),
+                  'bank_routing_number': selectedBankCode,
                   'bank_account_type': accountType,
-                  'bank_country': country,
+                  'bank_country': 'ZA',
                 };
                 if (accountCtrl.text.trim().isNotEmpty) {
                   payload['bank_account_number'] = accountCtrl.text.trim();
@@ -937,7 +1004,7 @@ class _BankingCard extends StatelessWidget {
                 if (ctx.mounted) Navigator.pop(ctx);
                 onUpdated(updated);
               } catch (e) {
-                setS(() => saving = false);
+                setS(() { saving = false; error = e.toString().replaceFirst('Exception: ', ''); });
               }
             },
             style: ElevatedButton.styleFrom(
@@ -952,6 +1019,565 @@ class _BankingCard extends StatelessWidget {
         ],
       )),
     );
+  }
+}
+
+// ─── Basic info card (gender, DOB) ────────────────────────────────────────────
+class _BasicInfoCard extends StatefulWidget {
+  const _BasicInfoCard();
+  @override
+  State<_BasicInfoCard> createState() => _BasicInfoCardState();
+}
+
+class _BasicInfoCardState extends State<_BasicInfoCard> {
+  AppUser? _user;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final u = await context.read<AuthProvider>().api.getMe();
+      if (mounted) setState(() { _user = u; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: kCardBg,
+          borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 36, height: 36,
+            decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(9)),
+            child: const Icon(Icons.person_outline_rounded, color: kPrimary, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text('Basic information', style: GoogleFonts.dmSans(
+              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14))),
+          ElevatedButton(
+            onPressed: _loading || _user == null ? null : () => _showEditDialog(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kCardBg, foregroundColor: Colors.white, elevation: 0,
+              side: const BorderSide(color: kBorder),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+            ),
+            child: Text('Edit', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+          ),
+        ]),
+        if (_loading)
+          const Padding(padding: EdgeInsets.only(top: 16), child: LinearProgressIndicator(color: kPrimary))
+        else if (_user != null) ...[
+          const SizedBox(height: 16),
+          const Divider(color: kBorder),
+          const SizedBox(height: 12),
+          _BankRow(Icons.wc_rounded, 'Gender', _genderLabel(_user!.gender)),
+          _BankRow(Icons.cake_rounded, 'Date of birth',
+              _user!.dateOfBirth?.isNotEmpty == true ? _user!.dateOfBirth! : '—'),
+          _BankRow(Icons.email_outlined, 'Email', _user!.email),
+          _BankRow(Icons.phone_outlined, 'Phone',
+              _user!.phoneNumber.isNotEmpty ? _user!.phoneNumber : '—'),
+        ],
+      ]),
+    );
+  }
+
+  String _genderLabel(String g) {
+    const map = {
+      'male': 'Male', 'female': 'Female',
+      'non_binary': 'Non-binary', 'prefer_not_to_say': 'Prefer not to say',
+    };
+    return map[g] ?? '—';
+  }
+
+  Future<void> _showEditDialog(BuildContext context) async {
+    String gender = _user!.gender;
+    final dobCtrl = TextEditingController(text: _user!.dateOfBirth ?? '');
+    bool saving = false;
+    String? error;
+
+    const genders = [
+      ('', 'Select…'),
+      ('male', 'Male'),
+      ('female', 'Female'),
+      ('non_binary', 'Non-binary'),
+      ('prefer_not_to_say', 'Prefer not to say'),
+    ];
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setS) => AlertDialog(
+        backgroundColor: kCardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Basic information', style: GoogleFonts.dmSans(
+            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+        content: SizedBox(width: 380, child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Gender', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: gender.isEmpty ? '' : gender,
+              dropdownColor: kCardBg,
+              isExpanded: true,
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                filled: true, fillColor: kDark,
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kBorder)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimary, width: 2)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+              items: genders.map((g) => DropdownMenuItem(
+                value: g.$1,
+                child: Text(g.$2, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14)),
+              )).toList(),
+              onChanged: (v) => setS(() => gender = v ?? gender),
+            ),
+          ]),
+          const SizedBox(height: 14),
+          _DlgField('Date of birth', dobCtrl, hint: 'YYYY-MM-DD', keyboardType: TextInputType.datetime),
+          if (error != null) ...[
+            const SizedBox(height: 10),
+            Text(error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
+          ],
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted))),
+          ElevatedButton(
+            onPressed: saving ? null : () async {
+              setS(() { saving = true; error = null; });
+              try {
+                final api = context.read<AuthProvider>().api;
+                final payload = <String, dynamic>{};
+                if (gender.isNotEmpty) payload['gender'] = gender;
+                if (dobCtrl.text.trim().isNotEmpty) payload['date_of_birth'] = dobCtrl.text.trim();
+                await api.updateUserProfile(payload);
+                await _load();
+                if (ctx.mounted) Navigator.pop(ctx);
+              } catch (e) {
+                setS(() { saving = false; error = e.toString().replaceFirst('Exception: ', ''); });
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
+                elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+            child: saving
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : Text('Save', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+          ),
+        ],
+      )),
+    );
+  }
+}
+
+// ─── Creator info card (niche, platforms, audience) ───────────────────────────
+class _CreatorInfoCard extends StatelessWidget {
+  final CreatorProfileModel profile;
+  final void Function(CreatorProfileModel) onUpdated;
+  const _CreatorInfoCard({required this.profile, required this.onUpdated});
+
+  @override
+  Widget build(BuildContext context) {
+    final niches = ['Music','Comedy','Fitness','Art','Gaming','Food','Tech','Lifestyle','Education','Fashion'];
+    final audienceSizes = ['<1K','1K–10K','10K–50K','50K–100K','100K–500K','500K+'];
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: kCardBg,
+          borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 36, height: 36,
+            decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(9)),
+            child: const Icon(Icons.star_outline_rounded, color: kPrimary, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text('Creator info', style: GoogleFonts.dmSans(
+              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14))),
+          ElevatedButton(
+            onPressed: () => _showEditDialog(context, niches, audienceSizes),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kCardBg, foregroundColor: Colors.white, elevation: 0,
+              side: const BorderSide(color: kBorder),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+            ),
+            child: Text('Edit', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+          ),
+        ]),
+        const SizedBox(height: 16),
+        const Divider(color: kBorder),
+        const SizedBox(height: 12),
+        _BankRow(Icons.category_outlined, 'Niche / Category', profile.category.isEmpty ? '—' : profile.category),
+        _BankRow(Icons.people_outline_rounded, 'Audience size', profile.audienceSize.isEmpty ? '—' : profile.audienceSize),
+        _BankRow(Icons.cake_outlined, 'Content age group', profile.ageGroup.isEmpty ? '—' : profile.ageGroup),
+        _BankRow(Icons.wc_rounded, 'Audience gender', profile.audienceGender.isEmpty ? '—' : profile.audienceGender),
+        if (profile.platforms.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Icon(Icons.link_rounded, color: kMuted, size: 15),
+            const SizedBox(width: 10),
+            Text('Platforms', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
+            const Spacer(),
+            Flexible(child: Text(profile.platforms, style: GoogleFonts.dmSans(
+                color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                textAlign: TextAlign.right)),
+          ]),
+        ],
+      ]),
+    );
+  }
+
+  Future<void> _showEditDialog(BuildContext context, List<String> niches, List<String> audienceSizes) async {
+    String niche = profile.category;
+    String audienceSize = profile.audienceSize;
+    String ageGroup = profile.ageGroup;
+    String audienceGender = profile.audienceGender;
+    final platformsCtrl = TextEditingController(text: profile.platforms);
+    bool saving = false;
+    String? error;
+
+    const ageGroups = ['Under 13','13–17','18–24','25–34','35–44','45+','All ages'];
+    const genders = ['Mostly female','Mostly male','Both equally','Prefer not to say'];
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setS) => AlertDialog(
+        backgroundColor: kCardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Creator info', style: GoogleFonts.dmSans(
+            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+        content: SingleChildScrollView(
+          child: SizedBox(width: 400, child: Column(mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Niche / Category', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 8, children: niches.map((n) {
+              final active = niche == n;
+              return GestureDetector(
+                onTap: () => setS(() => niche = active ? '' : n),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: active ? kPrimary.withValues(alpha: 0.12) : kDark,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: active ? kPrimary : kBorder, width: active ? 2 : 1),
+                  ),
+                  child: Text(n, style: GoogleFonts.dmSans(
+                      color: active ? kPrimary : kMuted, fontWeight: FontWeight.w600, fontSize: 12)),
+                ),
+              );
+            }).toList()),
+            const SizedBox(height: 16),
+            Text('Audience size', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 8, children: audienceSizes.map((s) {
+              final active = audienceSize == s;
+              return GestureDetector(
+                onTap: () => setS(() => audienceSize = s),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: active ? kPrimary.withValues(alpha: 0.12) : kDark,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: active ? kPrimary : kBorder, width: active ? 2 : 1),
+                  ),
+                  child: Text(s, style: GoogleFonts.dmSans(
+                      color: active ? kPrimary : kMuted, fontWeight: FontWeight.w600, fontSize: 12)),
+                ),
+              );
+            }).toList()),
+            const SizedBox(height: 16),
+            Text('Content age group', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 8, children: ageGroups.map((a) {
+              final active = ageGroup == a;
+              return GestureDetector(
+                onTap: () => setS(() => ageGroup = a),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: active ? kPrimary.withValues(alpha: 0.12) : kDark,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: active ? kPrimary : kBorder, width: active ? 2 : 1),
+                  ),
+                  child: Text(a, style: GoogleFonts.dmSans(
+                      color: active ? kPrimary : kMuted, fontWeight: FontWeight.w600, fontSize: 12)),
+                ),
+              );
+            }).toList()),
+            const SizedBox(height: 16),
+            Text('Audience gender', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 8, children: genders.map((g) {
+              final active = audienceGender == g;
+              return GestureDetector(
+                onTap: () => setS(() => audienceGender = g),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: active ? kPrimary.withValues(alpha: 0.12) : kDark,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: active ? kPrimary : kBorder, width: active ? 2 : 1),
+                  ),
+                  child: Text(g, style: GoogleFonts.dmSans(
+                      color: active ? kPrimary : kMuted, fontWeight: FontWeight.w600, fontSize: 12)),
+                ),
+              );
+            }).toList()),
+            const SizedBox(height: 16),
+            _DlgField('Platforms (comma-separated)', platformsCtrl, hint: 'YouTube, TikTok, Instagram'),
+            if (error != null) ...[
+              const SizedBox(height: 10),
+              Text(error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
+            ],
+          ])),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted))),
+          ElevatedButton(
+            onPressed: saving ? null : () async {
+              setS(() { saving = true; error = null; });
+              try {
+                final api = context.read<AuthProvider>().api;
+                final updated = await api.updateMyCreatorProfile({
+                  'category': niche,
+                  'audience_size': audienceSize,
+                  'age_group': ageGroup,
+                  'audience_gender': audienceGender,
+                  'platforms': platformsCtrl.text.trim(),
+                });
+                if (ctx.mounted) Navigator.pop(ctx);
+                onUpdated(updated);
+              } catch (e) {
+                setS(() { saving = false; error = e.toString().replaceFirst('Exception: ', ''); });
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
+                elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+            child: saving
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : Text('Save', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+          ),
+        ],
+      )),
+    );
+  }
+}
+
+// ─── KYC Documents card ───────────────────────────────────────────────────────
+class _KycDocumentsCard extends StatefulWidget {
+  final CreatorProfileModel profile;
+  final void Function(CreatorProfileModel) onUpdated;
+  const _KycDocumentsCard({required this.profile, required this.onUpdated});
+  @override
+  State<_KycDocumentsCard> createState() => _KycDocumentsCardState();
+}
+
+class _KycDocumentsCardState extends State<_KycDocumentsCard> {
+  static const _docTypes = [
+    ('national_id',      'SA ID Book / Smart Card', Icons.badge_rounded),
+    ('passport',         'Passport', Icons.menu_book_rounded),
+    ('proof_of_bank',    'Proof of Bank Account', Icons.account_balance_rounded),
+    ('proof_of_address', 'Proof of Address', Icons.home_rounded),
+    ('selfie',           'Selfie with ID', Icons.camera_alt_rounded),
+  ];
+
+  final _uploading = <String, bool>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final kyc = widget.profile;
+    final docs = kyc.kycDocuments;
+
+    // Headline status chip
+    Color statusColor;
+    IconData statusIcon;
+    String statusLabel;
+    switch (kyc.kycStatus) {
+      case 'approved':
+        statusColor = const Color(0xFF22C55E);
+        statusIcon = Icons.verified_rounded;
+        statusLabel = 'Verified';
+        break;
+      case 'pending':
+        statusColor = const Color(0xFFFBBF24);
+        statusIcon = Icons.hourglass_top_rounded;
+        statusLabel = 'Under review';
+        break;
+      case 'declined':
+        statusColor = Colors.redAccent;
+        statusIcon = Icons.cancel_rounded;
+        statusLabel = 'Declined';
+        break;
+      default:
+        statusColor = kMuted;
+        statusIcon = Icons.upload_file_rounded;
+        statusLabel = 'Not started';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: kCardBg,
+          borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 36, height: 36,
+            decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(9)),
+            child: Icon(statusIcon, color: statusColor, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Identity verification (KYC)', style: GoogleFonts.dmSans(
+                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+            Text(statusLabel, style: GoogleFonts.dmSans(color: statusColor, fontSize: 12)),
+          ])),
+        ]),
+
+        // Decline reason banner
+        if (kyc.kycStatus == 'declined' && kyc.kycDeclineReason.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+            ),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.info_outline_rounded, color: Colors.redAccent, size: 14),
+              const SizedBox(width: 8),
+              Expanded(child: Text(
+                'Reason: ${kyc.kycDeclineReason}',
+                style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12, height: 1.4),
+              )),
+            ]),
+          ),
+        ],
+
+        const SizedBox(height: 16),
+        const Divider(color: kBorder),
+        const SizedBox(height: 12),
+
+        Text('Upload documents below. At least your SA ID and proof of bank account are required.',
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.5)),
+        const SizedBox(height: 16),
+
+        ..._docTypes.map((dt) {
+          final docType = dt.$1;
+          final label = dt.$2;
+          final icon = dt.$3;
+          final existing = docs.where((d) => d.docType == docType).firstOrNull;
+          final isUploading = _uploading[docType] == true;
+
+          Color chipColor;
+          String chipLabel;
+          if (existing != null) {
+            switch (existing.status) {
+              case 'approved':
+                chipColor = const Color(0xFF22C55E);
+                chipLabel = 'Approved';
+                break;
+              case 'declined':
+                chipColor = Colors.redAccent;
+                chipLabel = 'Declined — re-upload';
+                break;
+              default:
+                chipColor = const Color(0xFFFBBF24);
+                chipLabel = 'Pending review';
+            }
+          } else {
+            chipColor = kMuted;
+            chipLabel = 'Not uploaded';
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(children: [
+              Icon(icon, color: kMuted, size: 18),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(label, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                if (existing?.declineReason.isNotEmpty == true)
+                  Text(existing!.declineReason, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 11)),
+              ])),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: chipColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: chipColor.withValues(alpha: 0.4)),
+                ),
+                child: Text(chipLabel, style: GoogleFonts.dmSans(color: chipColor, fontSize: 10, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 8),
+              // Upload/re-upload button — hide if approved
+              if (existing?.status != 'approved')
+                GestureDetector(
+                  onTap: isUploading ? null : () => _pickAndUpload(docType),
+                  child: Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8)),
+                    child: isUploading
+                        ? const Padding(padding: EdgeInsets.all(8),
+                            child: CircularProgressIndicator(color: kPrimary, strokeWidth: 2))
+                        : const Icon(Icons.upload_rounded, color: kPrimary, size: 16),
+                  ),
+                ),
+            ]),
+          );
+        }),
+      ]),
+    );
+  }
+
+  Future<void> _pickAndUpload(String docType) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      withData: true,
+    );
+    if (result == null || result.files.single.bytes == null) return;
+    final file = result.files.single;
+
+    setState(() => _uploading[docType] = true);
+    try {
+      final api = context.read<AuthProvider>().api;
+      await api.uploadKycDocument(docType, file.bytes!, file.name);
+      // Reload profile to get updated KYC docs
+      final updated = await api.getMyCreatorProfile();
+      widget.onUpdated(updated);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Upload failed: ${e.toString().replaceFirst('Exception: ', '')}',
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _uploading[docType] = false);
+    }
   }
 }
 
@@ -1346,14 +1972,17 @@ class _EmptyTips extends StatelessWidget {
   );
 }
 
-class _BankCta extends StatelessWidget {
+class _BankWarningBanner extends StatelessWidget {
+  final VoidCallback onConnect;
+  const _BankWarningBanner({required this.onConnect});
+
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(18),
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
     decoration: BoxDecoration(
-      color: const Color(0xFFFBBF24).withValues(alpha: 0.06),
+      color: const Color(0xFFFBBF24).withValues(alpha: 0.07),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.25)),
+      border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.3)),
     ),
     child: Row(children: [
       const Icon(Icons.warning_amber_rounded, color: Color(0xFFFBBF24), size: 20),
@@ -1361,9 +1990,22 @@ class _BankCta extends StatelessWidget {
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Connect your bank to receive payouts', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-        Text('Go to Profile → Banking details to add your account.',
+        Text('Add your banking details so we can pay you out.',
             style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
       ])),
+      const SizedBox(width: 12),
+      GestureDetector(
+        onTap: onConnect,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFBBF24),
+            borderRadius: BorderRadius.circular(36),
+          ),
+          child: Text('Connect now', style: GoogleFonts.dmSans(
+              color: const Color(0xFF1A1A1A), fontWeight: FontWeight.w700, fontSize: 12)),
+        ),
+      ),
     ]),
   );
 }

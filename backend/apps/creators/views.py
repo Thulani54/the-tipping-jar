@@ -16,6 +16,7 @@ from apps.tips.models import Tip
 from .models import (
     CommissionRequest,
     CommissionSlot,
+    CreatorKycDocument,
     CreatorPost,
     CreatorProfile,
     Jar,
@@ -29,6 +30,7 @@ from .serializers import (
     CreatorPostSerializer,
     CreatorProfileSerializer,
     JarSerializer,
+    KycDocumentSerializer,
     MilestoneGoalSerializer,
     SupportTierSerializer,
 )
@@ -482,6 +484,96 @@ class PublicCommissionRequestCreateView(APIView):
             fan=request.user if request.user.is_authenticated else None,
         )
         return Response(CommissionRequestSerializer(commission).data, status=status.HTTP_201_CREATED)
+
+
+# ── KYC document views ────────────────────────────────────────────────────────
+
+class MyKycDocumentListCreateView(APIView):
+    """Creator: list own KYC documents or upload a new one."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def _get_profile(self):
+        return get_object_or_404(CreatorProfile, user=self.request.user)
+
+    def get(self, request):
+        profile = self._get_profile()
+        docs = profile.kyc_documents.all()
+        return Response(KycDocumentSerializer(docs, many=True, context={"request": request}).data)
+
+    def post(self, request):
+        profile = self._get_profile()
+        doc_type = request.data.get("doc_type")
+        file = request.FILES.get("file")
+
+        if not doc_type or not file:
+            return Response({"detail": "doc_type and file are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        valid_types = [c[0] for c in CreatorKycDocument.DocType.choices]
+        if doc_type not in valid_types:
+            return Response({"detail": f"Invalid doc_type. Choose from: {valid_types}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Replace existing doc of same type (re-upload resets to pending)
+        profile.kyc_documents.filter(doc_type=doc_type).delete()
+        doc = CreatorKycDocument.objects.create(
+            creator=profile,
+            doc_type=doc_type,
+            file=file,
+            status=CreatorKycDocument.DocStatus.PENDING,
+        )
+
+        # Move overall KYC status to pending if not already approved
+        if profile.kyc_status != CreatorProfile.KycStatus.APPROVED:
+            profile.kyc_status = CreatorProfile.KycStatus.PENDING
+            profile.save(update_fields=["kyc_status"])
+
+        return Response(KycDocumentSerializer(doc, context={"request": request}).data, status=status.HTTP_201_CREATED)
+
+
+class AdminKycApproveView(APIView):
+    """Admin: approve a creator's KYC — grants full access."""
+
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, pk):
+        profile = get_object_or_404(CreatorProfile, pk=pk)
+        profile.kyc_documents.filter(status=CreatorKycDocument.DocStatus.PENDING).update(
+            status=CreatorKycDocument.DocStatus.APPROVED,
+        )
+        profile.kyc_status = CreatorProfile.KycStatus.APPROVED
+        profile.kyc_decline_reason = ""
+        profile.save(update_fields=["kyc_status", "kyc_decline_reason"])
+        return Response({"detail": "KYC approved."})
+
+
+class AdminKycDeclineView(APIView):
+    """Admin: decline a creator's KYC with a reason. Optionally decline specific docs."""
+
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, pk):
+        profile = get_object_or_404(CreatorProfile, pk=pk)
+        reason = request.data.get("reason", "")
+        declined_doc_ids = request.data.get("doc_ids", [])  # optional list of doc IDs to decline
+
+        if declined_doc_ids:
+            doc_reason = request.data.get("doc_reason", reason)
+            profile.kyc_documents.filter(id__in=declined_doc_ids).update(
+                status=CreatorKycDocument.DocStatus.DECLINED,
+                decline_reason=doc_reason,
+            )
+        else:
+            # Decline all pending docs
+            profile.kyc_documents.filter(status=CreatorKycDocument.DocStatus.PENDING).update(
+                status=CreatorKycDocument.DocStatus.DECLINED,
+                decline_reason=reason,
+            )
+
+        profile.kyc_status = CreatorProfile.KycStatus.DECLINED
+        profile.kyc_decline_reason = reason
+        profile.save(update_fields=["kyc_status", "kyc_decline_reason"])
+        return Response({"detail": "KYC declined."})
 
 
 # ── Creator incoming pledges ──────────────────────────────────────────────────

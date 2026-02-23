@@ -282,6 +282,32 @@ class ApiService {
     throw Exception('Failed to update profile: ${res.body}');
   }
 
+  // ── KYC documents ─────────────────────────────────────────────────
+
+  Future<List<KycDocumentModel>> getKycDocuments() async {
+    final res = await http.get(Uri.parse('$_baseUrl/creators/me/kyc/'), headers: _headers);
+    if (res.statusCode == 200) {
+      return (jsonDecode(res.body) as List)
+          .map((e) => KycDocumentModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception('Failed to load KYC documents');
+  }
+
+  Future<KycDocumentModel> uploadKycDocument(
+      String docType, Uint8List bytes, String filename) async {
+    final req = http.MultipartRequest('POST', Uri.parse('$_baseUrl/creators/me/kyc/'))
+      ..headers.addAll(_authHeaders)
+      ..fields['doc_type'] = docType
+      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+    final streamed = await req.send();
+    final body = await streamed.stream.bytesToString();
+    if (streamed.statusCode == 201) {
+      return KycDocumentModel.fromJson(jsonDecode(body) as Map<String, dynamic>);
+    }
+    throw Exception('Upload failed (${streamed.statusCode}): $body');
+  }
+
   Future<DashboardStats> getDashboardStats() async {
     final res = await http.get(
       Uri.parse('$_baseUrl/creators/me/stats/'),

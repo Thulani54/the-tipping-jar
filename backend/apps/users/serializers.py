@@ -18,7 +18,11 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "username", "email", "role", "avatar", "bio", "phone_number", "otp_method", "two_fa_enabled")
+        fields = (
+            "id", "username", "email", "role", "avatar", "bio",
+            "phone_number", "otp_method", "two_fa_enabled",
+            "gender", "date_of_birth",
+        )
         read_only_fields = ("id", "email")
 
 

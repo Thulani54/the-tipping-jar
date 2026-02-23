@@ -41,6 +41,21 @@ class User(AbstractUser):
         help_text="When False, login skips the OTP step entirely.",
     )
 
+    class Gender(models.TextChoices):
+        MALE = "male", "Male"
+        FEMALE = "female", "Female"
+        NON_BINARY = "non_binary", "Non-binary"
+        PREFER_NOT = "prefer_not_to_say", "Prefer not to say"
+
+    gender = models.CharField(
+        max_length=20, choices=Gender.choices, blank=True, default="",
+        help_text="User's gender identity.",
+    )
+    date_of_birth = models.DateField(
+        null=True, blank=True,
+        help_text="User's date of birth (YYYY-MM-DD).",
+    )
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
 

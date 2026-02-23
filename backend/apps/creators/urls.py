@@ -1,6 +1,8 @@
 from django.urls import path
 
 from .views import (
+    AdminKycApproveView,
+    AdminKycDeclineView,
     CreatorDetailView,
     CreatorIncomingPledgesView,
     CreatorListView,
@@ -11,6 +13,7 @@ from .views import (
     MyDashboardStatsView,
     MyJarDetailView,
     MyJarListCreateView,
+    MyKycDocumentListCreateView,
     MyMilestoneDetailView,
     MyMilestoneListCreateView,
     MyPostDetailView,
@@ -41,6 +44,9 @@ urlpatterns = [
     path("me/commission-slot/", MyCommissionSlotView.as_view(), name="my-commission-slot"),
     path("me/commissions/", MyCommissionRequestListView.as_view(), name="my-commissions"),
     path("me/commissions/<int:pk>/", MyCommissionRequestDetailView.as_view(), name="my-commission-detail"),
+    path("me/kyc/", MyKycDocumentListCreateView.as_view(), name="my-kyc-docs"),
+    path("admin/<int:pk>/kyc/approve/", AdminKycApproveView.as_view(), name="admin-kyc-approve"),
+    path("admin/<int:pk>/kyc/decline/", AdminKycDeclineView.as_view(), name="admin-kyc-decline"),
     path("me/pledges/", CreatorIncomingPledgesView.as_view(), name="creator-pledges"),
     path("<slug:slug>/jars/", PublicCreatorJarsView.as_view(), name="creator-jars"),
     path("<slug:slug>/jars/<slug:jar_slug>/", PublicJarDetailView.as_view(), name="creator-jar-detail"),

@@ -9,6 +9,7 @@ from apps.tips.models import Tip
 from .models import (
     CommissionRequest,
     CommissionSlot,
+    CreatorKycDocument,
     CreatorPost,
     CreatorProfile,
     Jar,
@@ -42,12 +43,35 @@ class CreatorPostSerializer(serializers.ModelSerializer):
                   "is_published", "created_at"]
 
 
+class KycDocumentSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+    doc_type_display = serializers.SerializerMethodField()
+
+    def get_file_url(self, obj):
+        request = self.context.get("request")
+        if obj.file and request:
+            return request.build_absolute_uri(obj.file.url)
+        return None
+
+    def get_doc_type_display(self, obj):
+        return obj.get_doc_type_display()
+
+    class Meta:
+        model = CreatorKycDocument
+        fields = (
+            "id", "doc_type", "doc_type_display", "file_url",
+            "status", "decline_reason", "uploaded_at", "reviewed_at",
+        )
+        read_only_fields = ("id", "status", "decline_reason", "uploaded_at", "reviewed_at", "file_url", "doc_type_display")
+
+
 class CreatorProfileSerializer(serializers.ModelSerializer):
     total_tips = serializers.ReadOnlyField()
     username = serializers.CharField(source="user.username", read_only=True)
     avatar = serializers.ImageField(source="user.avatar", read_only=True)
     has_bank_connected = serializers.SerializerMethodField()
     bank_account_number_masked = serializers.SerializerMethodField()
+    kyc_documents = KycDocumentSerializer(many=True, read_only=True)
 
     class Meta:
         model = CreatorProfile
@@ -62,10 +86,13 @@ class CreatorProfileSerializer(serializers.ModelSerializer):
             "bank_account_number_masked",
             "bank_routing_number", "bank_account_type", "bank_country",
             "has_bank_connected",
+            # KYC
+            "kyc_status", "kyc_decline_reason", "kyc_documents",
         )
         read_only_fields = (
             "id", "total_tips", "created_at", "stripe_account_id",
             "bank_account_number_masked", "has_bank_connected",
+            "kyc_status", "kyc_decline_reason", "kyc_documents",
         )
 
     def get_has_bank_connected(self, obj):

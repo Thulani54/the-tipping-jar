@@ -43,7 +43,19 @@ class CreatorProfile(models.Model):
     bank_account_type = models.CharField(
         max_length=20, choices=ACCOUNT_TYPE_CHOICES, blank=True, default='checking'
     )
-    bank_country = models.CharField(max_length=2, blank=True, default='US')
+    bank_country = models.CharField(max_length=2, blank=True, default='ZA')
+
+    # ── KYC / Identity verification ───────────────────────────────────
+    class KycStatus(models.TextChoices):
+        NOT_STARTED = "not_started", "Not Started"
+        PENDING     = "pending",     "Pending Review"
+        APPROVED    = "approved",    "Approved"
+        DECLINED    = "declined",    "Declined"
+
+    kyc_status = models.CharField(
+        max_length=15, choices=KycStatus.choices, default=KycStatus.NOT_STARTED,
+    )
+    kyc_decline_reason = models.TextField(blank=True, default="")
 
     def __str__(self):
         return self.display_name
@@ -199,3 +211,33 @@ class Jar(models.Model):
     @property
     def tip_count(self):
         return self.jar_tips.filter(status="completed").count()
+
+
+class CreatorKycDocument(models.Model):
+    """KYC identity document uploaded by a creator for verification."""
+
+    class DocType(models.TextChoices):
+        NATIONAL_ID      = "national_id",      "South African ID"
+        PASSPORT         = "passport",         "Passport"
+        PROOF_OF_BANK    = "proof_of_bank",    "Proof of Bank Account"
+        PROOF_OF_ADDRESS = "proof_of_address", "Proof of Address"
+        SELFIE           = "selfie",           "Selfie with ID"
+
+    class DocStatus(models.TextChoices):
+        PENDING  = "pending",  "Pending"
+        APPROVED = "approved", "Approved"
+        DECLINED = "declined", "Declined"
+
+    creator        = models.ForeignKey(CreatorProfile, on_delete=models.CASCADE, related_name="kyc_documents")
+    doc_type       = models.CharField(max_length=20, choices=DocType.choices)
+    file           = models.FileField(upload_to="kyc/%Y/")
+    status         = models.CharField(max_length=10, choices=DocStatus.choices, default=DocStatus.PENDING)
+    decline_reason = models.TextField(blank=True, default="")
+    uploaded_at    = models.DateTimeField(auto_now_add=True)
+    reviewed_at    = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+
+    def __str__(self):
+        return f"{self.creator.display_name} — {self.get_doc_type_display()} ({self.status})"
