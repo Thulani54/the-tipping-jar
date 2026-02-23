@@ -20,7 +20,7 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="TippingJar — tip your favourite creators instantly. Support the people who inspire you.">
 
-  <!-- Prevent the browser from caching index.html itself -->
+  <!-- Never cache this file -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -37,95 +37,46 @@
   <title>TippingJar</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- ── Version & Cache Management ────────────────────────────────────────
-       APP_VERSION is replaced with the short git SHA by the CD pipeline on
-       every push to main (see .github/workflows/cd.yml).
-       When the version stored in localStorage differs from this value, ALL
-       service-worker caches are wiped and every SW is unregistered so users
-       always receive the latest build without a manual hard-refresh.
-  ──────────────────────────────────────────────────────────────────────── -->
+  <!--
+    Service-worker cleanup.
+    Flutter's SW aggressively caches main.dart.js. We've disabled the SW in the
+    build (serviceWorkerVersion: null in flutter_bootstrap.js) so Flutter won't
+    register a new one. This script unregisters any previously installed SW and
+    clears all its caches so existing users stop getting stale content.
+    The self-unregistering flutter_service_worker.js stub does the same thing via
+    the SW update mechanism, so between the two every device is cleaned up.
+  -->
   <script>
-    const APP_VERSION = '__BUILD_VERSION__';
-    const VERSION_KEY = 'tj_app_version';
-
-    function clearAllCachesAndReload() {
-      var cleared = 0;
-      var total = 0;
-
-      function doNavigate() {
-        // iOS Safari ignores reload(true) — it still serves from SW cache.
-        // Force a real GET navigation with a cache-bust param so the browser
-        // bypasses any cached response entirely.
-        var url = new URL(window.location.href);
-        url.searchParams.set('_r', Date.now());
-        window.location.replace(url.toString());
-      }
-
-      // Clear ALL Service Worker caches (Flutter registers its own)
-      if ('caches' in window) {
-        caches.keys().then(function (names) {
-          total += names.length;
-          return Promise.all(names.map(function (name) {
-            console.log('[TippingJar] Deleting cache:', name);
-            return caches.delete(name);
-          }));
-        });
-      }
-
-      // Unregister every service worker so Flutter fetches fresh assets
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function (regs) {
-          total += regs.length;
-          var promises = regs.map(function (reg) {
-            console.log('[TippingJar] Unregistering SW:', reg.scope);
-            return reg.unregister();
-          });
-          Promise.all(promises).then(doNavigate);
-        }).catch(doNavigate);
-      } else {
-        doNavigate();
-      }
-
-      // Clear session storage (preserve localStorage so version key survives)
-      sessionStorage.clear();
-
-      console.log('[TippingJar] Cache cleared — navigating for version', APP_VERSION);
-    }
-
-    // Strip the cache-bust param (_r) from the URL bar after a forced navigation
     (function () {
-      var url = new URL(window.location.href);
-      if (url.searchParams.has('_r')) {
-        url.searchParams.delete('_r');
-        history.replaceState(null, '', url.toString());
-      }
-    })();
+      if (!('serviceWorker' in navigator)) return;
 
-    // Force an immediate SW update check on every page load.
-    // By default browsers throttle SW update checks to once per 24 h — on iOS
-    // this means users can be stuck on a stale SW for up to a day.
-    // reg.update() bypasses the throttle: the browser re-fetches
-    // flutter_service_worker.js right now and installs our stub if it changed.
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration().then(function (reg) {
-        if (reg) {
-          console.log('[TippingJar] forcing SW update check');
-          reg.update();
-        }
+      // Unregister every installed SW and clear all Cache API entries.
+      // Once done, if a SW was controlling the page, reload to get fresh content.
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        if (regs.length === 0) return;
+
+        var hadSW = true;
+        Promise.all([
+          Promise.all(regs.map(function (r) {
+            console.log('[TippingJar] unregistering SW:', r.scope);
+            return r.unregister();
+          })),
+          ('caches' in window)
+            ? caches.keys().then(function (names) {
+                return Promise.all(names.map(function (n) {
+                  console.log('[TippingJar] deleting cache:', n);
+                  return caches.delete(n);
+                }));
+              })
+            : Promise.resolve()
+        ]).then(function () {
+          if (hadSW) {
+            console.log('[TippingJar] SW removed — reloading for fresh content');
+            window.location.reload();
+          }
+        });
       });
-    }
-
-    var storedVersion = localStorage.getItem(VERSION_KEY);
-
-    if (storedVersion !== APP_VERSION) {
-      console.log('[TippingJar] Version change:', storedVersion, '→', APP_VERSION);
-      // Persist new version BEFORE reloading so the reload doesn't loop
-      localStorage.setItem(VERSION_KEY, APP_VERSION);
-      // Only reload when upgrading from a previous version (not first-ever visit)
-      if (storedVersion !== null) {
-        clearAllCachesAndReload();
-      }
-    }
+    })();
   </script>
 </head>
 <body>

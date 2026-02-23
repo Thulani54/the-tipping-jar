@@ -1,5 +1,4 @@
 # ── Stage 1: Build Flutter Web ─────────────────────────────────────────────────
-# Use official Flutter Docker image — always gets a current stable Flutter
 FROM ghcr.io/cirruslabs/flutter:stable AS builder
 
 WORKDIR /app
@@ -15,46 +14,32 @@ COPY . .
 ARG API_BASE_URL=https://api.tippingjar.co.za
 RUN flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL}
 
-# ── Replace Flutter's generated service worker with a pass-through stub ────────
-# Flutter's default SW does NOT call skipWaiting(), so on iOS the new SW sits in
-# "waiting" state until every tab is closed — which can be indefinitely.
-# This stub fixes that permanently:
-#   1. skipWaiting()   → activates immediately, no tab-close required
-#   2. clients.claim() → takes control of all open clients right away
-#   3. clears all old caches on install
-#   4. passes ALL fetch requests straight to the network (no new caching)
-#   5. responds to Flutter's getVersion message so the bootstrap proceeds normally
+# ── Disable Flutter's service worker entirely ───────────────────────────────────
+# Flutter's SW caches main.dart.js for up to 1 year; without a content-hash in
+# the filename the browser never fetches the new build. Disabling the SW means
+# every request goes to nginx, whose cache headers control freshness correctly.
+#
+# 1. Set serviceWorkerVersion: null in flutter_bootstrap.js  →  Flutter won't
+#    register a SW at all.
+# 2. Replace flutter_service_worker.js with a self-unregistering one-liner so
+#    any EXISTING SW that's already installed on user devices unregisters itself
+#    the moment the browser checks for an update.
+RUN sed -i \
+      -e 's/serviceWorkerVersion: "[^"]*"/serviceWorkerVersion: null/g' \
+      -e "s/serviceWorkerVersion: '[^']*'/serviceWorkerVersion: null/g" \
+      /app/build/web/flutter_bootstrap.js
+
 RUN printf '%s\n' \
-  "// TippingJar pass-through SW — clears old caches and forces a fresh reload." \
-  "var _v=new URL(self.location).searchParams.get('v')||'1';" \
-  "self.addEventListener('install',function(e){" \
+  "// Self-unregistering stub — removes itself and any leftover caches." \
+  "self.addEventListener('install', function(e) { e.waitUntil(self.skipWaiting()); });" \
+  "self.addEventListener('activate', function(e) {" \
   "  e.waitUntil(" \
-  "    caches.keys().then(function(n){" \
-  "      return Promise.all(n.map(function(c){" \
-  "        console.log('[TJ SW] deleting cache:',c);" \
-  "        return caches.delete(c);" \
-  "      }));" \
-  "    }).then(function(){" \
-  "      console.log('[TJ SW] skipWaiting');" \
-  "      return self.skipWaiting();" \
-  "    })" \
+  "    caches.keys()" \
+  "      .then(function(n){return Promise.all(n.map(function(c){return caches.delete(c)}))})" \
+  "      .then(function(){return self.registration.unregister()})" \
+  "      .then(function(){return self.clients.matchAll({type:'window'})})" \
+  "      .then(function(cl){cl.forEach(function(c){c.navigate(c.url).catch(function(){})})})" \
   "  );" \
-  "});" \
-  "self.addEventListener('activate',function(e){" \
-  "  e.waitUntil(" \
-  "    self.clients.claim().then(function(){" \
-  "      return self.clients.matchAll({type:'window'});" \
-  "    }).then(function(clients){" \
-  "      console.log('[TJ SW] navigating',clients.length,'client(s) to force fresh load');" \
-  "      return Promise.all(clients.map(function(c){" \
-  "        return c.navigate(c.url).catch(function(){});" \
-  "      }));" \
-  "    })" \
-  "  );" \
-  "});" \
-  "// No fetch handler — all requests go straight to the network." \
-  "self.addEventListener('message',function(e){" \
-  "  if(e.data&&e.data.type==='getVersion')e.ports[0].postMessage(_v);" \
   "});" \
   > /app/build/web/flutter_service_worker.js
 
@@ -64,13 +49,15 @@ FROM nginx:alpine
 # Copy the built Flutter web app
 COPY --from=builder /app/build/web /usr/share/nginx/html
 
-# Stamp a unique build version into flutter_bootstrap.js reference so every
-# deployment automatically busts the browser cache — no manual version bumps needed.
+# Stamp a unique build version into the flutter_bootstrap.js reference so that
+# the browser always fetches a fresh copy of the bootstrap on every deploy.
 RUN BUILD_TS=$(date +%s) && \
     sed -i "s|flutter_bootstrap\.js?v=[^\"]*|flutter_bootstrap.js?v=${BUILD_TS}|g" \
         /usr/share/nginx/html/index.html
 
-# nginx config for SPA routing (all 404s → index.html)
+# nginx: serve Flutter web with correct cache semantics
+# ─ index.html, all JS, all JSON → no-cache (Flutter doesn't hash filenames)
+# ─ Binary assets (images, fonts) → 1 year (URLs don't change between builds)
 RUN printf 'server {\n\
     listen 80;\n\
     server_name _;\n\
@@ -78,43 +65,26 @@ RUN printf 'server {\n\
     index index.html;\n\
 \n\
     gzip on;\n\
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;\n\
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript application/wasm;\n\
 \n\
-    # index.html — never cache (exact match, also covers SPA fallback)\n\
-    location = /index.html {\n\
+    # All JS and JSON files — never cache.\n\
+    # Flutter does NOT content-hash main.dart.js so a 1-year cache means users\n\
+    # get stuck on the old build forever. Serve every JS/JSON fresh.\n\
+    location ~* \\.(?:js|json|map)$ {\n\
+        try_files $uri $uri/ /index.html;\n\
         add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
+        expires 0;\n\
     }\n\
 \n\
-    # flutter_bootstrap.js — never cache (served with unique ?v= per build)\n\
-    location = /flutter_bootstrap.js {\n\
-        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
-    }\n\
-\n\
+    # SPA fallback — never cache HTML\n\
     location / {\n\
         try_files $uri $uri/ /index.html;\n\
         add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
     }\n\
 \n\
-    # Flutter runtime files — filenames never change, so must NOT be cached\n\
-    location = /flutter_service_worker.js {\n\
-        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
-        expires 0;\n\
-    }\n\
-    location = /flutter.js {\n\
-        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
-        expires 0;\n\
-    }\n\
-    location = /version.json {\n\
-        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
-        expires 0;\n\
-    }\n\
-    location = /manifest.json {\n\
-        add_header Cache-Control "no-store, no-cache, must-revalidate";\n\
-        expires 0;\n\
-    }\n\
-\n\
-    # Hashed Flutter assets can be cached forever (filenames change each build)\n\
-    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {\n\
+    # Binary assets (images, fonts, wasm) — safe to cache for a year\n\
+    # because their URLs include a content-hash or never change.\n\
+    location ~* \\.(?:png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|wasm)$ {\n\
         expires 1y;\n\
         add_header Cache-Control "public, immutable";\n\
     }\n\
