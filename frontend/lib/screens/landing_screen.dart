@@ -473,7 +473,7 @@ class _PhoneMockup extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 340),
+        constraints: const BoxConstraints(maxWidth: 306),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 6),
           child: Stack(
@@ -785,6 +785,7 @@ class _PhoneMockup extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 7),
                     decoration: BoxDecoration(
                       color: e.$2 ? _orange : _dark,
+                      borderRadius: BorderRadius.circular(36),
                       border: Border.all(
                           color: e.$2 ? _orange : _border),
                     ),
@@ -807,6 +808,7 @@ class _PhoneMockup extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
                 color: _orange,
+                borderRadius: BorderRadius.circular(36),
                 boxShadow: [
                   BoxShadow(
                     color: _orange.withOpacity(0.40),
