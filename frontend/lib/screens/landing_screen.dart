@@ -88,7 +88,7 @@ class _NavBar extends StatelessWidget {
                 const AppLogoIcon(size: 32),
                 const SizedBox(width: 10),
                 Text('TippingJar',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: _white,
                         fontWeight: FontWeight.w700,
                         fontSize: 17,
@@ -119,7 +119,7 @@ class _NavBar extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: _textMuted,
                   fontSize: 13,
                   fontWeight: FontWeight.w500)),
@@ -136,7 +136,7 @@ class _NavBar extends StatelessWidget {
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         ),
         child: Text(label,
-            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
+            style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w500)),
       );
 
   Widget _solidBtn(String label, VoidCallback onTap, BuildContext ctx) =>
@@ -151,7 +151,7 @@ class _NavBar extends StatelessWidget {
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         ),
         child: Text(label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 fontSize: 13, fontWeight: FontWeight.w600, color: _white)),
       );
 }
@@ -224,7 +224,7 @@ class _HeroSection extends StatelessWidget {
                       Text(
                         'Get paid by the people\nwho love your work.',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.dmSans(
                           color: Colors.white,
                           fontSize: 38,
                           fontWeight: FontWeight.w800,
@@ -240,7 +240,7 @@ class _HeroSection extends StatelessWidget {
                         'Set up your TippingJar page in 60 seconds. Share one link. '
                         'Let fans support you — no subscriptions, no friction.',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.dmSans(
                             color: Colors.white.withOpacity(0.62),
                             fontSize: 16,
                             height: 1.65),
@@ -286,7 +286,7 @@ class _HeroSection extends StatelessWidget {
                             Text(
                               'Get paid by the people\nwho love your work.',
                               textAlign: TextAlign.left,
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.dmSans(
                                 color: Colors.white,
                                 fontSize: 58,
                                 fontWeight: FontWeight.w800,
@@ -302,7 +302,7 @@ class _HeroSection extends StatelessWidget {
                               'Set up your TippingJar page in 60 seconds. Share one link. '
                               'Let fans support you — no subscriptions, no friction.',
                               textAlign: TextAlign.left,
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.dmSans(
                                   color: Colors.white.withOpacity(0.62),
                                   fontSize: 17,
                                   height: 1.65),
@@ -366,7 +366,7 @@ class _HeroSection extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             "South Africa's creator tipping platform",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white.withOpacity(0.80),
                 fontSize: 12,
                 fontWeight: FontWeight.w600),
@@ -395,7 +395,7 @@ class _HeroSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(32)),
         ),
         child: Text('Create your free page →',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 fontSize: 15, fontWeight: FontWeight.w600, color: _white)),
       );
 
@@ -410,7 +410,7 @@ class _HeroSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(32)),
         ),
         child: Text('View Creators',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 fontSize: 15, fontWeight: FontWeight.w600, color: _white)),
       );
 
@@ -420,19 +420,19 @@ class _HeroSection extends StatelessWidget {
           _dot(),
           const SizedBox(width: 8),
           Text('No credit card required',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: Colors.white.withOpacity(0.40), fontSize: 13)),
           const SizedBox(width: 20),
           _dot(),
           const SizedBox(width: 8),
           Text('Free to get started',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: Colors.white.withOpacity(0.40), fontSize: 13)),
           const SizedBox(width: 20),
           _dot(),
           const SizedBox(width: 8),
           Text('Proudly South African',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: Colors.white.withOpacity(0.40), fontSize: 13)),
         ],
       );
@@ -633,7 +633,7 @@ class _PhoneMockup extends StatelessWidget {
             // Status row
             Row(children: [
               Text('9:41',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.dmSans(
                       color: _white,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -712,7 +712,7 @@ class _PhoneMockup extends StatelessWidget {
                   color: _textMuted, size: 14),
               const Spacer(),
               Text('TippingJar',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.dmSans(
                       color: _white, fontWeight: FontWeight.w700, fontSize: 13)),
               const Spacer(),
               const Icon(Icons.ios_share_rounded, color: _textMuted, size: 14),
@@ -743,7 +743,7 @@ class _PhoneMockup extends StatelessWidget {
                           color: _orange, shape: BoxShape.circle),
                       child: Center(
                         child: Text('TM',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.dmSans(
                                 color: _white,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 18)),
@@ -753,14 +753,14 @@ class _PhoneMockup extends StatelessWidget {
                 ),
                 const SizedBox(height: 9),
                 Text('Thulani M.',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: _white,
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                         letterSpacing: -0.2)),
                 const SizedBox(height: 2),
                 Text('Music Producer & Beatmaker',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: _textMuted, fontSize: 10.5)),
               ]),
             ),
@@ -768,7 +768,7 @@ class _PhoneMockup extends StatelessWidget {
 
             // Amount chips
             Text('Choose an amount',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: _textMuted,
                     fontSize: 10,
                     fontWeight: FontWeight.w500)),
@@ -791,7 +791,7 @@ class _PhoneMockup extends StatelessWidget {
                     ),
                     child: Text(e.$1,
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.dmSans(
                             color: _white,
                             fontWeight: FontWeight.w700,
                             fontSize: 11)),
@@ -824,7 +824,7 @@ class _PhoneMockup extends StatelessWidget {
                       color: _white, size: 12),
                   const SizedBox(width: 6),
                   Text('Send R50 tip',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.dmSans(
                           color: _white,
                           fontWeight: FontWeight.w700,
                           fontSize: 12)),
@@ -835,7 +835,7 @@ class _PhoneMockup extends StatelessWidget {
 
             // Recent tips
             Text('Recent tips',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: _textMuted,
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -876,7 +876,7 @@ class _PhoneMockup extends StatelessWidget {
         ),
         child: Center(
           child: Text(initials,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: muted ? _textMuted : _orange,
                   fontWeight: FontWeight.w700,
                   fontSize: 9)),
@@ -885,17 +885,17 @@ class _PhoneMockup extends StatelessWidget {
       const SizedBox(width: 8),
       Expanded(
         child: Text(name,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: muted ? _textMuted : _white,
                 fontSize: 11,
                 fontWeight: FontWeight.w500)),
       ),
       Text(amount,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.dmSans(
               color: _orange, fontWeight: FontWeight.w800, fontSize: 12)),
       const SizedBox(width: 6),
       Text(time,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.dmSans(
               color: _textMuted.withOpacity(0.5), fontSize: 10)),
     ]);
   }
@@ -1036,7 +1036,7 @@ class _StepCardState extends State<_StepCard> {
             ),
             const Spacer(),
             Text('0${widget.number}',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: widget.color.withOpacity(0.3),
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
@@ -1044,13 +1044,13 @@ class _StepCardState extends State<_StepCard> {
           ]),
           const SizedBox(height: 20),
           Text(widget.title,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: _white,
                   fontWeight: FontWeight.w700,
                   fontSize: 17)),
           const SizedBox(height: 10),
           Text(widget.body,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: _textMuted, fontSize: 14, height: 1.6)),
         ]),
       )
@@ -1174,13 +1174,13 @@ class _FeatureCardState extends State<_FeatureCard> {
           ),
           const SizedBox(height: 16),
           Text(widget.title,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: const Color(0xFF0D0D12),
                   fontWeight: FontWeight.w700,
                   fontSize: 15)),
           const SizedBox(height: 8),
           Text(widget.body,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: const Color(0xFF6B6B80),
                   fontSize: 13,
                   height: 1.6)),
@@ -1275,7 +1275,7 @@ class _CreatorCard extends StatelessWidget {
             ),
             child: Center(
               child: Text(initials,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.dmSans(
                       color: _white,
                       fontWeight: FontWeight.w800,
                       fontSize: 14)),
@@ -1287,12 +1287,12 @@ class _CreatorCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(name,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.dmSans(
                           color: _white,
                           fontWeight: FontWeight.w700,
                           fontSize: 15)),
                   Text(role,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.dmSans(
                           color: _textMuted, fontSize: 12)),
                 ]),
           ),
@@ -1309,11 +1309,11 @@ class _CreatorCard extends StatelessWidget {
             Icon(Icons.volunteer_activism, color: color, size: 16),
             const SizedBox(width: 8),
             Text('Total tips earned',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: _textMuted, fontSize: 12)),
             const Spacer(),
             Text(earned,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: _white,
                     fontWeight: FontWeight.w800,
                     fontSize: 15)),
@@ -1332,7 +1332,7 @@ class _CreatorCard extends StatelessWidget {
                   borderRadius: BorderRadius.zero),
             ),
             child: Text('Send a tip',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     fontSize: 13, fontWeight: FontWeight.w600)),
           ),
         ),
@@ -1372,7 +1372,7 @@ class _CtaSection extends StatelessWidget {
                     color: _purple.withOpacity(0.2), size: 260)),
             Column(children: [
               Text('Ready to fill your jar?',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.dmSans(
                       color: _white,
                       fontWeight: FontWeight.w800,
                       fontSize: 42,
@@ -1383,7 +1383,7 @@ class _CtaSection extends StatelessWidget {
                   .slideY(begin: 0.2, curve: Curves.easeOut),
               const SizedBox(height: 16),
               Text('Set up your creator page in under a minute.\nNo credit card required.',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.dmSans(
                       color: _textMuted, fontSize: 16, height: 1.6),
                   textAlign: TextAlign.center)
                   .animate()
@@ -1402,7 +1402,7 @@ class _CtaSection extends StatelessWidget {
                       borderRadius: BorderRadius.zero),
                 ),
                 child: Text('Create your free page →',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: _white)),
@@ -1441,7 +1441,7 @@ class _Footer extends StatelessWidget {
                       Flexible(
                         child: Text('TippingJar',
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.dmSans(
                                 color: _white,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15)),
@@ -1449,7 +1449,7 @@ class _Footer extends StatelessWidget {
                     ]),
                     const SizedBox(height: 12),
                     Text('Supporting creators,\none tip at a time.',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.dmSans(
                             color: _textMuted,
                             fontSize: 13,
                             height: 1.6)),
@@ -1464,7 +1464,7 @@ class _Footer extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(col.$1,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.dmSans(
                                 color: _white,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13)),
@@ -1474,7 +1474,7 @@ class _Footer extends StatelessWidget {
                               child: GestureDetector(
                                 onTap: () => context.go(link.$2),
                                 child: Text(link.$1,
-                                    style: GoogleFonts.inter(
+                                    style: GoogleFonts.dmSans(
                                         color: _textMuted, fontSize: 13)),
                               ),
                             )),
@@ -1486,7 +1486,7 @@ class _Footer extends StatelessWidget {
         const Divider(color: _border),
         const SizedBox(height: 20),
         Text('© 2026 TippingJar. All rights reserved.',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: _textMuted, fontSize: 12)),
       ]),
     );
@@ -1535,7 +1535,7 @@ class _SectionHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(100),
         ),
         child: Text(tag,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: _orange,
                 fontSize: 12,
                 fontWeight: FontWeight.w600)),
@@ -1544,7 +1544,7 @@ class _SectionHeader extends StatelessWidget {
           .fadeIn(duration: 400.ms),
       const SizedBox(height: 16),
       Text(title,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.dmSans(
               color: titleColor,
               fontWeight: FontWeight.w800,
               fontSize: 38,
@@ -1558,7 +1558,7 @@ class _SectionHeader extends StatelessWidget {
       ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: Text(subtitle,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: subtitleColor, fontSize: 16, height: 1.65),
             textAlign: TextAlign.center),
       )
