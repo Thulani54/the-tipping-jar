@@ -9,6 +9,7 @@ class AuthProvider extends ChangeNotifier {
   String? _refreshToken;
   bool _loading = false;
   bool _otpVerified = false;
+  bool _initialized = false;
   String? _otpSendError;
 
   AppUser? get user => _user;
@@ -18,6 +19,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isEnterprise => _user?.role == 'enterprise';
   bool get otpVerified => _otpVerified;
   bool get loading => _loading;
+  bool get isInitialized => _initialized;
   String? get otpSendError => _otpSendError;
 
   ApiService get api => ApiService(authToken: _accessToken);
@@ -38,6 +40,7 @@ class AuthProvider extends ChangeNotifier {
         await _tryRefresh();
       }
     }
+    _initialized = true;
     notifyListeners();
   }
 

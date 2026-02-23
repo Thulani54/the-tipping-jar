@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -41,6 +42,20 @@ class _TippingJarAppState extends State<TippingJarApp> {
 
   @override
   Widget build(BuildContext context) {
+    final isInitialized = context.select<AuthProvider, bool>((a) => a.isInitialized);
+
+    if (!isInitialized) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Color(0xFF004423),
+          body: Center(
+            child: SpinKitFadingCircle(color: Colors.white, size: 48),
+          ),
+        ),
+      );
+    }
+
     // Always use MaterialApp.router — never fall back to a plain MaterialApp,
     // which would overwrite window.location with '/' and break deep links.
     return MaterialApp.router(
