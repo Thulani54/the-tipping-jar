@@ -1,10 +1,13 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/app_user.dart';
 import '../models/commission_model.dart';
@@ -40,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   _DashboardData? _data;
   String? _error;
   bool _loading = true;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -81,8 +85,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final wide = MediaQuery.of(context).size.width > 900;
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: kDark,
       appBar: wide ? null : _narrowAppBar(),
+      drawer: wide ? null : _mobileDrawer(),
       body: wide ? _wideLayout() : _narrowLayout(),
       bottomNavigationBar: wide ? null : _loading || _error != null ? null : _bottomNav(),
     );
@@ -91,10 +97,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   PreferredSizeWidget _narrowAppBar() => AppBar(
     backgroundColor: kDarker,
     elevation: 0,
-    titleSpacing: 16,
+    titleSpacing: 0,
+    leading: IconButton(
+      icon: const Icon(Iconsax.menu_1, color: kMuted, size: 20),
+      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+    ),
     title: Row(mainAxisSize: MainAxisSize.min, children: [
-      const AppLogoIcon(size: 22),
-      const SizedBox(width: 8),
+      const AppLogoIcon(size: 20),
+      const SizedBox(width: 7),
       Text('TippingJar',
           style: GoogleFonts.dmSans(
               color: Colors.white,
@@ -103,20 +113,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               letterSpacing: -0.3)),
     ]),
     actions: [
-      if (_navIndex != 4)
-        IconButton(
-          icon: const Icon(Icons.photo_library_outlined, color: kMuted),
-          tooltip: 'Content',
-          onPressed: () => setState(() => _navIndex = 4),
-        ),
-      if (_navIndex != 5)
-        IconButton(
-          icon: const Icon(Icons.monetization_on_outlined, color: kMuted),
-          tooltip: 'Monetize',
-          onPressed: () => setState(() => _navIndex = 5),
-        ),
       IconButton(
-        icon: const Icon(Icons.person_rounded, color: kMuted),
+        icon: const Icon(Iconsax.notification, color: kMuted, size: 20),
+        tooltip: 'Notifications',
+        onPressed: () => setState(() => _navIndex = 7),
+      ),
+      IconButton(
+        icon: const Icon(Iconsax.profile_circle, color: kMuted, size: 20),
         tooltip: 'Profile',
         onPressed: () => setState(() => _navIndex = 6),
       ),
@@ -135,25 +138,91 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _narrowLayout() => _body();
 
-  Widget _bottomNav() => Container(
-    decoration: const BoxDecoration(
-        color: kDarker, border: Border(top: BorderSide(color: kBorder))),
-    child: BottomNavigationBar(
-      currentIndex: _navIndex,
-      onTap: (i) => setState(() => _navIndex = i),
-      backgroundColor: Colors.transparent, elevation: 0,
-      selectedItemColor: kPrimary, unselectedItemColor: kMuted,
-      selectedLabelStyle: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.w600),
-      unselectedLabelStyle: GoogleFonts.dmSans(fontSize: 10),
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded, size: 20), label: 'Overview'),
-        BottomNavigationBarItem(icon: Icon(Icons.volunteer_activism, size: 20), label: 'Tips'),
-        BottomNavigationBarItem(icon: Icon(Icons.savings_rounded, size: 20), label: 'Jars'),
-        BottomNavigationBarItem(icon: Icon(Icons.bar_chart_rounded, size: 20), label: 'Analytics'),
-        BottomNavigationBarItem(icon: Icon(Icons.photo_library_outlined, size: 20), label: 'Content'),
-        BottomNavigationBarItem(icon: Icon(Icons.monetization_on_outlined, size: 20), label: 'Monetize'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_rounded, size: 20), label: 'Profile'),
-      ],
+  // Mobile nav shows 5 items; Jars(2) and Monetize(5) are in the drawer
+  static const _mobileNavIndices = [0, 1, 3, 4, 6]; // maps mobile tab → _navIndex
+
+  int get _mobileNavCurrentIndex {
+    final i = _mobileNavIndices.indexOf(_navIndex);
+    return i < 0 ? 0 : i; // fallback for drawer items (2, 5, 7)
+  }
+
+  Widget _bottomNav() => NavigationBar(
+    selectedIndex: _mobileNavCurrentIndex,
+    onDestinationSelected: (i) => setState(() => _navIndex = _mobileNavIndices[i]),
+    backgroundColor: kDarker,
+    indicatorColor: kPrimary.withValues(alpha: 0.15),
+    surfaceTintColor: Colors.transparent,
+    shadowColor: Colors.transparent,
+    elevation: 0,
+    height: 64,
+    labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+    destinations: [
+      NavigationDestination(
+        icon: const Icon(Iconsax.home_2, size: 20),
+        selectedIcon: const Icon(Iconsax.home_25, size: 20, color: kPrimary),
+        label: 'Home',
+      ),
+      NavigationDestination(
+        icon: const Icon(Iconsax.money_recive, size: 20),
+        selectedIcon: const Icon(Iconsax.money_recive5, size: 20, color: kPrimary),
+        label: 'Tips',
+      ),
+      NavigationDestination(
+        icon: const Icon(Iconsax.chart_2, size: 20),
+        selectedIcon: const Icon(Iconsax.chart_25, size: 20, color: kPrimary),
+        label: 'Analytics',
+      ),
+      NavigationDestination(
+        icon: const Icon(Iconsax.gallery, size: 20),
+        selectedIcon: const Icon(Iconsax.gallery5, size: 20, color: kPrimary),
+        label: 'Content',
+      ),
+      NavigationDestination(
+        icon: const Icon(Iconsax.profile_circle, size: 20),
+        selectedIcon: const Icon(Iconsax.profile_circle5, size: 20, color: kPrimary),
+        label: 'Profile',
+      ),
+    ],
+  );
+
+  Widget _mobileDrawer() => Drawer(
+    backgroundColor: kDarker,
+    child: SafeArea(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(children: [
+            const AppLogoIcon(size: 28),
+            const SizedBox(width: 8),
+            Text('TippingJar', style: GoogleFonts.dmSans(
+                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+          ]),
+        ),
+        const Divider(color: kBorder, height: 1),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          child: Text('NAVIGATION', style: GoogleFonts.dmSans(
+              color: kMuted, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
+        ),
+        _DrawerItem(Iconsax.home_2, 'Overview', _navIndex == 0, () { setState(() => _navIndex = 0); Navigator.pop(context); }),
+        _DrawerItem(Iconsax.money_recive, 'Tips', _navIndex == 1, () { setState(() => _navIndex = 1); Navigator.pop(context); }),
+        _DrawerItem(Iconsax.bucket_circle, 'Jars', _navIndex == 2, () { setState(() => _navIndex = 2); Navigator.pop(context); }),
+        _DrawerItem(Iconsax.chart_2, 'Analytics', _navIndex == 3, () { setState(() => _navIndex = 3); Navigator.pop(context); }),
+        _DrawerItem(Iconsax.gallery, 'Content', _navIndex == 4, () { setState(() => _navIndex = 4); Navigator.pop(context); }),
+        _DrawerItem(Iconsax.dollar_circle, 'Monetize', _navIndex == 5, () { setState(() => _navIndex = 5); Navigator.pop(context); }),
+        _DrawerItem(Iconsax.notification, 'Notifications', _navIndex == 7, () { setState(() => _navIndex = 7); Navigator.pop(context); }),
+        const SizedBox(height: 8),
+        const Divider(color: kBorder, height: 1),
+        const Spacer(),
+        if (_data?.profile.slug != null && _data!.profile.slug.isNotEmpty)
+          _DrawerItem(Iconsax.export_2, 'View tip page', false, () {
+            Navigator.pop(context);
+            context.go('/creator/${_data!.profile.slug}');
+          }),
+        _DrawerItem(Iconsax.logout, 'Sign out', false, _logout, danger: true),
+        const SizedBox(height: 12),
+      ]),
     ),
   );
 
@@ -176,7 +245,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           profile: d.profile,
           onCopyLink: _copyLink,
           onUpdated: _onProfileUpdated,
+          onDeleteAccount: () async {
+            await context.read<AuthProvider>().logout();
+            if (mounted) context.go('/');
+          },
         ),
+      7 => _NotificationsPage(tips: d.tips),
       _ => const SizedBox.shrink(),
     };
   }
@@ -229,13 +303,14 @@ class _Sidebar extends StatelessWidget {
   const _Sidebar({required this.selected, required this.onSelect, required this.onLogout, this.creatorSlug});
 
   static const _items = [
-    (Icons.dashboard_rounded,          'Overview'),
-    (Icons.volunteer_activism,         'Tips'),
-    (Icons.savings_rounded,            'Jars'),
-    (Icons.bar_chart_rounded,          'Analytics'),
-    (Icons.photo_library_outlined,     'Content'),
-    (Icons.monetization_on_outlined,   'Monetize'),
-    (Icons.person_rounded,             'Profile'),
+    (Iconsax.home_2,        'Overview'),
+    (Iconsax.money_recive,  'Tips'),
+    (Iconsax.bucket_circle, 'Jars'),
+    (Iconsax.chart_2,       'Analytics'),
+    (Iconsax.gallery,       'Content'),
+    (Iconsax.dollar_circle, 'Monetize'),
+    (Iconsax.profile_circle,'Profile'),
+    (Iconsax.notification,  'Notifications'),
   ];
 
   @override
@@ -265,14 +340,14 @@ class _Sidebar extends StatelessWidget {
       const Spacer(),
       const Divider(color: kBorder, height: 1),
       _SidebarItem(
-          icon: Icons.open_in_new_rounded, label: 'View tip page',
+          icon: Iconsax.export_2, label: 'View tip page',
           active: false,
           onTap: () {
             if (creatorSlug != null && creatorSlug!.isNotEmpty) {
               context.go('/creator/$creatorSlug');
             }
           }),
-      _SidebarItem(icon: Icons.logout_rounded, label: 'Sign out',
+      _SidebarItem(icon: Iconsax.logout, label: 'Sign out',
           active: false, onTap: onLogout, danger: true),
       const SizedBox(height: 16),
     ]),
@@ -305,6 +380,29 @@ class _SidebarItem extends StatelessWidget {
             fontWeight: active ? FontWeight.w600 : FontWeight.w500, fontSize: 13)),
       ]),
     ),
+  );
+}
+
+// ─── Drawer item (mobile only) ────────────────────────────────────────────────
+class _DrawerItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  final bool danger;
+  const _DrawerItem(this.icon, this.label, this.active, this.onTap, {this.danger = false});
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    leading: Icon(icon, color: active ? kPrimary : danger ? Colors.redAccent : kMuted, size: 20),
+    title: Text(label, style: GoogleFonts.dmSans(
+        color: active ? kPrimary : danger ? Colors.redAccent : kMuted,
+        fontWeight: active ? FontWeight.w600 : FontWeight.w500, fontSize: 14)),
+    tileColor: active ? kPrimary.withValues(alpha: 0.08) : Colors.transparent,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+    dense: true,
+    onTap: onTap,
   );
 }
 
@@ -437,6 +535,26 @@ class _TipsPageState extends State<_TipsPage> {
     }).toList();
   }
 
+  void _exportCsv() {
+    final tips = _filtered;
+    if (tips.isEmpty) return;
+    final buf = StringBuffer('Date,Tipper,Amount (R),Message\n');
+    for (final t in tips) {
+      final date = DateFormat('yyyy-MM-dd HH:mm').format(t.createdAt);
+      final tipper = t.tipperName.replaceAll('"', '""');
+      final msg = t.message.replaceAll('"', '""');
+      buf.write('"$date","$tipper",${t.amount.toStringAsFixed(2)},"$msg"\n');
+    }
+    Clipboard.setData(ClipboardData(text: buf.toString()));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('CSV copied to clipboard — paste into a spreadsheet',
+          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
+      backgroundColor: kPrimary, behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      duration: const Duration(seconds: 3),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
@@ -448,9 +566,23 @@ class _TipsPageState extends State<_TipsPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.all(w > 900 ? 32 : 20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Tips received', style: GoogleFonts.dmSans(color: Colors.white,
-              fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5))
-              .animate().fadeIn(duration: 400.ms),
+          Row(children: [
+            Expanded(child: Text('Tips received', style: GoogleFonts.dmSans(color: Colors.white,
+                fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5))
+                .animate().fadeIn(duration: 400.ms)),
+            if (filtered.isNotEmpty)
+              OutlinedButton.icon(
+                onPressed: _exportCsv,
+                icon: const Icon(Iconsax.document_download, size: 15),
+                label: Text('Export CSV', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: kMuted,
+                  side: const BorderSide(color: kBorder),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                ),
+              ),
+          ]),
           const SizedBox(height: 20),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -477,10 +609,30 @@ class _TipsPageState extends State<_TipsPage> {
           const SizedBox(height: 20),
           if (filtered.isEmpty)
             _EmptyTips()
-          else
+          else ...[
+            // Table header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: kBorder)),
+              child: Row(children: [
+                Expanded(flex: 2, child: Text('Tipper', style: GoogleFonts.dmSans(
+                    color: kMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text('Date', style: GoogleFonts.dmSans(
+                    color: kMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5))),
+                Expanded(child: Text('Amount', textAlign: TextAlign.right, style: GoogleFonts.dmSans(
+                    color: kMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5))),
+              ]),
+            ),
+            const SizedBox(height: 6),
             ...filtered.asMap().entries.map((e) =>
               _TipRow(tip: e.value)
                   .animate().fadeIn(delay: Duration(milliseconds: 40 * e.key), duration: 300.ms)),
+            const SizedBox(height: 12),
+            Text('${filtered.length} tip${filtered.length != 1 ? 's' : ''} · '
+                'Total: R${filtered.fold(0.0, (s, t) => s + t.amount).toStringAsFixed(2)}',
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+          ],
         ]),
       ),
     );
@@ -539,8 +691,10 @@ class _ProfilePage extends StatefulWidget {
   final CreatorProfileModel profile;
   final VoidCallback onCopyLink;
   final void Function(CreatorProfileModel) onUpdated;
+  final Future<void> Function() onDeleteAccount;
   const _ProfilePage(
-      {required this.profile, required this.onCopyLink, required this.onUpdated});
+      {required this.profile, required this.onCopyLink, required this.onUpdated,
+       required this.onDeleteAccount});
   @override
   State<_ProfilePage> createState() => _ProfilePageState();
 }
@@ -715,6 +869,19 @@ class _ProfilePageState extends State<_ProfilePage> {
 
         // Security settings
         const _SecurityCard(),
+        const SizedBox(height: 20),
+
+        // Creator badge
+        _BadgeCard(totalEarned: _profile.totalTips),
+        const SizedBox(height: 20),
+
+        // Settings
+        _SettingsCard(),
+        const SizedBox(height: 20),
+
+        // Danger zone (delete account)
+        _DangerZoneCard(onDeleteAccount: widget.onDeleteAccount),
+        const SizedBox(height: 40),
       ]),
     );
   }
@@ -1798,7 +1965,7 @@ class _BarChartPainter extends CustomPainter {
         final tp = TextPainter(
           text: TextSpan(text: labels[i], style: TextStyle(
               color: kMuted, fontSize: 10, fontFamily: 'Inter', fontWeight: FontWeight.w500)),
-          textDirection: TextDirection.ltr,
+          textDirection: ui.TextDirection.ltr,
         )..layout();
         tp.paint(canvas, Offset(x + barW / 2 - tp.width / 2, size.height - textH + 4));
       }
@@ -1820,7 +1987,7 @@ class _BarChartPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(text: labels[i], style: TextStyle(
             color: kMuted, fontSize: 10, fontFamily: 'Inter', fontWeight: FontWeight.w500)),
-        textDirection: TextDirection.ltr,
+        textDirection: ui.TextDirection.ltr,
       )..layout();
       tp.paint(canvas, Offset(x + barW / 2 - tp.width / 2, chartH + 4));
     }
@@ -3048,6 +3215,55 @@ class _SecurityCardState extends State<_SecurityCard> {
   bool _saving = false;
 
   Future<void> _toggle(bool enabled) async {
+    // Show risk warning before disabling
+    if (!enabled) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: kCardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(children: [
+            const Icon(Iconsax.warning_2, color: Color(0xFFFBBF24), size: 20),
+            const SizedBox(width: 8),
+            Text('Disable 2FA?', style: GoogleFonts.dmSans(
+                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+          ]),
+          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('This will remove the extra security layer from your account.',
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14, height: 1.5)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('⚠ Security risks:', style: GoogleFonts.dmSans(
+                    color: Colors.redAccent, fontWeight: FontWeight.w700, fontSize: 12)),
+                const SizedBox(height: 6),
+                Text('• Anyone with your password can log in without a code\n'
+                    '• Your earnings and payout info will be less protected\n'
+                    '• We strongly recommend keeping 2FA enabled',
+                    style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12, height: 1.5)),
+              ]),
+            ),
+          ]),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Keep 2FA on', style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('Disable anyway', style: GoogleFonts.dmSans(color: Colors.redAccent, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
     setState(() => _saving = true);
     try {
       await context.read<AuthProvider>().setTwoFa(enabled);
@@ -3963,5 +4179,339 @@ class _CommissionsSubViewState extends State<_CommissionsSubView> {
           ).animate().fadeIn(delay: (e.key * 60).ms, duration: 350.ms);
         }),
     ]);
+  }
+}
+
+// ─── Badge card ───────────────────────────────────────────────────────────────
+class _BadgeCard extends StatelessWidget {
+  final double totalEarned;
+  const _BadgeCard({required this.totalEarned});
+
+  static const _tiers = [
+    (50000.0, '💎', 'Diamond', Color(0xFF67E8F9), 'Top 1% of creators on TippingJar'),
+    (5000.0,  '🥇', 'Gold',    Color(0xFFFBBF24), 'Consistently earning creator'),
+    (500.0,   '🥈', 'Silver',  Color(0xFF94A3B8), 'Growing creator'),
+    (0.0,     '🥉', 'Bronze',  Color(0xFFB97333), 'Getting started'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final tier = _tiers.firstWhere((t) => totalEarned >= t.$1);
+    final nextIndex = _tiers.indexOf(tier) - 1;
+    final next = nextIndex >= 0 ? _tiers[nextIndex] : null;
+    final progress = next != null && next.$1 > tier.$1
+        ? ((totalEarned - tier.$1) / (next.$1 - tier.$1)).clamp(0.0, 1.0)
+        : 1.0;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: kCardBg, borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: tier.$4.withValues(alpha: 0.4)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+                color: tier.$4.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(9)),
+            child: Center(child: Text(tier.$2, style: const TextStyle(fontSize: 18))),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${tier.$3} Creator', style: GoogleFonts.dmSans(
+                color: tier.$4, fontWeight: FontWeight.w700, fontSize: 14)),
+            Text(tier.$5, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+          ])),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: tier.$4.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(36),
+              border: Border.all(color: tier.$4.withValues(alpha: 0.3)),
+            ),
+            child: Text('R${totalEarned.toStringAsFixed(0)} earned',
+                style: GoogleFonts.dmSans(color: tier.$4, fontSize: 11, fontWeight: FontWeight.w700)),
+          ),
+        ]),
+        if (next != null) ...[
+          const SizedBox(height: 14),
+          Row(children: [
+            Expanded(child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress, minHeight: 5, backgroundColor: kBorder,
+                valueColor: AlwaysStoppedAnimation<Color>(tier.$4),
+              ),
+            )),
+            const SizedBox(width: 10),
+            Text('R${next.$1.toStringAsFixed(0)} for ${next.$3}',
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+          ]),
+        ],
+      ]),
+    );
+  }
+}
+
+// ─── Settings card ────────────────────────────────────────────────────────────
+class _SettingsCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+          color: kCardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(9)),
+            child: const Icon(Iconsax.setting_2, color: kPrimary, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Text('Settings', style: GoogleFonts.dmSans(
+              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+        ]),
+        const SizedBox(height: 16),
+        const Divider(color: kBorder),
+        const SizedBox(height: 8),
+        _SettingsRow(Iconsax.notification, 'Email notifications', 'Receive email for new tips',
+            trailing: Switch(
+              value: true, onChanged: (_) {},
+              activeColor: kPrimary,
+            )),
+        const SizedBox(height: 4),
+        _SettingsRow(Iconsax.language_square, 'Language', 'English (ZA)',
+            trailing: const Icon(Iconsax.arrow_right_3, color: kMuted, size: 16)),
+        const SizedBox(height: 4),
+        _SettingsRow(Iconsax.shield, 'Privacy', 'Control who sees your profile',
+            trailing: const Icon(Iconsax.arrow_right_3, color: kMuted, size: 16)),
+      ]),
+    );
+  }
+}
+
+class _SettingsRow extends StatelessWidget {
+  final IconData icon;
+  final String label, subtitle;
+  final Widget trailing;
+  const _SettingsRow(this.icon, this.label, this.subtitle, {required this.trailing});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(children: [
+      Icon(icon, color: kMuted, size: 18),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+        Text(subtitle, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+      ])),
+      trailing,
+    ]),
+  );
+}
+
+// ─── Danger zone (delete account) ─────────────────────────────────────────────
+class _DangerZoneCard extends StatefulWidget {
+  final Future<void> Function() onDeleteAccount;
+  const _DangerZoneCard({required this.onDeleteAccount});
+  @override
+  State<_DangerZoneCard> createState() => _DangerZoneCardState();
+}
+
+class _DangerZoneCardState extends State<_DangerZoneCard> {
+  Future<void> _showDeleteDialog() async {
+    final pwCtrl = TextEditingController();
+    bool deleting = false;
+    String? error;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setS) => AlertDialog(
+        backgroundColor: kCardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          const Icon(Iconsax.trash, color: Colors.redAccent, size: 20),
+          const SizedBox(width: 8),
+          Text('Delete account', style: GoogleFonts.dmSans(
+              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('This will permanently delete your account, profile, and all data. '
+               'This action cannot be undone.',
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5)),
+          const SizedBox(height: 16),
+          Text('Enter your password to confirm:',
+              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: pwCtrl,
+            obscureText: true,
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: '••••••••',
+              hintStyle: GoogleFonts.dmSans(color: kMuted),
+              filled: true, fillColor: kDark,
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kBorder)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+          ),
+          if (error != null) ...[
+            const SizedBox(height: 8),
+            Text(error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
+          ],
+        ]),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted)),
+          ),
+          ElevatedButton(
+            onPressed: deleting ? null : () async {
+              setS(() { deleting = true; error = null; });
+              try {
+                final api = context.read<AuthProvider>().api;
+                await api.deleteAccount(pwCtrl.text);
+                if (ctx.mounted) Navigator.pop(ctx);
+                await widget.onDeleteAccount();
+              } catch (e) {
+                setS(() {
+                  error = e.toString().replaceFirst('Exception: ', '');
+                  deleting = false;
+                });
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent, foregroundColor: Colors.white,
+              elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+            ),
+            child: deleting
+                ? const SizedBox(width: 16, height: 16,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : Text('Delete my account', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
+          ),
+        ],
+      )),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.redAccent.withValues(alpha: 0.05),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.redAccent.withValues(alpha: 0.25)),
+    ),
+    child: Row(children: [
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Danger zone', style: GoogleFonts.dmSans(
+            color: Colors.redAccent, fontWeight: FontWeight.w700, fontSize: 14)),
+        const SizedBox(height: 4),
+        Text('Permanently delete your account and all data.',
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+      ])),
+      const SizedBox(width: 16),
+      OutlinedButton(
+        onPressed: _showDeleteDialog,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.redAccent,
+          side: const BorderSide(color: Colors.redAccent),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+        ),
+        child: Text('Delete account', style: GoogleFonts.dmSans(
+            fontWeight: FontWeight.w600, fontSize: 13)),
+      ),
+    ]),
+  );
+}
+
+// ─── Notifications page ────────────────────────────────────────────────────────
+class _NotificationsPage extends StatelessWidget {
+  final List<TipModel> tips;
+  const _NotificationsPage({required this.tips});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    final sorted = [...tips]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final recent = sorted.take(30).toList();
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(w > 900 ? 32 : 20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Notifications', style: GoogleFonts.dmSans(
+            color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5))
+            .animate().fadeIn(duration: 400.ms),
+        const SizedBox(height: 6),
+        Text('Recent activity on your tip page.',
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 13))
+            .animate().fadeIn(delay: 80.ms),
+        const SizedBox(height: 24),
+        if (recent.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 60),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Iconsax.notification_bing, color: kMuted, size: 48),
+                const SizedBox(height: 16),
+                Text('No notifications yet', style: GoogleFonts.dmSans(
+                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                const SizedBox(height: 6),
+                Text('When you receive tips, they\'ll appear here.',
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
+              ]),
+            ),
+          )
+        else
+          ...recent.asMap().entries.map((e) {
+            final t = e.value;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kCardBg, borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kBorder),
+              ),
+              child: Row(children: [
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                      color: kPrimary.withValues(alpha: 0.12), shape: BoxShape.circle),
+                  child: const Icon(Iconsax.money_recive, color: kPrimary, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${t.tipperName} tipped you R${t.amount.toStringAsFixed(2)}',
+                      style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                  if (t.message.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text('"${t.message}"', style: GoogleFonts.dmSans(
+                        color: kMuted, fontSize: 12, fontStyle: FontStyle.italic),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                  const SizedBox(height: 2),
+                  Text(_timeAgo(t.createdAt), style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                ])),
+              ]),
+            ).animate().fadeIn(delay: Duration(milliseconds: 40 * e.key), duration: 300.ms);
+          }),
+      ]),
+    );
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return DateFormat('d MMM yyyy').format(dt);
   }
 }

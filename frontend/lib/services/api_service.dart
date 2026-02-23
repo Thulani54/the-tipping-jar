@@ -222,6 +222,17 @@ class ApiService {
     throw Exception('Failed to update user profile: ${res.body}');
   }
 
+  Future<void> deleteAccount(String password) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/users/me/delete/'),
+      headers: _headers,
+      body: jsonEncode({'password': password}),
+    );
+    if (res.statusCode == 200) return;
+    final msg = (jsonDecode(res.body) as Map<String, dynamic>)['detail'] as String? ?? 'Failed to delete account';
+    throw Exception(msg);
+  }
+
   /// Upload (or replace) the authenticated user's avatar.
   /// Uses multipart PATCH so the server stores it as an image file.
   Future<void> updateAvatar(Uint8List bytes, String filename) async {

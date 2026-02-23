@@ -316,3 +316,30 @@ class ApiKeyRevokeView(APIView):
         key.is_active = False
         key.save(update_fields=["is_active"])
         return Response({"detail": "API key revoked."}, status=status.HTTP_200_OK)
+
+
+class DeleteAccountView(APIView):
+    """
+    POST /api/users/me/delete/
+    Body: { "password": "..." }
+
+    Permanently deletes the authenticated user's account.
+    Requires password confirmation for security.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        password = request.data.get("password", "").strip()
+        if not password:
+            return Response(
+                {"detail": "Password is required to delete your account."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not request.user.check_password(password):
+            return Response(
+                {"detail": "Incorrect password. Please try again."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        request.user.delete()
+        return Response({"detail": "Account permanently deleted."}, status=status.HTTP_200_OK)

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
@@ -21,13 +22,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _usernameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _confirmPasswordCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   bool _obscure = true;
+  bool _obscureConfirm = true;
   String _role = 'creator';
   String? _niche;
   Uint8List? _avatarBytes;
   String _avatarFilename = 'avatar.jpg';
   String? _error;
+  String _gender = '';
+  DateTime? _dateOfBirth;
+  bool _acceptTerms = false;
 
   // OTP verification step (shown after successful registration)
   bool _showOtp = false;
@@ -199,12 +205,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 14),
           _field(
+            ctrl: _confirmPasswordCtrl,
+            label: 'Confirm password',
+            hint: '••••••••',
+            icon: Icons.lock_outline_rounded,
+            obscure: _obscureConfirm,
+            suffix: IconButton(
+              icon: Icon(_obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  color: kMuted, size: 18),
+              onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+            ),
+            validator: (v) => v == _passwordCtrl.text ? null : 'Passwords do not match',
+          ),
+          const SizedBox(height: 14),
+          _field(
             ctrl: _phoneCtrl,
             label: 'Phone number (optional)',
             hint: '+27 82 123 4567',
             icon: Icons.phone_outlined,
             keyboardType: TextInputType.phone,
           ),
+          const SizedBox(height: 14),
+          _genderSelector(),
+          const SizedBox(height: 14),
+          _dobPicker(),
           if (_error != null) ...[
             const SizedBox(height: 14),
             Container(
@@ -221,7 +245,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ]),
             ),
           ],
-          const SizedBox(height: 22),
+          const SizedBox(height: 16),
+          // Terms & conditions
+          GestureDetector(
+            onTap: () => setState(() => _acceptTerms = !_acceptTerms),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              AnimatedContainer(
+                duration: 150.ms,
+                width: 20, height: 20,
+                decoration: BoxDecoration(
+                  color: _acceptTerms ? kPrimary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: _acceptTerms ? kPrimary : kMuted, width: 1.5),
+                ),
+                child: _acceptTerms
+                    ? const Icon(Icons.check_rounded, color: Colors.white, size: 13)
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(children: [
+                    TextSpan(text: 'I agree to the ',
+                        style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.5)),
+                    TextSpan(text: 'Terms of Service',
+                        style: GoogleFonts.dmSans(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                    TextSpan(text: ' and ',
+                        style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+                    TextSpan(text: 'Privacy Policy',
+                        style: GoogleFonts.dmSans(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 20),
           Consumer<AuthProvider>(builder: (_, auth, __) =>
             SizedBox(
               width: double.infinity,
@@ -242,12 +300,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
               ),
             ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'By signing up you agree to our Terms of Service and Privacy Policy.',
-            style: GoogleFonts.dmSans(color: kMuted, fontSize: 11, height: 1.5),
-            textAlign: TextAlign.center,
           ),
         ]),
       ),
@@ -418,6 +470,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_role == 'creator' && _niche != null) {
       try { await auth.api.updateMyCreatorProfile({'category': _niche}); } catch (_) {}
     }
+    // Save gender and DOB if provided
+    final profileData = <String, dynamic>{};
+    if (_gender.isNotEmpty) profileData['gender'] = _gender;
+    if (_dateOfBirth != null) {
+      profileData['date_of_birth'] = DateFormat('yyyy-MM-dd').format(_dateOfBirth!);
+    }
+    if (profileData.isNotEmpty) {
+      try { await auth.api.updateUserProfile(profileData); } catch (_) {}
+    }
     if (!mounted) return;
     if (_role == 'creator') {
       context.go('/onboarding');
@@ -472,6 +533,91 @@ class _RegisterScreenState extends State<RegisterScreen> {
             : 'avatar.jpg';
       });
     }
+  }
+
+  // ── Gender selector ──────────────────────────────────────────────────────────
+  Widget _genderSelector() {
+    const options = [
+      ('', 'Prefer not to say'),
+      ('male', 'Male'),
+      ('female', 'Female'),
+      ('non_binary', 'Non-binary'),
+    ];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Gender (optional)',
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+      const SizedBox(height: 8),
+      DropdownButtonFormField<String>(
+        value: _gender,
+        dropdownColor: kCardBg,
+        isExpanded: true,
+        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.person_outline_rounded, color: kMuted, size: 18),
+          filled: true, fillColor: kCardBg,
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kBorder)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kPrimary, width: 2)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+        items: options.map((o) => DropdownMenuItem(
+          value: o.$1,
+          child: Text(o.$2, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14)),
+        )).toList(),
+        onChanged: (v) => setState(() => _gender = v ?? ''),
+      ),
+    ]);
+  }
+
+  // ── Date of birth picker ──────────────────────────────────────────────────────
+  Widget _dobPicker() {
+    final label = _dateOfBirth != null
+        ? DateFormat('d MMMM yyyy').format(_dateOfBirth!)
+        : 'Select date of birth';
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Date of birth (optional, must be 16+)',
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+      const SizedBox(height: 8),
+      GestureDetector(
+        onTap: _pickDob,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: kCardBg, borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kBorder),
+          ),
+          child: Row(children: [
+            const Icon(Icons.cake_outlined, color: kMuted, size: 18),
+            const SizedBox(width: 10),
+            Text(label, style: GoogleFonts.dmSans(
+                color: _dateOfBirth != null ? Colors.white : kMuted, fontSize: 14)),
+          ]),
+        ),
+      ),
+    ]);
+  }
+
+  Future<void> _pickDob() async {
+    final now = DateTime.now();
+    final maxDate = DateTime(now.year - 16, now.month, now.day);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dateOfBirth ?? maxDate,
+      firstDate: DateTime(1920),
+      lastDate: maxDate,
+      helpText: 'Select date of birth (16+ only)',
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: kPrimary, onPrimary: Colors.white,
+            surface: kCardBg, onSurface: Colors.white,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _dateOfBirth = picked);
   }
 
   // ── Niche / category selector (creator only) ────────────────────────────────
@@ -636,6 +782,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_acceptTerms) {
+      setState(() => _error = 'Please accept the Terms of Service and Privacy Policy to continue.');
+      return;
+    }
     setState(() => _error = null);
     try {
       final auth = context.read<AuthProvider>();
@@ -668,6 +818,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _usernameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
     _phoneCtrl.dispose();
     _otpCtrl.dispose();
     super.dispose();
