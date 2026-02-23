@@ -202,6 +202,8 @@ class VerifyTipView(APIView):
     def get(self, request, reference):
         tip = get_object_or_404(Tip, paystack_reference=reference)
 
+        creator_slug = tip.creator.slug
+
         # Already resolved — no need to call Paystack again
         if tip.status in (Tip.Status.COMPLETED, Tip.Status.FAILED, Tip.Status.REFUNDED):
             return Response({
@@ -209,11 +211,12 @@ class VerifyTipView(APIView):
                 "tip_id": tip.id,
                 "amount": str(tip.amount),
                 "creator_net": str(tip.creator_net),
+                "creator_slug": creator_slug,
             })
 
         if not settings.PAYSTACK_SECRET_KEY:
             # Dev mode — just return current status
-            return Response({"status": tip.status, "tip_id": tip.id})
+            return Response({"status": tip.status, "tip_id": tip.id, "creator_slug": creator_slug})
 
         try:
             tx_data = ps.verify_transaction(reference)
@@ -235,6 +238,7 @@ class VerifyTipView(APIView):
             "tip_id": tip.id,
             "amount": str(tip.amount),
             "creator_net": str(tip.creator_net),
+            "creator_slug": creator_slug,
             "paystack_status": paystack_status,
         })
 

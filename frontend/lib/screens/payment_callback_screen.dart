@@ -6,7 +6,7 @@ import '../theme.dart';
 import '../widgets/app_logo.dart';
 
 /// Landing page after Paystack redirects back from checkout.
-/// Verifies the payment and shows success or failure.
+/// Verifies the payment and shows success, failure, or pending state.
 class PaymentCallbackScreen extends StatefulWidget {
   final String reference;
   const PaymentCallbackScreen({super.key, required this.reference});
@@ -17,8 +17,9 @@ class PaymentCallbackScreen extends StatefulWidget {
 
 class _PaymentCallbackScreenState extends State<PaymentCallbackScreen> {
   bool _loading = true;
-  bool _success = false;
-  String? _error;
+  // 'completed' | 'failed' | 'pending' | 'error'
+  String _state = 'pending';
+  String? _creatorSlug;
 
   @override
   void initState() {
@@ -26,19 +27,33 @@ class _PaymentCallbackScreenState extends State<PaymentCallbackScreen> {
     _verify();
   }
 
-  Future<void> _verify() async {
+  /// Calls the verify endpoint up to 4 times (2-second gaps) to handle the
+  /// brief window where Paystack's processing may lag behind the redirect.
+  Future<void> _verify({int attempt = 1}) async {
     try {
       final result = await ApiService().verifyTip(widget.reference);
       final status = result['status'] as String? ?? '';
-      if (mounted) {
-        setState(() {
-          _success = status == 'completed';
-          _loading = false;
-          if (!_success) _error = 'Payment could not be confirmed. Status: $status';
-        });
+      final slug   = result['creator_slug'] as String?;
+
+      if (status == 'completed') {
+        if (mounted) setState(() { _loading = false; _state = 'completed'; _creatorSlug = slug; });
+        return;
       }
-    } catch (e) {
-      if (mounted) setState(() { _loading = false; _error = 'Could not verify payment.'; });
+
+      if (status == 'failed') {
+        if (mounted) setState(() { _loading = false; _state = 'failed'; _creatorSlug = slug; });
+        return;
+      }
+
+      // Still pending — retry a few times before giving up
+      if (attempt < 4) {
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) await _verify(attempt: attempt + 1);
+      } else {
+        if (mounted) setState(() { _loading = false; _state = 'pending'; _creatorSlug = slug; });
+      }
+    } catch (_) {
+      if (mounted) setState(() { _loading = false; _state = 'error'; });
     }
   }
 
@@ -67,15 +82,8 @@ class _PaymentCallbackScreenState extends State<PaymentCallbackScreen> {
                 const SizedBox(height: 20),
                 Text('Confirming your payment…',
                     style: GoogleFonts.inter(color: kMuted, fontSize: 15)),
-              ] else if (_success) ...[
-                Container(
-                  width: 72, height: 72,
-                  decoration: BoxDecoration(
-                    color: kPrimary.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.favorite_rounded, color: kPrimary, size: 32),
-                ),
+              ] else if (_state == 'completed') ...[
+                _iconCircle(Icons.favorite_rounded, kPrimary),
                 const SizedBox(height: 24),
                 Text('Payment received!',
                     style: GoogleFonts.inter(
@@ -86,38 +94,66 @@ class _PaymentCallbackScreenState extends State<PaymentCallbackScreen> {
                     style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.5),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () => context.go('/'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimary, foregroundColor: Colors.white,
-                    elevation: 0, minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-                  ),
-                  child: Text('Back to TippingJar',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15)),
+                _btn('Back to TippingJar', kPrimary, () => context.go('/')),
+              ] else if (_state == 'failed') ...[
+                _iconCircle(Icons.credit_card_off_rounded, Colors.redAccent),
+                const SizedBox(height: 24),
+                Text('Payment was not completed',
+                    style: GoogleFonts.inter(
+                        color: Colors.white, fontWeight: FontWeight.w700, fontSize: 22),
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 10),
+                Text(
+                  'Your card was not charged. This can happen if the payment window was closed, '
+                  'the card was declined, or the session timed out.',
+                  style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6),
+                  textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: 32),
+                if (_creatorSlug != null)
+                  _btn('Try again', kPrimary,
+                      () => context.go('/creator/$_creatorSlug')),
+                const SizedBox(height: 10),
+                _btn('Go home', kCardBg, () => context.go('/')),
+              ] else if (_state == 'pending') ...[
+                _iconCircle(Icons.hourglass_top_rounded, Colors.amber),
+                const SizedBox(height: 24),
+                Text('Payment still processing',
+                    style: GoogleFonts.inter(
+                        color: Colors.white, fontWeight: FontWeight.w700, fontSize: 22),
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 10),
+                Text(
+                  'Your payment is taking a bit longer than usual. '
+                  'If your card was charged, the tip will be confirmed shortly.',
+                  style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                _btn('Check again', kPrimary, () {
+                  setState(() => _loading = true);
+                  _verify();
+                }),
+                const SizedBox(height: 10),
+                _btn('Go home', kCardBg, () => context.go('/')),
               ] else ...[
-                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 56),
-                const SizedBox(height: 20),
-                Text('Something went wrong',
+                _iconCircle(Icons.wifi_off_rounded, kMuted),
+                const SizedBox(height: 24),
+                Text('Could not reach the server',
                     style: GoogleFonts.inter(
                         color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 10),
-                Text(_error ?? 'Payment could not be verified.',
+                Text('Check your connection and try again.',
                     style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 28),
-                ElevatedButton(
-                  onPressed: () => context.go('/'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kCardBg, foregroundColor: Colors.white,
-                    elevation: 0, minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-                  ),
-                  child: Text('Go home',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15)),
-                ),
+                _btn('Retry', kPrimary, () {
+                  setState(() => _loading = true);
+                  _verify();
+                }),
+                const SizedBox(height: 10),
+                _btn('Go home', kCardBg, () => context.go('/')),
               ],
             ]),
           ),
@@ -125,4 +161,27 @@ class _PaymentCallbackScreenState extends State<PaymentCallbackScreen> {
       ),
     );
   }
+
+  Widget _iconCircle(IconData icon, Color color) => Container(
+    width: 72, height: 72,
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.12),
+      shape: BoxShape.circle,
+    ),
+    child: Icon(icon, color: color, size: 32),
+  );
+
+  Widget _btn(String label, Color bg, VoidCallback onTap) => SizedBox(
+    width: double.infinity, height: 50,
+    child: ElevatedButton(
+      onPressed: onTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: bg, foregroundColor: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+      ),
+      child: Text(label,
+          style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15)),
+    ),
+  );
 }
