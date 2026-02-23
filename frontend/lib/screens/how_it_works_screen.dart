@@ -46,7 +46,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
     (
       Icons.credit_card_rounded,
       'Pay securely',
-      'Enter your card details on our Stripe-powered checkout. Your payment info is never stored on TippingJar servers — it goes straight to Stripe\'s PCI-DSS certified vault.',
+      'Enter your card details on our fully encrypted, PCI-DSS compliant checkout. Your payment info is never stored on TippingJar servers — bank-grade security from end to end.',
       kBlue,
     ),
     (
@@ -72,8 +72,8 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
     ),
     (
       Icons.account_balance_rounded,
-      'Connect Stripe',
-      'Link your bank account via Stripe Connect in under 2 minutes. TippingJar never touches your money — Stripe sends funds directly to your bank on your payout schedule.',
+      'Connect your bank',
+      'Link your South African bank account in under 2 minutes. TippingJar never holds your money — funds go straight to your bank account, fast and reliable.',
       kBlue,
     ),
     (
@@ -87,11 +87,11 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
   static const _faqs = [
     (
       'How much does TippingJar take?',
-      'TippingJar charges 0% platform fee. Stripe\'s standard processing fee (2.9% + R0.30) applies to each transaction. That\'s it — no subscriptions, no hidden charges.'
+      'TippingJar charges a 3% platform fee per tip. A 3% payment processing fee (excl. VAT) also applies to each transaction. No subscriptions, no hidden charges — just transparent, simple pricing.'
     ),
     (
       'When do I get paid?',
-      'Stripe sends funds to your bank account on a rolling 2-day basis by default. You can configure weekly or monthly payouts in your Stripe dashboard.'
+      'Funds are settled to your linked bank account on a rolling basis after each successful tip. Payout timing depends on your bank but is typically within 1–2 business days.'
     ),
     (
       'Do fans need an account to tip?',
@@ -99,11 +99,11 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
     ),
     (
       'Which countries are supported?',
-      'TippingJar works in 48+ countries for receiving tips and accepts payments from fans worldwide. See Stripe\'s country availability list for the full breakdown.'
+      'TippingJar is currently available in South Africa only. Creators must be based in South Africa to receive payouts. We plan to expand to more countries soon.'
     ),
     (
       'Is my payment information safe?',
-      'Yes. TippingJar never stores card details. All payment data is handled exclusively by Stripe, which is PCI-DSS Level 1 certified — the highest level of payment security.'
+      'Yes. TippingJar never stores card details. All payment data is handled through a PCI-DSS Level 1 certified payment processor — the highest level of payment security available.'
     ),
     (
       'Can I set a monthly tip goal?',
@@ -111,7 +111,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
     ),
     (
       'What if a tip is refunded?',
-      'Fans can request a refund within 7 days of tipping. Refunds are processed via Stripe and deducted from your next payout. TippingJar will notify you by email.'
+      'Fans can request a refund within 7 days of tipping. Refunds are processed and deducted from your next payout. TippingJar will notify you by email.'
     ),
   ];
 
@@ -139,24 +139,34 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
     return Container(
       width: double.infinity,
       color: kDarker,
-      padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
-      child: Column(children: [
-        _tag('How it works'),
-        const SizedBox(height: 20),
-        Text('Simple for fans.\nPowerful for creators.',
-            style: headingXL(ctx),
-            textAlign: TextAlign.center)
-            .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
-        const SizedBox(height: 16),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: const Text(
-            'TippingJar removes every barrier between appreciation and action. No complicated setup, no waiting periods, no platform cuts.',
-            style: kBodyStyle,
-            textAlign: TextAlign.center,
+      child: Stack(
+        children: [
+          // Dot grid background
+          Positioned.fill(
+            child: CustomPaint(painter: _DotGridPainter()),
           ),
-        ).animate().fadeIn(delay: 150.ms, duration: 500.ms),
-      ]),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
+            child: Column(children: [
+              _tag('How it works'),
+              const SizedBox(height: 20),
+              Text('Simple for fans.\nPowerful for creators.',
+                  style: headingXL(ctx),
+                  textAlign: TextAlign.center)
+                  .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
+              const SizedBox(height: 16),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: const Text(
+                  'TippingJar removes every barrier between appreciation and action. No complicated setup, no waiting periods — just simple, transparent fees.',
+                  style: kBodyStyle,
+                  textAlign: TextAlign.center,
+                ),
+              ).animate().fadeIn(delay: 150.ms, duration: 500.ms),
+            ]),
+          ),
+        ],
+      ),
     );
   }
 
@@ -225,8 +235,8 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
     final items = [
       (kPrimary, 'Fan visits creator\'s page'),
       (kTeal,    'Picks an amount & adds a message'),
-      (kBlue,    'Pays via Stripe — fully encrypted'),
-      (kPrimary, 'Creator receives funds in 2 days'),
+      (kBlue,    'Pays securely — fully encrypted'),
+      (kPrimary, 'Creator receives funds in their bank account'),
       (kTeal,    'Creator sees tip on their dashboard'),
     ];
 
@@ -265,7 +275,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
   Widget _securityStrip(BuildContext ctx) {
     final badges = [
       (Icons.lock_rounded, 'PCI-DSS Level 1'),
-      (Icons.verified_rounded, 'Stripe Certified'),
+      (Icons.verified_rounded, 'Bank-grade Encryption'),
       (Icons.shield_rounded, 'Bank-grade TLS'),
       (Icons.no_encryption_gmailerrorred_rounded, 'Zero data stored'),
     ];
@@ -276,7 +286,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
         const Text('Your money is safe.',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26)),
         const SizedBox(height: 8),
-        const Text('All payments run through Stripe. We never see your card number.',
+        const Text('All payments are secured end-to-end. We never see your card number.',
             style: kBodyStyle, textAlign: TextAlign.center),
         const SizedBox(height: 36),
         Wrap(
@@ -399,6 +409,26 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
     ),
     child: Text(label, style: GoogleFonts.inter(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
   );
+}
+
+// ─── Dot grid background ─────────────────────────────────────────────────────
+class _DotGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..style = PaintingStyle.fill;
+    const spacing = 30.0;
+    const radius = 1.0;
+    for (double x = 0; x <= size.width + spacing; x += spacing) {
+      for (double y = 0; y <= size.height + spacing; y += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // ─── Step detail card ─────────────────────────────────────────────────────────
