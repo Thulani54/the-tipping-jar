@@ -34,18 +34,18 @@ class BlogScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(36),
           border: Border.all(color: kPrimary.withOpacity(0.3)),
         ),
-        child: Text('Blog', style: GoogleFonts.inter(
+        child: Text('Blog', style: GoogleFonts.dmSans(
             color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
       ).animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 20),
       Text('Stories, tips & insights',
-          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: 42, letterSpacing: -1.5),
           textAlign: TextAlign.center)
           .animate().fadeIn(delay: 80.ms).slideY(begin: 0.2),
       const SizedBox(height: 14),
       Text('Creator guides, product news, and the economics of tipping.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 17, height: 1.6),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 17, height: 1.6),
           textAlign: TextAlign.center)
           .animate().fadeIn(delay: 160.ms),
     ]),
@@ -135,31 +135,31 @@ class _FeaturedPost extends StatelessWidget {
           borderRadius: BorderRadius.circular(36),
           border: Border.all(color: color.withOpacity(0.3)),
         ),
-        child: Text(tag, style: GoogleFonts.inter(
+        child: Text(tag, style: GoogleFonts.dmSans(
             color: color, fontWeight: FontWeight.w600, fontSize: 12)),
       ),
       const SizedBox(height: 16),
-      Text(title, style: GoogleFonts.inter(color: Colors.white,
+      Text(title, style: GoogleFonts.dmSans(color: Colors.white,
           fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.8, height: 1.25)),
       const SizedBox(height: 12),
-      Text(excerpt, style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.65)),
+      Text(excerpt, style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.65)),
       const SizedBox(height: 20),
       Row(children: [
         Container(
           width: 28, height: 28,
           decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle),
-          child: Center(child: Text(author[0], style: GoogleFonts.inter(
+          child: Center(child: Text(author[0], style: GoogleFonts.dmSans(
               color: color, fontWeight: FontWeight.w800, fontSize: 12))),
         ),
         const SizedBox(width: 8),
-        Text(author, style: GoogleFonts.inter(
+        Text(author, style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(width: 16),
-        Text(date, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+        Text(date, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
         const SizedBox(width: 12),
-        Text('·', style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+        Text('·', style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
         const SizedBox(width: 12),
-        Text(readTime, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+        Text(readTime, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
       ]),
     ]),
   ).animate().fadeIn(duration: 400.ms);
@@ -185,23 +185,23 @@ class _ArticleCard extends StatelessWidget {
           color: article.color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(36),
         ),
-        child: Text(article.tag, style: GoogleFonts.inter(
+        child: Text(article.tag, style: GoogleFonts.dmSans(
             color: article.color, fontWeight: FontWeight.w600, fontSize: 11)),
       ),
       const SizedBox(height: 12),
-      Text(article.title, style: GoogleFonts.inter(color: Colors.white,
+      Text(article.title, style: GoogleFonts.dmSans(color: Colors.white,
           fontWeight: FontWeight.w700, fontSize: 15, height: 1.4)),
       const SizedBox(height: 8),
-      Text(article.excerpt, style: GoogleFonts.inter(
+      Text(article.excerpt, style: GoogleFonts.dmSans(
           color: kMuted, fontSize: 12, height: 1.6),
           maxLines: 3, overflow: TextOverflow.ellipsis),
       const SizedBox(height: 16),
       Row(children: [
-        Text(article.date, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+        Text(article.date, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
         const SizedBox(width: 8),
-        Text('·', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+        Text('·', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
         const SizedBox(width: 8),
-        Text(article.readTime, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+        Text(article.readTime, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
       ]),
     ]),
   ).animate().fadeIn(delay: delay.ms, duration: 400.ms).slideY(begin: 0.08);

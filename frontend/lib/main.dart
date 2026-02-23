@@ -51,7 +51,7 @@ class _TippingJarAppState extends State<TippingJarApp> {
           seedColor: _primary,
           brightness: Brightness.light,
         ),
-        textTheme: GoogleFonts.interTextTheme(),
+        textTheme: GoogleFonts.dmSansTextTheme(),
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
           backgroundColor: _primary,

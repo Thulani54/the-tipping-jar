@@ -115,9 +115,9 @@ class _FanDashboardScreenState extends State<FanDashboardScreen> {
     child: Column(mainAxisSize: MainAxisSize.min, children: [
       const Icon(Icons.wifi_off_rounded, color: kMuted, size: 48),
       const SizedBox(height: 16),
-      Text('Could not load your data', style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+      Text('Could not load your data', style: GoogleFonts.dmSans(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
-      Text(_error ?? '', style: GoogleFonts.inter(color: kMuted, fontSize: 12), textAlign: TextAlign.center),
+      Text(_error ?? '', style: GoogleFonts.dmSans(color: kMuted, fontSize: 12), textAlign: TextAlign.center),
       const SizedBox(height: 20),
       ElevatedButton(
         onPressed: _load,
@@ -243,10 +243,10 @@ class _FanDashboardScreenState extends State<FanDashboardScreen> {
         child: const Icon(Icons.volunteer_activism_outlined, color: kPrimary, size: 24),
       ),
       const SizedBox(height: 14),
-      Text('No tips sent yet', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+      Text('No tips sent yet', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
       const SizedBox(height: 6),
       Text('Find a creator you love and send your first tip!',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5),
           textAlign: TextAlign.center),
       const SizedBox(height: 20),
       ElevatedButton(
@@ -256,7 +256,7 @@ class _FanDashboardScreenState extends State<FanDashboardScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
-        child: Text('Browse creators', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+        child: Text('Browse creators', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
       ),
     ]),
   ).animate().fadeIn(duration: 400.ms);
@@ -264,7 +264,7 @@ class _FanDashboardScreenState extends State<FanDashboardScreen> {
   // ── Creators grid (wide) ──────────────────────────────────────────────────
   Widget _creatorsGrid() {
     if (_creators.isEmpty) {
-      return Center(child: Text('No creators yet', style: GoogleFonts.inter(color: kMuted)));
+      return Center(child: Text('No creators yet', style: GoogleFonts.dmSans(color: kMuted)));
     }
     return Wrap(
       spacing: 16, runSpacing: 16,
@@ -308,7 +308,7 @@ class _TopBar extends StatelessWidget {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const AppLogoIcon(size: 30),
               const SizedBox(width: 8),
-              Text('TippingJar', style: GoogleFonts.inter(
+              Text('TippingJar', style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w700,
                   fontSize: 16, letterSpacing: -0.3)),
             ]),
@@ -318,7 +318,7 @@ class _TopBar extends StatelessWidget {
           TextButton.icon(
             onPressed: () => context.go('/creators'),
             icon: const Icon(Icons.explore_outlined, size: 16, color: kMuted),
-            label: Text('Explore', style: GoogleFonts.inter(color: kMuted, fontSize: 13, fontWeight: FontWeight.w500)),
+            label: Text('Explore', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, fontWeight: FontWeight.w500)),
             style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
           ),
           const SizedBox(width: 4),
@@ -335,7 +335,7 @@ class _TopBar extends StatelessWidget {
                 child: Row(children: [
                   const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 16),
                   const SizedBox(width: 10),
-                  Text('Sign out', style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+                  Text('Sign out', style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
                 ]),
               ),
             ],
@@ -351,11 +351,11 @@ class _TopBar extends StatelessWidget {
                   decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
                   child: Center(
                     child: Text(username.isNotEmpty ? username[0].toUpperCase() : '?',
-                        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
+                        style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
                   ),
                 ),
                 const SizedBox(width: 7),
-                Text(username, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(username, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
                 const SizedBox(width: 4),
                 const Icon(Icons.keyboard_arrow_down_rounded, color: kMuted, size: 16),
               ]),
@@ -387,7 +387,7 @@ class _WelcomeCard extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('$greeting, $username 👋',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
                 fontSize: 22, letterSpacing: -0.5))
             .animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
         const SizedBox(height: 8),
@@ -395,13 +395,13 @@ class _WelcomeCard extends StatelessWidget {
           tipCount == 0
               ? 'Ready to support your first creator?'
               : 'You\'ve sent $tipCount tip${tipCount == 1 ? '' : 's'} so far — amazing!',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.5),
         ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
         const SizedBox(height: 20),
         OutlinedButton.icon(
           onPressed: () => context.go('/creators'),
           icon: const Icon(Icons.explore_outlined, size: 15),
-          label: Text('Discover creators', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
+          label: Text('Discover creators', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13)),
           style: OutlinedButton.styleFrom(
             foregroundColor: kPrimary,
             side: const BorderSide(color: kPrimary, width: 1.5),
@@ -450,9 +450,9 @@ class _StatChip extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(icon, color: kPrimary, size: 16),
           const SizedBox(height: 8),
-          Text(value, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
+          Text(value, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
           const SizedBox(height: 2),
-          Text(label, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+          Text(label, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
         ]),
       ).animate().fadeIn(delay: delay.ms, duration: 350.ms),
     );
@@ -471,17 +471,17 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Text(title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+        Text(title, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
         const Spacer(),
         if (trailing != null)
           GestureDetector(
             onTap: onTrailingTap,
-            child: Text(trailing!, style: GoogleFonts.inter(color: kMuted, fontSize: 12,
+            child: Text(trailing!, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12,
                 decoration: onTrailingTap != null ? TextDecoration.underline : null)),
           ),
       ]),
       if (subtitle != null)
-        Text(subtitle!, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+        Text(subtitle!, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
     ]);
   }
 }
@@ -515,7 +515,7 @@ class _TipCard extends StatelessWidget {
             width: 40, height: 40,
             decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
             child: Center(child: Text(_initials,
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13))),
+                style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13))),
           ),
           const SizedBox(width: 12),
           // Info
@@ -523,20 +523,20 @@ class _TipCard extends StatelessWidget {
             Row(children: [
               Expanded(
                 child: Text(tip.creatorDisplayName,
-                    style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                    style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
                     overflow: TextOverflow.ellipsis),
               ),
               Text('R${tip.amount.toStringAsFixed(2)}',
-                  style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+                  style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
             ]),
             if (tip.message.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(tip.message,
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.4),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.4),
                   maxLines: 2, overflow: TextOverflow.ellipsis),
             ],
             const SizedBox(height: 4),
-            Text(tip.relativeTime, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+            Text(tip.relativeTime, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
           ])),
           const SizedBox(width: 8),
           const Icon(Icons.chevron_right_rounded, color: kBorder, size: 18),
@@ -584,15 +584,15 @@ class _CreatorCardState extends State<_CreatorCard> {
               width: 44, height: 44,
               decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
               child: Center(child: Text(_initials,
-                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14))),
+                  style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14))),
             ),
             const SizedBox(height: 10),
             Text(widget.creator.displayName,
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 3),
             Text(widget.creator.tagline,
-                style: GoogleFonts.inter(color: kMuted, fontSize: 11, height: 1.4),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 11, height: 1.4),
                 maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 12),
             SizedBox(
@@ -606,7 +606,7 @@ class _CreatorCardState extends State<_CreatorCard> {
                   padding: const EdgeInsets.symmetric(vertical: 9),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                 ),
-                child: Text('Tip', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12)),
+                child: Text('Tip', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 12)),
               ),
             ),
           ]),
@@ -635,19 +635,19 @@ class _PledgeCard extends StatelessWidget {
             child: const Icon(Icons.repeat_rounded, color: kPrimary, size: 20)),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(pledge.creatorDisplayName, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+          Text(pledge.creatorDisplayName, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
           if (pledge.tierName != null)
-            Text(pledge.tierName!, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+            Text(pledge.tierName!, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
           if (pledge.nextChargeDate != null)
-            Text('Next: ${pledge.nextChargeDate}', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+            Text('Next: ${pledge.nextChargeDate}', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
         ])),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text('R${pledge.amount.toStringAsFixed(0)}/mo', style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+          Text('R${pledge.amount.toStringAsFixed(0)}/mo', style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(36)),
-            child: Text(pledge.status.toUpperCase(), style: GoogleFonts.inter(color: statusColor, fontSize: 10, fontWeight: FontWeight.w700)),
+            child: Text(pledge.status.toUpperCase(), style: GoogleFonts.dmSans(color: statusColor, fontSize: 10, fontWeight: FontWeight.w700)),
           ),
         ]),
         if (pledge.isActive) ...[
@@ -659,7 +659,7 @@ class _PledgeCard extends StatelessWidget {
               onRefresh();
             },
             style: TextButton.styleFrom(foregroundColor: Colors.redAccent, padding: EdgeInsets.zero, minimumSize: const Size(0, 32)),
-            child: Text('Cancel', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.redAccent)),
+            child: Text('Cancel', style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.redAccent)),
           ),
         ],
       ]),
@@ -683,19 +683,19 @@ class _StreakCard extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('${streak.currentStreak} month${streak.currentStreak == 1 ? '' : 's'} streak',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-          Text(streak.creatorDisplayName, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+          Text(streak.creatorDisplayName, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
           if (streak.badges.isNotEmpty) ...[
             const SizedBox(height: 6),
             Wrap(spacing: 6, children: streak.badges.map((b) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(36),
                   border: Border.all(color: kPrimary.withValues(alpha: 0.3))),
-              child: Text(b, style: GoogleFonts.inter(color: kPrimary, fontSize: 10, fontWeight: FontWeight.w700)),
+              child: Text(b, style: GoogleFonts.dmSans(color: kPrimary, fontSize: 10, fontWeight: FontWeight.w700)),
             )).toList()),
           ],
         ])),
-        Text('Best: ${streak.maxStreak}mo', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+        Text('Best: ${streak.maxStreak}mo', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
       ]),
     );
   }
@@ -721,19 +721,19 @@ class _FanCommissionCard extends StatelessWidget {
       decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(14), border: Border.all(color: kBorder)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: Text(commission.title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13))),
+          Expanded(child: Text(commission.title, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13))),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(color: _statusColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(36)),
-            child: Text(commission.status.toUpperCase(), style: GoogleFonts.inter(color: _statusColor, fontSize: 10, fontWeight: FontWeight.w700)),
+            child: Text(commission.status.toUpperCase(), style: GoogleFonts.dmSans(color: _statusColor, fontSize: 10, fontWeight: FontWeight.w700)),
           ),
         ]),
         const SizedBox(height: 4),
-        Text(commission.creatorDisplayName, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
-        Text('R${commission.agreedPrice.toStringAsFixed(0)} agreed', style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 12)),
+        Text(commission.creatorDisplayName, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+        Text('R${commission.agreedPrice.toStringAsFixed(0)} agreed', style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 12)),
         if (commission.deliveryNote.isNotEmpty) ...[
           const SizedBox(height: 6),
-          Text(commission.deliveryNote, style: GoogleFonts.inter(color: const Color(0xFF60A5FA), fontSize: 12, height: 1.4)),
+          Text(commission.deliveryNote, style: GoogleFonts.dmSans(color: const Color(0xFF60A5FA), fontSize: 12, height: 1.4)),
         ],
       ]),
     );
@@ -758,7 +758,7 @@ class _FanSecurityCardState extends State<_FanSecurityCard> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
             enabled ? '2FA enabled.' : '2FA disabled — no code required on login.',
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
           ),
           backgroundColor: kPrimary,
           behavior: SnackBarBehavior.floating,
@@ -770,7 +770,7 @@ class _FanSecurityCardState extends State<_FanSecurityCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Failed to update 2FA setting.',
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -791,13 +791,13 @@ class _FanSecurityCardState extends State<_FanSecurityCard> {
       child: Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Two-factor authentication (2FA)',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 4),
           Text(
             twoFaEnabled
                 ? 'A verification code is sent to your email on each login.'
                 : '2FA is off — anyone with your password can log in.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 12),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
           ),
         ])),
         const SizedBox(width: 16),

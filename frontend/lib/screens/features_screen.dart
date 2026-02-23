@@ -173,7 +173,7 @@ class _FeaturesScreenState extends State<FeaturesScreen>
                     borderRadius: BorderRadius.circular(36),
                   ),
                   child: Text(e.value,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.dmSans(
                           color: active ? Colors.white : kMuted,
                           fontWeight: FontWeight.w600,
                           fontSize: 13)),
@@ -211,7 +211,7 @@ class _FeaturesScreenState extends State<FeaturesScreen>
         _tag('Works with everything'),
         const SizedBox(height: 16),
         Text('Paste your link. Done.',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
                 fontSize: 32, letterSpacing: -1),
             textAlign: TextAlign.center),
         const SizedBox(height: 40),
@@ -228,8 +228,8 @@ class _FeaturesScreenState extends State<FeaturesScreen>
                 Icon(e.value.$1, color: kPrimary, size: 18),
                 const SizedBox(width: 10),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(e.value.$2, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                  Text(e.value.$3, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+                  Text(e.value.$2, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                  Text(e.value.$3, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
                 ]),
               ]),
             ).animate().fadeIn(delay: (e.key * 60).ms, duration: 400.ms);
@@ -244,7 +244,7 @@ class _FeaturesScreenState extends State<FeaturesScreen>
     padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
     child: Column(children: [
       Text('Get started for free — no credit card needed.',
-          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: 30, letterSpacing: -1),
           textAlign: TextAlign.center),
       const SizedBox(height: 28),
@@ -257,7 +257,7 @@ class _FeaturesScreenState extends State<FeaturesScreen>
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
         child: Text('Create your free page →',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
       ),
     ]),
   );
@@ -276,7 +276,7 @@ class _FeaturesScreenState extends State<FeaturesScreen>
       border: Border.all(color: kPrimary.withOpacity(0.3)),
       borderRadius: BorderRadius.circular(100),
     ),
-    child: Text(label, style: GoogleFonts.inter(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+    child: Text(label, style: GoogleFonts.dmSans(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
   );
 }
 
@@ -314,9 +314,9 @@ class _FeatureCardState extends State<_FeatureCard> {
             child: Icon(widget.icon, color: widget.color, size: 20),
           ),
           const SizedBox(height: 16),
-          Text(widget.title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+          Text(widget.title, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
           const SizedBox(height: 8),
-          Text(widget.body, style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.65)),
+          Text(widget.body, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.65)),
         ]),
       ).animate().fadeIn(delay: widget.delay.ms, duration: 400.ms).slideY(begin: 0.15, curve: Curves.easeOut),
     );

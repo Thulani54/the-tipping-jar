@@ -68,7 +68,7 @@ class _OtpScreenState extends State<OtpScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Code resent to your email.',
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
           backgroundColor: kPrimary, behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           duration: const Duration(seconds: 3),
@@ -92,7 +92,7 @@ class _OtpScreenState extends State<OtpScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('SMS code sent to your phone.',
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
           backgroundColor: kPrimary, behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           duration: const Duration(seconds: 3),
@@ -128,7 +128,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   const AppLogoIcon(size: 32),
                   const SizedBox(width: 8),
                   Text('TippingJar',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.dmSans(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
@@ -138,7 +138,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
                 // Title
                 Text(sendError != null ? 'Verification code' : 'Check your email',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
                         fontSize: 28,
@@ -157,19 +157,19 @@ class _OtpScreenState extends State<OtpScreen> {
                       const SizedBox(width: 10),
                       Expanded(child: Text(
                         'Could not send verification email. Tap "Resend code" below to try again.',
-                        style: GoogleFonts.inter(color: Colors.orange.shade200, fontSize: 13, height: 1.4),
+                        style: GoogleFonts.dmSans(color: Colors.orange.shade200, fontSize: 13, height: 1.4),
                       )),
                     ]),
                   ),
                 ] else
                   RichText(
                     text: TextSpan(
-                      style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
+                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.5),
                       children: [
                         const TextSpan(text: 'We sent a 6-digit code to '),
                         TextSpan(
                           text: email,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.dmSans(
                               color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
                         ),
                         const TextSpan(text: '. Enter it below to continue.'),
@@ -180,14 +180,14 @@ class _OtpScreenState extends State<OtpScreen> {
 
                 // Code input
                 Text('Verification code',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _codeCtrl,
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.dmSans(
                       color: Colors.white,
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
@@ -204,7 +204,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   decoration: InputDecoration(
                     counterText: '',
                     hintText: '······',
-                    hintStyle: GoogleFonts.inter(
+                    hintStyle: GoogleFonts.dmSans(
                         color: kMuted, fontSize: 28, letterSpacing: 8,
                         fontWeight: FontWeight.w700),
                     filled: true,
@@ -239,7 +239,7 @@ class _OtpScreenState extends State<OtpScreen> {
                       const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
                       const SizedBox(width: 8),
                       Expanded(child: Text(_error!,
-                          style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13))),
+                          style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13))),
                     ]),
                   ),
                 ],
@@ -265,7 +265,7 @@ class _OtpScreenState extends State<OtpScreen> {
                             child: CircularProgressIndicator(
                                 color: Colors.white, strokeWidth: 2))
                         : Text('Verify',
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.dmSans(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
                                 color: Colors.white)),
@@ -277,7 +277,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 Center(
                   child: _cooldown > 0
                       ? Text('Resend code in ${_cooldown}s',
-                          style: GoogleFonts.inter(color: kMuted, fontSize: 13))
+                          style: GoogleFonts.dmSans(color: kMuted, fontSize: 13))
                       : TextButton(
                           onPressed: _resending ? null : _resend,
                           child: _resending
@@ -286,7 +286,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                   child: CircularProgressIndicator(
                                       color: kMuted, strokeWidth: 2))
                               : Text('Resend code',
-                                  style: GoogleFonts.inter(
+                                  style: GoogleFonts.dmSans(
                                       color: kPrimary,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 13)),
@@ -304,7 +304,7 @@ class _OtpScreenState extends State<OtpScreen> {
                               child: CircularProgressIndicator(
                                   color: kMuted, strokeWidth: 2))
                           : Text('Send via SMS instead',
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.dmSans(
                                   color: kMuted,
                                   fontWeight: FontWeight.w500,
                                   fontSize: 13)),
@@ -316,7 +316,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   child: TextButton(
                     onPressed: () => context.read<AuthProvider>().logout(),
                     child: Text('Sign out',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.dmSans(
                             color: kMuted, fontSize: 12)),
                   ),
                 ),

@@ -33,13 +33,13 @@ class LegalScreen extends StatelessWidget {
     color: kDarker,
     child: Column(children: [
       Text(title,
-          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: 40, letterSpacing: -1.5),
           textAlign: TextAlign.center)
           .animate().fadeIn(duration: 400.ms).slideY(begin: 0.15),
       const SizedBox(height: 12),
       Text(subtitle,
-          style: GoogleFonts.inter(color: kMuted, fontSize: 15),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 15),
           textAlign: TextAlign.center)
           .animate().fadeIn(delay: 80.ms, duration: 400.ms),
     ]),
@@ -86,13 +86,13 @@ class _SectionWidget extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 36),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(section.heading,
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w700, fontSize: 18)),
         const SizedBox(height: 10),
         Container(height: 2, width: 32, color: kPrimary),
         const SizedBox(height: 14),
         Text(section.body,
-            style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.8)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.8)),
       ]),
     ).animate().fadeIn(delay: delay.ms, duration: 400.ms);
   }

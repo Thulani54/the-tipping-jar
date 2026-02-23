@@ -105,12 +105,12 @@ class _ContactScreenState extends State<ContactScreen> {
           border: Border.all(color: kPrimary.withOpacity(0.3)),
         ),
         child: Text('Support · tippingjar.co.za',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: kPrimary, fontWeight: FontWeight.w600, fontSize: 11)),
       ).animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 20),
       Text('Get in touch',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: w > 700 ? 48 : 32, letterSpacing: -1.5, height: 1.1),
           textAlign: TextAlign.center)
@@ -120,7 +120,7 @@ class _ContactScreenState extends State<ContactScreen> {
         constraints: const BoxConstraints(maxWidth: 520),
         child: Text(
           'Have a question, partnership idea, or need help? We respond within 1–2 business days.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 16, height: 1.65),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 16, height: 1.65),
           textAlign: TextAlign.center,
         ).animate().fadeIn(delay: 160.ms),
       ),
@@ -164,12 +164,12 @@ class _ContactScreenState extends State<ContactScreen> {
       ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
       const SizedBox(height: 24),
       Text('Message sent!',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.5),
           textAlign: TextAlign.center),
       const SizedBox(height: 12),
       Text('Thanks for reaching out. We\'ve sent a confirmation to ${_emailCtrl.text} and will get back to you within 1–2 business days.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.65),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.65),
           textAlign: TextAlign.center),
       const SizedBox(height: 28),
       OutlinedButton(
@@ -181,7 +181,7 @@ class _ContactScreenState extends State<ContactScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
         child: Text('Send another message',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
       ),
     ]),
   ).animate().fadeIn(duration: 400.ms);
@@ -190,11 +190,11 @@ class _ContactScreenState extends State<ContactScreen> {
     key: _formKey,
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Send us a message',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 24, letterSpacing: -0.5)),
       const SizedBox(height: 6),
       Text('All fields required.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
       const SizedBox(height: 28),
 
       // Name + Email row
@@ -226,7 +226,7 @@ class _ContactScreenState extends State<ContactScreen> {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: const Color(0xFFF87171).withOpacity(0.3)),
           ),
-          child: Text(_error!, style: GoogleFonts.inter(
+          child: Text(_error!, style: GoogleFonts.dmSans(
               color: const Color(0xFFF87171), fontSize: 13)),
         ),
       ],
@@ -246,7 +246,7 @@ class _ContactScreenState extends State<ContactScreen> {
               ? const SizedBox(width: 20, height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
               : Text('Send message',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w700,
+                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w700,
                       fontSize: 15, color: Colors.white)),
         ),
       ),
@@ -255,7 +255,7 @@ class _ContactScreenState extends State<ContactScreen> {
         child: GestureDetector(
           onTap: () => context.go('/dispute'),
           child: Text('Need to raise a dispute? Click here →',
-              style: GoogleFonts.inter(color: kPrimary, fontSize: 13,
+              style: GoogleFonts.dmSans(color: kPrimary, fontSize: 13,
                   decoration: TextDecoration.underline,
                   decorationColor: kPrimary)),
         ),
@@ -288,10 +288,10 @@ class _ContactScreenState extends State<ContactScreen> {
       maxLines: maxLines,
       keyboardType: keyboardType,
       validator: validator,
-      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+      style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+        hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
         prefixIcon: maxLines == 1 ? Icon(icon, color: kMuted, size: 18) : null,
         filled: true, fillColor: kCardBg,
         border: OutlineInputBorder(
@@ -315,7 +315,7 @@ class _ContactScreenState extends State<ContactScreen> {
     value: _subject,
     onChanged: (v) => setState(() => _subject = v ?? 'general'),
     dropdownColor: kCardBg,
-    style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
     decoration: InputDecoration(
       hintText: 'Subject',
       prefixIcon: const Icon(Icons.topic_outlined, color: kMuted, size: 18),
@@ -333,14 +333,14 @@ class _ContactScreenState extends State<ContactScreen> {
     ),
     items: _subjects.map((s) => DropdownMenuItem(
       value: s.$1,
-      child: Text(s.$2, style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+      child: Text(s.$2, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14)),
     )).toList(),
   );
 
   // ── Contact info cards ──────────────────────────────────────────────────────
   Widget _contactCards() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Text('Other ways to reach us',
-        style: GoogleFonts.inter(color: Colors.white,
+        style: GoogleFonts.dmSans(color: Colors.white,
             fontWeight: FontWeight.w700, fontSize: 18)),
     const SizedBox(height: 20),
     _InfoCard(
@@ -379,10 +379,10 @@ class _ContactScreenState extends State<ContactScreen> {
         const Icon(Icons.schedule_rounded, color: kMuted, size: 16),
         const SizedBox(width: 10),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Support hours', style: GoogleFonts.inter(
+          Text('Support hours', style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 2),
-          Text('Mon–Fri, 08:00–17:00 SAST', style: GoogleFonts.inter(
+          Text('Mon–Fri, 08:00–17:00 SAST', style: GoogleFonts.dmSans(
               color: kMuted, fontSize: 12)),
         ]),
       ]),
@@ -420,7 +420,7 @@ class _ContactScreenState extends State<ContactScreen> {
       color: kDark,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Frequently asked questions',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.5)),
         const SizedBox(height: 28),
         ConstrainedBox(
@@ -435,7 +435,7 @@ class _ContactScreenState extends State<ContactScreen> {
   Widget _footer() => Container(
     color: kDarker, padding: const EdgeInsets.all(24),
     child: Text('© 2026 TippingJar · support@tippingjar.co.za · tippingjar.co.za',
-        style: GoogleFonts.inter(color: kMuted, fontSize: 12),
+        style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
         textAlign: TextAlign.center),
   );
 }
@@ -473,13 +473,13 @@ class _InfoCard extends StatelessWidget {
         ),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: GoogleFonts.inter(color: kMuted, fontSize: 11,
+          Text(title, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11,
               fontWeight: FontWeight.w600, letterSpacing: 0.5)),
           const SizedBox(height: 2),
-          Text(value, style: GoogleFonts.inter(color: Colors.white,
+          Text(value, style: GoogleFonts.dmSans(color: Colors.white,
               fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 2),
-          Text(sub, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+          Text(sub, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
         ])),
         if (onTap != null)
           const Icon(Icons.arrow_forward_ios_rounded, color: kMuted, size: 12),
@@ -504,10 +504,10 @@ class _StatChip extends StatelessWidget {
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Icon(icon, color: kPrimary, size: 20),
       const SizedBox(height: 10),
-      Text(label, style: GoogleFonts.inter(
+      Text(label, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
       const SizedBox(height: 3),
-      Text(desc, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+      Text(desc, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
     ]),
   );
 }
@@ -535,14 +535,14 @@ class _FaqItemState extends State<_FaqItem> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: Text(widget.q, style: GoogleFonts.inter(
+          Expanded(child: Text(widget.q, style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))),
           Icon(_open ? Icons.remove_rounded : Icons.add_rounded,
               color: _open ? kPrimary : kMuted, size: 18),
         ]),
         if (_open) ...[
           const SizedBox(height: 10),
-          Text(widget.a, style: GoogleFonts.inter(
+          Text(widget.a, style: GoogleFonts.dmSans(
               color: kMuted, fontSize: 13, height: 1.6)),
         ],
       ]),

@@ -72,7 +72,7 @@ class _PaymentCallbackScreenState extends State<PaymentCallbackScreen> {
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   const AppLogoIcon(size: 32),
                   const SizedBox(width: 10),
-                  Text('TippingJar', style: GoogleFonts.inter(
+                  Text('TippingJar', style: GoogleFonts.dmSans(
                       color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
                 ]),
               ),
@@ -81,17 +81,17 @@ class _PaymentCallbackScreenState extends State<PaymentCallbackScreen> {
                 const CircularProgressIndicator(color: kPrimary, strokeWidth: 2),
                 const SizedBox(height: 20),
                 Text('Confirming your payment…',
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 15)),
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 15)),
               ] else if (_state == 'completed') ...[
                 _iconCircle(Icons.favorite_rounded, kPrimary),
                 const SizedBox(height: 24),
                 Text('Payment received!',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 10),
                 Text('Your tip has been sent. The creator will love it!',
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.5),
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.5),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 32),
                 _btn('Back to TippingJar', kPrimary, () => context.go('/')),
@@ -99,14 +99,14 @@ class _PaymentCallbackScreenState extends State<PaymentCallbackScreen> {
                 _iconCircle(Icons.credit_card_off_rounded, Colors.redAccent),
                 const SizedBox(height: 24),
                 Text('Payment was not completed',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: Colors.white, fontWeight: FontWeight.w700, fontSize: 22),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 10),
                 Text(
                   'Your card was not charged. This can happen if the payment window was closed, '
                   'the card was declined, or the session timed out.',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.6),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
@@ -119,14 +119,14 @@ class _PaymentCallbackScreenState extends State<PaymentCallbackScreen> {
                 _iconCircle(Icons.hourglass_top_rounded, Colors.amber),
                 const SizedBox(height: 24),
                 Text('Payment still processing',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: Colors.white, fontWeight: FontWeight.w700, fontSize: 22),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 10),
                 Text(
                   'Your payment is taking a bit longer than usual. '
                   'If your card was charged, the tip will be confirmed shortly.',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.6),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
@@ -140,12 +140,12 @@ class _PaymentCallbackScreenState extends State<PaymentCallbackScreen> {
                 _iconCircle(Icons.wifi_off_rounded, kMuted),
                 const SizedBox(height: 24),
                 Text('Could not reach the server',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 10),
                 Text('Check your connection and try again.',
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.5),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 28),
                 _btn('Retry', kPrimary, () {
@@ -181,7 +181,7 @@ class _PaymentCallbackScreenState extends State<PaymentCallbackScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
       ),
       child: Text(label,
-          style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15)),
+          style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 15)),
     ),
   );
 }

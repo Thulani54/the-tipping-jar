@@ -105,12 +105,12 @@ class _DisputeScreenState extends State<DisputeScreen> {
           border: Border.all(color: const Color(0xFFFBBF24).withOpacity(0.3)),
         ),
         child: Text('Dispute Centre · tippingjar.co.za',
-            style: GoogleFonts.inter(color: const Color(0xFFFBBF24),
+            style: GoogleFonts.dmSans(color: const Color(0xFFFBBF24),
                 fontWeight: FontWeight.w600, fontSize: 11)),
       ).animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 20),
       Text('File a dispute',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800,
               fontSize: w > 700 ? 44 : 30,
               letterSpacing: -1.5, height: 1.1),
@@ -121,7 +121,7 @@ class _DisputeScreenState extends State<DisputeScreen> {
         constraints: const BoxConstraints(maxWidth: 500),
         child: Text(
           'Tell us what went wrong. You\'ll receive a tracking link by email so you can follow your case.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.65),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.65),
           textAlign: TextAlign.center,
         ).animate().fadeIn(delay: 160.ms),
       ),
@@ -144,7 +144,7 @@ class _DisputeScreenState extends State<DisputeScreen> {
             ),
             const SizedBox(height: 28),
             Text('Your details',
-                style: GoogleFonts.inter(color: Colors.white,
+                style: GoogleFonts.dmSans(color: Colors.white,
                     fontWeight: FontWeight.w700, fontSize: 16)),
             const SizedBox(height: 14),
             _row(w,
@@ -156,7 +156,7 @@ class _DisputeScreenState extends State<DisputeScreen> {
             ),
             const SizedBox(height: 20),
             Text('Dispute details',
-                style: GoogleFonts.inter(color: Colors.white,
+                style: GoogleFonts.dmSans(color: Colors.white,
                     fontWeight: FontWeight.w700, fontSize: 16)),
             const SizedBox(height: 14),
             _reasonDropdown(),
@@ -179,7 +179,7 @@ class _DisputeScreenState extends State<DisputeScreen> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0xFFF87171).withOpacity(0.3)),
                 ),
-                child: Text(_error!, style: GoogleFonts.inter(
+                child: Text(_error!, style: GoogleFonts.dmSans(
                     color: const Color(0xFFF87171), fontSize: 13)),
               ),
             ],
@@ -201,7 +201,7 @@ class _DisputeScreenState extends State<DisputeScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Color(0xFF0A0F0D)))
                     : Text('Submit dispute',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w800,
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w800,
                             fontSize: 15, color: const Color(0xFF0A0F0D))),
               ),
             ),
@@ -235,12 +235,12 @@ class _DisputeScreenState extends State<DisputeScreen> {
             ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
             const SizedBox(height: 24),
             Text('Dispute filed successfully',
-                style: GoogleFonts.inter(color: Colors.white,
+                style: GoogleFonts.dmSans(color: Colors.white,
                     fontWeight: FontWeight.w800, fontSize: 22),
                 textAlign: TextAlign.center),
             const SizedBox(height: 10),
             Text(_result?['message'] ?? '',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.6),
                 textAlign: TextAlign.center),
             const SizedBox(height: 24),
             Container(
@@ -253,7 +253,7 @@ class _DisputeScreenState extends State<DisputeScreen> {
               child: Row(children: [
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Reference number',
-                      style: GoogleFonts.inter(color: kMuted, fontSize: 11,
+                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11,
                           fontWeight: FontWeight.w600, letterSpacing: 0.8)),
                   const SizedBox(height: 4),
                   Text(_result?['reference'] ?? '',
@@ -267,7 +267,7 @@ class _DisputeScreenState extends State<DisputeScreen> {
             ),
             const SizedBox(height: 16),
             Text('A tracking link has been sent to ${_emailCtrl.text}.',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 13),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
                 textAlign: TextAlign.center),
             const SizedBox(height: 24),
             SizedBox(
@@ -282,7 +282,7 @@ class _DisputeScreenState extends State<DisputeScreen> {
                       borderRadius: BorderRadius.circular(36)),
                 ),
                 child: Text('Back to contact',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
               ),
             ),
           ]),
@@ -305,9 +305,9 @@ class _DisputeScreenState extends State<DisputeScreen> {
     TextFormField(
       controller: ctrl, maxLines: maxLines, keyboardType: keyboardType,
       validator: validator,
-      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+      style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
-        hintText: hint, hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+        hintText: hint, hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
         prefixIcon: maxLines == 1 ? Icon(icon, color: kMuted, size: 18) : null,
         filled: true, fillColor: kCardBg,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
@@ -327,7 +327,7 @@ class _DisputeScreenState extends State<DisputeScreen> {
     value: _reason,
     onChanged: (v) => setState(() => _reason = v ?? 'other'),
     dropdownColor: kCardBg,
-    style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
     decoration: InputDecoration(
       prefixIcon: const Icon(Icons.help_outline_rounded, color: kMuted, size: 18),
       filled: true, fillColor: kCardBg,
@@ -341,7 +341,7 @@ class _DisputeScreenState extends State<DisputeScreen> {
     ),
     items: _reasons.map((r) => DropdownMenuItem(
       value: r.$1,
-      child: Text(r.$2, style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+      child: Text(r.$2, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14)),
     )).toList(),
   );
 
@@ -357,14 +357,14 @@ class _DisputeScreenState extends State<DisputeScreen> {
         Icon(icon, color: color, size: 16),
         const SizedBox(width: 10),
         Expanded(child: Text(text,
-            style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.55))),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.55))),
       ]),
     );
 
   Widget _footer() => Container(
     color: kDarker, padding: const EdgeInsets.all(24),
     child: Text('© 2026 TippingJar · support@tippingjar.co.za · tippingjar.co.za',
-        style: GoogleFonts.inter(color: kMuted, fontSize: 12),
+        style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
         textAlign: TextAlign.center),
   );
 }
@@ -418,11 +418,11 @@ class _DisputeTrackingScreenState extends State<DisputeTrackingScreen> {
       const Icon(Icons.search_off_rounded, color: kMuted, size: 48),
       const SizedBox(height: 16),
       Text('Dispute not found',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w700, fontSize: 22),
           textAlign: TextAlign.center),
       const SizedBox(height: 8),
-      Text(_error!, style: GoogleFonts.inter(color: kMuted, fontSize: 14),
+      Text(_error!, style: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
           textAlign: TextAlign.center),
       const SizedBox(height: 24),
       ElevatedButton(
@@ -434,7 +434,7 @@ class _DisputeTrackingScreenState extends State<DisputeTrackingScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
         child: Text('File a dispute',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white)),
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, color: Colors.white)),
       ),
     ]),
   ));
@@ -453,7 +453,7 @@ class _DisputeTrackingScreenState extends State<DisputeTrackingScreen> {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.arrow_back_ios_new_rounded, color: kMuted, size: 13),
                 const SizedBox(width: 6),
-                Text('Support', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+                Text('Support', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
               ]),
             ),
             const SizedBox(height: 28),
@@ -467,7 +467,7 @@ class _DisputeTrackingScreenState extends State<DisputeTrackingScreen> {
                         fontSize: 13, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 Text('Dispute Details',
-                    style: GoogleFonts.inter(color: Colors.white,
+                    style: GoogleFonts.dmSans(color: Colors.white,
                         fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.5)),
               ])),
               _StatusBadge(status: d.status, label: d.statusLabel),
@@ -488,7 +488,7 @@ class _DisputeTrackingScreenState extends State<DisputeTrackingScreen> {
                 border: Border.all(color: kBorder),
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Case details', style: GoogleFonts.inter(
+                Text('Case details', style: GoogleFonts.dmSans(
                     color: kMuted, fontSize: 11, fontWeight: FontWeight.w700,
                     letterSpacing: 1)),
                 const SizedBox(height: 16),
@@ -511,11 +511,11 @@ class _DisputeTrackingScreenState extends State<DisputeTrackingScreen> {
                 border: Border.all(color: kBorder),
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Description', style: GoogleFonts.inter(
+                Text('Description', style: GoogleFonts.dmSans(
                     color: kMuted, fontSize: 11, fontWeight: FontWeight.w700,
                     letterSpacing: 1)),
                 const SizedBox(height: 12),
-                Text(d.description, style: GoogleFonts.inter(
+                Text(d.description, style: GoogleFonts.dmSans(
                     color: Colors.white, fontSize: 14, height: 1.65)),
               ]),
             ).animate().fadeIn(delay: 200.ms),
@@ -533,11 +533,11 @@ class _DisputeTrackingScreenState extends State<DisputeTrackingScreen> {
                   Row(children: [
                     const Icon(Icons.support_agent_rounded, color: kPrimary, size: 15),
                     const SizedBox(width: 8),
-                    Text('Notes from our team', style: GoogleFonts.inter(
+                    Text('Notes from our team', style: GoogleFonts.dmSans(
                         color: kPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
                   ]),
                   const SizedBox(height: 10),
-                  Text(d.adminNotes, style: GoogleFonts.inter(
+                  Text(d.adminNotes, style: GoogleFonts.dmSans(
                       color: Colors.white, fontSize: 14, height: 1.6)),
                 ]),
               ).animate().fadeIn(delay: 250.ms),
@@ -547,7 +547,7 @@ class _DisputeTrackingScreenState extends State<DisputeTrackingScreen> {
             Center(
               child: Text(
                 'Need help? Email support@tippingjar.co.za with your reference ${d.reference}',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 12),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -561,9 +561,9 @@ class _DisputeTrackingScreenState extends State<DisputeTrackingScreen> {
     padding: const EdgeInsets.only(bottom: 12),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       SizedBox(width: 120,
-          child: Text(label, style: GoogleFonts.inter(
+          child: Text(label, style: GoogleFonts.dmSans(
               color: kMuted, fontSize: 12, fontWeight: FontWeight.w500))),
-      Expanded(child: Text(value, style: GoogleFonts.inter(
+      Expanded(child: Text(value, style: GoogleFonts.dmSans(
           color: Colors.white, fontSize: 13))),
     ]),
   );
@@ -594,7 +594,7 @@ class _StatusBadge extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       border: Border.all(color: _color.withOpacity(0.4)),
     ),
-    child: Text(label, style: GoogleFonts.inter(
+    child: Text(label, style: GoogleFonts.dmSans(
         color: _color, fontSize: 12, fontWeight: FontWeight.w700)),
   );
 }
@@ -660,11 +660,11 @@ class _StatusTimeline extends StatelessWidget {
           Expanded(child: Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(step.$2, style: GoogleFonts.inter(
+              Text(step.$2, style: GoogleFonts.dmSans(
                   color: done || current ? Colors.white : kMuted,
                   fontSize: 13, fontWeight: FontWeight.w600)),
               const SizedBox(height: 2),
-              Text(step.$3, style: GoogleFonts.inter(
+              Text(step.$3, style: GoogleFonts.dmSans(
                   color: color.withOpacity(0.7), fontSize: 11)),
               SizedBox(height: i < _steps.length - 1 ? 12 : 0),
             ]),
@@ -707,7 +707,7 @@ class _CopyButtonState extends State<_CopyButton> {
             color: _copied ? kPrimary : kMuted, size: 13),
         const SizedBox(width: 4),
         Text(_copied ? 'Copied' : 'Copy',
-            style: GoogleFonts.inter(color: _copied ? kPrimary : kMuted,
+            style: GoogleFonts.dmSans(color: _copied ? kPrimary : kMuted,
                 fontSize: 11, fontWeight: FontWeight.w600)),
       ]),
     ),

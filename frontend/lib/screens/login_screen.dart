@@ -45,13 +45,13 @@ class _LoginScreenState extends State<LoginScreen> {
               _logo(ctx),
               const Spacer(),
               Text('Welcome\nback.',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.dmSans(
                       color: Colors.white, fontWeight: FontWeight.w800,
                       fontSize: 52, height: 1.1, letterSpacing: -2))
                   .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
               const SizedBox(height: 20),
               Text('Sign in to manage your tip page,\ntrack earnings, and connect with fans.',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 16, height: 1.65))
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 16, height: 1.65))
                   .animate().fadeIn(delay: 150.ms, duration: 500.ms),
               const SizedBox(height: 48),
               ..._benefits()
@@ -60,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   .map((e) => _BenefitRow(text: e.value, delay: 200 + e.key * 80)),
               const Spacer(),
               Text('© 2026 TippingJar',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
             ],
           ),
         ),
@@ -100,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const AppLogoIcon(size: 36),
         const SizedBox(width: 10),
         Text('TippingJar',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -0.3)),
       ]),
     );
@@ -112,17 +112,17 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Sign in to your account',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.8))
             .animate().fadeIn(duration: 400.ms).slideY(begin: 0.15),
         const SizedBox(height: 6),
         Row(children: [
           Text("Don't have an account? ",
-              style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
           GestureDetector(
             onTap: () => ctx.go('/register'),
             child: Text('Sign up',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: kPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
           ),
         ]).animate().fadeIn(delay: 80.ms, duration: 400.ms),
@@ -157,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: Text('Forgot password?',
-                  style: GoogleFonts.inter(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+                  style: GoogleFonts.dmSans(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
             ),
             if (_error != null) ...[
               const SizedBox(height: 16),
@@ -171,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Row(children: [
                   const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
                   const SizedBox(width: 8),
-                  Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
+                  Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13)),
                 ]),
               ),
             ],
@@ -192,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: auth.loading
                       ? const SizedBox(width: 20, height: 20,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text('Sign in', style: GoogleFonts.inter(
+                      : Text('Sign in', style: GoogleFonts.dmSans(
                           fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
                 ),
               ),
@@ -203,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text('or continue with',
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
               ),
               Expanded(child: Divider(color: kBorder)),
             ]),
@@ -230,17 +230,17 @@ class _LoginScreenState extends State<LoginScreen> {
     String? Function(String?)? validator,
   }) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+      Text(label, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
       const SizedBox(height: 8),
       TextFormField(
         controller: ctrl,
         obscureText: obscure,
         keyboardType: keyboardType,
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
         validator: validator,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+          hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
           prefixIcon: Icon(icon, color: kMuted, size: 18),
           suffixIcon: suffix,
           filled: true,
@@ -272,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('$label sign-in coming soon!',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w500)),
           backgroundColor: kCardBg,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -281,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     },
     icon: Icon(icon, size: 18, color: Colors.white),
-    label: Text(label, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+    label: Text(label, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
     style: OutlinedButton.styleFrom(
       padding: const EdgeInsets.symmetric(vertical: 13),
       side: const BorderSide(color: kBorder),
@@ -337,7 +337,7 @@ class _BenefitRow extends StatelessWidget {
           child: const Icon(Icons.check, color: kPrimary, size: 13),
         ),
         const SizedBox(width: 12),
-        Text(text, style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+        Text(text, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
       ]),
     ).animate().fadeIn(delay: delay.ms, duration: 400.ms).slideX(begin: -0.1, curve: Curves.easeOut);
   }

@@ -95,7 +95,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const AppLogoIcon(size: 22),
       const SizedBox(width: 8),
       Text('TippingJar',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.dmSans(
               color: Colors.white,
               fontWeight: FontWeight.w700,
               fontSize: 15,
@@ -142,8 +142,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: (i) => setState(() => _navIndex = i),
       backgroundColor: Colors.transparent, elevation: 0,
       selectedItemColor: kPrimary, unselectedItemColor: kMuted,
-      selectedLabelStyle: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600),
-      unselectedLabelStyle: GoogleFonts.inter(fontSize: 10),
+      selectedLabelStyle: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.w600),
+      unselectedLabelStyle: GoogleFonts.dmSans(fontSize: 10),
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded, size: 20), label: 'Overview'),
         BottomNavigationBarItem(icon: Icon(Icons.volunteer_activism, size: 20), label: 'Tips'),
@@ -187,14 +187,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     child: Column(mainAxisSize: MainAxisSize.min, children: [
       const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
       const SizedBox(height: 16),
-      Text('Failed to load dashboard', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+      Text('Failed to load dashboard', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
       const SizedBox(height: 8),
-      Text(_error!, style: GoogleFonts.inter(color: kMuted, fontSize: 12), textAlign: TextAlign.center),
+      Text(_error!, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12), textAlign: TextAlign.center),
       const SizedBox(height: 20),
       ElevatedButton.icon(
         onPressed: _load,
         icon: const Icon(Icons.refresh_rounded, size: 16),
-        label: Text('Retry', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+        label: Text('Retry', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
         style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
             elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
       ),
@@ -205,7 +205,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final link = 'www.tippingjar.co.za/u/${_data?.profile.slug ?? ''}';
     Clipboard.setData(ClipboardData(text: link));
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Tip link copied!', style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+      content: Text('Tip link copied!', style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
       backgroundColor: kPrimary, behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       duration: const Duration(seconds: 2),
@@ -246,14 +246,14 @@ class _Sidebar extends StatelessWidget {
         child: Row(children: [
           const AppLogoIcon(size: 28),
           const SizedBox(width: 8),
-          Text('TippingJar', style: GoogleFonts.inter(
+          Text('TippingJar', style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
         ]),
       ),
       const SizedBox(height: 32),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Text('CREATOR', style: GoogleFonts.inter(
+        child: Text('CREATOR', style: GoogleFonts.dmSans(
             color: kMuted, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
       ),
       const SizedBox(height: 8),
@@ -298,7 +298,7 @@ class _SidebarItem extends StatelessWidget {
       child: Row(children: [
         Icon(icon, color: active ? kPrimary : danger ? Colors.redAccent : kMuted, size: 18),
         const SizedBox(width: 10),
-        Text(label, style: GoogleFonts.inter(
+        Text(label, style: GoogleFonts.dmSans(
             color: active ? kPrimary : danger ? Colors.redAccent : kMuted,
             fontWeight: active ? FontWeight.w600 : FontWeight.w500, fontSize: 13)),
       ]),
@@ -331,16 +331,16 @@ class _OverviewPage extends StatelessWidget {
           // Header
           Row(children: [
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('$greeting 👋', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+              Text('$greeting 👋', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
               Text(profile.displayName.isEmpty ? profile.username : profile.displayName,
-                  style: GoogleFonts.inter(color: Colors.white,
+                  style: GoogleFonts.dmSans(color: Colors.white,
                       fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
             ]),
             const Spacer(),
             ElevatedButton.icon(
               onPressed: onCopyLink,
               icon: const Icon(Icons.link_rounded, size: 16, color: Colors.white),
-              label: Text('Share tip link', style: GoogleFonts.inter(
+              label: Text('Share tip link', style: GoogleFonts.dmSans(
                   fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kPrimary, foregroundColor: Colors.white,
@@ -371,11 +371,11 @@ class _OverviewPage extends StatelessWidget {
 
           // Recent tips
           Row(children: [
-            Text('Recent tips', style: GoogleFonts.inter(
+            Text('Recent tips', style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
             const Spacer(),
             if (tips.isEmpty)
-              Text('No tips yet', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+              Text('No tips yet', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
           ]),
           const SizedBox(height: 14),
 
@@ -441,7 +441,7 @@ class _TipsPageState extends State<_TipsPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.all(w > 900 ? 32 : 20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Tips received', style: GoogleFonts.inter(color: Colors.white,
+          Text('Tips received', style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5))
               .animate().fadeIn(duration: 400.ms),
           const SizedBox(height: 20),
@@ -460,7 +460,7 @@ class _TipsPageState extends State<_TipsPage> {
                     borderRadius: BorderRadius.circular(36),
                     border: Border.all(color: active ? Colors.transparent : kBorder),
                   ),
-                  child: Text(f, style: GoogleFonts.inter(
+                  child: Text(f, style: GoogleFonts.dmSans(
                       color: active ? Colors.white : kMuted,
                       fontWeight: FontWeight.w600, fontSize: 13)),
                 ),
@@ -493,7 +493,7 @@ class _AnalyticsPage extends StatelessWidget {
     return SingleChildScrollView(
       padding: EdgeInsets.all(w > 900 ? 32 : 20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Analytics', style: GoogleFonts.inter(color: Colors.white,
+        Text('Analytics', style: GoogleFonts.dmSans(color: Colors.white,
             fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5))
             .animate().fadeIn(duration: 400.ms),
         const SizedBox(height: 24),
@@ -510,14 +510,14 @@ class _AnalyticsPage extends StatelessWidget {
               Icons.calendar_today_rounded, const Color(0xFFFBBF24), 180),
         ]),
         const SizedBox(height: 24),
-        Text('Top fans', style: GoogleFonts.inter(
+        Text('Top fans', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
         const SizedBox(height: 12),
         if (stats.topFans.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 20),
             child: Text('No tips received yet',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
           )
         else
           ...stats.topFans.asMap().entries.map((e) =>
@@ -565,7 +565,7 @@ class _ProfilePageState extends State<_ProfilePage> {
     return SingleChildScrollView(
       padding: EdgeInsets.all(w > 900 ? 32 : 20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Your profile', style: GoogleFonts.inter(color: Colors.white,
+        Text('Your profile', style: GoogleFonts.dmSans(color: Colors.white,
             fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5))
             .animate().fadeIn(duration: 400.ms),
         const SizedBox(height: 24),
@@ -582,20 +582,20 @@ class _ProfilePageState extends State<_ProfilePage> {
                 decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
                 child: Center(child: Text(
                   (_profile.displayName.isNotEmpty ? _profile.displayName : _profile.username)[0].toUpperCase(),
-                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26),
+                  style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26),
                 )),
               ),
               const SizedBox(width: 16),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(_profile.displayName.isNotEmpty ? _profile.displayName : _profile.username,
-                    style: GoogleFonts.inter(color: Colors.white,
+                    style: GoogleFonts.dmSans(color: Colors.white,
                         fontWeight: FontWeight.w700, fontSize: 18)),
                 Text('@${_profile.slug}',
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
                 if (_profile.tagline.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(_profile.tagline,
-                      style: GoogleFonts.inter(color: kMuted, fontSize: 12),
+                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
                       maxLines: 2, overflow: TextOverflow.ellipsis),
                 ],
               ])),
@@ -607,14 +607,14 @@ class _ProfilePageState extends State<_ProfilePage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                 ),
-                child: Text('Edit', style: GoogleFonts.inter(
+                child: Text('Edit', style: GoogleFonts.dmSans(
                     fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
               ),
             ]),
             const SizedBox(height: 20),
             const Divider(color: kBorder),
             const SizedBox(height: 16),
-            Text('Tip page link', style: GoogleFonts.inter(
+            Text('Tip page link', style: GoogleFonts.dmSans(
                 color: kMuted, fontWeight: FontWeight.w600, fontSize: 12)),
             const SizedBox(height: 8),
             Container(
@@ -625,7 +625,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                 const Icon(Icons.link_rounded, color: kMuted, size: 16),
                 const SizedBox(width: 10),
                 Expanded(child: Text(tipLink,
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 13))),
+                    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13))),
                 GestureDetector(
                   onTap: widget.onCopyLink,
                   child: const Icon(Icons.copy_rounded, color: kMuted, size: 16),
@@ -643,10 +643,10 @@ class _ProfilePageState extends State<_ProfilePage> {
               borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Text('Profile completion', style: GoogleFonts.inter(
+              Text('Profile completion', style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
               const Spacer(),
-              Text('${(progress * 100).round()}%', style: GoogleFonts.inter(
+              Text('${(progress * 100).round()}%', style: GoogleFonts.dmSans(
                   color: kPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
             ]),
             const SizedBox(height: 10),
@@ -664,7 +664,7 @@ class _ProfilePageState extends State<_ProfilePage> {
                 Icon(item.$2 ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
                     color: item.$2 ? kPrimary : kMuted, size: 16),
                 const SizedBox(width: 10),
-                Text(item.$1, style: GoogleFonts.inter(
+                Text(item.$1, style: GoogleFonts.dmSans(
                     color: item.$2 ? Colors.white : kMuted, fontSize: 13)),
               ]),
             )),
@@ -701,7 +701,7 @@ class _ProfilePageState extends State<_ProfilePage> {
       builder: (ctx) => StatefulBuilder(builder: (ctx, setS) => AlertDialog(
         backgroundColor: kCardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Edit profile', style: GoogleFonts.inter(
+        title: Text('Edit profile', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
         content: SingleChildScrollView(
           child: SizedBox(width: 400, child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -720,7 +720,7 @@ class _ProfilePageState extends State<_ProfilePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+            child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted)),
           ),
           ElevatedButton(
             onPressed: saving ? null : () async {
@@ -747,7 +747,7 @@ class _ProfilePageState extends State<_ProfilePage> {
             child: saving
                 ? const SizedBox(width: 16, height: 16,
                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : Text('Save', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+                : Text('Save', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
           ),
         ],
       )),
@@ -778,10 +778,10 @@ class _BankingCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Banking details', style: GoogleFonts.inter(
+            Text('Banking details', style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
             Text(profile.hasBankConnected ? 'Connected' : 'Not connected',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: profile.hasBankConnected ? kPrimary : kMuted, fontSize: 12)),
           ])),
           ElevatedButton(
@@ -797,7 +797,7 @@ class _BankingCard extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
             child: Text(profile.hasBankConnected ? 'Edit' : 'Connect',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13,
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13,
                     color: profile.hasBankConnected ? Colors.white : Colors.white)),
           ),
         ]),
@@ -833,7 +833,7 @@ class _BankingCard extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(builder: (ctx, setS) => AlertDialog(
         backgroundColor: kCardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Banking details', style: GoogleFonts.inter(
+        title: Text('Banking details', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
         content: SingleChildScrollView(
           child: SizedBox(width: 420, child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -849,7 +849,7 @@ class _BankingCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(child: Text(
                   'Your banking details are stored securely and used only for payouts.',
-                  style: GoogleFonts.inter(color: const Color(0xFFFBBF24), fontSize: 12, height: 1.4),
+                  style: GoogleFonts.dmSans(color: const Color(0xFFFBBF24), fontSize: 12, height: 1.4),
                 )),
               ]),
             ),
@@ -869,7 +869,7 @@ class _BankingCard extends StatelessWidget {
             const SizedBox(height: 12),
             // Account type
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Account type', style: GoogleFonts.inter(
+              Text('Account type', style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
               const SizedBox(height: 8),
               Row(children: [
@@ -881,13 +881,13 @@ class _BankingCard extends StatelessWidget {
             const SizedBox(height: 12),
             // Country
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Country', style: GoogleFonts.inter(
+              Text('Country', style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: country,
                 dropdownColor: kCardBg,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
                   filled: true, fillColor: kDark,
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
@@ -915,7 +915,7 @@ class _BankingCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+            child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted)),
           ),
           ElevatedButton(
             onPressed: saving ? null : () async {
@@ -946,7 +946,7 @@ class _BankingCard extends StatelessWidget {
             child: saving
                 ? const SizedBox(width: 16, height: 16,
                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : Text('Save details', style: GoogleFonts.inter(
+                : Text('Save details', style: GoogleFonts.dmSans(
                     fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
           ),
         ],
@@ -965,9 +965,9 @@ class _BankRow extends StatelessWidget {
     child: Row(children: [
       Icon(icon, color: kMuted, size: 15),
       const SizedBox(width: 10),
-      Text(label, style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      Text(label, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
       const Spacer(),
-      Text(value, style: GoogleFonts.inter(
+      Text(value, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
     ]),
   );
@@ -989,7 +989,7 @@ class _TypeChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(36),
         border: Border.all(color: active ? kPrimary : kBorder, width: active ? 2 : 1),
       ),
-      child: Text(label, style: GoogleFonts.inter(
+      child: Text(label, style: GoogleFonts.dmSans(
           color: active ? kPrimary : kMuted,
           fontWeight: FontWeight.w600, fontSize: 13)),
     ),
@@ -1012,7 +1012,7 @@ class _DlgField extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(label, style: GoogleFonts.inter(
+      Text(label, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
       const SizedBox(height: 8),
       TextFormField(
@@ -1021,12 +1021,12 @@ class _DlgField extends StatelessWidget {
         maxLength: maxLength,
         maxLines: maxLines ?? 1,
         keyboardType: keyboardType,
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+          hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
           filled: true, fillColor: kDark,
-          counterStyle: GoogleFonts.inter(color: kMuted, fontSize: 11),
+          counterStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 11),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: kBorder)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
@@ -1059,11 +1059,11 @@ class _StatCard extends StatelessWidget {
         child: Icon(icon, color: color, size: 18),
       ),
       const SizedBox(height: 14),
-      Text(value, style: GoogleFonts.inter(
+      Text(value, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800,
           fontSize: 20, letterSpacing: -0.5)),
       const SizedBox(height: 3),
-      Text(label, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+      Text(label, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
     ]),
   ).animate().fadeIn(delay: Duration(milliseconds: delay), duration: 400.ms).slideY(begin: 0.1);
 }
@@ -1091,27 +1091,27 @@ class _TipRow extends StatelessWidget {
             color: _avatarColor.withValues(alpha: 0.15), shape: BoxShape.circle),
         child: Center(child: Text(
           tip.tipperName.isNotEmpty ? tip.tipperName[0].toUpperCase() : 'A',
-          style: GoogleFonts.inter(color: _avatarColor, fontWeight: FontWeight.w800, fontSize: 15),
+          style: GoogleFonts.dmSans(color: _avatarColor, fontWeight: FontWeight.w800, fontSize: 15),
         )),
       ),
       const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text(tip.tipperName, style: GoogleFonts.inter(
+          Text(tip.tipperName, style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
           const SizedBox(width: 8),
-          Text(tip.relativeTime, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+          Text(tip.relativeTime, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
         ]),
         if (tip.message.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 3),
-            child: Text(tip.message, style: GoogleFonts.inter(
+            child: Text(tip.message, style: GoogleFonts.dmSans(
                 color: kMuted, fontSize: 12, height: 1.4),
                 maxLines: 2, overflow: TextOverflow.ellipsis),
           ),
       ])),
       const SizedBox(width: 12),
-      Text('R${tip.amount.toStringAsFixed(2)}', style: GoogleFonts.inter(
+      Text('R${tip.amount.toStringAsFixed(2)}', style: GoogleFonts.dmSans(
           color: kPrimary, fontWeight: FontWeight.w800, fontSize: 15)),
     ]),
   );
@@ -1131,10 +1131,10 @@ class _WeeklyChart extends StatelessWidget {
           borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text('This week', style: GoogleFonts.inter(
+          Text('This week', style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
           const Spacer(),
-          Text('R${total.toStringAsFixed(0)} total', style: GoogleFonts.inter(
+          Text('R${total.toStringAsFixed(0)} total', style: GoogleFonts.dmSans(
               color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
         ]),
         const SizedBox(height: 20),
@@ -1217,13 +1217,13 @@ class _TopFanRow extends StatelessWidget {
     decoration: BoxDecoration(color: kCardBg,
         borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorder)),
     child: Row(children: [
-      Text('#$rank', style: GoogleFonts.inter(
+      Text('#$rank', style: GoogleFonts.dmSans(
           color: rank <= 3 ? kPrimary : kMuted,
           fontWeight: FontWeight.w800, fontSize: 14)),
       const SizedBox(width: 14),
-      Expanded(child: Text(name, style: GoogleFonts.inter(
+      Expanded(child: Text(name, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13))),
-      Text(amount, style: GoogleFonts.inter(
+      Text(amount, style: GoogleFonts.dmSans(
           color: kPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
     ]),
   ).animate().fadeIn(delay: Duration(milliseconds: rank * 50), duration: 300.ms);
@@ -1248,13 +1248,13 @@ class _PayoutBanner extends StatelessWidget {
             child: const Icon(Icons.account_balance_rounded, color: kPrimary, size: 18),
           ),
           const SizedBox(width: 12),
-          Text('Payout Details', style: GoogleFonts.inter(
+          Text('Payout Details', style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
         ]),
         content: Column(mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('R${pendingPayout.toStringAsFixed(2)} is pending payout to your linked bank account.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5)),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5)),
           const SizedBox(height: 14),
           _payoutRow(Icons.schedule_rounded, 'Arrives in 1–2 business days after Stripe processes your payout.'),
           _payoutRow(Icons.account_balance_rounded, 'Paid directly to the bank account set up in your Profile → Banking Details.'),
@@ -1263,14 +1263,14 @@ class _PayoutBanner extends StatelessWidget {
           GestureDetector(
             onTap: () { Navigator.of(context).pop(); },
             child: Text('Update banking details in Profile →',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ]),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Got it', style: GoogleFonts.inter(
+            child: Text('Got it', style: GoogleFonts.dmSans(
                 color: kPrimary, fontWeight: FontWeight.w600)),
           ),
         ],
@@ -1283,7 +1283,7 @@ class _PayoutBanner extends StatelessWidget {
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Icon(icon, size: 14, color: kPrimary),
       const SizedBox(width: 8),
-      Expanded(child: Text(text, style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.5))),
+      Expanded(child: Text(text, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.5))),
     ]),
   );
 
@@ -1305,10 +1305,10 @@ class _PayoutBanner extends StatelessWidget {
       const SizedBox(width: 14),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('R${pendingPayout.toStringAsFixed(2)} pending payout',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
         Text('Arrives in your bank in 1-2 business days.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
       ])),
       const SizedBox(width: 12),
       ElevatedButton(
@@ -1318,7 +1318,7 @@ class _PayoutBanner extends StatelessWidget {
             elevation: 0, shadowColor: Colors.transparent,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
-        child: Text('Request payout', style: GoogleFonts.inter(
+        child: Text('Request payout', style: GoogleFonts.dmSans(
             fontWeight: FontWeight.w600, fontSize: 12, color: Colors.white)),
       ),
     ]),
@@ -1337,11 +1337,11 @@ class _EmptyTips extends StatelessWidget {
         child: const Icon(Icons.volunteer_activism, color: kPrimary, size: 26),
       ),
       const SizedBox(height: 14),
-      Text('No tips yet', style: GoogleFonts.inter(
+      Text('No tips yet', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
       const SizedBox(height: 6),
       Text('Share your tip link to start receiving tips.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
     ]),
   );
 }
@@ -1359,10 +1359,10 @@ class _BankCta extends StatelessWidget {
       const Icon(Icons.warning_amber_rounded, color: Color(0xFFFBBF24), size: 20),
       const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Connect your bank to receive payouts', style: GoogleFonts.inter(
+        Text('Connect your bank to receive payouts', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
         Text('Go to Profile → Banking details to add your account.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
       ])),
     ]),
   );
@@ -1403,25 +1403,25 @@ class _ContentPageState extends State<_ContentPage> {
       child: _loading
           ? const Center(child: CircularProgressIndicator(color: kPrimary))
           : _error != null
-              ? Center(child: Text(_error!, style: GoogleFonts.inter(color: kMuted)))
+              ? Center(child: Text(_error!, style: GoogleFonts.dmSans(color: kMuted)))
               : ListView(
                   padding: const EdgeInsets.all(28),
                   children: [
                     // Header
                     Row(children: [
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('Exclusive Content', style: GoogleFonts.inter(
+                        Text('Exclusive Content', style: GoogleFonts.dmSans(
                             color: Colors.white, fontWeight: FontWeight.w800,
                             fontSize: 22, letterSpacing: -0.5)),
                         const SizedBox(height: 4),
                         Text('Only tippers who have sent you money can unlock these posts.',
-                            style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+                            style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
                       ])),
                       const SizedBox(width: 16),
                       ElevatedButton.icon(
                         onPressed: () => _showPostDialog(context),
                         icon: const Icon(Icons.add_rounded, size: 16),
-                        label: Text('New post', style: GoogleFonts.inter(
+                        label: Text('New post', style: GoogleFonts.dmSans(
                             fontWeight: FontWeight.w700, fontSize: 13)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: kPrimary, foregroundColor: Colors.white,
@@ -1458,18 +1458,18 @@ class _ContentPageState extends State<_ContentPage> {
           child: const Icon(Icons.photo_library_outlined, color: kPrimary, size: 32),
         ),
         const SizedBox(height: 20),
-        Text('No posts yet', style: GoogleFonts.inter(
+        Text('No posts yet', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
         const SizedBox(height: 8),
         Text('Create exclusive content that only your tippers can unlock.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.5),
             textAlign: TextAlign.center),
         const SizedBox(height: 24),
         ElevatedButton.icon(
           onPressed: () => _showPostDialog(context),
           icon: const Icon(Icons.add_rounded, size: 16),
           label: Text('Create your first post',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
           style: ElevatedButton.styleFrom(
             backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
@@ -1487,14 +1487,14 @@ class _ContentPageState extends State<_ContentPage> {
         backgroundColor: kCardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Delete "${post.title}"?',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w700, fontSize: 16)),
         content: Text('This post will be permanently deleted.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+            child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -1502,7 +1502,7 @@ class _ContentPageState extends State<_ContentPage> {
                 backgroundColor: Colors.redAccent, foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
-            child: Text('Delete', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            child: Text('Delete', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -1568,7 +1568,7 @@ class _PostCard extends StatelessWidget {
       ),
       const SizedBox(width: 14),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(post.title, style: GoogleFonts.inter(
+        Text(post.title, style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
             maxLines: 1, overflow: TextOverflow.ellipsis),
         const SizedBox(height: 4),
@@ -1578,17 +1578,17 @@ class _PostCard extends StatelessWidget {
             decoration: BoxDecoration(
                 color: _typeColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(36)),
-            child: Text(post.postType.toUpperCase(), style: GoogleFonts.inter(
+            child: Text(post.postType.toUpperCase(), style: GoogleFonts.dmSans(
                 color: _typeColor, fontSize: 10, fontWeight: FontWeight.w700)),
           ),
           const SizedBox(width: 8),
           Text(
             '${post.createdAt.day}/${post.createdAt.month}/${post.createdAt.year}',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 11),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 11),
           ),
           const SizedBox(width: 8),
           if (!post.isPublished)
-            Text('Draft', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+            Text('Draft', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
         ]),
       ])),
       PopupMenuButton<String>(
@@ -1603,12 +1603,12 @@ class _PostCard extends StatelessWidget {
           PopupMenuItem(value: 'edit', child: Row(children: [
             const Icon(Icons.edit_rounded, color: Colors.white, size: 15),
             const SizedBox(width: 10),
-            Text('Edit', style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+            Text('Edit', style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
           ])),
           PopupMenuItem(value: 'delete', child: Row(children: [
             const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 15),
             const SizedBox(width: 10),
-            Text('Delete', style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
+            Text('Delete', style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13)),
           ])),
         ],
         child: Container(
@@ -1714,7 +1714,7 @@ class _PostFormDialogState extends State<_PostFormDialog> {
 
   InputDecoration _deco(String hint) => InputDecoration(
     hintText: hint,
-    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+    hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
     filled: true, fillColor: kDark,
     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: kBorder)),
@@ -1746,7 +1746,7 @@ class _PostFormDialogState extends State<_PostFormDialog> {
                   child: const Icon(Icons.photo_library_outlined, color: kPrimary, size: 18),
                 ),
                 const SizedBox(width: 12),
-                Text(isEdit ? 'Edit post' : 'New post', style: GoogleFonts.inter(
+                Text(isEdit ? 'Edit post' : 'New post', style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
                 const Spacer(),
                 IconButton(
@@ -1757,24 +1757,24 @@ class _PostFormDialogState extends State<_PostFormDialog> {
               const SizedBox(height: 24),
 
               // Title
-              Text('Title *', style: GoogleFonts.inter(
+              Text('Title *', style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _titleCtrl,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 decoration: _deco('Post title'),
               ),
               const SizedBox(height: 16),
 
               // Post type
-              Text('Post type', style: GoogleFonts.inter(
+              Text('Post type', style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: _postType,
                 dropdownColor: kCardBg,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 decoration: _deco(''),
                 items: const [
                   DropdownMenuItem(value: 'text',  child: Text('Text')),
@@ -1787,25 +1787,25 @@ class _PostFormDialogState extends State<_PostFormDialog> {
               const SizedBox(height: 16),
 
               // Body
-              Text('Body (optional)', style: GoogleFonts.inter(
+              Text('Body (optional)', style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _bodyCtrl,
                 maxLines: 4,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 decoration: _deco('Write your exclusive content here…'),
               ),
               const SizedBox(height: 16),
 
               // Video URL (only for video type)
               if (_postType == 'video') ...[
-                Text('Video URL (YouTube / Vimeo)', style: GoogleFonts.inter(
+                Text('Video URL (YouTube / Vimeo)', style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _videoUrlCtrl,
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                   decoration: _deco('https://youtube.com/watch?v=...'),
                 ),
                 const SizedBox(height: 16),
@@ -1813,7 +1813,7 @@ class _PostFormDialogState extends State<_PostFormDialog> {
 
               // File picker (for image/file types)
               if (_postType == 'image' || _postType == 'file') ...[
-                Text('Upload file', style: GoogleFonts.inter(
+                Text('Upload file', style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
                 const SizedBox(height: 8),
                 GestureDetector(
@@ -1835,7 +1835,7 @@ class _PostFormDialogState extends State<_PostFormDialog> {
                         _pickedFileName ?? (widget.post?.mediaUrl != null
                             ? 'Current file — tap to replace'
                             : 'Tap to choose a file'),
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.dmSans(
                             color: _pickedFileName != null ? kPrimary : kMuted, fontSize: 13),
                         overflow: TextOverflow.ellipsis,
                       )),
@@ -1847,7 +1847,7 @@ class _PostFormDialogState extends State<_PostFormDialog> {
 
               // Published toggle
               Row(children: [
-                Expanded(child: Text('Published', style: GoogleFonts.inter(
+                Expanded(child: Text('Published', style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13))),
                 Switch(
                   value: _isPublished,
@@ -1858,14 +1858,14 @@ class _PostFormDialogState extends State<_PostFormDialog> {
 
               if (_error != null) ...[
                 const SizedBox(height: 12),
-                Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
+                Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13)),
               ],
               const SizedBox(height: 24),
 
               Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: GoogleFonts.inter(
+                  child: Text('Cancel', style: GoogleFonts.dmSans(
                       color: kMuted, fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(width: 12),
@@ -1881,7 +1881,7 @@ class _PostFormDialogState extends State<_PostFormDialog> {
                       ? const SizedBox(width: 16, height: 16,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : Text(isEdit ? 'Save changes' : 'Publish post',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                          style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
                 ),
               ]),
             ]),
@@ -1930,24 +1930,24 @@ class _JarsPageState extends State<_JarsPage> {
       child: _loading
           ? const Center(child: CircularProgressIndicator(color: kPrimary))
           : _error != null
-              ? Center(child: Text(_error!, style: GoogleFonts.inter(color: kMuted)))
+              ? Center(child: Text(_error!, style: GoogleFonts.dmSans(color: kMuted)))
               : ListView(
                   padding: const EdgeInsets.all(28),
                   children: [
                     // Header
                     Row(children: [
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('Your Jars', style: GoogleFonts.inter(
+                        Text('Your Jars', style: GoogleFonts.dmSans(
                             color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
                         const SizedBox(height: 4),
                         Text('Create named jars for campaigns, goals, or specific purposes.',
-                            style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+                            style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
                       ])),
                       const SizedBox(width: 16),
                       ElevatedButton.icon(
                         onPressed: () => _showCreateDialog(context),
                         icon: const Icon(Icons.add_rounded, size: 16),
-                        label: Text('New jar', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+                        label: Text('New jar', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: kPrimary, foregroundColor: Colors.white,
                           elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
@@ -1984,17 +1984,17 @@ class _JarsPageState extends State<_JarsPage> {
           child: const Icon(Icons.savings_rounded, color: kPrimary, size: 32),
         ),
         const SizedBox(height: 20),
-        Text('No jars yet', style: GoogleFonts.inter(
+        Text('No jars yet', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
         const SizedBox(height: 8),
         Text('Create a jar for a campaign, project,\nor any reason you want to collect tips.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.5),
             textAlign: TextAlign.center),
         const SizedBox(height: 24),
         ElevatedButton.icon(
           onPressed: () => _showCreateDialog(context),
           icon: const Icon(Icons.add_rounded, size: 16),
-          label: Text('Create your first jar', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+          label: Text('Create your first jar', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
           style: ElevatedButton.styleFrom(
             backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
@@ -2009,7 +2009,7 @@ class _JarsPageState extends State<_JarsPage> {
     final link = 'www.tippingjar.co.za/creator/${widget.profile.slug}/jar/${jar.slug}';
     Clipboard.setData(ClipboardData(text: link));
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Jar link copied!', style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+      content: Text('Jar link copied!', style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
       backgroundColor: kPrimary, behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       duration: const Duration(seconds: 2),
@@ -2023,17 +2023,17 @@ class _JarsPageState extends State<_JarsPage> {
         backgroundColor: kCardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Delete "${jar.name}"?',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
         content: Text('This jar will be deactivated. Existing tips will be preserved.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-              child: Text('Cancel', style: GoogleFonts.inter(color: kMuted))),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white,
                 elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
-            child: Text('Delete', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            child: Text('Delete', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -2139,10 +2139,10 @@ class _JarDashCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(jar.name, style: GoogleFonts.inter(
+            Text(jar.name, style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
             if (jar.description.isNotEmpty)
-              Text(jar.description, style: GoogleFonts.inter(color: kMuted, fontSize: 12),
+              Text(jar.description, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
           ])),
           // Actions
@@ -2186,9 +2186,9 @@ class _JarDashCard extends StatelessWidget {
         if (progress != null) ...[
           const SizedBox(height: 12),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('Progress', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+            Text('Progress', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
             Text('${jar.progressPct!.toStringAsFixed(1)}%',
-                style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11)),
+                style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11)),
           ]),
           const SizedBox(height: 6),
           ClipRRect(
@@ -2217,7 +2217,7 @@ class _JarDashCard extends StatelessWidget {
               const Icon(Icons.link_rounded, color: kPrimary, size: 14),
               const SizedBox(width: 6),
               Text('www.tippingjar.co.za/creator/$profileSlug/jar/${jar.slug}',
-                  style: GoogleFonts.inter(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w500),
+                  style: GoogleFonts.dmSans(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w500),
                   overflow: TextOverflow.ellipsis),
             ]),
           ),
@@ -2233,7 +2233,7 @@ class _JarDashCard extends StatelessWidget {
     child: Row(mainAxisSize: MainAxisSize.min, children: [
       Icon(icon, color: kMuted, size: 12),
       const SizedBox(width: 5),
-      Text(label, style: GoogleFonts.inter(color: kMuted, fontSize: 11, fontWeight: FontWeight.w500)),
+      Text(label, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11, fontWeight: FontWeight.w500)),
     ]),
   );
 
@@ -2243,7 +2243,7 @@ class _JarDashCard extends StatelessWidget {
         child: Row(children: [
           Icon(icon, color: color, size: 15),
           const SizedBox(width: 10),
-          Text(label, style: GoogleFonts.inter(color: color, fontSize: 13)),
+          Text(label, style: GoogleFonts.dmSans(color: color, fontSize: 13)),
         ]),
       );
 }
@@ -2289,7 +2289,7 @@ class _JarFormDialogState extends State<_JarFormDialog> {
                   child: const Icon(Icons.savings_rounded, color: kPrimary, size: 18),
                 ),
                 const SizedBox(width: 12),
-                Text(widget.title, style: GoogleFonts.inter(
+                Text(widget.title, style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
                 const Spacer(),
                 IconButton(
@@ -2303,7 +2303,7 @@ class _JarFormDialogState extends State<_JarFormDialog> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: widget.nameCtrl,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 validator: (v) => (v?.trim().length ?? 0) >= 2 ? null : 'Min 2 characters',
                 decoration: _deco('e.g. New Laptop Fund'),
               ),
@@ -2314,7 +2314,7 @@ class _JarFormDialogState extends State<_JarFormDialog> {
               TextFormField(
                 controller: widget.descCtrl,
                 maxLines: 3,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 decoration: _deco('Tell people what this jar is for…'),
               ),
               const SizedBox(height: 16),
@@ -2324,26 +2324,26 @@ class _JarFormDialogState extends State<_JarFormDialog> {
               TextFormField(
                 controller: widget.goalCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return null;
                   if (double.tryParse(v.trim()) == null) return 'Enter a valid number';
                   return null;
                 },
                 decoration: _deco('e.g. 500').copyWith(prefixText: 'R  ',
-                    prefixStyle: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+                    prefixStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
               ),
 
               if (_error != null) ...[
                 const SizedBox(height: 12),
-                Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
+                Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13)),
               ],
               const SizedBox(height: 24),
 
               Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: GoogleFonts.inter(color: kMuted, fontWeight: FontWeight.w600)),
+                  child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted, fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
@@ -2357,7 +2357,7 @@ class _JarFormDialogState extends State<_JarFormDialog> {
                   child: _saving
                       ? const SizedBox(width: 16, height: 16,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text('Save jar', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                      : Text('Save jar', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
                 ),
               ]),
             ]),
@@ -2377,11 +2377,11 @@ class _JarFormDialogState extends State<_JarFormDialog> {
   }
 
   Widget _dialogLabel(String t) => Text(t,
-      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13));
+      style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13));
 
   InputDecoration _deco(String hint) => InputDecoration(
     hintText: hint,
-    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+    hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
     filled: true, fillColor: kDark,
     enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
@@ -2413,7 +2413,7 @@ class _SecurityCardState extends State<_SecurityCard> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
             enabled ? '2FA enabled — you will need a code on next login.' : '2FA disabled — no code required on login.',
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
           ),
           backgroundColor: kPrimary,
           behavior: SnackBarBehavior.floating,
@@ -2425,7 +2425,7 @@ class _SecurityCardState extends State<_SecurityCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Failed to update 2FA setting.',
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -2444,19 +2444,19 @@ class _SecurityCardState extends State<_SecurityCard> {
       decoration: BoxDecoration(
           color: kCardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Security', style: GoogleFonts.inter(
+        Text('Security', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
         const SizedBox(height: 16),
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Two-factor authentication (2FA)',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
             const SizedBox(height: 4),
             Text(
               twoFaEnabled
                   ? 'A verification code is sent to your email on each login.'
                   : '2FA is off — anyone with your password can log in.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 12),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
             ),
           ])),
           const SizedBox(width: 16),
@@ -2529,9 +2529,9 @@ class _MonetizePageState extends State<_MonetizePage> {
     if (_loading) return const Center(child: CircularProgressIndicator(color: kPrimary));
     if (_error != null) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text('Failed to load', style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+        Text('Failed to load', style: GoogleFonts.dmSans(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
-        Text(_error!, style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+        Text(_error!, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
         const SizedBox(height: 16),
         ElevatedButton(onPressed: _load,
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
@@ -2546,10 +2546,10 @@ class _MonetizePageState extends State<_MonetizePage> {
         color: kDarker,
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Monetize', style: GoogleFonts.inter(
+          Text('Monetize', style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
           const SizedBox(height: 4),
-          Text('Manage recurring revenue streams', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+          Text('Manage recurring revenue streams', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
           const SizedBox(height: 16),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -2593,7 +2593,7 @@ class _MonetizePageState extends State<_MonetizePage> {
           color: _tab == index ? kPrimary : Colors.transparent, width: 2,
         )),
       ),
-      child: Text(label, style: GoogleFonts.inter(
+      child: Text(label, style: GoogleFonts.dmSans(
           color: _tab == index ? kPrimary : kMuted,
           fontWeight: _tab == index ? FontWeight.w700 : FontWeight.w500,
           fontSize: 13)),
@@ -2613,10 +2613,10 @@ class _TiersSubView extends StatelessWidget {
     return ListView(padding: const EdgeInsets.all(28), children: [
       Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Support Tiers', style: GoogleFonts.inter(
+          Text('Support Tiers', style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
           Text('Named price tiers fans can subscribe to monthly.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
         ])),
         Wrap(spacing: 8, runSpacing: 8, children: [
           OutlinedButton.icon(
@@ -2625,7 +2625,7 @@ class _TiersSubView extends StatelessWidget {
               Clipboard.setData(ClipboardData(text: link));
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text('Subscribe page link copied!',
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+                    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
                 backgroundColor: kPrimary,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -2633,7 +2633,7 @@ class _TiersSubView extends StatelessWidget {
               ));
             },
             icon: const Icon(Icons.share_rounded, size: 15),
-            label: Text('Share page', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
+            label: Text('Share page', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13)),
             style: OutlinedButton.styleFrom(
               foregroundColor: kPrimary,
               side: const BorderSide(color: kPrimary),
@@ -2644,7 +2644,7 @@ class _TiersSubView extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () => _showTierDialog(context),
             icon: const Icon(Icons.add_rounded, size: 16),
-            label: Text('Add Tier', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+            label: Text('Add Tier', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
                 elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13)),
@@ -2673,9 +2673,9 @@ class _TiersSubView extends StatelessWidget {
             decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
             child: Icon(icon, color: kPrimary, size: 32)),
         const SizedBox(height: 20),
-        Text(title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+        Text(title, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
         const SizedBox(height: 8),
-        Text(sub, style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5), textAlign: TextAlign.center),
+        Text(sub, style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.5), textAlign: TextAlign.center),
       ]),
     ),
   );
@@ -2701,8 +2701,8 @@ class _TierCard extends StatelessWidget {
               child: const Icon(Icons.workspace_premium_outlined, color: kPrimary, size: 20)),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(tier.name, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-            Text('R${tier.price.toStringAsFixed(0)}/month', style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+            Text(tier.name, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+            Text('R${tier.price.toStringAsFixed(0)}/month', style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
           ])),
           // Active badge
           Container(
@@ -2711,7 +2711,7 @@ class _TierCard extends StatelessWidget {
               color: (tier.isActive ? const Color(0xFF10B981) : kMuted).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(36),
             ),
-            child: Text(tier.isActive ? 'Active' : 'Inactive', style: GoogleFonts.inter(
+            child: Text(tier.isActive ? 'Active' : 'Inactive', style: GoogleFonts.dmSans(
                 color: tier.isActive ? const Color(0xFF10B981) : kMuted, fontSize: 11, fontWeight: FontWeight.w700)),
           ),
           const SizedBox(width: 8),
@@ -2744,14 +2744,14 @@ class _TierCard extends StatelessWidget {
         ]),
         if (tier.description.isNotEmpty) ...[
           const SizedBox(height: 10),
-          Text(tier.description, style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.4)),
+          Text(tier.description, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.4)),
         ],
         if (tier.perks.isNotEmpty) ...[
           const SizedBox(height: 12),
           Wrap(spacing: 8, runSpacing: 6, children: tier.perks.map((p) => Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(color: kDark, borderRadius: BorderRadius.circular(36), border: Border.all(color: kBorder)),
-            child: Text(p, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+            child: Text(p, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
           )).toList()),
         ],
       ]),
@@ -2760,7 +2760,7 @@ class _TierCard extends StatelessWidget {
 
   Widget _popItem(IconData icon, String label, Color color) => Row(children: [
     Icon(icon, color: color, size: 15), const SizedBox(width: 10),
-    Text(label, style: GoogleFonts.inter(color: color, fontSize: 13)),
+    Text(label, style: GoogleFonts.dmSans(color: color, fontSize: 13)),
   ]);
 }
 
@@ -2821,7 +2821,7 @@ class _TierFormDialogState extends State<_TierFormDialog> {
   }
 
   InputDecoration _deco(String hint) => InputDecoration(
-    hintText: hint, hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+    hintText: hint, hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
     filled: true, fillColor: kDark,
     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
     focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 2)),
@@ -2842,27 +2842,27 @@ class _TierFormDialogState extends State<_TierFormDialog> {
                 decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                 child: const Icon(Icons.workspace_premium_outlined, color: kPrimary, size: 18)),
             const SizedBox(width: 12),
-            Text(widget.tier == null ? 'New Tier' : 'Edit Tier', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+            Text(widget.tier == null ? 'New Tier' : 'Edit Tier', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
             const Spacer(),
             IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: kMuted)),
           ]),
           const SizedBox(height: 24),
-          Text('Tier name *', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          Text('Tier name *', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 8),
-          TextField(controller: _nameCtrl, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('e.g. Super Fan')),
+          TextField(controller: _nameCtrl, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14), decoration: _deco('e.g. Super Fan')),
           const SizedBox(height: 16),
-          Text('Monthly price (R) *', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          Text('Monthly price (R) *', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 8),
-          TextField(controller: _priceCtrl, keyboardType: TextInputType.number, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('e.g. 100')),
+          TextField(controller: _priceCtrl, keyboardType: TextInputType.number, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14), decoration: _deco('e.g. 100')),
           const SizedBox(height: 16),
-          Text('Description', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          Text('Description', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 8),
-          TextField(controller: _descCtrl, maxLines: 3, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('What do subscribers get?')),
+          TextField(controller: _descCtrl, maxLines: 3, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14), decoration: _deco('What do subscribers get?')),
           const SizedBox(height: 16),
-          Text('Perks', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          Text('Perks', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 8),
           Row(children: [
-            Expanded(child: TextField(controller: _perkCtrl, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('Add a perk…'))),
+            Expanded(child: TextField(controller: _perkCtrl, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14), decoration: _deco('Add a perk…'))),
             const SizedBox(width: 8),
             ElevatedButton(
               onPressed: () {
@@ -2878,7 +2878,7 @@ class _TierFormDialogState extends State<_TierFormDialog> {
           if (_perks.isNotEmpty) ...[
             const SizedBox(height: 10),
             Wrap(spacing: 8, runSpacing: 6, children: _perks.map((p) => Chip(
-              label: Text(p, style: GoogleFonts.inter(color: Colors.white, fontSize: 12)),
+              label: Text(p, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 12)),
               backgroundColor: kDark,
               side: const BorderSide(color: kBorder),
               deleteIcon: const Icon(Icons.close, size: 14, color: kMuted),
@@ -2887,7 +2887,7 @@ class _TierFormDialogState extends State<_TierFormDialog> {
           ],
           const SizedBox(height: 24),
           Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: GoogleFonts.inter(color: kMuted, fontWeight: FontWeight.w600))),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted, fontWeight: FontWeight.w600))),
             const SizedBox(width: 12),
             ElevatedButton(
               onPressed: _saving ? null : _save,
@@ -2896,7 +2896,7 @@ class _TierFormDialogState extends State<_TierFormDialog> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
               child: _saving
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text(widget.tier == null ? 'Create Tier' : 'Save Changes', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                  : Text(widget.tier == null ? 'Create Tier' : 'Save Changes', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
             ),
           ]),
         ])),
@@ -2916,9 +2916,9 @@ class _PledgesSubView extends StatelessWidget {
     final totalMonthly = activePledges.fold(0.0, (s, p) => s + p.amount);
 
     return ListView(padding: const EdgeInsets.all(28), children: [
-      Text('Incoming Pledges', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
+      Text('Incoming Pledges', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
       const SizedBox(height: 4),
-      Text('Monthly commitments from your fans.', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      Text('Monthly commitments from your fans.', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
       const SizedBox(height: 16),
       Container(
         padding: const EdgeInsets.all(20),
@@ -2928,10 +2928,10 @@ class _PledgesSubView extends StatelessWidget {
           const Icon(Icons.repeat_rounded, color: kPrimary, size: 22),
           const SizedBox(width: 14),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('R${totalMonthly.toStringAsFixed(2)}/month recurring', style: GoogleFonts.inter(
+            Text('R${totalMonthly.toStringAsFixed(2)}/month recurring', style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: -0.5)),
             Text('${activePledges.length} active pledge${activePledges.length == 1 ? '' : 's'}',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
           ]),
         ]),
       ),
@@ -2940,7 +2940,7 @@ class _PledgesSubView extends StatelessWidget {
         Center(child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 32),
           child: Text('No pledges yet. Fans pledge via your public page.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 14), textAlign: TextAlign.center),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 14), textAlign: TextAlign.center),
         ))
       else
         ...pledges.asMap().entries.map((e) {
@@ -2954,19 +2954,19 @@ class _PledgesSubView extends StatelessWidget {
                   decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
                   child: Center(child: Text(
                     p.fanName.isNotEmpty ? p.fanName[0].toUpperCase() : '?',
-                    style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 15),
+                    style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 15),
                   ))),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(p.fanName, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-                Text(p.fanEmail, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                Text(p.fanName, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                Text(p.fanEmail, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
                 if (p.tierName != null)
-                  Text('Tier: ${p.tierName}', style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                  Text('Tier: ${p.tierName}', style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
                 if (p.nextChargeDate != null)
-                  Text('Next charge: ${p.nextChargeDate}', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+                  Text('Next charge: ${p.nextChargeDate}', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
               ])),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text('R${p.amount.toStringAsFixed(0)}/mo', style: GoogleFonts.inter(
+                Text('R${p.amount.toStringAsFixed(0)}/mo', style: GoogleFonts.dmSans(
                     color: kPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
                 const SizedBox(height: 4),
                 Container(
@@ -2975,7 +2975,7 @@ class _PledgesSubView extends StatelessWidget {
                     color: (p.isActive ? const Color(0xFF10B981) : kMuted).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(36),
                   ),
-                  child: Text(p.status.toUpperCase(), style: GoogleFonts.inter(
+                  child: Text(p.status.toUpperCase(), style: GoogleFonts.dmSans(
                       color: p.isActive ? const Color(0xFF10B981) : kMuted, fontSize: 10, fontWeight: FontWeight.w700)),
                 ),
               ]),
@@ -2997,14 +2997,14 @@ class _MilestonesSubView extends StatelessWidget {
     return ListView(padding: const EdgeInsets.all(28), children: [
       Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Milestone Goals', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
+          Text('Milestone Goals', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
           Text('Monthly revenue targets for your supporters to rally behind.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
         ])),
         ElevatedButton.icon(
           onPressed: () => _showMilestoneDialog(context),
           icon: const Icon(Icons.add_rounded, size: 16),
-          label: Text('Add Goal', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+          label: Text('Add Goal', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
           style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white,
               elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13)),
@@ -3019,10 +3019,10 @@ class _MilestonesSubView extends StatelessWidget {
                 decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
                 child: const Icon(Icons.flag_rounded, color: kPrimary, size: 32)),
             const SizedBox(height: 20),
-            Text('No milestones yet', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+            Text('No milestones yet', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
             const SizedBox(height: 8),
             Text('Set a monthly goal to motivate your community.',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5), textAlign: TextAlign.center),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.5), textAlign: TextAlign.center),
           ]),
         ))
       else
@@ -3036,7 +3036,7 @@ class _MilestonesSubView extends StatelessWidget {
                 border: Border.all(color: m.isAchieved ? const Color(0xFF10B981).withValues(alpha: 0.4) : kBorder)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Expanded(child: Text(m.title, style: GoogleFonts.inter(
+                Expanded(child: Text(m.title, style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15))),
                 if (m.isAchieved)
                   Container(
@@ -3045,11 +3045,11 @@ class _MilestonesSubView extends StatelessWidget {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 12),
                       const SizedBox(width: 4),
-                      Text('Achieved!', style: GoogleFonts.inter(color: const Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w700)),
+                      Text('Achieved!', style: GoogleFonts.dmSans(color: const Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w700)),
                     ]),
                   )
                 else
-                  Text('${m.progressPct.toStringAsFixed(1)}%', style: GoogleFonts.inter(
+                  Text('${m.progressPct.toStringAsFixed(1)}%', style: GoogleFonts.dmSans(
                       color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
               ]),
               const SizedBox(height: 10),
@@ -3064,10 +3064,10 @@ class _MilestonesSubView extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text('R${m.currentMonthTotal.toStringAsFixed(0)} / R${m.targetAmount.toStringAsFixed(0)} this month',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
               if (m.description.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text(m.description, style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.4)),
+                Text(m.description, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.4)),
               ],
             ]),
           ).animate().fadeIn(delay: (e.key * 60).ms, duration: 350.ms);
@@ -3097,7 +3097,7 @@ class _MilestoneFormDialogState extends State<_MilestoneFormDialog> {
   void dispose() { _titleCtrl.dispose(); _targetCtrl.dispose(); _descCtrl.dispose(); super.dispose(); }
 
   InputDecoration _deco(String hint) => InputDecoration(
-    hintText: hint, hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+    hintText: hint, hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
     filled: true, fillColor: kDark,
     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
     focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 2)),
@@ -3133,25 +3133,25 @@ class _MilestoneFormDialogState extends State<_MilestoneFormDialog> {
             Container(width: 36, height: 36, decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                 child: const Icon(Icons.flag_rounded, color: kPrimary, size: 18)),
             const SizedBox(width: 12),
-            Text('New Milestone', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+            Text('New Milestone', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
             const Spacer(),
             IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: kMuted)),
           ]),
           const SizedBox(height: 24),
-          Text('Title *', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          Text('Title *', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 8),
-          TextField(controller: _titleCtrl, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('e.g. Studio upgrade')),
+          TextField(controller: _titleCtrl, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14), decoration: _deco('e.g. Studio upgrade')),
           const SizedBox(height: 16),
-          Text('Target amount (R) *', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          Text('Target amount (R) *', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 8),
-          TextField(controller: _targetCtrl, keyboardType: TextInputType.number, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('e.g. 5000')),
+          TextField(controller: _targetCtrl, keyboardType: TextInputType.number, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14), decoration: _deco('e.g. 5000')),
           const SizedBox(height: 16),
-          Text('Description', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+          Text('Description', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 8),
-          TextField(controller: _descCtrl, maxLines: 3, style: GoogleFonts.inter(color: Colors.white, fontSize: 14), decoration: _deco('Tell your audience what this milestone unlocks...')),
+          TextField(controller: _descCtrl, maxLines: 3, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14), decoration: _deco('Tell your audience what this milestone unlocks...')),
           const SizedBox(height: 24),
           Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: GoogleFonts.inter(color: kMuted, fontWeight: FontWeight.w600))),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted, fontWeight: FontWeight.w600))),
             const SizedBox(width: 12),
             ElevatedButton(
               onPressed: _saving ? null : _save,
@@ -3160,7 +3160,7 @@ class _MilestoneFormDialogState extends State<_MilestoneFormDialog> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
               child: _saving
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text('Create Goal', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                  : Text('Create Goal', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
             ),
           ]),
         ]),
@@ -3193,9 +3193,9 @@ class _CommissionsSubViewState extends State<_CommissionsSubView> {
   Widget build(BuildContext context) {
     final slot = widget.slot;
     return ListView(padding: const EdgeInsets.all(28), children: [
-      Text('Commissions', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
+      Text('Commissions', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
       const SizedBox(height: 4),
-      Text('Accept custom commission requests from fans.', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      Text('Accept custom commission requests from fans.', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
       const SizedBox(height: 20),
 
       // Open/closed toggle
@@ -3205,9 +3205,9 @@ class _CommissionsSubViewState extends State<_CommissionsSubView> {
         child: Column(children: [
           Row(children: [
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Accept commissions', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+              Text('Accept commissions', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
               Text('When on, fans can submit requests from your public page.',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
             ])),
             _toggling
                 ? const SizedBox(width: 36, height: 36, child: CircularProgressIndicator(color: kPrimary, strokeWidth: 2))
@@ -3232,26 +3232,26 @@ class _CommissionsSubViewState extends State<_CommissionsSubView> {
             const SizedBox(height: 16),
             Row(children: [
               Expanded(child: Text('Base price: R${slot.basePrice.toStringAsFixed(0)}',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 13))),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 13))),
               Text('${slot.turnaroundDays} day turnaround',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
             ]),
             if (slot.description.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text(slot.description, style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.4)),
+              Text(slot.description, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.4)),
             ],
           ],
         ]),
       ),
       const SizedBox(height: 28),
 
-      Text('Requests (${widget.commissions.length})', style: GoogleFonts.inter(
+      Text('Requests (${widget.commissions.length})', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
       const SizedBox(height: 12),
       if (widget.commissions.isEmpty)
         Center(child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Text('No commission requests yet.', style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+          child: Text('No commission requests yet.', style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
         ))
       else
         ...widget.commissions.asMap().entries.map((e) {
@@ -3262,21 +3262,21 @@ class _CommissionsSubViewState extends State<_CommissionsSubView> {
             decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(14), border: Border.all(color: kBorder)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Expanded(child: Text(c.title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14))),
+                Expanded(child: Text(c.title, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14))),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(color: _statusColor(c.status).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(36)),
-                  child: Text(c.status.toUpperCase(), style: GoogleFonts.inter(color: _statusColor(c.status), fontSize: 10, fontWeight: FontWeight.w700)),
+                  child: Text(c.status.toUpperCase(), style: GoogleFonts.dmSans(color: _statusColor(c.status), fontSize: 10, fontWeight: FontWeight.w700)),
                 ),
               ]),
               const SizedBox(height: 6),
-              Text('${c.fanName} (${c.fanEmail})', style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
-              Text('R${c.agreedPrice.toStringAsFixed(0)} agreed', style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+              Text('${c.fanName} (${c.fanEmail})', style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+              Text('R${c.agreedPrice.toStringAsFixed(0)} agreed', style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
               const SizedBox(height: 8),
-              Text(c.description, style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
+              Text(c.description, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
               if (c.deliveryNote.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Text('Delivery: ${c.deliveryNote}', style: GoogleFonts.inter(color: const Color(0xFF60A5FA), fontSize: 12, height: 1.4)),
+                Text('Delivery: ${c.deliveryNote}', style: GoogleFonts.dmSans(color: const Color(0xFF60A5FA), fontSize: 12, height: 1.4)),
               ],
               if (c.isPending) ...[
                 const SizedBox(height: 14),
@@ -3289,7 +3289,7 @@ class _CommissionsSubViewState extends State<_CommissionsSubView> {
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white,
                         elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10)),
-                    child: Text('Accept', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+                    child: Text('Accept', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
                   ),
                   const SizedBox(width: 10),
                   OutlinedButton(
@@ -3300,7 +3300,7 @@ class _CommissionsSubViewState extends State<_CommissionsSubView> {
                     style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent, side: const BorderSide(color: Colors.redAccent),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10)),
-                    child: Text('Decline', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.redAccent)),
+                    child: Text('Decline', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.redAccent)),
                   ),
                 ]),
               ],
@@ -3314,7 +3314,7 @@ class _CommissionsSubViewState extends State<_CommissionsSubView> {
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF60A5FA), foregroundColor: Colors.white,
                       elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10)),
-                  child: Text('Mark Complete', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+                  child: Text('Mark Complete', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
                 ),
               ],
             ]),

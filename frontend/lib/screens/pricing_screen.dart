@@ -38,18 +38,18 @@ class PricingScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(36),
           border: Border.all(color: kPrimary.withOpacity(0.3)),
         ),
-        child: Text('Pricing', style: GoogleFonts.inter(
+        child: Text('Pricing', style: GoogleFonts.dmSans(
             color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
       ).animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 20),
       Text('Simple, transparent pricing',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 42, letterSpacing: -1.5),
           textAlign: TextAlign.center)
           .animate().fadeIn(delay: 80.ms).slideY(begin: 0.2),
       const SizedBox(height: 14),
       Text('Start free. Upgrade when you\'re ready. No hidden fees.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 17, height: 1.6),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 17, height: 1.6),
           textAlign: TextAlign.center)
           .animate().fadeIn(delay: 160.ms),
     ]),
@@ -112,7 +112,7 @@ class PricingScreen extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 28),
     color: kDarker,
     child: Column(children: [
-      Text('Compare plans', style: GoogleFonts.inter(color: Colors.white,
+      Text('Compare plans', style: GoogleFonts.dmSans(color: Colors.white,
           fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.8),
           textAlign: TextAlign.center),
       const SizedBox(height: 36),
@@ -151,7 +151,7 @@ class PricingScreen extends StatelessWidget {
     children: ['Feature', 'Free', 'Pro', 'Enterprise'].map((h) =>
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        child: Text(h, style: GoogleFonts.inter(
+        child: Text(h, style: GoogleFonts.dmSans(
             color: h == 'Pro' ? kPrimary : Colors.white,
             fontWeight: FontWeight.w700, fontSize: 13)),
       ),
@@ -170,7 +170,7 @@ class PricingScreen extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           child: Text(e.value,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: isCheck ? kPrimary : isCross ? kMuted.withOpacity(0.4) : kMuted,
                   fontSize: 13,
                   fontWeight: e.key == 0 ? FontWeight.w500 : FontWeight.w600)),
@@ -183,7 +183,7 @@ class PricingScreen extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 28),
     color: kDark,
     child: Column(children: [
-      Text('Frequently asked', style: GoogleFonts.inter(color: Colors.white,
+      Text('Frequently asked', style: GoogleFonts.dmSans(color: Colors.white,
           fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.8),
           textAlign: TextAlign.center),
       const SizedBox(height: 36),
@@ -215,12 +215,12 @@ class PricingScreen extends StatelessWidget {
     ),
     child: Column(children: [
       Text('Start for free today',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.8),
           textAlign: TextAlign.center),
       const SizedBox(height: 10),
       Text('No credit card required. Upgrade whenever you want.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 15),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 15),
           textAlign: TextAlign.center),
       const SizedBox(height: 28),
       ElevatedButton(
@@ -232,7 +232,7 @@ class PricingScreen extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
         child: Text('Create your free page →',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
       ),
     ]),
   );
@@ -272,18 +272,18 @@ class _TierCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(36)),
-          child: Text('Most popular', style: GoogleFonts.inter(
+          child: Text('Most popular', style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11)),
         ),
         const SizedBox(height: 12),
       ],
-      Text(name, style: GoogleFonts.inter(
+      Text(name, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
       const SizedBox(height: 4),
-      Text(desc, style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      Text(desc, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
       const SizedBox(height: 16),
       Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        Text(price, style: GoogleFonts.inter(
+        Text(price, style: GoogleFonts.dmSans(
             color: isPro ? kPrimary : Colors.white,
             fontWeight: FontWeight.w900,
             fontSize: price.length > 4 ? 26 : 40, letterSpacing: -1.5)),
@@ -291,7 +291,7 @@ class _TierCard extends StatelessWidget {
           const SizedBox(width: 4),
           Padding(
             padding: const EdgeInsets.only(bottom: 5),
-            child: Text(period, style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+            child: Text(period, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
           ),
         ],
       ]),
@@ -301,7 +301,7 @@ class _TierCard extends StatelessWidget {
         child: Row(children: [
           Icon(Icons.check_circle_rounded, color: kPrimary, size: 15),
           const SizedBox(width: 9),
-          Expanded(child: Text(f, style: GoogleFonts.inter(
+          Expanded(child: Text(f, style: GoogleFonts.dmSans(
               color: Colors.white, fontSize: 13))),
         ]),
       )),
@@ -317,7 +317,7 @@ class _TierCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                 ),
-                child: Text(cta, style: GoogleFonts.inter(
+                child: Text(cta, style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
               )
             : OutlinedButton(
@@ -328,7 +328,7 @@ class _TierCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                 ),
-                child: Text(cta, style: GoogleFonts.inter(
+                child: Text(cta, style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
               ),
       ),
@@ -360,7 +360,7 @@ class _FaqItemState extends State<_FaqItem> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(children: [
-            Expanded(child: Text(widget.q, style: GoogleFonts.inter(
+            Expanded(child: Text(widget.q, style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))),
             AnimatedRotation(
               turns: _open ? 0.25 : 0,
@@ -374,7 +374,7 @@ class _FaqItemState extends State<_FaqItem> {
         firstChild: const SizedBox.shrink(),
         secondChild: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Text(widget.a, style: GoogleFonts.inter(
+          child: Text(widget.a, style: GoogleFonts.dmSans(
               color: kMuted, fontSize: 13, height: 1.6)),
         ),
         crossFadeState: _open ? CrossFadeState.showSecond : CrossFadeState.showFirst,

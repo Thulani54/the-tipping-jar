@@ -38,12 +38,12 @@ class AboutScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(36),
           border: Border.all(color: kPrimary.withOpacity(0.3)),
         ),
-        child: Text('Our story', style: GoogleFonts.inter(
+        child: Text('Our story', style: GoogleFonts.dmSans(
             color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
       ).animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 20),
       Text('We believe creators\ndeserve to be paid.',
-          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: 46, letterSpacing: -1.8, height: 1.1),
           textAlign: TextAlign.center)
           .animate().fadeIn(delay: 80.ms).slideY(begin: 0.2),
@@ -52,7 +52,7 @@ class AboutScreen extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 600),
         child: Text(
           'TippingJar was built by creators, for creators. We got tired of platforms taking 30% cuts, delaying payouts, and hiding creators behind algorithms. So we built something better.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 17, height: 1.7),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 17, height: 1.7),
           textAlign: TextAlign.center,
         ).animate().fadeIn(delay: 160.ms),
       ),
@@ -71,11 +71,11 @@ class AboutScreen extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Our mission',
-                    style: GoogleFonts.inter(color: kPrimary,
+                    style: GoogleFonts.dmSans(color: kPrimary,
                         fontWeight: FontWeight.w600, fontSize: 13)),
                 const SizedBox(height: 14),
                 Text('Put money\ndirectly in\ncreators\' hands.',
-                    style: GoogleFonts.inter(color: Colors.white,
+                    style: GoogleFonts.dmSans(color: Colors.white,
                         fontWeight: FontWeight.w800, fontSize: 34,
                         letterSpacing: -1.2, height: 1.2))
                     .animate().fadeIn(duration: 400.ms),
@@ -87,12 +87,12 @@ class AboutScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'We started TippingJar in 2025 after watching talented friends struggle to monetise their work on platforms that took most of the revenue and paid out monthly — if at all.',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.75),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.75),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'We built a platform where creators receive tips directly, payouts hit their bank in 1-2 days, and the platform fee is tiny and transparent. No subscriptions. No algorithms. Just fans who want to say thank you.',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.75),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.75),
                 ),
               ]).animate().fadeIn(delay: 100.ms, duration: 400.ms),
             ),
@@ -107,7 +107,7 @@ class AboutScreen extends StatelessWidget {
     color: kDarker,
     child: Column(children: [
       Text('What we stand for',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.8),
           textAlign: TextAlign.center),
       const SizedBox(height: 48),
@@ -131,12 +131,12 @@ class AboutScreen extends StatelessWidget {
     color: kDark,
     child: Column(children: [
       Text('The team',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.8),
           textAlign: TextAlign.center),
       const SizedBox(height: 12),
       Text('A small team with a big belief in the creator economy.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 15),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 15),
           textAlign: TextAlign.center),
       const SizedBox(height: 48),
       Wrap(spacing: 24, runSpacing: 24, alignment: WrapAlignment.center,
@@ -162,12 +162,12 @@ class AboutScreen extends StatelessWidget {
     ),
     child: Column(children: [
       Text('Join us on the mission',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.8),
           textAlign: TextAlign.center),
       const SizedBox(height: 10),
       Text('Start your tip page today — it takes under a minute.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 15),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 15),
           textAlign: TextAlign.center),
       const SizedBox(height: 28),
       Wrap(spacing: 14, runSpacing: 12, alignment: WrapAlignment.center, children: [
@@ -180,7 +180,7 @@ class AboutScreen extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
           ),
           child: Text('Create your page',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
         ),
         OutlinedButton(
           onPressed: () => ctx.go('/careers'),
@@ -191,7 +191,7 @@ class AboutScreen extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
           ),
           child: Text('View open roles',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15)),
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 15)),
         ),
       ]),
     ]),
@@ -225,10 +225,10 @@ class _ValueCard extends StatelessWidget {
         child: Icon(icon, color: kPrimary, size: 20),
       ),
       const SizedBox(height: 14),
-      Text(title, style: GoogleFonts.inter(
+      Text(title, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
       const SizedBox(height: 6),
-      Text(body, style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.55)),
+      Text(body, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.55)),
     ]),
   ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1);
 }
@@ -250,15 +250,15 @@ class _TeamCard extends StatelessWidget {
         width: 56, height: 56,
         decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle,
             border: Border.all(color: color.withOpacity(0.3), width: 2)),
-        child: Center(child: Text(initials, style: GoogleFonts.inter(
+        child: Center(child: Text(initials, style: GoogleFonts.dmSans(
             color: color, fontWeight: FontWeight.w800, fontSize: 16))),
       ),
       const SizedBox(height: 12),
-      Text(name, style: GoogleFonts.inter(
+      Text(name, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
           textAlign: TextAlign.center),
       const SizedBox(height: 4),
-      Text(role, style: GoogleFonts.inter(color: kMuted, fontSize: 11),
+      Text(role, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11),
           textAlign: TextAlign.center),
     ]),
   );

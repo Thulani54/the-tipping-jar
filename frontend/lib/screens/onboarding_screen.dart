@@ -55,7 +55,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Profile saved with some issues. You can update it later.',
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
             backgroundColor: Colors.orange.shade700,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -128,7 +128,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     Row(mainAxisAlignment: MainAxisAlignment.center, children: [
       const AppLogoIcon(size: 32),
       const SizedBox(width: 8),
-      Text('TippingJar', style: GoogleFonts.inter(
+      Text('TippingJar', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700,
           fontSize: 16, letterSpacing: -0.3)),
     ]),
@@ -146,7 +146,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ))),
     const SizedBox(height: 10),
     Text('Step ${_step + 1} of $_totalSteps',
-        style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+        style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
   ]);
 
   Widget _stepContent() {
@@ -181,7 +181,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_step > 0)
       TextButton(
         onPressed: _saving ? null : _back,
-        child: Text('Back', style: GoogleFonts.inter(
+        child: Text('Back', style: GoogleFonts.dmSans(
             color: kMuted, fontWeight: FontWeight.w500)),
       ),
     const Spacer(),
@@ -202,7 +202,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 width: 18, height: 18,
                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
             : Text(_step == _totalSteps - 1 ? 'Go to dashboard →' : 'Continue',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white)),
       ),
     ),
@@ -231,12 +231,12 @@ class _StepPlatforms extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text('Where do you create?',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.8))
           .animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 6),
       Text('Select all that apply.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 14))
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14))
           .animate().fadeIn(delay: 60.ms),
       const SizedBox(height: 28),
       Expanded(
@@ -263,7 +263,7 @@ class _StepPlatforms extends StatelessWidget {
                   const SizedBox(width: 10),
                   Flexible(child: Text(o.$2,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.dmSans(
                           color: active ? kPrimary : Colors.white,
                           fontWeight: FontWeight.w600, fontSize: 13))),
                   if (active) ...[
@@ -307,12 +307,12 @@ class _StepNiche extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text('What\'s your content niche?',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.8))
           .animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 6),
       Text('Pick the one that best describes your content.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 14))
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14))
           .animate().fadeIn(delay: 60.ms),
       const SizedBox(height: 28),
       Expanded(
@@ -339,7 +339,7 @@ class _StepNiche extends StatelessWidget {
                     Icon(n.$1, color: active ? n.$3 : kMuted, size: 22),
                     const SizedBox(height: 6),
                     Text(n.$2,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.dmSans(
                             color: active ? n.$3 : kMuted,
                             fontWeight: FontWeight.w600, fontSize: 11),
                         textAlign: TextAlign.center),
@@ -372,12 +372,12 @@ class _StepAudience extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text('How big is your audience?',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.8))
           .animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 6),
       Text('This helps us tailor your experience.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 14))
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14))
           .animate().fadeIn(delay: 60.ms),
       const SizedBox(height: 28),
       ..._sizes.map((s) {
@@ -407,10 +407,10 @@ class _StepAudience extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(s.$1, style: GoogleFonts.inter(
+                Text(s.$1, style: GoogleFonts.dmSans(
                     color: active ? Colors.white : Colors.white,
                     fontWeight: FontWeight.w700, fontSize: 14)),
-                Text(s.$2, style: GoogleFonts.inter(
+                Text(s.$2, style: GoogleFonts.dmSans(
                     color: kMuted, fontSize: 12)),
               ]),
               const Spacer(),
@@ -439,29 +439,29 @@ class _StepProfile extends StatelessWidget {
   Widget build(BuildContext context) => SingleChildScrollView(
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Set up your creator profile',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.8))
           .animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 6),
       Text('You can always change these later.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 14))
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14))
           .animate().fadeIn(delay: 60.ms),
       const SizedBox(height: 28),
 
       // Tagline
       Text('Your tagline',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w600, fontSize: 13)),
       const SizedBox(height: 8),
       TextFormField(
         controller: taglineCtrl,
         onChanged: (_) => onChanged(),
         maxLength: 80,
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
           hintText: 'e.g. "Indie game dev sharing my journey 🎮"',
-          hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 13),
-          counterStyle: GoogleFonts.inter(color: kMuted, fontSize: 11),
+          hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
+          counterStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 11),
           filled: true, fillColor: kCardBg,
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -476,11 +476,11 @@ class _StepProfile extends StatelessWidget {
 
       // Monthly goal
       Text('Monthly tip goal (optional)',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w600, fontSize: 13)),
       const SizedBox(height: 6),
       Text('Sets a visible goal bar on your tip page.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
       const SizedBox(height: 12),
       Wrap(spacing: 10, runSpacing: 10, children: [
         ..._goals.map((g) {
@@ -500,7 +500,7 @@ class _StepProfile extends StatelessWidget {
                     color: active ? kPrimary : kBorder,
                     width: active ? 2 : 1),
               ),
-              child: Text(g, style: GoogleFonts.inter(
+              child: Text(g, style: GoogleFonts.dmSans(
                   color: active ? kPrimary : kMuted,
                   fontWeight: FontWeight.w600, fontSize: 13)),
             ),
@@ -516,12 +516,12 @@ class _StepProfile extends StatelessWidget {
               goalCtrl.text = v;
               onChanged();
             },
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
             decoration: InputDecoration(
               hintText: 'Custom',
-              hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 13),
+              hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
               prefixText: '\$',
-              prefixStyle: GoogleFonts.inter(color: kMuted, fontSize: 13),
+              prefixStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
               filled: true, fillColor: kCardBg,
               enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(36),
@@ -554,10 +554,10 @@ class _StepProfile extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Your tip page preview',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
             Text(
               taglineCtrl.text.isEmpty ? 'Your tagline will appear here…' : taglineCtrl.text,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: taglineCtrl.text.isEmpty ? kMuted : Colors.white,
                   fontWeight: FontWeight.w600, fontSize: 13),
             ),

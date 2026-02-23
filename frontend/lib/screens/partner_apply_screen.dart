@@ -169,12 +169,12 @@ class _PartnerApplyScreenState extends State<PartnerApplyScreen> {
   // ── Step 0 — Company ───────────────────────────────────────────────────────
   Widget _step0Company() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Company details', style: GoogleFonts.inter(
+      Text('Company details', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.5))
           .animate().fadeIn(duration: 300.ms),
       const SizedBox(height: 8),
       Text('Tell us about your business and how you plan to use the Platform API.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6))
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.6))
           .animate().fadeIn(delay: 80.ms),
       const SizedBox(height: 32),
       Form(
@@ -210,12 +210,12 @@ class _PartnerApplyScreenState extends State<PartnerApplyScreen> {
   // ── Step 1 — Contact ───────────────────────────────────────────────────────
   Widget _step1Contact() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Primary contact', style: GoogleFonts.inter(
+      Text('Primary contact', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.5))
           .animate().fadeIn(duration: 300.ms),
       const SizedBox(height: 8),
       Text('Who should we contact regarding your application?',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6))
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.6))
           .animate().fadeIn(delay: 80.ms),
       const SizedBox(height: 32),
       Form(
@@ -230,7 +230,7 @@ class _PartnerApplyScreenState extends State<PartnerApplyScreen> {
               keyboardType: TextInputType.phone),
           if (_error != null) ...[
             const SizedBox(height: 14),
-            Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
+            Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13)),
           ],
           const SizedBox(height: 32),
           Row(children: [
@@ -243,7 +243,7 @@ class _PartnerApplyScreenState extends State<PartnerApplyScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                 ),
-                child: Text('Back', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                child: Text('Back', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
               ),
             ),
             const SizedBox(width: 14),
@@ -262,12 +262,12 @@ class _PartnerApplyScreenState extends State<PartnerApplyScreen> {
   // ── Step 2 — Documents ────────────────────────────────────────────────────
   Widget _step2Documents() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Supporting documents', style: GoogleFonts.inter(
+      Text('Supporting documents', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.5))
           .animate().fadeIn(duration: 300.ms),
       const SizedBox(height: 8),
       Text('Upload verification documents to speed up review. All fields are optional — you can upload later.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6))
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.6))
           .animate().fadeIn(delay: 80.ms),
       const SizedBox(height: 32),
       ..._docLabels.entries.map((entry) => _DocRow(
@@ -288,7 +288,7 @@ class _PartnerApplyScreenState extends State<PartnerApplyScreen> {
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
-            child: Text('Skip for now', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            child: Text('Skip for now', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
           ),
         ),
         const SizedBox(width: 14),
@@ -320,7 +320,7 @@ class _PartnerApplyScreenState extends State<PartnerApplyScreen> {
               child: const Icon(Icons.check_rounded, color: kPrimary, size: 36),
             ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
             const SizedBox(height: 28),
-            Text('Application submitted!', style: GoogleFonts.inter(
+            Text('Application submitted!', style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.5),
                 textAlign: TextAlign.center).animate().fadeIn(delay: 200.ms),
             const SizedBox(height: 12),
@@ -328,7 +328,7 @@ class _PartnerApplyScreenState extends State<PartnerApplyScreen> {
               'Thank you for applying to the TippingJar Partner Program. '
               'Our team will review your application within 48 business hours '
               'and contact you via the email you provided.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.7),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.7),
               textAlign: TextAlign.center,
             ).animate().fadeIn(delay: 300.ms),
             const SizedBox(height: 32),
@@ -342,7 +342,7 @@ class _PartnerApplyScreenState extends State<PartnerApplyScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                 ),
                 child: Text('Back to developer docs',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
               ).animate().fadeIn(delay: 400.ms),
             ),
           ]),
@@ -382,7 +382,7 @@ class _StepIndicator extends StatelessWidget {
                 child: Center(
                   child: i < current
                       ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
-                      : Text('${i + 1}', style: GoogleFonts.inter(
+                      : Text('${i + 1}', style: GoogleFonts.dmSans(
                           color: i == current ? kPrimary : kMuted,
                           fontSize: 12, fontWeight: FontWeight.w700)),
                 ),
@@ -390,7 +390,7 @@ class _StepIndicator extends StatelessWidget {
               if (i < total - 1) Expanded(child: Container(height: 1, color: i < current ? kPrimary : kBorder)),
             ]),
             const SizedBox(height: 6),
-            Text(labels[i], style: GoogleFonts.inter(
+            Text(labels[i], style: GoogleFonts.dmSans(
                 color: i == current ? Colors.white : kMuted,
                 fontSize: 11, fontWeight: i == current ? FontWeight.w600 : FontWeight.w400)),
           ]),
@@ -421,13 +421,13 @@ class _Field extends StatelessWidget {
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
-      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+      style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
       validator: required
           ? (v) => (v?.trim().isNotEmpty ?? false) ? null : 'Required'
           : null,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 13),
+        hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
         filled: true, fillColor: kCardBg,
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -454,7 +454,7 @@ class _SectionLabel2 extends StatelessWidget {
   const _SectionLabel2(this.text);
   @override
   Widget build(BuildContext context) => Row(children: [
-    Text(text, style: GoogleFonts.inter(color: kMuted, fontSize: 11,
+    Text(text, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11,
         fontWeight: FontWeight.w700, letterSpacing: 0.8)),
     const SizedBox(width: 8),
     const Expanded(child: Divider(color: kBorder)),
@@ -488,12 +488,12 @@ class _DocRow extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: GoogleFonts.inter(
+            Text(label, style: GoogleFonts.dmSans(
                 color: picked != null ? Colors.white : kMuted,
                 fontSize: 13, fontWeight: picked != null ? FontWeight.w500 : FontWeight.w400)),
             if (picked != null) ...[
               const SizedBox(height: 2),
-              Text(picked!.$2, style: GoogleFonts.inter(
+              Text(picked!.$2, style: GoogleFonts.dmSans(
                   color: kPrimary, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
           ]),
@@ -511,7 +511,7 @@ class _DocRow extends StatelessWidget {
                   side: const BorderSide(color: kBorder),
                 ),
                 child: Text(picked != null ? 'Replace' : 'Select',
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600)),
               ),
       ]),
     );
@@ -533,7 +533,7 @@ class _PrimaryBtn extends StatelessWidget {
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
       ),
-      child: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+      child: Text(label, style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
     ),
   );
 }

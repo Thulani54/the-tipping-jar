@@ -222,7 +222,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
           borderRadius: BorderRadius.circular(36),
         ),
         child: Text(label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: active ? Colors.white : kMuted,
                 fontWeight: FontWeight.w600,
                 fontSize: 14)),
@@ -247,7 +247,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
         _tag('The full journey'),
         const SizedBox(height: 16),
         Text('From tap to payout',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
                 fontSize: 32,
@@ -305,7 +305,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
                 Icon(e.value.$1, color: kPrimary, size: 18),
                 const SizedBox(width: 10),
                 Text(e.value.$2,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                         fontSize: 13)),
@@ -326,7 +326,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
         _tag('FAQ'),
         const SizedBox(height: 16),
         Text('Common questions',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
                 fontSize: 32,
@@ -356,7 +356,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
       padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
       child: Column(children: [
         Text('Ready to start?',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w800, fontSize: 36,
                 letterSpacing: -1),
             textAlign: TextAlign.center),
@@ -374,7 +374,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
             child: Text('Create your page →',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
           ),
           OutlinedButton(
             onPressed: () => ctx.go('/creators'),
@@ -385,7 +385,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
             child: Text('Browse creators',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15)),
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 15)),
           ),
         ]),
       ]),
@@ -407,7 +407,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
       border: Border.all(color: kPrimary.withOpacity(0.3)),
       borderRadius: BorderRadius.circular(100),
     ),
-    child: Text(label, style: GoogleFonts.inter(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+    child: Text(label, style: GoogleFonts.dmSans(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
   );
 }
 
@@ -470,12 +470,12 @@ class _StepDetailCardState extends State<_StepDetailCard> {
             ),
             const Spacer(),
             Text('0${widget.number}',
-                style: GoogleFonts.inter(color: widget.color.withOpacity(0.25), fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1)),
+                style: GoogleFonts.dmSans(color: widget.color.withOpacity(0.25), fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1)),
           ]),
           const SizedBox(height: 20),
-          Text(widget.title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
+          Text(widget.title, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
           const SizedBox(height: 10),
-          Text(widget.body, style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.65)),
+          Text(widget.body, style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.65)),
         ]),
       ).animate().fadeIn(delay: widget.delay.ms, duration: 500.ms).slideY(begin: 0.2, curve: Curves.easeOut),
     );
@@ -506,7 +506,7 @@ class _TimelineRow extends StatelessWidget {
       Expanded(
         child: Padding(
           padding: const EdgeInsets.only(top: 7, bottom: 16),
-          child: Text(label, style: GoogleFonts.inter(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+          child: Text(label, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
         ),
       ),
     ]).animate().fadeIn(delay: delay.ms, duration: 400.ms).slideX(begin: -0.1, curve: Curves.easeOut);
@@ -535,7 +535,7 @@ class _FaqItem extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(children: [
-              Expanded(child: Text(question, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15))),
+              Expanded(child: Text(question, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15))),
               const SizedBox(width: 12),
               AnimatedRotation(
                 turns: open ? 0.5 : 0,
@@ -549,7 +549,7 @@ class _FaqItem extends StatelessWidget {
           firstChild: const SizedBox.shrink(),
           secondChild: Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-            child: Text(answer, style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.65)),
+            child: Text(answer, style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.65)),
           ),
           crossFadeState: open ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: 200.ms,

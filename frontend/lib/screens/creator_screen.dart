@@ -119,18 +119,18 @@ class _CreatorScreenState extends State<CreatorScreen> {
     body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
       const Icon(Icons.sentiment_dissatisfied_rounded, color: kMuted, size: 48),
       const SizedBox(height: 16),
-      Text('Creator not found', style: GoogleFonts.inter(
+      Text('Creator not found', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
       const SizedBox(height: 8),
       Text('Check the link and try again.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
       const SizedBox(height: 24),
       ElevatedButton(
         onPressed: () => context.go('/'),
         style: ElevatedButton.styleFrom(backgroundColor: kPrimary,
             foregroundColor: Colors.white, elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
-        child: Text('Go home', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
+        child: Text('Go home', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: Colors.white)),
       ),
     ])),
   );
@@ -152,7 +152,7 @@ class _MiniNav extends StatelessWidget {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           const AppLogoIcon(size: 28),
           const SizedBox(width: 8),
-          Text('TippingJar', style: GoogleFonts.inter(
+          Text('TippingJar', style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
         ]),
       ),
@@ -167,7 +167,7 @@ class _MiniNav extends StatelessWidget {
           const Icon(Icons.bolt_rounded, color: kPrimary, size: 13),
           const SizedBox(width: 4),
           Text('Powered by TippingJar',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 11, fontWeight: FontWeight.w500)),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 11, fontWeight: FontWeight.w500)),
         ]),
       ),
     ]),
@@ -351,7 +351,7 @@ class _CreatorCard extends StatelessWidget {
           child: Text(
             creator.displayName.isNotEmpty
                 ? creator.displayName[0].toUpperCase() : '?',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: _avatarColor, fontWeight: FontWeight.w900, fontSize: 34),
           ),
         ),
@@ -359,18 +359,18 @@ class _CreatorCard extends StatelessWidget {
       const SizedBox(height: 16),
 
       // Name + slug
-      Text(creator.displayName, style: GoogleFonts.inter(
+      Text(creator.displayName, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800,
           fontSize: 28, letterSpacing: -0.8))
           .animate().fadeIn(delay: 80.ms, duration: 400.ms).slideY(begin: 0.1),
       const SizedBox(height: 4),
-      Text('@${creator.slug}', style: GoogleFonts.inter(color: kMuted, fontSize: 14))
+      Text('@${creator.slug}', style: GoogleFonts.dmSans(color: kMuted, fontSize: 14))
           .animate().fadeIn(delay: 120.ms, duration: 400.ms),
 
       // Tagline
       if (creator.tagline.isNotEmpty) ...[
         const SizedBox(height: 10),
-        Text(creator.tagline, style: GoogleFonts.inter(
+        Text(creator.tagline, style: GoogleFonts.dmSans(
             color: Colors.white.withValues(alpha: 0.75), fontSize: 15, height: 1.5))
             .animate().fadeIn(delay: 160.ms, duration: 400.ms),
       ],
@@ -407,9 +407,9 @@ class _StatPill extends StatelessWidget {
       Icon(icon, color: kPrimary, size: 16),
       const SizedBox(width: 8),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: GoogleFonts.inter(
+        Text(label, style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
-        Text(sub, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+        Text(sub, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
       ]),
     ]),
   );
@@ -432,10 +432,10 @@ class _GoalBar extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text('Monthly goal', style: GoogleFonts.inter(
+          Text('Monthly goal', style: GoogleFonts.dmSans(
               color: kMuted, fontWeight: FontWeight.w600, fontSize: 12)),
           const Spacer(),
-          Text('$pct%', style: GoogleFonts.inter(
+          Text('$pct%', style: GoogleFonts.dmSans(
               color: kPrimary, fontWeight: FontWeight.w700, fontSize: 12)),
         ]),
         const SizedBox(height: 8),
@@ -449,7 +449,7 @@ class _GoalBar extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text('R${totalTips.toStringAsFixed(0)} of R${tipGoal.toStringAsFixed(0)}',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
       ]),
     ).animate().fadeIn(delay: 240.ms, duration: 400.ms);
   }
@@ -463,7 +463,7 @@ class _TipFeed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Recent supporters', style: GoogleFonts.inter(
+      Text('Recent supporters', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
       const SizedBox(height: 12),
       if (tips.isEmpty)
@@ -474,7 +474,7 @@ class _TipFeed extends StatelessWidget {
             const Icon(Icons.favorite_border_rounded, color: kMuted, size: 32),
             const SizedBox(height: 10),
             Text('No tips yet — be the first!',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
           ]),
         )
       else
@@ -517,23 +517,23 @@ class _PublicTipRow extends StatelessWidget {
             color: _color.withValues(alpha: 0.12), shape: BoxShape.circle),
         child: Center(child: Text(
           tip.tipperName.isNotEmpty ? tip.tipperName[0].toUpperCase() : 'A',
-          style: GoogleFonts.inter(color: _color, fontWeight: FontWeight.w800, fontSize: 14),
+          style: GoogleFonts.dmSans(color: _color, fontWeight: FontWeight.w800, fontSize: 14),
         )),
       ),
       const SizedBox(width: 10),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text(tip.tipperName, style: GoogleFonts.inter(
+          Text(tip.tipperName, style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
           const SizedBox(width: 6),
-          Text(_relative, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+          Text(_relative, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
           const Spacer(),
-          Text('R${tip.amount.toStringAsFixed(2)}', style: GoogleFonts.inter(
+          Text('R${tip.amount.toStringAsFixed(2)}', style: GoogleFonts.dmSans(
               color: kPrimary, fontWeight: FontWeight.w800, fontSize: 13)),
         ]),
         if (tip.message.isNotEmpty) ...[
           const SizedBox(height: 4),
-          Text(tip.message, style: GoogleFonts.inter(
+          Text(tip.message, style: GoogleFonts.dmSans(
               color: kMuted, fontSize: 12, height: 1.45),
               maxLines: 3, overflow: TextOverflow.ellipsis),
         ],
@@ -622,14 +622,14 @@ class _TipFormState extends State<_TipForm> {
         child: const Icon(Icons.open_in_browser_rounded, color: kPrimary, size: 32),
       ).animate().scale(duration: 400.ms),
       const SizedBox(height: 20),
-      Text('Complete your payment', style: GoogleFonts.inter(
+      Text('Complete your payment', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800,
           fontSize: 22, letterSpacing: -0.4))
           .animate().fadeIn(delay: 100.ms),
       const SizedBox(height: 8),
       Text(
         'A Paystack payment page opened in your browser.\nFinish the payment there and come back.',
-        style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.55),
+        style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.55),
         textAlign: TextAlign.center,
       ).animate().fadeIn(delay: 150.ms),
       const SizedBox(height: 12),
@@ -662,14 +662,14 @@ class _TipFormState extends State<_TipForm> {
               backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
-            child: Text("I've paid — confirm", style: GoogleFonts.inter(
+            child: Text("I've paid — confirm", style: GoogleFonts.dmSans(
                 fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
           ),
         ).animate().fadeIn(delay: 250.ms),
         const SizedBox(height: 12),
         TextButton(
           onPressed: _cancelPayment,
-          child: Text('Cancel', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+          child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
         ).animate().fadeIn(delay: 300.ms),
       ],
     ]),
@@ -691,20 +691,20 @@ class _TipFormState extends State<_TipForm> {
         child: const Icon(Icons.favorite_rounded, color: kPrimary, size: 34),
       ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
       const SizedBox(height: 20),
-      Text('Tip sent! 🎉', style: GoogleFonts.inter(
+      Text('Tip sent! 🎉', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800,
           fontSize: 26, letterSpacing: -0.5))
           .animate().fadeIn(delay: 150.ms).slideY(begin: 0.2),
       const SizedBox(height: 8),
       Text(
         'You sent R${_finalAmount.toStringAsFixed(2)} to $_sentTo',
-        style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.5),
+        style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.5),
         textAlign: TextAlign.center,
       ).animate().fadeIn(delay: 200.ms),
       const SizedBox(height: 6),
       Text(
         '${_nameCtrl.text.trim().isEmpty ? 'You' : _nameCtrl.text.trim()} just made someone\'s day.',
-        style: GoogleFonts.inter(color: kMuted, fontSize: 13),
+        style: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
         textAlign: TextAlign.center,
       ).animate().fadeIn(delay: 250.ms),
       const SizedBox(height: 32),
@@ -717,14 +717,14 @@ class _TipFormState extends State<_TipForm> {
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
           ),
-          child: Text('Send another tip', style: GoogleFonts.inter(
+          child: Text('Send another tip', style: GoogleFonts.dmSans(
               fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
         ),
       ).animate().fadeIn(delay: 300.ms),
       const SizedBox(height: 12),
       TextButton(
         onPressed: () => context.go('/'),
-        child: Text('Back to home', style: GoogleFonts.inter(
+        child: Text('Back to home', style: GoogleFonts.dmSans(
             color: kMuted, fontSize: 14, fontWeight: FontWeight.w500)),
       ).animate().fadeIn(delay: 350.ms),
     ]),
@@ -747,17 +747,17 @@ class _TipFormState extends State<_TipForm> {
         // Header
         Text(
           'Support ${widget.creator.displayName} 💚',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.4),
         ).animate().fadeIn(duration: 400.ms),
         const SizedBox(height: 4),
         Text('Choose an amount and leave a message.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 13))
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 13))
             .animate().fadeIn(delay: 60.ms, duration: 400.ms),
         const SizedBox(height: 24),
 
         // Amount presets
-        Text('Amount', style: GoogleFonts.inter(
+        Text('Amount', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(height: 10),
         _AmountGrid(
@@ -776,16 +776,16 @@ class _TipFormState extends State<_TipForm> {
           controller: _customCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
           onChanged: (v) {
             final parsed = double.tryParse(v);
             setState(() => _customAmount = parsed);
           },
           decoration: InputDecoration(
             hintText: 'Custom amount',
-            hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+            hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
             prefixText: '\$ ',
-            prefixStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+            prefixStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
             filled: true, fillColor: kDark,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -817,10 +817,10 @@ class _TipFormState extends State<_TipForm> {
               const SizedBox(width: 8),
               Expanded(child: Text(
                 'Sending to ${widget.creator.displayName}',
-                style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+                style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 13),
               )),
               Text('R${_finalAmount.toStringAsFixed(2)}',
-                  style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+                  style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
             ]),
             const SizedBox(height: 8),
             _FeeRow('Platform fee (${_platformFeePct.toInt()}%)', '- R${_platformFee.toStringAsFixed(2)}', kMuted),
@@ -832,15 +832,15 @@ class _TipFormState extends State<_TipForm> {
         const SizedBox(height: 20),
 
         // Name
-        Text('Your name (optional)', style: GoogleFonts.inter(
+        Text('Your name (optional)', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(height: 8),
         TextFormField(
           controller: _nameCtrl,
-          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'Anonymous',
-            hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+            hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
             prefixIcon: const Icon(Icons.person_outline_rounded, color: kMuted, size: 18),
             filled: true, fillColor: kDark,
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
@@ -853,16 +853,16 @@ class _TipFormState extends State<_TipForm> {
         const SizedBox(height: 14),
 
         // Email (for payment receipt)
-        Text('Email (for payment receipt)', style: GoogleFonts.inter(
+        Text('Email (for payment receipt)', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(height: 8),
         TextFormField(
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
-          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'you@example.com (optional)',
-            hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+            hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
             prefixIcon: const Icon(Icons.email_outlined, color: kMuted, size: 18),
             filled: true, fillColor: kDark,
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
@@ -875,19 +875,19 @@ class _TipFormState extends State<_TipForm> {
         const SizedBox(height: 14),
 
         // Message
-        Text('Leave a message (optional)', style: GoogleFonts.inter(
+        Text('Leave a message (optional)', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(height: 8),
         TextFormField(
           controller: _messageCtrl,
           maxLines: 3,
           maxLength: 280,
-          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'Say something nice… 👋',
-            hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+            hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
             filled: true, fillColor: kDark,
-            counterStyle: GoogleFonts.inter(color: kMuted, fontSize: 11),
+            counterStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 11),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kBorder)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
@@ -908,7 +908,7 @@ class _TipFormState extends State<_TipForm> {
             child: Row(children: [
               const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 15),
               const SizedBox(width: 8),
-              Expanded(child: Text(_error!, style: GoogleFonts.inter(
+              Expanded(child: Text(_error!, style: GoogleFonts.dmSans(
                   color: Colors.redAccent, fontSize: 12))),
             ]),
           ),
@@ -934,7 +934,7 @@ class _TipFormState extends State<_TipForm> {
                     _finalAmount < 1
                         ? 'Enter an amount (R1 minimum)'
                         : 'Send R${_finalAmount.toStringAsFixed(2)} tip  →',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white),
                   ),
           ),
@@ -946,7 +946,7 @@ class _TipFormState extends State<_TipForm> {
           const Icon(Icons.lock_outline_rounded, color: kMuted, size: 13),
           const SizedBox(width: 5),
           Text('Secure payments via Paystack',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
         ]),
       ]),
     ),
@@ -1042,7 +1042,7 @@ class _TipFormState extends State<_TipForm> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Payment not confirmed yet. Please complete it in your browser.',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w500)),
             backgroundColor: kCardBg, behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ));
@@ -1086,10 +1086,10 @@ class _FeeRow extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 1),
     child: Row(children: [
-      Expanded(child: Text(label, style: GoogleFonts.inter(
+      Expanded(child: Text(label, style: GoogleFonts.dmSans(
           color: color, fontSize: 12,
           fontWeight: bold ? FontWeight.w700 : FontWeight.w400))),
-      Text(value, style: GoogleFonts.inter(
+      Text(value, style: GoogleFonts.dmSans(
           color: color, fontSize: 12,
           fontWeight: bold ? FontWeight.w700 : FontWeight.w400)),
     ]),
@@ -1109,7 +1109,7 @@ class _JarsSection extends StatelessWidget {
         const Icon(Icons.savings_rounded, color: kPrimary, size: 16),
         const SizedBox(width: 8),
         Text('Active Jars',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
       ]),
       const SizedBox(height: 12),
       ...jars.asMap().entries.map((e) => _JarCard(jar: e.value, delay: e.key * 80)
@@ -1159,25 +1159,25 @@ class _JarCardState extends State<_JarCard> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(jar.name,
-                    style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                    style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
                     overflow: TextOverflow.ellipsis),
               ),
               Text('R${jar.totalRaised.toStringAsFixed(0)} raised',
-                  style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+                  style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
             ]),
             if (jar.description.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(jar.description,
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.4),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.4),
                   maxLines: 2, overflow: TextOverflow.ellipsis),
             ],
             if (progress != null) ...[
               const SizedBox(height: 10),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 Text('Goal: R${jar.goal!.toStringAsFixed(0)}',
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
                 Text('${jar.progressPct!.toStringAsFixed(0)}%',
-                    style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11)),
+                    style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11)),
               ]),
               const SizedBox(height: 6),
               ClipRRect(
@@ -1193,10 +1193,10 @@ class _JarCardState extends State<_JarCard> {
             const SizedBox(height: 10),
             Row(children: [
               Text('${jar.tipCount} tip${jar.tipCount == 1 ? '' : 's'}',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
               const Spacer(),
               Text('Tip this jar →',
-                  style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
+                  style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
             ]),
           ]),
         ),
@@ -1230,7 +1230,7 @@ class _ContentSection extends StatelessWidget {
         const Icon(Icons.lock_rounded, color: kPrimary, size: 16),
         const SizedBox(width: 8),
         Text('Exclusive Content',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
         const Spacer(),
         if (!isUnlocked)
@@ -1244,7 +1244,7 @@ class _ContentSection extends StatelessWidget {
                 border: Border.all(color: kPrimary.withValues(alpha: 0.4)),
               ),
               child: Text('Unlock with email',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.dmSans(
                       color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
             ),
           ),
@@ -1278,21 +1278,21 @@ class _ContentSection extends StatelessWidget {
           backgroundColor: kCardBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text('Unlock exclusive content',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             Text(
               'Enter the email you used when tipping to unlock the content.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: emailCtrl,
               keyboardType: TextInputType.emailAddress,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'you@example.com',
-                hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+                hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
                 prefixIcon: const Icon(Icons.email_outlined, color: kMuted, size: 18),
                 filled: true, fillColor: kDark,
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
@@ -1304,13 +1304,13 @@ class _ContentSection extends StatelessWidget {
             ),
             if (error != null) ...[
               const SizedBox(height: 10),
-              Text(error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 12)),
+              Text(error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
             ],
           ]),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted)),
             ),
             StatefulBuilder(
               builder: (_, setBtn) => ElevatedButton(
@@ -1340,7 +1340,7 @@ class _ContentSection extends StatelessWidget {
                 child: loading
                     ? const SizedBox(width: 16, height: 16,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text('Unlock', style: GoogleFonts.inter(
+                    : Text('Unlock', style: GoogleFonts.dmSans(
                         fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
               ),
             ),
@@ -1456,7 +1456,7 @@ class _LockedPostCard extends StatelessWidget {
           child: Row(children: [
             Expanded(child: Text(
               post.title,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
               maxLines: 1, overflow: TextOverflow.ellipsis,
             )),
@@ -1479,7 +1479,7 @@ class _LockedPostCard extends StatelessWidget {
                 const Icon(Icons.lock_open_rounded, color: kPrimary, size: 13),
                 const SizedBox(width: 6),
                 Text('Tip to unlock',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
               ]),
             ),
@@ -1527,7 +1527,7 @@ class _UnlockedPostCard extends StatelessWidget {
           child: Icon(_typeIcon, color: _typeColor, size: 16),
         ),
         const SizedBox(width: 10),
-        Expanded(child: Text(post.title, style: GoogleFonts.inter(
+        Expanded(child: Text(post.title, style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
             maxLines: 1, overflow: TextOverflow.ellipsis)),
         const Icon(Icons.lock_open_rounded, color: kPrimary, size: 15),
@@ -1536,7 +1536,7 @@ class _UnlockedPostCard extends StatelessWidget {
       // Body text
       if (post.body.isNotEmpty) ...[
         const SizedBox(height: 10),
-        Text(post.body, style: GoogleFonts.inter(
+        Text(post.body, style: GoogleFonts.dmSans(
             color: Colors.white.withValues(alpha: 0.85), fontSize: 13, height: 1.55)),
       ],
 
@@ -1579,7 +1579,7 @@ class _UnlockedPostCard extends StatelessWidget {
               const Icon(Icons.play_circle_outline_rounded,
                   color: Color(0xFFF472B6), size: 18),
               const SizedBox(width: 8),
-              Expanded(child: Text(post.videoUrl, style: GoogleFonts.inter(
+              Expanded(child: Text(post.videoUrl, style: GoogleFonts.dmSans(
                   color: const Color(0xFFF472B6), fontSize: 12),
                   overflow: TextOverflow.ellipsis)),
               const Icon(Icons.open_in_new_rounded,
@@ -1609,7 +1609,7 @@ class _UnlockedPostCard extends StatelessWidget {
             child: Row(children: [
               const Icon(Icons.download_rounded, color: Color(0xFFFBBF24), size: 18),
               const SizedBox(width: 8),
-              Text('Download file', style: GoogleFonts.inter(
+              Text('Download file', style: GoogleFonts.dmSans(
                   color: const Color(0xFFFBBF24), fontWeight: FontWeight.w600,
                   fontSize: 13)),
             ]),
@@ -1644,7 +1644,7 @@ class _AmountGrid extends StatelessWidget {
                 color: active ? kPrimary : kBorder,
                 width: active ? 2 : 1),
           ),
-          child: Text('R${v.toInt()}', style: GoogleFonts.inter(
+          child: Text('R${v.toInt()}', style: GoogleFonts.dmSans(
               color: active ? kPrimary : Colors.white,
               fontWeight: FontWeight.w700, fontSize: 14)),
         ),
@@ -1666,11 +1666,11 @@ class _TiersSection extends StatelessWidget {
     if (active.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const SizedBox(height: 32),
-      Text('Support Tiers', style: GoogleFonts.inter(
+      Text('Support Tiers', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20,
           letterSpacing: -0.4)),
       const SizedBox(height: 4),
-      Text('Choose a monthly support level', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      Text('Choose a monthly support level', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
       const SizedBox(height: 16),
       Wrap(
         spacing: 12, runSpacing: 12,
@@ -1700,14 +1700,14 @@ class _TierCard extends StatelessWidget {
       border: Border.all(color: kBorder),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(tier.name, style: GoogleFonts.inter(
+      Text(tier.name, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
       const SizedBox(height: 4),
-      Text('R${tier.price.toStringAsFixed(0)}/month', style: GoogleFonts.inter(
+      Text('R${tier.price.toStringAsFixed(0)}/month', style: GoogleFonts.dmSans(
           color: kPrimary, fontWeight: FontWeight.w800, fontSize: 18)),
       if (tier.description.isNotEmpty) ...[
         const SizedBox(height: 8),
-        Text(tier.description, style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.4)),
+        Text(tier.description, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.4)),
       ],
       if (tier.perks.isNotEmpty) ...[
         const SizedBox(height: 12),
@@ -1716,7 +1716,7 @@ class _TierCard extends StatelessWidget {
           child: Row(children: [
             const Icon(Icons.check_circle_outline_rounded, color: kPrimary, size: 14),
             const SizedBox(width: 6),
-            Expanded(child: Text(p, style: GoogleFonts.inter(color: Colors.white70, fontSize: 12))),
+            Expanded(child: Text(p, style: GoogleFonts.dmSans(color: Colors.white70, fontSize: 12))),
           ]),
         )),
       ],
@@ -1738,7 +1738,7 @@ class _TierCard extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
           ),
           child: Text('Subscribe R${tier.price.toStringAsFixed(0)}/mo',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
         ),
       ),
     ]),
@@ -1806,7 +1806,7 @@ class _PledgeDialogState extends State<_PledgeDialog> {
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     title: Text(
       _done ? 'Pledge Active!' : 'Subscribe to ${widget.tier.name}',
-      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+      style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
     ),
     content: _done
         ? Column(mainAxisSize: MainAxisSize.min, children: [
@@ -1814,22 +1814,22 @@ class _PledgeDialogState extends State<_PledgeDialog> {
             const SizedBox(height: 12),
             Text(
               'You\'re now supporting ${widget.creatorName} with R${widget.tier.price.toStringAsFixed(0)}/month.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5),
               textAlign: TextAlign.center,
             ),
           ])
         : Column(mainAxisSize: MainAxisSize.min, children: [
             Text(
               'R${widget.tier.price.toStringAsFixed(0)}/month · ${widget.tier.name}',
-              style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 15),
+              style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 15),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameCtrl,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Your name (optional)',
-                hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+                hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
                 prefixIcon: const Icon(Icons.person_outline_rounded, color: kMuted, size: 18),
                 filled: true, fillColor: kDark,
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
@@ -1843,10 +1843,10 @@ class _PledgeDialogState extends State<_PledgeDialog> {
             TextFormField(
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'your@email.com *',
-                hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+                hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
                 prefixIcon: const Icon(Icons.email_outlined, color: kMuted, size: 18),
                 filled: true, fillColor: kDark,
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
@@ -1858,7 +1858,7 @@ class _PledgeDialogState extends State<_PledgeDialog> {
             ),
             if (_error != null) ...[
               const SizedBox(height: 10),
-              Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 12)),
+              Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
             ],
           ]),
     actions: _done
@@ -1868,13 +1868,13 @@ class _PledgeDialogState extends State<_PledgeDialog> {
               style: ElevatedButton.styleFrom(
                   backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
-              child: Text('Done', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+              child: Text('Done', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
             ),
           ]
         : [
             TextButton(
               onPressed: _loading ? null : () => Navigator.pop(context),
-              child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted)),
             ),
             ElevatedButton(
               onPressed: _loading ? null : _submit,
@@ -1883,7 +1883,7 @@ class _PledgeDialogState extends State<_PledgeDialog> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
               child: _loading
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Text('Subscribe', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                  : Text('Subscribe', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
             ),
           ],
   );
@@ -1900,10 +1900,10 @@ class _MilestonesSection extends StatelessWidget {
     if (active.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const SizedBox(height: 32),
-      Text('Milestones', style: GoogleFonts.inter(
+      Text('Milestones', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.4)),
       const SizedBox(height: 4),
-      Text('Help unlock these goals', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      Text('Help unlock these goals', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
       const SizedBox(height: 16),
       ...active.asMap().entries.map((e) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
@@ -1932,7 +1932,7 @@ class _MilestoneCard extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: Text(milestone.title, style: GoogleFonts.inter(
+          Expanded(child: Text(milestone.title, style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15))),
           if (milestone.isAchieved)
             Container(
@@ -1945,14 +1945,14 @@ class _MilestoneCard extends StatelessWidget {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.check_circle_rounded, color: kPrimary, size: 13),
                 const SizedBox(width: 4),
-                Text('Unlocked!', style: GoogleFonts.inter(
+                Text('Unlocked!', style: GoogleFonts.dmSans(
                     color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11)),
               ]),
             ),
         ]),
         if (milestone.description.isNotEmpty) ...[
           const SizedBox(height: 6),
-          Text(milestone.description, style: GoogleFonts.inter(
+          Text(milestone.description, style: GoogleFonts.dmSans(
               color: kMuted, fontSize: 12, height: 1.4)),
         ],
         const SizedBox(height: 12),
@@ -1970,11 +1970,11 @@ class _MilestoneCard extends StatelessWidget {
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(
             'R${milestone.currentMonthTotal.toStringAsFixed(0)} raised this month',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 11),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 11),
           ),
           Text(
             'Goal: R${milestone.targetAmount.toStringAsFixed(0)}',
-            style: GoogleFonts.inter(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 11),
+            style: GoogleFonts.dmSans(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 11),
           ),
         ]),
       ]),
@@ -1994,10 +1994,10 @@ class _CommissionsSection extends StatelessWidget {
     if (!slot.isOpen) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const SizedBox(height: 32),
-      Text('Commission Work', style: GoogleFonts.inter(
+      Text('Commission Work', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.4)),
       const SizedBox(height: 4),
-      Text('Request custom work from $creatorName', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+      Text('Request custom work from $creatorName', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
       const SizedBox(height: 16),
       Container(
         padding: const EdgeInsets.all(20),
@@ -2015,22 +2015,22 @@ class _CommissionsSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
               ),
-              child: Text('Open for commissions', style: GoogleFonts.inter(
+              child: Text('Open for commissions', style: GoogleFonts.dmSans(
                   color: Colors.greenAccent, fontWeight: FontWeight.w600, fontSize: 11)),
             ),
           ]),
           const SizedBox(height: 12),
           Text(
             'From R${slot.basePrice.toStringAsFixed(0)}',
-            style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 22),
+            style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 22),
           ),
           if (slot.description.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(slot.description, style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5)),
+            Text(slot.description, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5)),
           ],
           const SizedBox(height: 6),
           Text('Turnaround: ${slot.turnaroundDays} days',
-              style: GoogleFonts.inter(color: Colors.white54, fontSize: 12)),
+              style: GoogleFonts.dmSans(color: Colors.white54, fontSize: 12)),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -2049,7 +2049,7 @@ class _CommissionsSection extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
               ),
               child: Text('Request a Commission',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15)),
+                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 15)),
             ),
           ),
         ]),
@@ -2128,7 +2128,7 @@ class _CommissionDialogState extends State<_CommissionDialog> {
 
   InputDecoration _dec(String hint, IconData icon) => InputDecoration(
     hintText: hint,
-    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+    hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
     prefixIcon: Icon(icon, color: kMuted, size: 18),
     filled: true, fillColor: kDark,
     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
@@ -2144,7 +2144,7 @@ class _CommissionDialogState extends State<_CommissionDialog> {
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     title: Text(
       _done ? 'Request Sent!' : 'Request a Commission',
-      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+      style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
     ),
     content: _done
         ? Column(mainAxisSize: MainAxisSize.min, children: [
@@ -2152,7 +2152,7 @@ class _CommissionDialogState extends State<_CommissionDialog> {
             const SizedBox(height: 12),
             Text(
               '${widget.creatorName} will review your request and get back to you.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5),
               textAlign: TextAlign.center,
             ),
           ])
@@ -2160,39 +2160,39 @@ class _CommissionDialogState extends State<_CommissionDialog> {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               TextFormField(
                 controller: _titleCtrl,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 decoration: _dec('Commission title *', Icons.title_rounded),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _descCtrl,
                 maxLines: 3,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 decoration: _dec('Describe what you want *', Icons.description_outlined).copyWith(prefixIcon: null),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _nameCtrl,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 decoration: _dec('Your name (optional)', Icons.person_outline_rounded),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _emailCtrl,
                 keyboardType: TextInputType.emailAddress,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 decoration: _dec('Your email *', Icons.email_outlined),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _priceCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                 decoration: _dec('Agreed price (R) *', Icons.payments_outlined),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 10),
-                Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 12)),
+                Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
               ],
             ]),
           ),
@@ -2203,13 +2203,13 @@ class _CommissionDialogState extends State<_CommissionDialog> {
               style: ElevatedButton.styleFrom(
                   backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
-              child: Text('Done', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+              child: Text('Done', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
             ),
           ]
         : [
             TextButton(
               onPressed: _loading ? null : () => Navigator.pop(context),
-              child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted)),
             ),
             ElevatedButton(
               onPressed: _loading ? null : _submit,
@@ -2218,7 +2218,7 @@ class _CommissionDialogState extends State<_CommissionDialog> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
               child: _loading
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Text('Send Request', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                  : Text('Send Request', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
             ),
           ],
   );

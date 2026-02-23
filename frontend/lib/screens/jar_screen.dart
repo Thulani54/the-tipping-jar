@@ -56,11 +56,11 @@ class _JarScreenState extends State<JarScreen> {
         body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.savings_outlined, color: kMuted, size: 56),
           const SizedBox(height: 16),
-          Text('Jar not found', style: GoogleFonts.inter(
+          Text('Jar not found', style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
           const SizedBox(height: 8),
           Text('This jar may have been closed or the link is invalid.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 14),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
               textAlign: TextAlign.center),
           const SizedBox(height: 24),
           ElevatedButton(
@@ -68,7 +68,7 @@ class _JarScreenState extends State<JarScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary,
                 foregroundColor: Colors.white, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
-            child: Text('View creator page', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
+            child: Text('View creator page', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: Colors.white)),
           ),
         ])),
       );
@@ -109,7 +109,7 @@ class _JarNav extends StatelessWidget {
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             const AppLogoIcon(size: 28),
             const SizedBox(width: 8),
-            Text('TippingJar', style: GoogleFonts.inter(
+            Text('TippingJar', style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
           ]),
         ),
@@ -120,7 +120,7 @@ class _JarNav extends StatelessWidget {
           child: GestureDetector(
             onTap: () => context.go('/creator/$creatorSlug'),
             child: Text(creatorSlug,
-                style: GoogleFonts.inter(color: kMuted, fontSize: 13),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
                 overflow: TextOverflow.ellipsis),
           ),
         ),
@@ -129,7 +129,7 @@ class _JarNav extends StatelessWidget {
         const SizedBox(width: 6),
         Flexible(
           child: Text(jar.name,
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
               overflow: TextOverflow.ellipsis),
         ),
         const Spacer(),
@@ -175,7 +175,7 @@ class _ShareButtonState extends State<_ShareButton> {
             color: _copied ? kPrimary : kMuted, size: 14),
         const SizedBox(width: 6),
         Text(_copied ? 'Copied!' : 'Share link',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: _copied ? kPrimary : kMuted,
                 fontSize: 12, fontWeight: FontWeight.w600)),
       ]),
@@ -253,14 +253,14 @@ class _JarInfo extends StatelessWidget {
       ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.8, 0.8)),
       const SizedBox(height: 20),
       Text(jar.name,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: 28, letterSpacing: -0.8))
           .animate().fadeIn(delay: 80.ms, duration: 400.ms).slideY(begin: 0.1),
       if (jar.description.isNotEmpty) ...[
         const SizedBox(height: 12),
         Text(jar.description,
-            style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.6))
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.6))
             .animate().fadeIn(delay: 140.ms, duration: 400.ms),
       ],
       const SizedBox(height: 28),
@@ -280,9 +280,9 @@ class _JarInfo extends StatelessWidget {
       if (progress != null) ...[
         const SizedBox(height: 20),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('Progress', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+          Text('Progress', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
           Text('${jar.progressPct!.toStringAsFixed(1)}%',
-              style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
         ]),
         const SizedBox(height: 8),
         ClipRRect(
@@ -304,7 +304,7 @@ class _JarInfo extends StatelessWidget {
           const Icon(Icons.arrow_back_rounded, color: kMuted, size: 14),
           const SizedBox(width: 6),
           Text('Back to creator page',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 13,
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13,
                   decoration: TextDecoration.underline)),
         ]),
       ),
@@ -324,9 +324,9 @@ class _StatPill extends StatelessWidget {
       border: Border.all(color: kBorder),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(value, style: GoogleFonts.inter(
+      Text(value, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: -0.5)),
-      Text(label, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+      Text(label, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
     ]),
   );
 }
@@ -382,18 +382,18 @@ class _JarTipFormState extends State<_JarTipForm> {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Drop a tip into this jar',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: 22, letterSpacing: -0.5))
           .animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 6),
       Text('Supporting: ${widget.jar.name}',
-          style: GoogleFonts.inter(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w600))
+          style: GoogleFonts.dmSans(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w600))
           .animate().fadeIn(delay: 80.ms, duration: 400.ms),
       const SizedBox(height: 24),
 
       // Amount presets
-      Text('Choose amount', style: GoogleFonts.inter(
+      Text('Choose amount', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
       const SizedBox(height: 10),
       Wrap(
@@ -413,7 +413,7 @@ class _JarTipFormState extends State<_JarTipForm> {
                 borderRadius: BorderRadius.circular(36),
                 border: Border.all(color: active ? kPrimary : kBorder, width: active ? 2 : 1),
               ),
-              child: Text('R${v.toInt()}', style: GoogleFonts.inter(
+              child: Text('R${v.toInt()}', style: GoogleFonts.dmSans(
                   color: active ? kPrimary : Colors.white,
                   fontWeight: FontWeight.w700, fontSize: 14)),
             ),
@@ -426,16 +426,16 @@ class _JarTipFormState extends State<_JarTipForm> {
       TextField(
         controller: _customCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
+        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 15),
         onChanged: (v) {
           final d = double.tryParse(v);
           setState(() => _custom = (d != null && d > 0) ? d : null);
         },
         decoration: InputDecoration(
           hintText: 'Or enter custom amount',
-          hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+          hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
           prefixText: 'R  ',
-          prefixStyle: GoogleFonts.inter(color: kMuted, fontSize: 15),
+          prefixStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 15),
           filled: true, fillColor: kCardBg,
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -462,9 +462,9 @@ class _JarTipFormState extends State<_JarTipForm> {
               const Icon(Icons.savings_rounded, color: kPrimary, size: 13),
               const SizedBox(width: 8),
               Expanded(child: Text('Sending to ${widget.jar.name}',
-                  style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12))),
+                  style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12))),
               Text('R${_final.toStringAsFixed(2)}',
-                  style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 12)),
+                  style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 12)),
             ]),
             const SizedBox(height: 6),
             _jarFeeRow('Platform fee (${_platformFeePct.toInt()}%)', '- R${_platformFee.toStringAsFixed(2)}', kMuted),
@@ -481,7 +481,7 @@ class _JarTipFormState extends State<_JarTipForm> {
       const SizedBox(height: 8),
       TextField(
         controller: _nameCtrl,
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
         decoration: _inputDeco('Anonymous'),
       ),
       const SizedBox(height: 14),
@@ -492,7 +492,7 @@ class _JarTipFormState extends State<_JarTipForm> {
       TextField(
         controller: _emailCtrl,
         keyboardType: TextInputType.emailAddress,
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
         decoration: _inputDeco('you@example.com'),
       ),
       const SizedBox(height: 16),
@@ -504,15 +504,15 @@ class _JarTipFormState extends State<_JarTipForm> {
         controller: _messageCtrl,
         maxLines: 3,
         maxLength: 280,
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
-        decoration: _inputDeco('Say something nice…').copyWith(counterStyle: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+        decoration: _inputDeco('Say something nice…').copyWith(counterStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
       ),
       const SizedBox(height: 4),
 
       // Error
       if (_error != null) ...[
         const SizedBox(height: 8),
-        Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
+        Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13)),
         const SizedBox(height: 8),
       ],
 
@@ -533,7 +533,7 @@ class _JarTipFormState extends State<_JarTipForm> {
                   child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
               : Text(
                   _final < 1 ? 'Enter an amount' : 'Tip R${_final.toStringAsFixed(2)}',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.white)),
+                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.white)),
         ),
       ),
     ]);
@@ -546,11 +546,11 @@ class _JarTipFormState extends State<_JarTipForm> {
           .animate().scale(duration: 500.ms, curve: Curves.elasticOut),
       const SizedBox(height: 20),
       Text('Thank you! 🎉',
-          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 28))
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 28))
           .animate().fadeIn(delay: 200.ms, duration: 400.ms),
       const SizedBox(height: 10),
       Text('Your tip was sent to the "${widget.jar.name}" jar.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.5),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.5),
           textAlign: TextAlign.center)
           .animate().fadeIn(delay: 300.ms, duration: 400.ms),
       const SizedBox(height: 28),
@@ -562,7 +562,7 @@ class _JarTipFormState extends State<_JarTipForm> {
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
-        child: Text('Send another tip', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+        child: Text('Send another tip', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
       ).animate().fadeIn(delay: 400.ms),
     ],
   );
@@ -582,11 +582,11 @@ class _JarTipFormState extends State<_JarTipForm> {
       ).animate().scale(duration: 400.ms),
       const SizedBox(height: 16),
       Text('Complete your payment',
-          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20))
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20))
           .animate().fadeIn(delay: 100.ms),
       const SizedBox(height: 8),
       Text('Finish the payment in your browser and tap below to confirm.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5),
           textAlign: TextAlign.center)
           .animate().fadeIn(delay: 150.ms),
       const SizedBox(height: 16),
@@ -616,13 +616,13 @@ class _JarTipFormState extends State<_JarTipForm> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
             child: Text("I've paid — confirm",
-                style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
           ),
         ),
         const SizedBox(height: 10),
         TextButton(
           onPressed: _cancelPayment,
-          child: Text('Cancel', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+          child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
         ),
       ],
     ]),
@@ -630,7 +630,7 @@ class _JarTipFormState extends State<_JarTipForm> {
 
   InputDecoration _inputDeco(String hint) => InputDecoration(
     hintText: hint,
-    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+    hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
     filled: true, fillColor: kCardBg,
     enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
@@ -640,7 +640,7 @@ class _JarTipFormState extends State<_JarTipForm> {
   );
 
   Widget _label(String t) => Text(t,
-      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13));
+      style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13));
 
   Future<void> _submit() async {
     setState(() { _submitting = true; _error = null; });
@@ -727,7 +727,7 @@ class _JarTipFormState extends State<_JarTipForm> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Payment not confirmed yet — finish it in your browser.',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w500)),
             backgroundColor: kCardBg, behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ));
@@ -756,10 +756,10 @@ class _JarTipFormState extends State<_JarTipForm> {
     Padding(
       padding: const EdgeInsets.symmetric(vertical: 1),
       child: Row(children: [
-        Expanded(child: Text(label, style: GoogleFonts.inter(
+        Expanded(child: Text(label, style: GoogleFonts.dmSans(
             color: color, fontSize: 11,
             fontWeight: bold ? FontWeight.w700 : FontWeight.w400))),
-        Text(value, style: GoogleFonts.inter(
+        Text(value, style: GoogleFonts.dmSans(
             color: color, fontSize: 11,
             fontWeight: bold ? FontWeight.w700 : FontWeight.w400)),
       ]),

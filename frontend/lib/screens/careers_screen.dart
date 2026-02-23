@@ -35,12 +35,12 @@ class CareersScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(36),
           border: Border.all(color: kPrimary.withOpacity(0.3)),
         ),
-        child: Text('We\'re hiring', style: GoogleFonts.inter(
+        child: Text('We\'re hiring', style: GoogleFonts.dmSans(
             color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
       ).animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 20),
       Text('Build the future of\nthe creator economy',
-          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: 46, letterSpacing: -1.8, height: 1.1),
           textAlign: TextAlign.center)
           .animate().fadeIn(delay: 80.ms).slideY(begin: 0.2),
@@ -49,7 +49,7 @@ class CareersScreen extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 560),
         child: Text(
           'We\'re a small, fully remote team with a big mission. If you care deeply about creators and love building great products, we\'d love to hear from you.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 17, height: 1.7),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 17, height: 1.7),
           textAlign: TextAlign.center,
         ).animate().fadeIn(delay: 160.ms),
       ),
@@ -61,7 +61,7 @@ class CareersScreen extends StatelessWidget {
     color: kDark,
     child: Column(children: [
       Text('Why TippingJar',
-          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: 28, letterSpacing: -0.8),
           textAlign: TextAlign.center),
       const SizedBox(height: 40),
@@ -83,7 +83,7 @@ class CareersScreen extends StatelessWidget {
     color: kDarker,
     child: Column(children: [
       Text('Open roles',
-          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: 28, letterSpacing: -0.8),
           textAlign: TextAlign.center),
       const SizedBox(height: 36),
@@ -137,10 +137,10 @@ class _PerkCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, color: kPrimary, size: 18)),
       const SizedBox(height: 12),
-      Text(title, style: GoogleFonts.inter(
+      Text(title, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
       const SizedBox(height: 5),
-      Text(body, style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.55)),
+      Text(body, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.55)),
     ]),
   ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1);
 }
@@ -159,7 +159,7 @@ class _JobSection extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(dept, style: GoogleFonts.inter(
+      Text(dept, style: GoogleFonts.dmSans(
           color: kMuted, fontWeight: FontWeight.w600, fontSize: 12,
           letterSpacing: 0.6)),
       const SizedBox(height: 10),
@@ -181,17 +181,17 @@ class _JobCard extends StatelessWidget {
       Container(width: 8, height: 8,
           decoration: BoxDecoration(color: job.color, shape: BoxShape.circle)),
       const SizedBox(width: 14),
-      Expanded(child: Text(job.title, style: GoogleFonts.inter(
+      Expanded(child: Text(job.title, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))),
       const SizedBox(width: 12),
-      Text(job.location, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+      Text(job.location, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
       const SizedBox(width: 12),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(color: kPrimary.withOpacity(0.08),
             borderRadius: BorderRadius.circular(36),
             border: Border.all(color: kPrimary.withOpacity(0.25))),
-        child: Text(job.type, style: GoogleFonts.inter(
+        child: Text(job.type, style: GoogleFonts.dmSans(
             color: kPrimary, fontWeight: FontWeight.w600, fontSize: 11)),
       ),
     ]),

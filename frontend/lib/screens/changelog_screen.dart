@@ -34,18 +34,18 @@ class ChangelogScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(36),
           border: Border.all(color: kPrimary.withOpacity(0.3)),
         ),
-        child: Text('Changelog', style: GoogleFonts.inter(
+        child: Text('Changelog', style: GoogleFonts.dmSans(
             color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
       ).animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 20),
       Text('What\'s new',
-          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: 42, letterSpacing: -1.5),
           textAlign: TextAlign.center)
           .animate().fadeIn(delay: 80.ms).slideY(begin: 0.2),
       const SizedBox(height: 14),
       Text('Every update, improvement, and fix — documented.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 17, height: 1.6),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 17, height: 1.6),
           textAlign: TextAlign.center)
           .animate().fadeIn(delay: 160.ms),
     ]),
@@ -194,20 +194,20 @@ class _ReleaseCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(36),
                     border: Border.all(color: _badgeColor.withOpacity(0.3)),
                   ),
-                  child: Text(release.badge, style: GoogleFonts.inter(
+                  child: Text(release.badge, style: GoogleFonts.dmSans(
                       color: _badgeColor, fontWeight: FontWeight.w700, fontSize: 11)),
                 ),
                 const SizedBox(width: 10),
                 Text(release.version, style: GoogleFonts.jetBrainsMono(
                     color: kMuted, fontSize: 12)),
                 const Spacer(),
-                Text(release.date, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                Text(release.date, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
               ]),
               const SizedBox(height: 12),
-              Text(release.title, style: GoogleFonts.inter(
+              Text(release.title, style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
               const SizedBox(height: 8),
-              Text(release.summary, style: GoogleFonts.inter(
+              Text(release.summary, style: GoogleFonts.dmSans(
                   color: kMuted, fontSize: 13, height: 1.6)),
               const SizedBox(height: 16),
               ...release.items.map((item) => Padding(
@@ -215,7 +215,7 @@ class _ReleaseCard extends StatelessWidget {
                 child: Row(children: [
                   Icon(Icons.arrow_right_rounded, color: _badgeColor, size: 18),
                   const SizedBox(width: 6),
-                  Expanded(child: Text(item, style: GoogleFonts.inter(
+                  Expanded(child: Text(item, style: GoogleFonts.dmSans(
                       color: Colors.white, fontSize: 13))),
                 ]),
               )),

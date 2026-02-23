@@ -39,7 +39,7 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
                 const AppLogoIcon(size: 30),
                 const SizedBox(width: 9),
                 Text('TippingJar',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.dmSans(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
@@ -74,7 +74,7 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
         child: Text(label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 fontSize: 13, fontWeight: FontWeight.w500)),
       );
 
@@ -90,7 +90,7 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
               borderRadius: BorderRadius.circular(36)),
         ),
         child: Text(label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: Colors.white)),
@@ -111,7 +111,7 @@ class _NavLink extends StatelessWidget {
       child: GestureDetector(
         onTap: () => context.go(route),
         child: Text(label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: active ? kPrimary : kMuted,
                 fontSize: 13,
                 fontWeight: active ? FontWeight.w600 : FontWeight.w500)),

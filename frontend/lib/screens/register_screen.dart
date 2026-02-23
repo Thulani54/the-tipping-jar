@@ -43,20 +43,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _logo(ctx),
             const Spacer(),
             Text('Start earning\nfrom day one.',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w800,
                     fontSize: 52, height: 1.1, letterSpacing: -2))
                 .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
             const SizedBox(height: 20),
             Text('Join 2,400+ creators already filling\ntheir jar every day.',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 16, height: 1.65))
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 16, height: 1.65))
                 .animate().fadeIn(delay: 150.ms, duration: 500.ms),
             const SizedBox(height: 48),
             ..._perks().asMap().entries.map((e) =>
               _PerkCard(icon: e.value.$1, title: e.value.$2, body: e.value.$3, delay: 200 + e.key * 100)),
             const Spacer(),
             Text('© 2026 TippingJar',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
           ]),
         ),
       ),
@@ -93,7 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const AppLogoIcon(size: 36),
         const SizedBox(width: 10),
         Text('TippingJar',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -0.3)),
       ]),
     );
@@ -102,23 +102,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _form(BuildContext ctx) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Create your account',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.8))
           .animate().fadeIn(duration: 400.ms).slideY(begin: 0.15),
       const SizedBox(height: 6),
       Row(children: [
         Text('Already have an account? ',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
         GestureDetector(
           onTap: () => ctx.go('/login'),
           child: Text('Sign in',
-              style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
+              style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
         ),
       ]).animate().fadeIn(delay: 80.ms, duration: 400.ms),
       const SizedBox(height: 28),
 
       // Role toggle
-      Text('I want to…', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+      Text('I want to…', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
       const SizedBox(height: 10),
       Row(children: [
         _roleBtn(Icons.volunteer_activism, 'Tip creators', 'fan'),
@@ -182,7 +182,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Row(children: [
                 const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
                 const SizedBox(width: 8),
-                Expanded(child: Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13))),
+                Expanded(child: Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13))),
               ]),
             ),
           ],
@@ -204,14 +204,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ? const SizedBox(width: 20, height: 20,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                     : Text('Create account',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
               ),
             ),
           ),
           const SizedBox(height: 14),
           Text(
             'By signing up you agree to our Terms of Service and Privacy Policy.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 11, height: 1.5),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 11, height: 1.5),
             textAlign: TextAlign.center,
           ),
         ]),
@@ -236,7 +236,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Icon(icon, color: active ? kPrimary : kMuted, size: 18),
             const SizedBox(width: 8),
             Text(label,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: active ? kPrimary : kMuted,
                     fontWeight: FontWeight.w600, fontSize: 13)),
           ]),
@@ -256,17 +256,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     String? Function(String?)? validator,
   }) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+      Text(label, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
       const SizedBox(height: 8),
       TextFormField(
         controller: ctrl,
         obscureText: obscure,
         keyboardType: keyboardType,
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
         validator: validator,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+          hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
           prefixIcon: Icon(icon, color: kMuted, size: 18),
           suffixIcon: suffix,
           filled: true,
@@ -354,8 +354,8 @@ class _PerkCard extends StatelessWidget {
         ),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
-          Text(body,  style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5)),
+          Text(title, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+          Text(body,  style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5)),
         ])),
       ]),
     ).animate().fadeIn(delay: delay.ms, duration: 400.ms).slideX(begin: -0.1, curve: Curves.easeOut);

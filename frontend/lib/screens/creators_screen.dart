@@ -186,9 +186,9 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
         alignment: WrapAlignment.center,
         spacing: 48, runSpacing: 16,
         children: stats.asMap().entries.map((e) => Column(children: [
-          Text(e.value.$1, style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -1))
+          Text(e.value.$1, style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -1))
               .animate().fadeIn(delay: (e.key * 80).ms, duration: 400.ms),
-          Text(e.value.$2, style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+          Text(e.value.$2, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
         ])).toList(),
       ),
     );
@@ -204,7 +204,7 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
         _tag('Featured creators'),
         const SizedBox(height: 16),
         Text('Making waves this month',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
                 fontSize: 30, letterSpacing: -1),
             textAlign: TextAlign.center),
         const SizedBox(height: 40),
@@ -228,9 +228,9 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
       child: Column(children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text('All creators',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 22)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 22)),
           Text('${_filtered.length} creators',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
         ]),
         const SizedBox(height: 20),
 
@@ -251,7 +251,7 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
                     borderRadius: BorderRadius.circular(36),
                     border: Border.all(color: active ? Colors.transparent : kBorder),
                   ),
-                  child: Text(cat, style: GoogleFonts.inter(
+                  child: Text(cat, style: GoogleFonts.dmSans(
                       color: active ? Colors.white : kMuted,
                       fontWeight: FontWeight.w600, fontSize: 13)),
                 ),
@@ -283,7 +283,7 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
       const Icon(Icons.search_off_rounded, color: kMuted, size: 48),
       const SizedBox(height: 12),
       Text('No creators found for "$_search"',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 15)),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 15)),
       const SizedBox(height: 8),
       TextButton(
         onPressed: () { _searchCtrl.clear(); setState(() { _search = ''; _applyFilters(); }); },
@@ -312,7 +312,7 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
           ),
           const SizedBox(height: 20),
           Text('Are you a creator?',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
                   fontSize: 32, letterSpacing: -1),
               textAlign: TextAlign.center),
           const SizedBox(height: 10),
@@ -328,7 +328,7 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
             child: Text('Create your page →',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
           ),
         ]),
       ),
@@ -349,7 +349,7 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
       border: Border.all(color: kPrimary.withOpacity(0.3)),
       borderRadius: BorderRadius.circular(100),
     ),
-    child: Text(label, style: GoogleFonts.inter(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+    child: Text(label, style: GoogleFonts.dmSans(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
   );
 }
 
@@ -405,24 +405,24 @@ class _FeaturedCardState extends State<_FeaturedCard> {
                   shape: BoxShape.circle,
                   border: Border.all(color: kCardBg, width: 3),
                 ),
-                child: Center(child: Text(_initials, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14))),
+                child: Center(child: Text(_initials, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14))),
               ),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(widget.creator.displayName, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15), overflow: TextOverflow.ellipsis),
-                Text(widget.creator.tagline, style: GoogleFonts.inter(color: kMuted, fontSize: 12), overflow: TextOverflow.ellipsis),
+                Text(widget.creator.displayName, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15), overflow: TextOverflow.ellipsis),
+                Text(widget.creator.tagline, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12), overflow: TextOverflow.ellipsis),
               ])),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(color: widget.color.withOpacity(0.12), borderRadius: BorderRadius.circular(36)),
-                child: Text('Featured', style: GoogleFonts.inter(color: widget.color, fontSize: 10, fontWeight: FontWeight.w700)),
+                child: Text('Featured', style: GoogleFonts.dmSans(color: widget.color, fontSize: 10, fontWeight: FontWeight.w700)),
               ),
             ]),
             if (progress != null) ...[
               const SizedBox(height: 16),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text('Monthly goal', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
-                Text('${(progress * 100).toStringAsFixed(0)}%', style: GoogleFonts.inter(color: widget.color, fontWeight: FontWeight.w700, fontSize: 11)),
+                Text('Monthly goal', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                Text('${(progress * 100).toStringAsFixed(0)}%', style: GoogleFonts.dmSans(color: widget.color, fontWeight: FontWeight.w700, fontSize: 11)),
               ]),
               const SizedBox(height: 6),
               ClipRRect(
@@ -494,12 +494,12 @@ class _CreatorBrowseCardState extends State<_CreatorBrowseCard> {
                   color: widget.color,
                   shape: BoxShape.circle,
                 ),
-                child: Center(child: Text(_initials, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13))),
+                child: Center(child: Text(_initials, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13))),
               ),
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(widget.creator.displayName, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis),
-                Text(widget.creator.tagline, style: GoogleFonts.inter(color: kMuted, fontSize: 11), overflow: TextOverflow.ellipsis),
+                Text(widget.creator.displayName, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis),
+                Text(widget.creator.tagline, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11), overflow: TextOverflow.ellipsis),
               ])),
             ]),
             const SizedBox(height: 14),
@@ -507,7 +507,7 @@ class _CreatorBrowseCardState extends State<_CreatorBrowseCard> {
               Icon(Icons.volunteer_activism, color: widget.color, size: 14),
               const SizedBox(width: 5),
               Text('R${widget.creator.totalTips.toStringAsFixed(0)} earned',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
             ]),
             const SizedBox(height: 12),
             SizedBox(
@@ -520,7 +520,7 @@ class _CreatorBrowseCardState extends State<_CreatorBrowseCard> {
                   padding: const EdgeInsets.symmetric(vertical: 9),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                 ),
-                child: Text('Tip', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700)),
+                child: Text('Tip', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700)),
               ),
             ),
           ]),

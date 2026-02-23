@@ -66,11 +66,11 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
         body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.workspace_premium_outlined, color: kMuted, size: 56),
           const SizedBox(height: 16),
-          Text('Creator not found', style: GoogleFonts.inter(
+          Text('Creator not found', style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
           const SizedBox(height: 8),
           Text('This subscribe page may have moved or the link is invalid.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 14),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
               textAlign: TextAlign.center),
           const SizedBox(height: 24),
           ElevatedButton(
@@ -78,7 +78,7 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary,
                 foregroundColor: Colors.white, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
-            child: Text('Go home', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
+            child: Text('Go home', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: Colors.white)),
           ),
         ])),
       );
@@ -133,7 +133,7 @@ class _SubscribeNavState extends State<_SubscribeNav> {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           const AppLogoIcon(size: 28),
           const SizedBox(width: 8),
-          Text('TippingJar', style: GoogleFonts.inter(
+          Text('TippingJar', style: GoogleFonts.dmSans(
               color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
         ]),
       ),
@@ -143,13 +143,13 @@ class _SubscribeNavState extends State<_SubscribeNav> {
       GestureDetector(
         onTap: () => context.go('/creator/${widget.slug}'),
         child: Text(widget.slug,
-            style: GoogleFonts.inter(color: kMuted, fontSize: 13),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
             overflow: TextOverflow.ellipsis),
       ),
       const SizedBox(width: 6),
       const Icon(Icons.chevron_right_rounded, color: kMuted, size: 16),
       const SizedBox(width: 6),
-      Text('Subscribe', style: GoogleFonts.inter(
+      Text('Subscribe', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
       const Spacer(),
       AnimatedSwitcher(
@@ -166,7 +166,7 @@ class _SubscribeNavState extends State<_SubscribeNav> {
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   const Icon(Icons.check_rounded, color: kPrimary, size: 14),
                   const SizedBox(width: 6),
-                  Text('Copied!', style: GoogleFonts.inter(
+                  Text('Copied!', style: GoogleFonts.dmSans(
                       color: kPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
                 ]),
               )
@@ -183,7 +183,7 @@ class _SubscribeNavState extends State<_SubscribeNav> {
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     const Icon(Icons.share_rounded, color: kMuted, size: 14),
                     const SizedBox(width: 6),
-                    Text('Share link', style: GoogleFonts.inter(
+                    Text('Share link', style: GoogleFonts.dmSans(
                         color: kMuted, fontWeight: FontWeight.w600, fontSize: 13)),
                   ]),
                 ),
@@ -260,19 +260,19 @@ class _CreatorHeader extends StatelessWidget {
           creator.displayName.isNotEmpty
               ? creator.displayName[0].toUpperCase()
               : '?',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 36),
         ),
       ),
     ).animate().scale(duration: 350.ms, curve: Curves.easeOutBack),
     const SizedBox(height: 16),
     Text(creator.displayName,
-        style: GoogleFonts.inter(color: Colors.white,
+        style: GoogleFonts.dmSans(color: Colors.white,
             fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.6))
         .animate().fadeIn(delay: 60.ms),
     const SizedBox(height: 4),
     Text('@${creator.slug}',
-        style: GoogleFonts.inter(color: kMuted, fontSize: 15))
+        style: GoogleFonts.dmSans(color: kMuted, fontSize: 15))
         .animate().fadeIn(delay: 100.ms),
     const SizedBox(height: 20),
     Container(
@@ -284,12 +284,12 @@ class _CreatorHeader extends StatelessWidget {
       ),
       child: Column(children: [
         Text('Choose a monthly support level',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -0.3)),
         const SizedBox(height: 6),
         Text(
           'Your pledge supports ${creator.displayName} every month and unlocks exclusive perks.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.5),
           textAlign: TextAlign.center,
         ),
       ]),
@@ -318,11 +318,11 @@ class _TiersGrid extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Text('No tiers available yet',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w700, fontSize: 18)),
         const SizedBox(height: 8),
         Text('$creatorName hasn\'t set up any subscription tiers yet.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 14),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
             textAlign: TextAlign.center),
       ]);
     }
@@ -367,26 +367,26 @@ class _SubscribeTierCard extends StatelessWidget {
             color: kPrimary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Text('Monthly', style: GoogleFonts.inter(
+          child: Text('Monthly', style: GoogleFonts.dmSans(
               color: kPrimary, fontWeight: FontWeight.w600, fontSize: 11)),
         ),
       ]),
       const SizedBox(height: 14),
-      Text(tier.name, style: GoogleFonts.inter(
+      Text(tier.name, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
       const SizedBox(height: 8),
       Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
         Text('R${tier.price.toStringAsFixed(0)}',
-            style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 32)),
+            style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 32)),
         const SizedBox(width: 4),
         Padding(
           padding: const EdgeInsets.only(bottom: 4),
-          child: Text('/month', style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+          child: Text('/month', style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
         ),
       ]),
       if (tier.description.isNotEmpty) ...[
         const SizedBox(height: 10),
-        Text(tier.description, style: GoogleFonts.inter(
+        Text(tier.description, style: GoogleFonts.dmSans(
             color: kMuted, fontSize: 13, height: 1.5)),
       ],
       if (tier.perks.isNotEmpty) ...[
@@ -398,7 +398,7 @@ class _SubscribeTierCard extends StatelessWidget {
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Icon(Icons.check_circle_rounded, color: kPrimary, size: 16),
             const SizedBox(width: 8),
-            Expanded(child: Text(p, style: GoogleFonts.inter(
+            Expanded(child: Text(p, style: GoogleFonts.dmSans(
                 color: Colors.white70, fontSize: 13, height: 1.4))),
           ]),
         )),
@@ -421,7 +421,7 @@ class _SubscribeTierCard extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
           ),
           child: Text('Subscribe · R${tier.price.toStringAsFixed(0)}/mo',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15)),
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 15)),
         ),
       ),
     ]),
@@ -494,7 +494,7 @@ class _SubscribePledgeDialogState extends State<_SubscribePledgeDialog> {
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     title: Text(
       _done ? 'You\'re in!' : 'Subscribe to ${widget.tier.name}',
-      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+      style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
     ),
     content: _done
         ? Column(mainAxisSize: MainAxisSize.min, children: [
@@ -509,7 +509,7 @@ class _SubscribePledgeDialogState extends State<_SubscribePledgeDialog> {
             const SizedBox(height: 16),
             Text(
               'You\'re now supporting ${widget.creatorName} with R${widget.tier.price.toStringAsFixed(0)}/month. Thank you!',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.6),
               textAlign: TextAlign.center,
             ),
           ])
@@ -524,33 +524,33 @@ class _SubscribePledgeDialogState extends State<_SubscribePledgeDialog> {
                 const Icon(Icons.workspace_premium_outlined, color: kPrimary, size: 20),
                 const SizedBox(width: 10),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(widget.tier.name, style: GoogleFonts.inter(
+                  Text(widget.tier.name, style: GoogleFonts.dmSans(
                       color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
                   Text('R${widget.tier.price.toStringAsFixed(0)}/month',
-                      style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
+                      style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
                 ])),
               ]),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameCtrl,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
               decoration: _dec('Your name (optional)', Icons.person_outline_rounded),
             ),
             const SizedBox(height: 10),
             TextFormField(
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
               decoration: _dec('your@email.com *', Icons.email_outlined),
             ),
             if (_error != null) ...[
               const SizedBox(height: 10),
-              Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 12)),
+              Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
             ],
             const SizedBox(height: 4),
             Text('Your card will be charged monthly until you cancel.',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
           ]),
     actions: _done
         ? [
@@ -559,13 +559,13 @@ class _SubscribePledgeDialogState extends State<_SubscribePledgeDialog> {
               style: ElevatedButton.styleFrom(
                   backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
-              child: Text('Done', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+              child: Text('Done', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
             ),
           ]
         : [
             TextButton(
               onPressed: _loading ? null : () => Navigator.pop(context),
-              child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted)),
             ),
             ElevatedButton(
               onPressed: _loading ? null : _submit,
@@ -575,14 +575,14 @@ class _SubscribePledgeDialogState extends State<_SubscribePledgeDialog> {
               child: _loading
                   ? const SizedBox(width: 18, height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Text('Subscribe', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                  : Text('Subscribe', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
             ),
           ],
   );
 
   InputDecoration _dec(String hint, IconData icon) => InputDecoration(
     hintText: hint,
-    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 14),
+    hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
     prefixIcon: Icon(icon, color: kMuted, size: 18),
     filled: true, fillColor: kDark,
     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
@@ -606,7 +606,7 @@ class _BackToCreatorLink extends StatelessWidget {
     GestureDetector(
       onTap: () => context.go('/creator/$slug'),
       child: Text('Back to $name\'s page',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 13,
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 13,
               decoration: TextDecoration.underline, decorationColor: kMuted)),
     ),
   ]);

@@ -46,12 +46,12 @@ class EnterpriseScreen extends StatelessWidget {
             border: Border.all(color: kPrimary.withOpacity(0.3)),
           ),
           child: Text('Enterprise',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
         ).animate().fadeIn(duration: 400.ms),
         const SizedBox(height: 20),
         Text('Tipping at scale\nfor your platform',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
                 fontSize: w > 700 ? 56 : 36,
@@ -64,7 +64,7 @@ class EnterpriseScreen extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 580),
           child: Text(
             'Power fan monetisation for communities of any size. White-label, custom contracts, dedicated infrastructure, and a 99.99% SLA.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 18, height: 1.65),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 18, height: 1.65),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 160.ms, duration: 500.ms),
         ),
@@ -81,7 +81,7 @@ class EnterpriseScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
             child: Text('Contact sales',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
           ),
           OutlinedButton(
             onPressed: () => context.go('/enterprise-portal'),
@@ -92,7 +92,7 @@ class EnterpriseScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
             ),
             child: Text('Go to portal',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15)),
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 15)),
           ),
         ]).animate().fadeIn(delay: 240.ms, duration: 500.ms),
           ]),
@@ -107,7 +107,7 @@ class EnterpriseScreen extends StatelessWidget {
     color: kDark,
     child: Column(children: [
       Text('Trusted by leading platforms',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 13,
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 13,
               fontWeight: FontWeight.w500, letterSpacing: 0.5),
           textAlign: TextAlign.center),
       const SizedBox(height: 28),
@@ -122,7 +122,7 @@ class EnterpriseScreen extends StatelessWidget {
                 border: Border.all(color: kBorder),
               ),
               child: Text(name,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.dmSans(
                       color: kMuted, fontWeight: FontWeight.w700, fontSize: 13)),
             ))
             .toList(),
@@ -148,7 +148,7 @@ class EnterpriseScreen extends StatelessWidget {
       color: kDarker,
       child: Column(children: [
         Text('Built for the enterprise',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 32, letterSpacing: -1),
             textAlign: TextAlign.center)
             .animate().fadeIn(duration: 400.ms),
@@ -175,7 +175,7 @@ class EnterpriseScreen extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 72, horizontal: 28),
     child: Column(children: [
       Text('What enterprise customers say',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -0.8),
           textAlign: TextAlign.center),
       const SizedBox(height: 40),
@@ -221,12 +221,12 @@ class EnterpriseScreen extends StatelessWidget {
       ),
       const SizedBox(height: 20),
       Text('Ready to talk?',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 32, letterSpacing: -1),
           textAlign: TextAlign.center),
       const SizedBox(height: 10),
       Text('Our sales team will respond within one business day.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 16),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 16),
           textAlign: TextAlign.center),
       const SizedBox(height: 32),
       ElevatedButton(
@@ -240,7 +240,7 @@ class EnterpriseScreen extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
         child: Text('Schedule a demo',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
       ),
     ]),
   );
@@ -283,11 +283,11 @@ class _FeatureCard extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         Text(title,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
         const SizedBox(height: 6),
         Text(body,
-            style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.55)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.55)),
       ]),
     ).animate().fadeIn(delay: delay.ms, duration: 400.ms).slideY(begin: 0.1);
   }
@@ -334,7 +334,7 @@ class _TestimonialCard extends StatelessWidget {
             const Icon(Icons.star_rounded, color: kPrimary, size: 16))),
         const SizedBox(height: 14),
         Text('"$quote"',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white, fontSize: 14, height: 1.6,
                 fontStyle: FontStyle.italic)),
         const SizedBox(height: 20),
@@ -343,14 +343,14 @@ class _TestimonialCard extends StatelessWidget {
             width: 36, height: 36,
             decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
             child: Center(child: Text(initials,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12))),
           ),
           const SizedBox(width: 10),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(name, style: GoogleFonts.inter(
+            Text(name, style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-            Text(role, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+            Text(role, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
           ]),
         ]),
       ]),

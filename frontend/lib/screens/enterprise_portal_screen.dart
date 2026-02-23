@@ -158,13 +158,13 @@ class _Sidebar extends StatelessWidget {
             const AppLogoIcon(size: 28),
             const SizedBox(width: 8),
             Text('TippingJar',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
           ]),
         ),
         const SizedBox(height: 8),
         Text('Enterprise Portal',
-            style: GoogleFonts.inter(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w600,
+            style: GoogleFonts.dmSans(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w600,
                 letterSpacing: 0.5)),
         const SizedBox(height: 32),
         if (enterprise != null) ...[
@@ -179,7 +179,7 @@ class _Sidebar extends StatelessWidget {
                 child: Center(
                   child: Text(
                     enterprise!.name.substring(0, 1).toUpperCase(),
-                    style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+                    style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
                   ),
                 ),
               ),
@@ -188,9 +188,9 @@ class _Sidebar extends StatelessWidget {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(enterprise!.name,
                       maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                      style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
                   Text(enterprise!.plan.toUpperCase(),
-                      style: GoogleFonts.inter(color: kPrimary, fontSize: 10, fontWeight: FontWeight.w600)),
+                      style: GoogleFonts.dmSans(color: kPrimary, fontSize: 10, fontWeight: FontWeight.w600)),
                 ]),
               ),
             ]),
@@ -249,7 +249,7 @@ class _NavItem extends StatelessWidget {
           Icon(locked ? Icons.lock_outline_rounded : icon, color: color, size: 18),
           const SizedBox(width: 10),
           Text(label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: locked ? kMuted.withOpacity(0.35) : (selected ? Colors.white : kMuted),
                   fontWeight: selected && !locked ? FontWeight.w600 : FontWeight.w400,
                   fontSize: 14)),
@@ -272,7 +272,7 @@ class _AppBarNarrow extends StatelessWidget {
         const AppLogoIcon(size: 24),
         const SizedBox(width: 8),
         Text('Enterprise Portal',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
         const Spacer(),
         IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: kMuted, size: 20),
@@ -310,7 +310,7 @@ class _TabBar extends StatelessWidget {
               ),
               child: Text(e.value,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.dmSans(
                       color: locked ? kMuted.withOpacity(0.35)
                            : active ? kPrimary : kMuted,
                       fontWeight: active && !locked ? FontWeight.w600 : FontWeight.w400,
@@ -384,7 +384,7 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
 
   InputDecoration _inputDec(String hint) => InputDecoration(
     hintText: hint,
-    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 13),
+    hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
     filled: true, fillColor: kCardBg,
     enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -421,13 +421,13 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
             ).animate().scale(duration: 400.ms),
             const SizedBox(height: 20),
             Text('Set up your enterprise',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+                style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
                     fontSize: 24, letterSpacing: -0.5),
                 textAlign: TextAlign.center)
                 .animate().fadeIn(delay: 100.ms),
             const SizedBox(height: 8),
             Text('Your account will be reviewed before portal access is granted.',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.5),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.5),
                 textAlign: TextAlign.center)
                 .animate().fadeIn(delay: 180.ms),
             const SizedBox(height: 28),
@@ -439,14 +439,14 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _nameCtrl,
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                   validator: (v) => (v?.trim().isNotEmpty ?? false) ? null : 'Name is required',
                   decoration: _inputDec('Enterprise name (e.g. Acme Media Group)'),
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _websiteCtrl,
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                   decoration: _inputDec('Website (optional)'),
                 ),
                 const SizedBox(height: 20),
@@ -456,7 +456,7 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _legalNameCtrl,
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                   decoration: _inputDec('Legal company name'),
                 ),
                 const SizedBox(height: 10),
@@ -464,7 +464,7 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
                   Expanded(
                     child: TextFormField(
                       controller: _regNumCtrl,
-                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                      style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                       decoration: _inputDec('CIPC / Registration number'),
                     ),
                   ),
@@ -472,7 +472,7 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
                   Expanded(
                     child: TextFormField(
                       controller: _vatCtrl,
-                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                      style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                       decoration: _inputDec('VAT number (optional)'),
                     ),
                   ),
@@ -484,7 +484,7 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _contactNameCtrl,
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                   decoration: _inputDec('Contact full name'),
                 ),
                 const SizedBox(height: 10),
@@ -493,7 +493,7 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
                     child: TextFormField(
                       controller: _contactEmailCtrl,
                       keyboardType: TextInputType.emailAddress,
-                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                      style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                       decoration: _inputDec('Contact email'),
                     ),
                   ),
@@ -502,7 +502,7 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
                     child: TextFormField(
                       controller: _contactPhoneCtrl,
                       keyboardType: TextInputType.phone,
-                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                      style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                       decoration: _inputDec('Contact phone'),
                     ),
                   ),
@@ -510,7 +510,7 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
 
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
+                  Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13)),
                 ],
                 const SizedBox(height: 24),
                 SizedBox(
@@ -529,7 +529,7 @@ class _NoEnterpriseState extends State<_NoEnterprise> {
                         ? const SizedBox(width: 20, height: 20,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                         : Text('Submit for review',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
                   ),
                 ),
               ]),
@@ -547,7 +547,7 @@ class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);
   @override
   Widget build(BuildContext context) => Text(text,
-      style: GoogleFonts.inter(
+      style: GoogleFonts.dmSans(
           color: kMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.8));
 }
 
@@ -575,14 +575,14 @@ class _PendingApprovalState extends StatelessWidget {
             ).animate().scale(duration: 400.ms),
             const SizedBox(height: 24),
             Text('Under review',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.5),
                 textAlign: TextAlign.center),
             const SizedBox(height: 10),
             Text(
               'Your enterprise account for ${enterprise.name} has been submitted and is currently under review. '
               'You\'ll receive an email once approved. This typically takes 1–2 business days.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.6),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 28),
@@ -596,7 +596,7 @@ class _PendingApprovalState extends StatelessWidget {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.info_outline_rounded, color: Colors.amber, size: 15),
                 const SizedBox(width: 8),
-                Text('Status: PENDING', style: GoogleFonts.inter(
+                Text('Status: PENDING', style: GoogleFonts.dmSans(
                     color: Colors.amber, fontSize: 12, fontWeight: FontWeight.w600)),
               ]),
             ),
@@ -604,7 +604,7 @@ class _PendingApprovalState extends StatelessWidget {
             TextButton(
               onPressed: () => context.go('/contact'),
               child: Text('Contact support',
-                  style: GoogleFonts.inter(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  style: GoogleFonts.dmSans(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
             ),
           ]),
         ),
@@ -637,13 +637,13 @@ class _RejectedState extends StatelessWidget {
             ).animate().scale(duration: 400.ms),
             const SizedBox(height: 24),
             Text('Application rejected',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.5),
                 textAlign: TextAlign.center),
             const SizedBox(height: 10),
             Text(
               'We were unable to approve the enterprise account for ${enterprise.name} at this time.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 14, height: 1.6),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.6),
               textAlign: TextAlign.center,
             ),
             if (enterprise.rejectionReason.isNotEmpty) ...[
@@ -656,11 +656,11 @@ class _RejectedState extends StatelessWidget {
                   border: Border.all(color: Colors.redAccent.withOpacity(0.25)),
                 ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Reason:', style: GoogleFonts.inter(
+                  Text('Reason:', style: GoogleFonts.dmSans(
                       color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
                   Text(enterprise.rejectionReason,
-                      style: GoogleFonts.inter(color: Colors.white70, fontSize: 13, height: 1.5)),
+                      style: GoogleFonts.dmSans(color: Colors.white70, fontSize: 13, height: 1.5)),
                 ]),
               ),
             ],
@@ -669,7 +669,7 @@ class _RejectedState extends StatelessWidget {
               onPressed: () => context.go('/contact'),
               icon: const Icon(Icons.support_agent_rounded, size: 16, color: kPrimary),
               label: Text('Contact support to appeal',
-                  style: GoogleFonts.inter(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  style: GoogleFonts.dmSans(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
             ),
           ]),
         ),
@@ -691,11 +691,11 @@ class _OverviewTab extends StatelessWidget {
       padding: const EdgeInsets.all(32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Overview',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
                 fontSize: 24, letterSpacing: -0.5))
             .animate().fadeIn(duration: 300.ms),
         const SizedBox(height: 4),
-        Text(enterprise.name, style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+        Text(enterprise.name, style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
         const SizedBox(height: 28),
 
         // Stat cards
@@ -731,7 +731,7 @@ class _OverviewTab extends StatelessWidget {
         if (s != null && s.perCreator.isNotEmpty) ...[
           const SizedBox(height: 36),
           Text('Earnings per creator',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700,
+              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700,
                   fontSize: 16, letterSpacing: -0.3)),
           const SizedBox(height: 16),
           ...s.perCreator.map((row) => _CreatorEarningsRow(row: row)),
@@ -784,7 +784,7 @@ class _EnterpriseRecurringCardState extends State<_EnterpriseRecurringCard> {
     })();
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Recurring Revenue', style: GoogleFonts.inter(
+      Text('Recurring Revenue', style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: -0.3)),
       const SizedBox(height: 16),
       if (_loading)
@@ -829,10 +829,10 @@ class _StatCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(value,
-            style: GoogleFonts.inter(color: highlight ? kPrimary : Colors.white,
+            style: GoogleFonts.dmSans(color: highlight ? kPrimary : Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
         const SizedBox(height: 2),
-        Text(label, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+        Text(label, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
       ]),
     ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1);
   }
@@ -858,19 +858,19 @@ class _CreatorEarningsRow extends StatelessWidget {
           decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
           child: Center(child: Text(
             row.displayName.isNotEmpty ? row.displayName[0].toUpperCase() : '?',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
           )),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(row.displayName,
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14)),
         ),
         Text('${row.tips} tips',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
         const SizedBox(width: 16),
         Text('R${row.total.toStringAsFixed(2)}',
-            style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
+            style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
       ]),
     );
   }
@@ -922,17 +922,17 @@ class _CreatorsTabState extends State<_CreatorsTab> {
         backgroundColor: kCardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Remove creator?',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700)),
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700)),
         content: Text('Remove ${m.displayName} from this enterprise?',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-              child: Text('Cancel', style: GoogleFonts.inter(color: kMuted))),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.shade800, foregroundColor: Colors.white),
-            child: Text('Remove', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            child: Text('Remove', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -950,12 +950,12 @@ class _CreatorsTabState extends State<_CreatorsTab> {
       padding: const EdgeInsets.all(32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Managed Creators',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
                 fontSize: 24, letterSpacing: -0.5))
             .animate().fadeIn(duration: 300.ms),
         const SizedBox(height: 4),
         Text('${widget.members.length} creator${widget.members.length == 1 ? '' : 's'}',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
         const SizedBox(height: 28),
 
         // Add creator
@@ -967,16 +967,16 @@ class _CreatorsTabState extends State<_CreatorsTab> {
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Add a creator',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+                style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
             const SizedBox(height: 12),
             Row(children: [
               Expanded(
                 child: TextFormField(
                   controller: _slugCtrl,
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
                   decoration: InputDecoration(
                     hintText: 'Creator slug (e.g. john-doe)',
-                    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 13),
+                    hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
                     filled: true, fillColor: kDarker,
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1002,12 +1002,12 @@ class _CreatorsTabState extends State<_CreatorsTab> {
                 child: _adding
                     ? const SizedBox(width: 16, height: 16,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text('Add', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14)),
+                    : Text('Add', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14)),
               ),
             ]),
             if (_addError != null) ...[
               const SizedBox(height: 8),
-              Text(_addError!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
+              Text(_addError!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13)),
             ],
           ]),
         ),
@@ -1022,7 +1022,7 @@ class _CreatorsTabState extends State<_CreatorsTab> {
                 const Icon(Icons.people_outline_rounded, color: kMuted, size: 40),
                 const SizedBox(height: 12),
                 Text('No creators yet. Add one above.',
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
               ]),
             ),
           )
@@ -1054,30 +1054,30 @@ class _MemberCard extends StatelessWidget {
           decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
           child: Center(child: Text(
             member.displayName.isNotEmpty ? member.displayName[0].toUpperCase() : '?',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
           )),
         ),
         const SizedBox(width: 14),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(member.displayName,
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+                style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
             const SizedBox(height: 2),
             Text('@${member.creatorSlug}',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
             if (member.tagline.isNotEmpty) ...[
               const SizedBox(height: 2),
               Text(member.tagline,
                   maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
             ],
           ]),
         ),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text('R${member.totalTips.toStringAsFixed(2)}',
-              style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
+              style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
           const SizedBox(height: 2),
-          Text('total tips', style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+          Text('total tips', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
         ]),
         const SizedBox(width: 12),
         PopupMenuButton<String>(
@@ -1090,9 +1090,9 @@ class _MemberCard extends StatelessWidget {
           },
           itemBuilder: (_) => [
             PopupMenuItem(value: 'view',
-                child: Text('View profile', style: GoogleFonts.inter(color: Colors.white, fontSize: 13))),
+                child: Text('View profile', style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13))),
             PopupMenuItem(value: 'remove',
-                child: Text('Remove', style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13))),
+                child: Text('Remove', style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13))),
           ],
         ),
       ]),
@@ -1134,19 +1134,19 @@ class _DistributionsTabState extends State<_DistributionsTab> {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Fund Distributions',
-                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
+                  style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
                       fontSize: 24, letterSpacing: -0.5))
                   .animate().fadeIn(duration: 300.ms),
               const SizedBox(height: 4),
               Text('Record and track fund disbursements to creators.',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
             ]),
           ),
           ElevatedButton.icon(
             onPressed: _showCreateDialog,
             icon: const Icon(Icons.add_rounded, size: 18),
             label: Text('New Distribution',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14)),
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14)),
             style: ElevatedButton.styleFrom(
               backgroundColor: kPrimary, foregroundColor: Colors.white,
               elevation: 0,
@@ -1165,10 +1165,10 @@ class _DistributionsTabState extends State<_DistributionsTab> {
                 const Icon(Icons.account_balance_wallet_outlined, color: kMuted, size: 40),
                 const SizedBox(height: 12),
                 Text('No distributions yet.',
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 14)),
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 14)),
                 const SizedBox(height: 8),
                 Text('Create one to record fund disbursements to your creators.',
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 13),
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
                     textAlign: TextAlign.center),
               ]),
             ),
@@ -1229,12 +1229,12 @@ class _DistributionCardState extends State<_DistributionCard> {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(dist.reference,
-                      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+                      style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
                   const SizedBox(height: 2),
                   Text(dist.distributedAt.length >= 10
                       ? dist.distributedAt.substring(0, 10)
                       : dist.distributedAt,
-                      style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
                 ]),
               ),
               Container(
@@ -1245,11 +1245,11 @@ class _DistributionCardState extends State<_DistributionCard> {
                   border: Border.all(color: statusColor.withOpacity(0.3)),
                 ),
                 child: Text(statusLabel,
-                    style: GoogleFonts.inter(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                    style: GoogleFonts.dmSans(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(width: 12),
               Text('R${dist.totalAmount.toStringAsFixed(2)}',
-                  style: GoogleFonts.inter(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 16)),
+                  style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 16)),
               const SizedBox(width: 8),
               Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
                   color: kMuted, size: 20),
@@ -1266,7 +1266,7 @@ class _DistributionCardState extends State<_DistributionCard> {
                 const Icon(Icons.notes_rounded, color: kMuted, size: 14),
                 const SizedBox(width: 8),
                 Expanded(child: Text(dist.notes,
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 12, fontStyle: FontStyle.italic))),
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, fontStyle: FontStyle.italic))),
               ]),
             ),
         ],
@@ -1297,16 +1297,16 @@ class _DistributionItemRow extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Text(item.displayName,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
         ),
         if (item.reference.isNotEmpty)
-          Text(item.reference, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+          Text(item.reference, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
         const SizedBox(width: 12),
         Text('R${item.amount.toStringAsFixed(2)}',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(width: 8),
         Text(item.status.toUpperCase(),
-            style: GoogleFonts.inter(color: statusColor, fontSize: 10, fontWeight: FontWeight.w700)),
+            style: GoogleFonts.dmSans(color: statusColor, fontSize: 10, fontWeight: FontWeight.w700)),
       ]),
     );
   }
@@ -1385,10 +1385,10 @@ class _CreateDistributionDialogState extends State<_CreateDistributionDialog> {
           padding: const EdgeInsets.all(28),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('New Fund Distribution',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
+                style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
             const SizedBox(height: 6),
             Text('Allocate funds to your managed creators.',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
             const SizedBox(height: 24),
 
             Expanded(
@@ -1401,25 +1401,25 @@ class _CreateDistributionDialogState extends State<_CreateDistributionDialog> {
                       decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
                       child: Center(child: Text(
                         m.displayName.isNotEmpty ? m.displayName[0].toUpperCase() : '?',
-                        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                        style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
                       )),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(m.displayName,
-                          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 13)),
+                          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 13)),
                     ),
                     SizedBox(
                       width: 120,
                       child: TextFormField(
                         controller: _amountCtrls[m.creatorSlug],
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                        style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
                         decoration: InputDecoration(
                           hintText: 'R 0.00',
-                          hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 13),
+                          hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
                           prefixText: 'R ',
-                          prefixStyle: GoogleFonts.inter(color: kMuted, fontSize: 13),
+                          prefixStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
                           filled: true, fillColor: kDarker,
                           enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -1437,11 +1437,11 @@ class _CreateDistributionDialogState extends State<_CreateDistributionDialog> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _notesCtrl,
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
                   maxLines: 2,
                   decoration: InputDecoration(
                     hintText: 'Notes (optional)',
-                    hintStyle: GoogleFonts.inter(color: kMuted, fontSize: 13),
+                    hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
                     filled: true, fillColor: kDarker,
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1457,7 +1457,7 @@ class _CreateDistributionDialogState extends State<_CreateDistributionDialog> {
 
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 13)),
+              Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13)),
             ],
             const SizedBox(height: 20),
             Row(children: [
@@ -1470,7 +1470,7 @@ class _CreateDistributionDialogState extends State<_CreateDistributionDialog> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                   ),
-                  child: Text('Cancel', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                  child: Text('Cancel', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1487,7 +1487,7 @@ class _CreateDistributionDialogState extends State<_CreateDistributionDialog> {
                   child: _saving
                       ? const SizedBox(width: 18, height: 18,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text('Create', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                      : Text('Create', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
                 ),
               ),
             ]),
@@ -1528,7 +1528,7 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
             enabled ? '2FA enabled.' : '2FA disabled — no code required on login.',
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
           ),
           backgroundColor: kPrimary,
           behavior: SnackBarBehavior.floating,
@@ -1540,7 +1540,7 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Failed to update 2FA setting.',
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1570,7 +1570,7 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
         setState(() => _uploading[docType] = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Upload failed: ${e.toString().replaceFirst('Exception: ', '')}',
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13)),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1593,7 +1593,7 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
               color: uploaded ? kPrimary : kMuted, size: 18,
             ),
             const SizedBox(width: 10),
-            Text(label, style: GoogleFonts.inter(
+            Text(label, style: GoogleFonts.dmSans(
                 color: uploaded ? Colors.white : kMuted, fontSize: 13,
                 fontWeight: uploaded ? FontWeight.w500 : FontWeight.w400)),
           ]),
@@ -1610,7 +1610,7 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
                   side: const BorderSide(color: kBorder),
                 ),
                 child: Text(uploaded ? 'Replace' : 'Upload',
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600)),
               ),
       ]),
     );
@@ -1640,7 +1640,7 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
     return SingleChildScrollView(
       padding: EdgeInsets.all(w > 860 ? 32 : 20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Settings', style: GoogleFonts.inter(
+        Text('Settings', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
         const SizedBox(height: 24),
 
@@ -1651,7 +1651,7 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
               color: kCardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Text('Approval Status', style: GoogleFonts.inter(
+              Text('Approval Status', style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
               const Spacer(),
               Container(
@@ -1661,19 +1661,19 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
                   borderRadius: BorderRadius.circular(36),
                   border: Border.all(color: statusColor.withOpacity(0.35)),
                 ),
-                child: Text(statusLabel, style: GoogleFonts.inter(
+                child: Text(statusLabel, style: GoogleFonts.dmSans(
                     color: statusColor, fontSize: 11, fontWeight: FontWeight.w700)),
               ),
             ]),
             if (ent.isRejected && ent.rejectionReason.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text('Reason: ${ent.rejectionReason}',
-                  style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 12, height: 1.5)),
+                  style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12, height: 1.5)),
             ],
             if (ent.isPending) ...[
               const SizedBox(height: 10),
               Text('Your application is under review. Upload your documents below to speed up the process.',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.5)),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.5)),
             ],
           ]),
         ),
@@ -1685,7 +1685,7 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
           decoration: BoxDecoration(
               color: kCardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Company Info', style: GoogleFonts.inter(
+            Text('Company Info', style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
             const SizedBox(height: 14),
             _InfoRow('Legal name', ent.companyNameLegal.isNotEmpty ? ent.companyNameLegal : '—'),
@@ -1704,11 +1704,11 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
           decoration: BoxDecoration(
               color: kCardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Compliance Documents', style: GoogleFonts.inter(
+            Text('Compliance Documents', style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
             const SizedBox(height: 6),
             Text('Upload supporting documents for approval.',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
             const SizedBox(height: 16),
             _docRow('cipc', 'Company Registration (CIPC)'),
             _docRow('vat', 'VAT Certificate'),
@@ -1724,19 +1724,19 @@ class _EnterpriseSettingsTabState extends State<_EnterpriseSettingsTab> {
           decoration: BoxDecoration(
               color: kCardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Security', style: GoogleFonts.inter(
+            Text('Security', style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
             const SizedBox(height: 16),
             Row(children: [
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Two-factor authentication (2FA)',
-                    style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                    style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
                 const SizedBox(height: 4),
                 Text(
                   twoFaEnabled
                       ? 'A verification code is sent to your email on each login.'
                       : '2FA is off — anyone with your password can log in.',
-                  style: GoogleFonts.inter(color: kMuted, fontSize: 12),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
                 ),
               ])),
               const SizedBox(width: 16),
@@ -1761,9 +1761,9 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(children: [
         SizedBox(width: 120,
-            child: Text(label, style: GoogleFonts.inter(color: kMuted, fontSize: 12))),
+            child: Text(label, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12))),
         Expanded(child: Text(value,
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500))),
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500))),
       ]),
     );
   }

@@ -140,7 +140,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('CONTENTS',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.dmSans(
                   color: kMuted, fontSize: 10,
                   fontWeight: FontWeight.w700, letterSpacing: 1.4)),
           const SizedBox(height: 12),
@@ -163,7 +163,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
                       color: active ? kPrimary : kMuted, size: 14),
                   const SizedBox(width: 10),
                   Text(e.value.$2,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.dmSans(
                           color: active ? kPrimary : kMuted,
                           fontSize: 13, fontWeight: FontWeight.w500)),
                 ]),
@@ -179,7 +179,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
               border: Border.all(color: kBorder),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Base URL', style: GoogleFonts.inter(
+              Text('Base URL', style: GoogleFonts.dmSans(
                   color: kMuted, fontSize: 10, fontWeight: FontWeight.w700,
                   letterSpacing: 1)),
               const SizedBox(height: 6),
@@ -215,7 +215,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         ).animate().fadeIn(duration: 400.ms),
         const SizedBox(height: 20),
         Text('TippingJar\nDeveloper Platform',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
                 fontSize: w > 700 ? 52 : 34,
@@ -228,7 +228,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
           constraints: const BoxConstraints(maxWidth: 600),
           child: Text(
             'A fast, secure REST API to integrate tipping flows into any product. Accept tips in ZAR, manage creator jars, issue payouts, and react to events with signed webhooks.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 17, height: 1.7),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 17, height: 1.7),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 160.ms, duration: 500.ms),
         ),
@@ -238,7 +238,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
             onPressed: () => _scrollToIdx(2),
             icon: const Icon(Icons.flash_on_rounded, size: 16, color: Colors.white),
             label: Text('Quick Start',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.dmSans(
                     fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
             style: ElevatedButton.styleFrom(
               backgroundColor: kPrimary, foregroundColor: Colors.white,
@@ -251,7 +251,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
             onPressed: () => _scrollToIdx(1),
             icon: const Icon(Icons.lock_outlined, size: 16),
             label: Text('Get API Key',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15)),
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 15)),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               side: const BorderSide(color: kBorder),
@@ -287,14 +287,14 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         _SectionLabel(icon: Icons.lock_rounded, label: 'Authentication'),
         const SizedBox(height: 16),
         Text('API Keys & Bearer Tokens',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 30, letterSpacing: -0.8)),
         const SizedBox(height: 10),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 680),
           child: Text(
             'TippingJar uses JWT Bearer tokens for authentication. Obtain a token pair by posting credentials to the token endpoint. Include your access token in every authenticated request via the Authorization header.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.7),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.7),
           ),
         ),
         const SizedBox(height: 40),
@@ -399,12 +399,12 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         _SectionLabel(icon: Icons.flash_on_rounded, label: 'Quick Start'),
         const SizedBox(height: 16),
         Text('Send your first tip in 5 minutes',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 30, letterSpacing: -0.8),
             textAlign: TextAlign.center),
         const SizedBox(height: 10),
         Text('Authenticate, then create a tip payment with a single API call.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 15),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 15),
             textAlign: TextAlign.center),
         const SizedBox(height: 40),
         ConstrainedBox(
@@ -467,11 +467,11 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         _SectionLabel(icon: Icons.list_alt_rounded, label: 'API Reference'),
         const SizedBox(height: 16),
         Text('Complete endpoint reference',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 30, letterSpacing: -0.8)),
         const SizedBox(height: 8),
         Row(children: [
-          Text('Base URL  ', style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+          Text('Base URL  ', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
           Text(_baseUrl, style: GoogleFonts.jetBrainsMono(color: kPrimary, fontSize: 13)),
           const SizedBox(width: 8),
           _CopyButton(code: _baseUrl),
@@ -829,11 +829,11 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         _SectionLabel(icon: Icons.error_outline_rounded, label: 'Error Codes'),
         const SizedBox(height: 16),
         Text('Error handling',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 30, letterSpacing: -0.8)),
         const SizedBox(height: 10),
         Text('All errors follow a consistent JSON structure with a detail field.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 15)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 15)),
         const SizedBox(height: 32),
 
         w > 820
@@ -873,10 +873,10 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(e.$2, style: GoogleFonts.inter(
+          Text(e.$2, style: GoogleFonts.dmSans(
               color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 2),
-          Text(e.$3, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+          Text(e.$3, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
         ])),
       ]),
     )).toList(),
@@ -901,7 +901,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
             border: Border(bottom: BorderSide(color: kBorder))),
         child: Row(children: [
           Text('Error response shape',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 11,
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 11,
                   fontWeight: FontWeight.w600)),
           const Spacer(),
           _CopyButton(code: _errorShape),
@@ -935,11 +935,11 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         _SectionLabel(icon: Icons.speed_rounded, label: 'Rate Limits'),
         const SizedBox(height: 16),
         Text('Rate limiting',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 30, letterSpacing: -0.8)),
         const SizedBox(height: 10),
         Text('Limits apply per IP for public endpoints and per access token for authenticated ones.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 15)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 15)),
         const SizedBox(height: 32),
         Wrap(spacing: 16, runSpacing: 16,
           children: limits.map((l) => _RateLimitCard(
@@ -982,14 +982,14 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         _SectionLabel(icon: Icons.webhook_rounded, label: 'Webhooks'),
         const SizedBox(height: 16),
         Text('Real-time event notifications',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 30, letterSpacing: -0.8)),
         const SizedBox(height: 10),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           child: Text(
             'Register an HTTPS endpoint in your dashboard. TippingJar will POST signed payloads to your URL on every event. Verify signatures using HMAC-SHA256 with your webhook secret.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.65),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.65),
           ),
         ),
         const SizedBox(height: 40),
@@ -1043,7 +1043,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         ),
         const SizedBox(width: 12),
         Expanded(child: Text(e.$2,
-            style: GoogleFonts.inter(color: kMuted, fontSize: 12))),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 12))),
       ]),
     )).toList(),
   );
@@ -1060,7 +1060,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         decoration: const BoxDecoration(
             border: Border(bottom: BorderSide(color: kBorder))),
         child: Row(children: [
-          Text(title, style: GoogleFonts.inter(color: kMuted, fontSize: 11,
+          Text(title, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11,
               fontWeight: FontWeight.w600)),
           const Spacer(),
           _CopyButton(code: code),
@@ -1086,12 +1086,12 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         _SectionLabel(icon: Icons.code_rounded, label: 'SDKs'),
         const SizedBox(height: 16),
         Text('Official client libraries',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 30, letterSpacing: -0.8),
             textAlign: TextAlign.center),
         const SizedBox(height: 8),
         Text('All SDKs are open source and MIT-licensed.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 14),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
             textAlign: TextAlign.center),
         const SizedBox(height: 36),
         Wrap(spacing: 20, runSpacing: 20, alignment: WrapAlignment.center,
@@ -1166,7 +1166,7 @@ tip = requests.post(
         _SectionLabel(icon: Icons.api_rounded, label: 'Platform API'),
         const SizedBox(height: 16),
         Text('Embed tipping in your app',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 30, letterSpacing: -0.8)),
         const SizedBox(height: 12),
         ConstrainedBox(
@@ -1176,7 +1176,7 @@ tip = requests.post(
             'requiring end-users to create TippingJar accounts directly. Authenticate requests '
             'using the X-Platform-Key header. Each platform has its own isolated user pool and '
             'rate limit envelope.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.65),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.65),
           ),
         ),
         const SizedBox(height: 32),
@@ -1191,7 +1191,7 @@ tip = requests.post(
             Row(children: [
               const Icon(Icons.key_rounded, color: kPrimary, size: 16),
               const SizedBox(width: 8),
-              Text('Key format', style: GoogleFonts.inter(
+              Text('Key format', style: GoogleFonts.dmSans(
                   color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
             ]),
             const SizedBox(height: 12),
@@ -1205,13 +1205,13 @@ tip = requests.post(
             const SizedBox(height: 10),
             Text('Platform keys are generated once on approval and hashed server-side. '
                 'Store them as environment secrets — they cannot be retrieved again.',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.5)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.5)),
           ]),
         ),
         const SizedBox(height: 32),
 
         // Endpoints table
-        Text('Endpoints', style: GoogleFonts.inter(
+        Text('Endpoints', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -0.3)),
         const SizedBox(height: 14),
         ...endpoints.map((ep) => Container(
@@ -1233,7 +1233,7 @@ tip = requests.post(
             const SizedBox(width: 14),
             Expanded(child: Text(ep.$2, style: GoogleFonts.jetBrainsMono(
                 color: Colors.white, fontSize: 12))),
-            Text(ep.$3, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+            Text(ep.$3, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
           ]),
         )),
 
@@ -1261,7 +1261,7 @@ tip = requests.post(
         _SectionLabel(icon: Icons.handshake_rounded, label: 'Partner Program'),
         const SizedBox(height: 16),
         Text('Become a TippingJar partner',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w800, fontSize: 30, letterSpacing: -0.8)),
         const SizedBox(height: 12),
         ConstrainedBox(
@@ -1269,7 +1269,7 @@ tip = requests.post(
           child: Text(
             'The Partner Program gives SA-registered businesses access to the Platform API '
             'and dedicated support. Applications are reviewed within 48 business hours.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 15, height: 1.65),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.65),
           ),
         ),
         const SizedBox(height: 36),
@@ -1307,19 +1307,19 @@ tip = requests.post(
             border: Border.all(color: kPrimary.withOpacity(0.25)),
           ),
           child: Column(children: [
-            Text('Ready to apply?', style: GoogleFonts.inter(
+            Text('Ready to apply?', style: GoogleFonts.dmSans(
                 color: Colors.white, fontWeight: FontWeight.w800, fontSize: 24, letterSpacing: -0.5),
                 textAlign: TextAlign.center),
             const SizedBox(height: 10),
             Text('Complete a short multi-step form with your business details.',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 14),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
                 textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => context.go('/partner-apply'),
               icon: const Icon(Icons.arrow_forward_rounded, size: 16, color: Colors.white),
               label: Text('Apply for Platform API access',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
+                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kPrimary, foregroundColor: Colors.white,
                 elevation: 0,
@@ -1353,12 +1353,12 @@ tip = requests.post(
       ),
       const SizedBox(height: 20),
       Text('Start building today',
-          style: GoogleFonts.inter(color: Colors.white,
+          style: GoogleFonts.dmSans(color: Colors.white,
               fontWeight: FontWeight.w800, fontSize: 32, letterSpacing: -1),
           textAlign: TextAlign.center),
       const SizedBox(height: 10),
       Text('Free sandbox environment · No credit card required · ZAR currency ready',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 15),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 15),
           textAlign: TextAlign.center),
       const SizedBox(height: 32),
       Wrap(spacing: 14, runSpacing: 12, alignment: WrapAlignment.center, children: [
@@ -1371,7 +1371,7 @@ tip = requests.post(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
           ),
           child: Text('Get your API key',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w700,
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w700,
                   fontSize: 15, color: Colors.white)),
         ),
         OutlinedButton(
@@ -1383,7 +1383,7 @@ tip = requests.post(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
           ),
           child: Text('View on GitHub',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15)),
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 15)),
         ),
       ]),
     ]),
@@ -1394,11 +1394,11 @@ tip = requests.post(
     padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 28),
     child: Column(children: [
       Text('© 2026 TippingJar · tippingjar.co.za · support@tippingjar.co.za',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 12),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
           textAlign: TextAlign.center),
       const SizedBox(height: 6),
       Text('API v1  ·  All amounts in ZAR  ·  HTTPS only',
-          style: GoogleFonts.inter(color: kMuted.withOpacity(0.6), fontSize: 11),
+          style: GoogleFonts.dmSans(color: kMuted.withOpacity(0.6), fontSize: 11),
           textAlign: TextAlign.center),
     ]),
   );
@@ -1418,7 +1418,7 @@ tip = requests.post(
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          Text(title, style: GoogleFonts.inter(
+          Text(title, style: GoogleFonts.dmSans(
               color: color, fontSize: 13, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           Text(body, style: GoogleFonts.jetBrainsMono(
@@ -1450,7 +1450,7 @@ class _SectionLabel extends StatelessWidget {
       Icon(icon, color: kPrimary, size: 15),
       const SizedBox(width: 8),
       Text(label.toUpperCase(),
-          style: GoogleFonts.inter(color: kPrimary, fontSize: 11,
+          style: GoogleFonts.dmSans(color: kPrimary, fontSize: 11,
               fontWeight: FontWeight.w700, letterSpacing: 1.4)),
     ]);
 }
@@ -1472,9 +1472,9 @@ class _GroupHeader extends StatelessWidget {
       Icon(icon, color: kPrimary, size: 18),
       const SizedBox(width: 12),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: GoogleFonts.inter(color: Colors.white,
+        Text(title, style: GoogleFonts.dmSans(color: Colors.white,
             fontWeight: FontWeight.w700, fontSize: 15)),
-        Text(desc, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+        Text(desc, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
       ]),
     ]),
   );
@@ -1508,10 +1508,10 @@ class _AuthStepCard extends StatelessWidget {
             color: kMuted, fontSize: 11, fontWeight: FontWeight.w700)),
       ]),
       const SizedBox(height: 12),
-      Text(title, style: GoogleFonts.inter(color: Colors.white,
+      Text(title, style: GoogleFonts.dmSans(color: Colors.white,
           fontWeight: FontWeight.w700, fontSize: 14)),
       const SizedBox(height: 5),
-      Text(desc, style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.5)),
+      Text(desc, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.5)),
     ]),
   );
 }
@@ -1532,14 +1532,14 @@ class _RateLimitCard extends StatelessWidget {
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Icon(icon, color: kPrimary, size: 22),
       const SizedBox(height: 12),
-      Text(limit, style: GoogleFonts.inter(
+      Text(limit, style: GoogleFonts.dmSans(
           color: kPrimary, fontWeight: FontWeight.w800, fontSize: 22,
           letterSpacing: -0.5)),
       const SizedBox(height: 4),
-      Text(tier, style: GoogleFonts.inter(
+      Text(tier, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
       const SizedBox(height: 2),
-      Text(scope, style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+      Text(scope, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
     ]),
   );
 }
@@ -1606,13 +1606,13 @@ class _ExpandableEndpoint extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: kTeal.withOpacity(0.3)),
                   ),
-                  child: Text('Auth', style: GoogleFonts.inter(
+                  child: Text('Auth', style: GoogleFonts.dmSans(
                       color: kTeal, fontSize: 9, fontWeight: FontWeight.w700,
                       letterSpacing: 0.5)),
                 ),
               ],
               const SizedBox(width: 12),
-              Flexible(child: Text(desc, style: GoogleFonts.inter(
+              Flexible(child: Text(desc, style: GoogleFonts.dmSans(
                   color: kMuted, fontSize: 12), overflow: TextOverflow.ellipsis)),
               const SizedBox(width: 8),
               Icon(expanded ? Icons.keyboard_arrow_up_rounded
@@ -1628,7 +1628,7 @@ class _ExpandableEndpoint extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (requestBody != null) ...[
                 Text('Request body',
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 11,
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 11,
                         fontWeight: FontWeight.w700, letterSpacing: 0.8)),
                 const SizedBox(height: 8),
                 requestBody!,
@@ -1636,7 +1636,7 @@ class _ExpandableEndpoint extends StatelessWidget {
               ],
               if (responseBody != null) ...[
                 Text('Response',
-                    style: GoogleFonts.inter(color: kMuted, fontSize: 11,
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 11,
                         fontWeight: FontWeight.w700, letterSpacing: 0.8)),
                 const SizedBox(height: 8),
                 responseBody!,
@@ -1654,11 +1654,11 @@ class _Stat extends StatelessWidget {
   const _Stat({required this.value, required this.label});
   @override
   Widget build(BuildContext context) => Column(children: [
-    Text(value, style: GoogleFonts.inter(
+    Text(value, style: GoogleFonts.dmSans(
         color: kPrimary, fontWeight: FontWeight.w900,
         fontSize: 24, letterSpacing: -0.5)),
     const SizedBox(height: 4),
-    Text(label, style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+    Text(label, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
   ]);
 }
 
@@ -1690,10 +1690,10 @@ class _SdkCard extends StatelessWidget {
             color: kMuted, fontSize: 10)),
       ]),
       const SizedBox(height: 12),
-      Text(name, style: GoogleFonts.inter(
+      Text(name, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
       const SizedBox(height: 3),
-      Text(lang, style: GoogleFonts.inter(color: kMuted, fontSize: 11)),
+      Text(lang, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
       const SizedBox(height: 8),
       Text(install, style: GoogleFonts.jetBrainsMono(color: kPrimary, fontSize: 10)),
       const SizedBox(height: 14),
@@ -1708,7 +1708,7 @@ class _SdkCard extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           child: Text('View on GitHub',
-              style: GoogleFonts.inter(color: Colors.white,
+              style: GoogleFonts.dmSans(color: Colors.white,
                   fontWeight: FontWeight.w600, fontSize: 12)),
         ),
       ),
@@ -1749,7 +1749,7 @@ class _CopyButtonState extends State<_CopyButton> {
             color: _copied ? kPrimary : kMuted, size: 12),
         const SizedBox(width: 4),
         Text(_copied ? 'Copied!' : 'Copy',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.dmSans(
                 color: _copied ? kPrimary : kMuted,
                 fontSize: 10, fontWeight: FontWeight.w600)),
       ]),
@@ -1833,18 +1833,18 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
             borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: kBorder)),
         title: Text('New API Key',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700)),
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('Give this key a name to identify it later.',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
           const SizedBox(height: 16),
           TextField(
             controller: ctrl,
             autofocus: true,
-            style: GoogleFonts.inter(color: Colors.white),
+            style: GoogleFonts.dmSans(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'e.g. Production Server',
-              hintStyle: GoogleFonts.inter(color: kMuted),
+              hintStyle: GoogleFonts.dmSans(color: kMuted),
               filled: true, fillColor: const Color(0xFF0D1A14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1861,7 +1861,7 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.inter(color: kMuted)),
+            child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1873,7 +1873,7 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
               elevation: 0, shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text('Generate', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            child: Text('Generate', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -1903,7 +1903,7 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
           ),
           const SizedBox(width: 10),
           Text('API Keys',
-              style: GoogleFonts.inter(color: Colors.white,
+              style: GoogleFonts.dmSans(color: Colors.white,
                   fontWeight: FontWeight.w700, fontSize: 15)),
           const Spacer(),
           if (_loading) const SizedBox(
@@ -1912,7 +1912,7 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
         ]),
         const SizedBox(height: 6),
         Text('Keys authenticate API requests. Never share them publicly.',
-            style: GoogleFonts.inter(color: kMuted, fontSize: 12, height: 1.5)),
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.5)),
 
         if (_error != null) ...[
           const SizedBox(height: 10),
@@ -1923,7 +1923,7 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFFF87171).withOpacity(0.3)),
             ),
-            child: Text(_error!, style: GoogleFonts.inter(
+            child: Text(_error!, style: GoogleFonts.dmSans(
                 color: const Color(0xFFF87171), fontSize: 12)),
           ),
         ],
@@ -1943,7 +1943,7 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
                 const Icon(Icons.warning_amber_rounded, color: kPrimary, size: 14),
                 const SizedBox(width: 6),
                 Text('Copy this key now — it won\'t be shown again',
-                    style: GoogleFonts.inter(color: kPrimary, fontSize: 11,
+                    style: GoogleFonts.dmSans(color: kPrimary, fontSize: 11,
                         fontWeight: FontWeight.w700)),
               ]),
               const SizedBox(height: 10),
@@ -1966,7 +1966,7 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: () => setState(() => _newKey = null),
-                child: Text('Dismiss', style: GoogleFonts.inter(
+                child: Text('Dismiss', style: GoogleFonts.dmSans(
                     color: kMuted, fontSize: 11,
                     decoration: TextDecoration.underline,
                     decorationColor: kMuted)),
@@ -1982,7 +1982,7 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
           Center(child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Text('No API keys yet. Generate one below.',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 12)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
           ))
         else
           ..._keys.map((k) => _KeyRow(key_: k, onRevoke: () => _revoke(k))),
@@ -1994,7 +1994,7 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
             onPressed: _loading ? null : _showCreateDialog,
             icon: const Icon(Icons.add_rounded, size: 15, color: Colors.white),
             label: Text('Generate new key',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w700,
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w700,
                     fontSize: 13, color: Colors.white)),
             style: ElevatedButton.styleFrom(
               backgroundColor: kPrimary, foregroundColor: Colors.white,
@@ -2027,12 +2027,12 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
         ),
         const SizedBox(width: 10),
         Text('API Keys',
-            style: GoogleFonts.inter(color: Colors.white,
+            style: GoogleFonts.dmSans(color: Colors.white,
                 fontWeight: FontWeight.w700, fontSize: 15)),
       ]),
       const SizedBox(height: 10),
       Text('Sign in to generate and manage your API keys.',
-          style: GoogleFonts.inter(color: kMuted, fontSize: 13, height: 1.5)),
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5)),
       const SizedBox(height: 16),
       // Demo key preview (redacted)
       Container(
@@ -2061,7 +2061,7 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: Text('Sign in',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13,
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13,
                     color: Colors.white)),
           ),
         ),
@@ -2076,7 +2076,7 @@ class _ApiKeyPanelState extends State<_ApiKeyPanel> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: Text('Register',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13)),
           ),
         ),
       ]),
@@ -2114,7 +2114,7 @@ class _KeyRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(key_.name, style: GoogleFonts.inter(
+          Text(key_.name, style: GoogleFonts.dmSans(
               color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
           const SizedBox(height: 2),
           Text(key_.prefix, style: GoogleFonts.jetBrainsMono(
@@ -2122,10 +2122,10 @@ class _KeyRow extends StatelessWidget {
         ])),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text('Created ${_formatDate(key_.createdAt)}',
-              style: GoogleFonts.inter(color: kMuted, fontSize: 10)),
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 10)),
           if (key_.lastUsedAt != null)
             Text('Last used ${_formatDate(key_.lastUsedAt!)}',
-                style: GoogleFonts.inter(color: kMuted, fontSize: 10)),
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 10)),
         ]),
         const SizedBox(width: 8),
         GestureDetector(
@@ -2137,7 +2137,7 @@ class _KeyRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: const Color(0xFFF87171).withOpacity(0.3)),
             ),
-            child: Text('Revoke', style: GoogleFonts.inter(
+            child: Text('Revoke', style: GoogleFonts.dmSans(
                 color: const Color(0xFFF87171), fontSize: 10,
                 fontWeight: FontWeight.w700)),
           ),
@@ -2477,10 +2477,10 @@ class _RequirementCard extends StatelessWidget {
         child: Icon(icon, color: kPrimary, size: 18),
       ),
       const SizedBox(height: 14),
-      Text(title, style: GoogleFonts.inter(
+      Text(title, style: GoogleFonts.dmSans(
           color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
       const SizedBox(height: 6),
-      Text(body, style: GoogleFonts.inter(
+      Text(body, style: GoogleFonts.dmSans(
           color: kMuted, fontSize: 12, height: 1.55)),
     ]),
   );
