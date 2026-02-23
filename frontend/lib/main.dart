@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'providers/auth_provider.dart';
 import 'router.dart';
 
-const _primary = Color(0xFF00C896); // emerald green
+const _primary = Color(0xFF004423); // deep forest green
 
 void main() {
   usePathUrlStrategy(); // clean URLs — no /#/ hash prefix

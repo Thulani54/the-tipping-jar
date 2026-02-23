@@ -300,9 +300,7 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 72, horizontal: 40),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: [Color(0xFF001A12), Color(0xFF001520)],
-              begin: Alignment.topLeft, end: Alignment.bottomRight),
+          color: const Color(0xFF001A12),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: kBorder),
         ),
@@ -394,7 +392,7 @@ class _FeaturedCardState extends State<_FeaturedCard> {
             Container(
               height: 80,
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [widget.color.withOpacity(0.5), widget.color.withOpacity(0.1)]),
+                color: widget.color.withOpacity(0.35),
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
@@ -403,7 +401,7 @@ class _FeaturedCardState extends State<_FeaturedCard> {
               Container(
                 width: 48, height: 48,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [widget.color, widget.color.withOpacity(0.6)]),
+                  color: widget.color,
                   shape: BoxShape.circle,
                   border: Border.all(color: kCardBg, width: 3),
                 ),
@@ -440,22 +438,16 @@ class _FeaturedCardState extends State<_FeaturedCard> {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [widget.color, widget.color.withOpacity(0.7)]),
-                  borderRadius: BorderRadius.circular(36),
-                ),
-                child: ElevatedButton.icon(
+              child: ElevatedButton.icon(
                   onPressed: () => context.go('/tip/${widget.creator.slug}'),
                   icon: const Icon(Icons.volunteer_activism, size: 15),
                   label: const Text('Send a tip'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
+                    backgroundColor: kPrimary, shadowColor: Colors.transparent,
                     foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                   ),
                 ),
-              ),
             ),
           ]),
         ),
@@ -499,7 +491,7 @@ class _CreatorBrowseCardState extends State<_CreatorBrowseCard> {
               Container(
                 width: 40, height: 40,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [widget.color, widget.color.withOpacity(0.5)]),
+                  color: widget.color,
                   shape: BoxShape.circle,
                 ),
                 child: Center(child: Text(_initials, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13))),
