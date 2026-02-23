@@ -41,8 +41,8 @@ class _FeaturesScreenState extends State<FeaturesScreen>
     (Icons.palette_rounded, 'Page customisation',
         'Cover image, avatar, tagline, bio — make your page unmistakably yours. Changes go live in seconds.',
         kPrimary),
-    (Icons.account_balance_rounded, 'Stripe payouts',
-        'Your money arrives in your bank account on a rolling 2-day cycle. Weekly and monthly payout schedules also available.',
+    (Icons.account_balance_rounded, 'Fast payouts',
+        'Your money arrives in your bank account quickly after each tip. No holding periods — funds go straight to your bank.',
         kTeal),
     (Icons.notifications_rounded, 'Instant notifications',
         'Get an email or push notification the moment a fan tips you. Never miss a kind word.',
@@ -65,17 +65,17 @@ class _FeaturesScreenState extends State<FeaturesScreen>
     (Icons.receipt_long_rounded, 'Instant receipts',
         'An email receipt lands in your inbox within seconds of every tip. Forward it, save it, or use it as proof of support.',
         kTeal),
-    (Icons.public_rounded, 'Works worldwide',
-        'Pay in your local currency. TippingJar converts automatically. Supported in 135+ currencies.',
+    (Icons.public_rounded, 'South Africa focused',
+        'Built specifically for South African creators. Accept tips from fans locally and abroad using major cards.',
         kBlue),
   ];
 
   static const _platformFeatures = [
     (Icons.lock_rounded, 'PCI-DSS Level 1',
-        'All card data is tokenised by Stripe before it ever leaves your browser. TippingJar never touches raw card numbers.',
+        'All card data is tokenised and encrypted before it ever leaves your browser. TippingJar never touches raw card numbers.',
         kPrimary),
     (Icons.speed_rounded, 'Sub-second payments',
-        'Our Stripe integration processes payments in under 800 ms on average. No spinners, no waiting.',
+        'Our payment integration processes tips in under 800 ms on average. No spinners, no waiting.',
         kTeal),
     (Icons.devices_rounded, 'Responsive everywhere',
         'TippingJar works perfectly on desktop, tablet, and mobile. The Flutter web app adapts to any screen size.',
@@ -83,33 +83,12 @@ class _FeaturesScreenState extends State<FeaturesScreen>
     (Icons.api_rounded, 'REST API',
         'Build on top of TippingJar. Our documented REST API lets you embed tips in your own apps and websites.',
         kPrimary),
-    (Icons.translate_rounded, '48 countries',
-        'Creators in 48 countries can accept payouts. Fans in nearly every country can send tips.',
+    (Icons.flag_rounded, 'Proudly South African',
+        'Built and hosted in South Africa, for South African creators. Local support, local understanding.',
         kTeal),
     (Icons.support_agent_rounded, 'Real support',
-        'Reach a human within 4 hours via email. Creators on Pro plans get a dedicated Slack channel.',
+        'Reach a human within 4 hours via email. We are here to help you grow.',
         kBlue),
-  ];
-
-  static const _tiers = [
-    _Tier('Free', '\$0', 'Forever', kMuted, [
-      (true,  'Tip page'),
-      (true,  'Shareable link'),
-      (true,  'Tip feed'),
-      (true,  'Email notifications'),
-      (false, 'Custom domain'),
-      (false, 'Priority support'),
-      (false, 'API access'),
-    ]),
-    _Tier('Pro', '\$9', 'per month', kPrimary, [
-      (true, 'Everything in Free'),
-      (true, 'Custom domain'),
-      (true, 'Priority support (4 hr SLA)'),
-      (true, 'API access'),
-      (true, 'Tip analytics export'),
-      (true, 'Reaction emojis'),
-      (true, 'Dedicated Slack channel'),
-    ]),
   ];
 
   List<(IconData, String, String, Color)> get _currentFeatures {
@@ -127,7 +106,6 @@ class _FeaturesScreenState extends State<FeaturesScreen>
         child: Column(children: [
           _hero(context),
           _featureSection(context),
-          _pricingSection(context),
           _integrations(context),
           _cta(context),
           _footer(),
@@ -140,22 +118,31 @@ class _FeaturesScreenState extends State<FeaturesScreen>
     return Container(
       width: double.infinity,
       color: kDarker,
-      padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
-      child: Column(children: [
-        _tag('Features'),
-        const SizedBox(height: 20),
-        Text('Built for creators\nwho mean business.',
-            style: headingXL(ctx), textAlign: TextAlign.center)
-            .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
-        const SizedBox(height: 16),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: const Text(
-            'Every feature on TippingJar exists for one reason: to get more money into creators\' hands with less friction.',
-            style: kBodyStyle, textAlign: TextAlign.center,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(painter: _DotGridPainter()),
           ),
-        ).animate().fadeIn(delay: 150.ms, duration: 500.ms),
-      ]),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
+            child: Column(children: [
+              _tag('Features'),
+              const SizedBox(height: 20),
+              Text('Built for creators\nwho mean business.',
+                  style: headingXL(ctx), textAlign: TextAlign.center)
+                  .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
+              const SizedBox(height: 16),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: const Text(
+                  'Every feature on TippingJar exists for one reason: to get more money into creators\' hands with less friction.',
+                  style: kBodyStyle, textAlign: TextAlign.center,
+                ),
+              ).animate().fadeIn(delay: 150.ms, duration: 500.ms),
+            ]),
+          ),
+        ],
+      ),
     );
   }
 
@@ -209,32 +196,8 @@ class _FeaturesScreenState extends State<FeaturesScreen>
     );
   }
 
-  Widget _pricingSection(BuildContext ctx) {
-    return Container(
-      color: kDarker,
-      padding: const EdgeInsets.symmetric(vertical: 72, horizontal: 24),
-      child: Column(children: [
-        _tag('Pricing'),
-        const SizedBox(height: 16),
-        Text('Honest pricing.',
-            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
-                fontSize: 36, letterSpacing: -1),
-            textAlign: TextAlign.center),
-        const SizedBox(height: 8),
-        const Text('0% platform fee on all plans. Stripe\'s processing fee always applies.',
-            style: kBodyStyle, textAlign: TextAlign.center),
-        const SizedBox(height: 48),
-        Wrap(
-          spacing: 24, runSpacing: 24, alignment: WrapAlignment.center,
-          children: _tiers.asMap().entries.map((e) => _TierCard(tier: e.value, delay: e.key * 150)).toList(),
-        ),
-      ]),
-    );
-  }
-
   Widget _integrations(BuildContext ctx) {
     final items = [
-      (Icons.credit_card_rounded, 'Stripe', 'Payments & payouts'),
       (Icons.play_circle_rounded, 'YouTube', 'Link in description'),
       (Icons.camera_alt_rounded, 'Instagram', 'Bio link'),
       (Icons.chat_bubble_rounded, 'Twitter / X', 'Pinned tweet'),
@@ -280,7 +243,7 @@ class _FeaturesScreenState extends State<FeaturesScreen>
     color: kDarker,
     padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
     child: Column(children: [
-      Text('Start with Free, upgrade when you\'re ready.',
+      Text('Get started for free — no credit card needed.',
           style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800,
               fontSize: 30, letterSpacing: -1),
           textAlign: TextAlign.center),
@@ -360,87 +323,22 @@ class _FeatureCardState extends State<_FeatureCard> {
   }
 }
 
-// ─── Tier model ───────────────────────────────────────────────────────────────
-class _Tier {
-  final String name, price, period;
-  final Color color;
-  final List<(bool, String)> items;
-  const _Tier(this.name, this.price, this.period, this.color, this.items);
-}
-
-// ─── Tier card ────────────────────────────────────────────────────────────────
-class _TierCard extends StatelessWidget {
-  final _Tier tier;
-  final int delay;
-  const _TierCard({required this.tier, required this.delay});
+// ─── Dot grid background ─────────────────────────────────────────────────────
+class _DotGridPainter extends CustomPainter {
   @override
-  Widget build(BuildContext context) {
-    final isPro = tier.name == 'Pro';
-    return Container(
-      width: 300,
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: kCardBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isPro ? kPrimary.withOpacity(0.5) : kBorder, width: isPro ? 2 : 1),
-        boxShadow: isPro ? [BoxShadow(color: kPrimary.withOpacity(0.15), blurRadius: 40, offset: const Offset(0, 12))] : [],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (isPro)
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(36)),
-            child: Text('Most popular', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11)),
-          ),
-        Text(tier.name, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
-        const SizedBox(height: 8),
-        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(tier.price, style: GoogleFonts.inter(color: tier.color == kMuted ? Colors.white : kPrimary,
-              fontWeight: FontWeight.w900, fontSize: 40, letterSpacing: -2)),
-          const SizedBox(width: 6),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Text(tier.period, style: GoogleFonts.inter(color: kMuted, fontSize: 13)),
-          ),
-        ]),
-        const SizedBox(height: 24),
-        ...tier.items.map((item) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Row(children: [
-            Icon(item.$1 ? Icons.check_circle_rounded : Icons.remove_circle_outline_rounded,
-                color: item.$1 ? kPrimary : kMuted.withOpacity(0.4), size: 18),
-            const SizedBox(width: 10),
-            Text(item.$2, style: GoogleFonts.inter(
-                color: item.$1 ? Colors.white : kMuted.withOpacity(0.5), fontSize: 14)),
-          ]),
-        )),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: isPro
-              ? ElevatedButton(
-                  onPressed: () => context.go('/register'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimary, foregroundColor: Colors.white,
-                    shadowColor: Colors.transparent, elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-                  ),
-                  child: Text('Get Pro', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
-                )
-              : OutlinedButton(
-                  onPressed: () => context.go('/register'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: kBorder),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-                  ),
-                  child: Text('Get started free', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
-                ),
-        ),
-      ]),
-    ).animate().fadeIn(delay: delay.ms, duration: 500.ms).slideY(begin: 0.2, curve: Curves.easeOut);
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..style = PaintingStyle.fill;
+    const spacing = 30.0;
+    const radius = 1.0;
+    for (double x = 0; x <= size.width + spacing; x += spacing) {
+      for (double y = 0; y <= size.height + spacing; y += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
