@@ -162,7 +162,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       Row(children: [
         _roleBtn(Icons.volunteer_activism, 'Tip creators', 'fan'),
         const SizedBox(width: 10),
-        _roleBtn(Icons.star_rounded, 'Receive tips', 'creator'),
+        _roleBtn(Icons.star_rounded, 'Creator', 'creator'),
         const SizedBox(width: 10),
         _roleBtn(Icons.business_rounded, 'Enterprise', 'enterprise'),
       ]).animate().fadeIn(delay: 100.ms, duration: 400.ms),

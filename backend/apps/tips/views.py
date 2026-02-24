@@ -226,12 +226,21 @@ class VerifyTipView(APIView):
         paystack_status = tx_data.get("status", "")
 
         if paystack_status == "success":
-            tip.status = Tip.Status.COMPLETED
-            tip.save(update_fields=["status"])
-            send_tip_thank_you(tip)
+            # Atomic update — only mark completed if still pending (avoids double-email with webhook)
+            rows = Tip.objects.filter(pk=tip.pk, status=Tip.Status.PENDING).update(
+                status=Tip.Status.COMPLETED
+            )
+            if rows:
+                tip.refresh_from_db()
+                send_tip_thank_you(tip)
+            else:
+                tip.refresh_from_db()
         elif paystack_status in ("failed", "abandoned"):
-            tip.status = Tip.Status.FAILED
-            tip.save(update_fields=["status"])
+            # Never downgrade a tip that the webhook already marked as completed
+            Tip.objects.filter(pk=tip.pk, status=Tip.Status.PENDING).update(
+                status=Tip.Status.FAILED
+            )
+            tip.refresh_from_db()
 
         return Response({
             "status": tip.status,

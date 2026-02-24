@@ -714,6 +714,14 @@ class _ProfilePageState extends State<_ProfilePage> {
   }
 
   @override
+  void didUpdateWidget(_ProfilePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile != widget.profile) {
+      setState(() => _profile = widget.profile);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
     final tipLink = 'www.tippingjar.co.za/u/${_profile.slug}';
@@ -723,7 +731,7 @@ class _ProfilePageState extends State<_ProfilePage> {
       ('Profile tagline', _profile.tagline.isNotEmpty),
       ('Monthly tip goal', _profile.tipGoal != null),
       ('Banking connected', _profile.hasBankConnected),
-      ('Share your tip link', false),
+      ('Share your tip link', true),
     ];
     final done = items.where((i) => i.$2).length;
     final progress = done / items.length;

@@ -393,7 +393,7 @@ class _HeroSection extends StatelessWidget {
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(32)),
+              borderRadius: BorderRadius.circular(36)),
         ),
         child: Text('Create your free page →',
             style: GoogleFonts.dmSans(
@@ -1402,8 +1402,8 @@ class _CtaSection extends StatelessWidget {
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 36, vertical: 18),
-                  shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.zero),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(36)),
                 ),
                 child: Text('Create your free page →',
                     style: GoogleFonts.dmSans(
@@ -1428,70 +1428,69 @@ class _CtaSection extends StatelessWidget {
 class _Footer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    final mobile = w < 700;
+    final cols = [
+      ('Product',  [('Features', '/features'), ('Pricing', '/pricing'), ('Changelog', '/changelog')]),
+      ('Company',  [('About', '/about'), ('Blog', '/blog'), ('Careers', '/careers')]),
+      ('Legal',    [('Privacy', '/privacy'), ('Terms', '/terms'), ('Cookies', '/cookies')]),
+    ];
+    final brand = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          const AppLogoIcon(size: 28),
+          const SizedBox(width: 8),
+          Text('TippingJar',
+              style: GoogleFonts.dmSans(
+                  color: _white, fontWeight: FontWeight.w700, fontSize: 15)),
+        ]),
+        const SizedBox(height: 12),
+        Text('Supporting creators,\none tip at a time.',
+            style: GoogleFonts.dmSans(color: _textMuted, fontSize: 13, height: 1.6)),
+      ],
+    );
+
+    Widget linkCol((String, List<(String, String)>) col) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(col.$1, style: GoogleFonts.dmSans(
+            color: _white, fontWeight: FontWeight.w600, fontSize: 13)),
+        const SizedBox(height: 12),
+        ...col.$2.map((link) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: GestureDetector(
+            onTap: () => context.go(link.$2),
+            child: Text(link.$1,
+                style: GoogleFonts.dmSans(color: _textMuted, fontSize: 13)),
+          ),
+        )),
+      ],
+    );
+
     return Container(
       color: _darker,
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
-      child: Column(children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      const AppLogoIcon(size: 28),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text('TippingJar',
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.dmSans(
-                                color: _white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15)),
-                      ),
-                    ]),
-                    const SizedBox(height: 12),
-                    Text('Supporting creators,\none tip at a time.',
-                        style: GoogleFonts.dmSans(
-                            color: _textMuted,
-                            fontSize: 13,
-                            height: 1.6)),
-                  ]),
-            ),
-            ...[
-              ('Product',  [('Features', '/features'), ('Pricing', '/pricing'), ('Changelog', '/changelog')]),
-              ('Company',  [('About', '/about'), ('Blog', '/blog'), ('Careers', '/careers')]),
-              ('Legal',    [('Privacy', '/privacy'), ('Terms', '/terms'), ('Cookies', '/cookies')]),
-            ].map((col) => Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(col.$1,
-                            style: GoogleFonts.dmSans(
-                                color: _white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13)),
-                        const SizedBox(height: 12),
-                        ...col.$2.map((link) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: GestureDetector(
-                                onTap: () => context.go(link.$2),
-                                child: Text(link.$1,
-                                    style: GoogleFonts.dmSans(
-                                        color: _textMuted, fontSize: 13)),
-                              ),
-                            )),
-                      ]),
-                )),
-          ],
-        ),
+      padding: EdgeInsets.symmetric(
+          horizontal: mobile ? 24 : 40, vertical: 48),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (mobile) ...[
+          brand,
+          const SizedBox(height: 32),
+          Wrap(
+            spacing: 40,
+            runSpacing: 28,
+            children: cols.map(linkCol).toList(),
+          ),
+        ] else
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: brand),
+            ...cols.map((col) => Expanded(child: linkCol(col))),
+          ]),
         const SizedBox(height: 40),
         const Divider(color: _border),
         const SizedBox(height: 20),
         Text('© 2026 TippingJar. All rights reserved.',
-            style: GoogleFonts.dmSans(
-                color: _textMuted, fontSize: 12)),
+            style: GoogleFonts.dmSans(color: _textMuted, fontSize: 12)),
       ]),
     );
   }

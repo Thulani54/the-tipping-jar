@@ -136,17 +136,18 @@ def paystack_webhook(request):
         return HttpResponse(status=200)
 
     if event_type == "charge.success":
-        tip = Tip.objects.filter(paystack_reference=reference).first()
-        if tip and tip.status != Tip.Status.COMPLETED:
-            # Store Paystack authorization code for future recurring charges
-            auth_code = data.get("authorization", {}).get("authorization_code", "")
-            tip.status = Tip.Status.COMPLETED
-            tip.paystack_authorization_code = auth_code
-            tip.save(update_fields=["status", "paystack_authorization_code"])
-            send_tip_thank_you(tip)
-            _update_streak(tip)
-            _check_milestones(tip)
-            _update_pledge(tip)
+        auth_code = data.get("authorization", {}).get("authorization_code", "")
+        # Atomic update — only process if still pending (avoids race with VerifyTipView)
+        rows = Tip.objects.filter(
+            paystack_reference=reference, status=Tip.Status.PENDING
+        ).update(status=Tip.Status.COMPLETED, paystack_authorization_code=auth_code)
+        if rows:
+            tip = Tip.objects.filter(paystack_reference=reference).first()
+            if tip:
+                send_tip_thank_you(tip)
+                _update_streak(tip)
+                _check_milestones(tip)
+                _update_pledge(tip)
 
     elif event_type == "charge.failed":
         Tip.objects.filter(paystack_reference=reference).update(
