@@ -101,6 +101,7 @@ class _NavBar extends StatelessWidget {
                 if (DateTime.now().isAfter(DateTime(2026, 3, 23)))
                   _navLink('Creators', context, '/creators'),
                 _navLink('Enterprise', context, '/enterprise'),
+                _navLink('Blog', context, '/blog'),
                 _navLink('Developers', context, '/developers'),
                 const SizedBox(width: 8),
               ],
