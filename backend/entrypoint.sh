@@ -15,7 +15,10 @@ fi
 echo "Starting gunicorn..."
 exec gunicorn core.wsgi:application \
     --bind 0.0.0.0:8000 \
-    --workers 3 \
+    --workers 5 \
+    --threads 2 \
+    --worker-class gthread \
     --timeout 120 \
+    --keep-alive 65 \
     --access-logfile - \
     --error-logfile -
