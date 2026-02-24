@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
+    "django_summernote",
     # Local apps
     "apps.users",
     "apps.creators",
@@ -30,6 +31,7 @@ INSTALLED_APPS = [
     "apps.support",
     "apps.enterprise",
     "apps.platform",
+    "apps.blog",
 ]
 
 MIDDLEWARE = [
@@ -199,3 +201,22 @@ AZURE_CONTAINER    = env("AZURE_STORAGE_CONTAINER", default="media")
 if AZURE_ACCOUNT_NAME:
     DEFAULT_FILE_STORAGE = "storages.backends.azure_storage.AzureStorage"
 # else: falls back to local filesystem (dev)
+
+# ── Summernote (rich-text editor for blog admin) ────────────────────────────────
+SUMMERNOTE_THEME = "bs4"  # Bootstrap 4 theme
+SUMMERNOTE_CONFIG = {
+    "summernote": {
+        "width": "100%",
+        "height": "500px",
+        "toolbar": [
+            ["style", ["style"]],
+            ["font", ["bold", "italic", "underline", "strikethrough", "clear"]],
+            ["fontsize", ["fontsize"]],
+            ["color", ["color"]],
+            ["para", ["ul", "ol", "paragraph"]],
+            ["table", ["table"]],
+            ["insert", ["link", "picture", "hr"]],
+            ["view", ["fullscreen", "codeview", "help"]],
+        ],
+    },
+}

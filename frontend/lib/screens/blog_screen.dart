@@ -1,11 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../models/blog_post_model.dart';
+import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/app_nav.dart';
 
-class BlogScreen extends StatelessWidget {
+class BlogScreen extends StatefulWidget {
   const BlogScreen({super.key});
+
+  @override
+  State<BlogScreen> createState() => _BlogScreenState();
+}
+
+class _BlogScreenState extends State<BlogScreen> {
+  List<BlogPostModel>? _posts;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final posts = await ApiService().getBlogs();
+      if (mounted) setState(() => _posts = posts);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +43,7 @@ class BlogScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(children: [
           _hero(),
-          _posts(context),
+          _body(context),
           _footer(),
         ]),
       ),
@@ -51,54 +79,54 @@ class BlogScreen extends StatelessWidget {
     ]),
   );
 
-  Widget _posts(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 28),
-    color: kDark,
-    child: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1000),
-        child: Column(children: [
-          // Featured post
-          _FeaturedPost(
-            tag: 'Creator guide',
-            title: 'How to grow your tip income from \$0 to \$1,000/month',
-            excerpt: 'We interviewed 20 creators who crossed the \$1K/month mark. Here\'s exactly what they did — from writing their first post to optimising their tip page CTA.',
-            author: 'Lerato Dlamini', date: 'Feb 12, 2026', readTime: '8 min read',
-            color: kPrimary,
-          ),
-          const SizedBox(height: 40),
-          // Grid
-          Wrap(
-            spacing: 20, runSpacing: 20,
-            children: _articles().asMap().entries.map((e) =>
-              _ArticleCard(article: e.value, delay: 60 * e.key),
-            ).toList(),
-          ),
-        ]),
+  Widget _body(BuildContext context) {
+    if (_error != null) {
+      return _emptyState('Could not load posts. Please try again later.');
+    }
+    if (_posts == null) {
+      return const SizedBox(
+        height: 300,
+        child: Center(child: SpinKitFadingCircle(color: kPrimary, size: 32)),
+      );
+    }
+    if (_posts!.isEmpty) {
+      return _emptyState('No blog posts yet. Check back soon!');
+    }
+
+    final featured = _posts!.first;
+    final rest = _posts!.skip(1).toList();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 28),
+      color: kDark,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Column(children: [
+            _FeaturedCard(post: featured),
+            if (rest.isNotEmpty) ...[
+              const SizedBox(height: 40),
+              Wrap(
+                spacing: 20, runSpacing: 20,
+                children: rest.asMap().entries.map((e) =>
+                  _ArticleCard(post: e.value, delay: 60 * e.key),
+                ).toList(),
+              ),
+            ],
+          ]),
+        ),
       ),
+    );
+  }
+
+  Widget _emptyState(String msg) => Container(
+    height: 300,
+    padding: const EdgeInsets.all(32),
+    child: Center(
+      child: Text(msg, style: GoogleFonts.dmSans(color: kMuted, fontSize: 16),
+          textAlign: TextAlign.center),
     ),
   );
-
-  List<_Article> _articles() => [
-    _Article('Product', 'Introducing the TippingJar Developer API',
-        'Build tip flows into your own platform with our new public REST API and webhook system.',
-        'Feb 14, 2026', '5 min read', const Color(0xFF818CF8)),
-    _Article('Creator guide', '5 ways to tell your audience about your tip page',
-        'Getting the word out is half the battle. Here are five proven tactics from our top creators.',
-        'Feb 8, 2026', '4 min read', kPrimary),
-    _Article('Industry', 'The creator economy in 2026: what the numbers say',
-        'Fan monetisation grew 34% year-over-year. We break down the data and what it means for independent creators.',
-        'Jan 30, 2026', '6 min read', const Color(0xFF0097B2)),
-    _Article('Product', 'Pro plan deep dive: analytics that actually help',
-        'A tour of the new analytics dashboard — revenue forecasting, fan cohorts, and more.',
-        'Jan 22, 2026', '7 min read', const Color(0xFFFBBF24)),
-    _Article('Creator guide', 'Writing a tip page bio that converts',
-        'The words on your tip page matter more than you think. Here\'s our formula.',
-        'Jan 15, 2026', '3 min read', const Color(0xFFF87171)),
-    _Article('Company', 'TippingJar crossed 2,400 creators — a milestone reflection',
-        'What we\'ve learned from the first 2,400 creators who trusted us with their income.',
-        'Jan 5, 2026', '5 min read', kPrimary),
-  ];
 
   Widget _footer() => Container(
     color: kDarker,
@@ -108,101 +136,160 @@ class BlogScreen extends StatelessWidget {
   );
 }
 
-class _Article {
-  final String tag, title, excerpt, date, readTime;
-  final Color color;
-  const _Article(this.tag, this.title, this.excerpt, this.date, this.readTime, this.color);
+// ─── Category colour mapping ──────────────────────────────────────────────────
+
+Color _catColor(String category) {
+  switch (category) {
+    case 'product':
+      return const Color(0xFF818CF8);
+    case 'industry':
+      return const Color(0xFF0097B2);
+    case 'company':
+      return const Color(0xFFFBBF24);
+    case 'tips-tricks':
+      return const Color(0xFFF87171);
+    default:
+      return kPrimary;
+  }
 }
 
-class _FeaturedPost extends StatelessWidget {
-  final String tag, title, excerpt, author, date, readTime;
-  final Color color;
-  const _FeaturedPost({required this.tag, required this.title, required this.excerpt,
-      required this.author, required this.date, required this.readTime, required this.color});
+// ─── Featured card ────────────────────────────────────────────────────────────
+
+class _FeaturedCard extends StatelessWidget {
+  final BlogPostModel post;
+  const _FeaturedCard({required this.post});
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(32),
-    decoration: BoxDecoration(
-      color: kCardBg, borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: kBorder),
-    ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(36),
-          border: Border.all(color: color.withOpacity(0.3)),
+  Widget build(BuildContext context) {
+    final color = _catColor(post.category);
+    return GestureDetector(
+      onTap: () => context.push('/blog/${post.slug}'),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: kCardBg, borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: kBorder),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              _Tag(label: post.categoryLabel, color: color),
+              const Spacer(),
+              Text('Featured', style: GoogleFonts.dmSans(
+                  color: kMuted, fontSize: 11, fontStyle: FontStyle.italic)),
+            ]),
+            const SizedBox(height: 16),
+            Text(post.title, style: GoogleFonts.dmSans(color: Colors.white,
+                fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.8, height: 1.25)),
+            const SizedBox(height: 12),
+            Text(post.excerpt, style: GoogleFonts.dmSans(
+                color: kMuted, fontSize: 15, height: 1.65)),
+            const SizedBox(height: 20),
+            Row(children: [
+              Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                    color: color.withOpacity(0.15), shape: BoxShape.circle),
+                child: Center(child: Text(
+                  post.authorName.isNotEmpty ? post.authorName[0] : 'T',
+                  style: GoogleFonts.dmSans(
+                      color: color, fontWeight: FontWeight.w800, fontSize: 12),
+                )),
+              ),
+              const SizedBox(width: 8),
+              Text(post.authorName, style: GoogleFonts.dmSans(
+                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+              const SizedBox(width: 16),
+              Text(_formatDate(post.createdAt),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+              const SizedBox(width: 12),
+              Text('·', style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+              const SizedBox(width: 12),
+              Text(post.readTime,
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+              const Spacer(),
+              Text('Read more →', style: GoogleFonts.dmSans(
+                  color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+            ]),
+          ]),
         ),
-        child: Text(tag, style: GoogleFonts.dmSans(
-            color: color, fontWeight: FontWeight.w600, fontSize: 12)),
       ),
-      const SizedBox(height: 16),
-      Text(title, style: GoogleFonts.dmSans(color: Colors.white,
-          fontWeight: FontWeight.w800, fontSize: 26, letterSpacing: -0.8, height: 1.25)),
-      const SizedBox(height: 12),
-      Text(excerpt, style: GoogleFonts.dmSans(color: kMuted, fontSize: 15, height: 1.65)),
-      const SizedBox(height: 20),
-      Row(children: [
-        Container(
-          width: 28, height: 28,
-          decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle),
-          child: Center(child: Text(author[0], style: GoogleFonts.dmSans(
-              color: color, fontWeight: FontWeight.w800, fontSize: 12))),
-        ),
-        const SizedBox(width: 8),
-        Text(author, style: GoogleFonts.dmSans(
-            color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-        const SizedBox(width: 16),
-        Text(date, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
-        const SizedBox(width: 12),
-        Text('·', style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
-        const SizedBox(width: 12),
-        Text(readTime, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
-      ]),
-    ]),
-  ).animate().fadeIn(duration: 400.ms);
+    ).animate().fadeIn(duration: 400.ms);
+  }
 }
+
+// ─── Article card ─────────────────────────────────────────────────────────────
 
 class _ArticleCard extends StatelessWidget {
-  final _Article article;
+  final BlogPostModel post;
   final int delay;
-  const _ArticleCard({required this.article, required this.delay});
+  const _ArticleCard({required this.post, required this.delay});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _catColor(post.category);
+    return GestureDetector(
+      onTap: () => context.push('/blog/${post.slug}'),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          width: 300,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: kCardBg, borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: kBorder),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _Tag(label: post.categoryLabel, color: color),
+            const SizedBox(height: 12),
+            Text(post.title, style: GoogleFonts.dmSans(color: Colors.white,
+                fontWeight: FontWeight.w700, fontSize: 15, height: 1.4)),
+            const SizedBox(height: 8),
+            Text(post.excerpt, style: GoogleFonts.dmSans(
+                color: kMuted, fontSize: 12, height: 1.6),
+                maxLines: 3, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 16),
+            Row(children: [
+              Text(_formatDate(post.createdAt),
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+              const SizedBox(width: 8),
+              Text('·', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+              const SizedBox(width: 8),
+              Text(post.readTime,
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+            ]),
+          ]),
+        ),
+      ),
+    ).animate().fadeIn(delay: delay.ms, duration: 400.ms).slideY(begin: 0.08);
+  }
+}
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+class _Tag extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _Tag({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) => Container(
-    width: 300,
-    padding: const EdgeInsets.all(24),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
-      color: kCardBg, borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: kBorder),
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(36),
+      border: Border.all(color: color.withOpacity(0.25)),
     ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: article.color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(36),
-        ),
-        child: Text(article.tag, style: GoogleFonts.dmSans(
-            color: article.color, fontWeight: FontWeight.w600, fontSize: 11)),
-      ),
-      const SizedBox(height: 12),
-      Text(article.title, style: GoogleFonts.dmSans(color: Colors.white,
-          fontWeight: FontWeight.w700, fontSize: 15, height: 1.4)),
-      const SizedBox(height: 8),
-      Text(article.excerpt, style: GoogleFonts.dmSans(
-          color: kMuted, fontSize: 12, height: 1.6),
-          maxLines: 3, overflow: TextOverflow.ellipsis),
-      const SizedBox(height: 16),
-      Row(children: [
-        Text(article.date, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
-        const SizedBox(width: 8),
-        Text('·', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
-        const SizedBox(width: 8),
-        Text(article.readTime, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
-      ]),
-    ]),
-  ).animate().fadeIn(delay: delay.ms, duration: 400.ms).slideY(begin: 0.08);
+    child: Text(label, style: GoogleFonts.dmSans(
+        color: color, fontWeight: FontWeight.w600, fontSize: 11)),
+  );
+}
+
+String _formatDate(DateTime dt) {
+  const months = [
+    '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  return '${months[dt.month]} ${dt.day}, ${dt.year}';
 }

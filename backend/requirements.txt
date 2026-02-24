@@ -11,3 +11,4 @@ dj-database-url==2.1.0
 stripe==9.9.0
 requests==2.31.0
 django-storages[azure]==1.14.4
+django-summernote==0.8.20.0

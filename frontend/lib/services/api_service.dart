@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/api_key_model.dart';
 import '../models/app_user.dart';
+import '../models/blog_post_model.dart';
 import '../models/commission_model.dart';
 import '../models/creator_post_model.dart';
 import '../models/dispute_model.dart';
@@ -1059,6 +1060,28 @@ class ApiService {
       final body = await streamed.stream.bytesToString();
       throw Exception('Upload failed: $body');
     }
+  }
+
+  // ── Blog ──────────────────────────────────────────────────────────
+
+  /// Public list of published blog posts.
+  Future<List<BlogPostModel>> getBlogs() async {
+    final res = await http.get(Uri.parse('$_baseUrl/blog/'), headers: _headers);
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list.map((e) => BlogPostModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load blog posts');
+  }
+
+  /// Full detail for a single published blog post by slug.
+  Future<BlogPostModel> getBlog(String slug) async {
+    final res = await http.get(Uri.parse('$_baseUrl/blog/$slug/'), headers: _headers);
+    if (res.statusCode == 200) {
+      return BlogPostModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Blog post not found');
   }
 
   // ── Creator notifications ──────────────────────────────────────────

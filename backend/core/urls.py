@@ -19,4 +19,6 @@ urlpatterns = [
     path("api/support/",  include("apps.support.urls")),
     path("api/enterprise/", include("apps.enterprise.urls")),
     path("api/platform/",  include("apps.platform.urls")),
+    path("api/blog/",      include("apps.blog.urls")),
+    path("summernote/",    include("django_summernote.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -19,6 +19,7 @@ import 'screens/pricing_screen.dart';
 import 'screens/changelog_screen.dart';
 import 'screens/about_screen.dart';
 import 'screens/blog_screen.dart';
+import 'screens/blog_detail_screen.dart';
 import 'screens/careers_screen.dart';
 import 'screens/legal_screen.dart';
 import 'screens/contact_screen.dart';
@@ -93,6 +94,11 @@ GoRouter buildRouter(AuthProvider auth) {
       GoRoute(path: '/changelog',    builder: (_, __) => const ChangelogScreen()),
       GoRoute(path: '/about',        builder: (_, __) => const AboutScreen()),
       GoRoute(path: '/blog',         builder: (_, __) => const BlogScreen()),
+      GoRoute(
+        path: '/blog/:slug',
+        builder: (_, state) =>
+            BlogDetailScreen(slug: state.pathParameters['slug']!),
+      ),
       GoRoute(path: '/careers',      builder: (_, __) => const CareersScreen()),
       GoRoute(path: '/privacy',      builder: (_, __) => const PrivacyScreen()),
       GoRoute(path: '/terms',        builder: (_, __) => const TermsScreen()),
