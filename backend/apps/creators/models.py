@@ -241,3 +241,29 @@ class CreatorKycDocument(models.Model):
 
     def __str__(self):
         return f"{self.creator.display_name} — {self.get_doc_type_display()} ({self.status})"
+
+
+class CreatorNotification(models.Model):
+    """In-app notification for a creator."""
+
+    class Type(models.TextChoices):
+        WELCOME        = "welcome",        "Welcome"
+        FIRST_TIP      = "first_tip",      "First Tip"
+        TIP_RECEIVED   = "tip_received",   "Tip Received"
+        TIP_GOAL       = "tip_goal",       "Tip Goal Reached"
+        FIRST_JAR      = "first_jar",      "First Jar Created"
+        FIRST_THOUSAND = "first_thousand", "First R1 000"
+        SUMMARY        = "summary",        "Tips Summary"
+
+    creator           = models.ForeignKey(CreatorProfile, on_delete=models.CASCADE, related_name="notifications")
+    notification_type = models.CharField(max_length=20, choices=Type.choices)
+    title             = models.CharField(max_length=200)
+    message           = models.TextField()
+    is_read           = models.BooleanField(default=False)
+    created_at        = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.creator.display_name} — {self.notification_type}"

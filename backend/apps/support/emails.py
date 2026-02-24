@@ -233,6 +233,301 @@ def send_dispute_confirmation(dispute):
     ).send(fail_silently=True)
 
 
+# ─── Creator lifecycle emails ──────────────────────────────────────────────────
+
+_BASE_URL = "https://www.tippingjar.co.za"
+
+
+def _creator_email_wrapper(inner_html: str) -> str:
+    """Shared outer layout for all creator-facing emails."""
+    return f"""
+<div style="font-family:Inter,sans-serif;max-width:580px;margin:auto;background:#0A0F0D;border-radius:14px;overflow:hidden;">
+  <div style="background:#0D1A12;border-bottom:1px solid #1E2E26;padding:24px 32px;">
+    <span style="font-size:22px;font-weight:800;color:#00C896;letter-spacing:-0.5px;">TippingJar</span>
+  </div>
+  <div style="padding:32px 32px 24px;">
+    {inner_html}
+  </div>
+  <div style="border-top:1px solid #1E2E26;padding:16px 32px;text-align:center;">
+    <p style="margin:0;font-size:12px;color:#4A6358;">
+      TippingJar · <a href="{_BASE_URL}" style="color:#00C896;text-decoration:none;">{_BASE_URL.replace("https://","")}</a>
+      · <a href="mailto:support@tippingjar.co.za" style="color:#4A6358;text-decoration:none;">support@tippingjar.co.za</a>
+    </p>
+  </div>
+</div>"""
+
+
+def _btn(text: str, url: str) -> str:
+    return (
+        f'<a href="{url}" style="display:inline-block;background:#00C896;color:#fff;'
+        f'text-decoration:none;padding:13px 28px;border-radius:36px;font-weight:700;'
+        f'font-size:14px;margin-top:20px;">{text}</a>'
+    )
+
+
+def send_creator_welcome(creator) -> None:
+    """Welcome email sent when a new CreatorProfile is created."""
+    page_url = f"{_BASE_URL}/creator/{creator.slug}"
+    dashboard_url = f"{_BASE_URL}/dashboard"
+
+    inner = f"""
+<h2 style="color:#00C896;margin:0 0 4px;font-size:22px;">Welcome to TippingJar, {creator.display_name}! 🎉</h2>
+<p style="color:#7A9088;margin:0 0 20px;font-size:14px;">Your creator page is live and ready.</p>
+
+<p style="font-size:15px;line-height:1.7;color:#E2E8F0;margin:0 0 16px;">
+  Fans can now send you tips instantly — no account needed on their side.
+  Here's how to get started:
+</p>
+
+<div style="background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:20px;margin-bottom:20px;">
+  <p style="margin:0 0 10px;font-size:13px;color:#7A9088;font-weight:600;text-transform:uppercase;letter-spacing:.8px;">Your next steps</p>
+  <ul style="margin:0;padding-left:20px;color:#E2E8F0;font-size:14px;line-height:2;">
+    <li>Share your tip page link with fans</li>
+    <li>Set a monthly tip goal to motivate supporters</li>
+    <li>Add your bank details to receive payouts</li>
+    <li>Create tip jars for specific goals</li>
+  </ul>
+</div>
+
+<div style="background:#0D1A12;border:1px solid #1E2E26;border-radius:10px;padding:16px 20px;margin-bottom:8px;">
+  <p style="margin:0;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Your tip page</p>
+  <a href="{page_url}" style="color:#00C896;font-size:15px;font-weight:600;text-decoration:none;">{page_url.replace("https://","")}</a>
+</div>
+
+{_btn("Open your dashboard →", dashboard_url)}
+"""
+
+    html = _creator_email_wrapper(inner)
+    body = (
+        f"Welcome to TippingJar, {creator.display_name}!\n\n"
+        f"Your creator page is live: {page_url}\n\n"
+        f"— The TippingJar Team"
+    )
+    msg = EmailMultiAlternatives(
+        subject=f"Welcome to TippingJar, {creator.display_name}! 🎉",
+        body=body,
+        from_email=_no_reply(),
+        to=[creator.user.email],
+    )
+    msg.attach_alternative(html, "text/html")
+    try:
+        msg.send(fail_silently=False)
+        logger.info("send_creator_welcome: sent to %s", creator.user.email)
+    except Exception as exc:
+        logger.error("send_creator_welcome: FAILED creator=%s error=%s", creator.id, exc)
+
+
+def send_first_tip_email(creator, tip) -> None:
+    """Congratulations email on receiving first ever tip."""
+    dashboard_url = f"{_BASE_URL}/dashboard"
+    amount = f"R{tip.amount:.2f}"
+    tipper = tip.tipper_name or "Someone"
+
+    inner = f"""
+<div style="text-align:center;margin-bottom:28px;">
+  <span style="font-size:48px;">🎉</span>
+  <h2 style="color:#00C896;margin:8px 0 4px;font-size:22px;">You just got your first tip!</h2>
+  <p style="color:#7A9088;font-size:14px;margin:0;">Congratulations, {creator.display_name}</p>
+</div>
+
+<div style="background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:24px;margin-bottom:24px;text-align:center;">
+  <p style="margin:0;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">First tip amount</p>
+  <p style="margin:6px 0;font-size:40px;font-weight:800;color:#00C896;">{amount}</p>
+  <p style="margin:0;font-size:14px;color:#E2E8F0;">from <strong>{tipper}</strong></p>
+</div>
+
+<p style="font-size:15px;line-height:1.7;color:#E2E8F0;margin:0 0 20px;">
+  This is just the beginning. Keep sharing your tip page and engaging with your fans —
+  every tip is a vote of confidence in your work.
+</p>
+
+{_btn("View your dashboard →", dashboard_url)}
+"""
+
+    html = _creator_email_wrapper(inner)
+    body = (
+        f"Congratulations {creator.display_name}! You received your first tip — "
+        f"{amount} from {tipper}.\n\n"
+        f"Dashboard: {dashboard_url}\n\n"
+        f"— The TippingJar Team"
+    )
+    msg = EmailMultiAlternatives(
+        subject=f"🎉 Your first tip — {amount} from {tipper}!",
+        body=body,
+        from_email=_no_reply(),
+        to=[creator.user.email],
+    )
+    msg.attach_alternative(html, "text/html")
+    try:
+        msg.send(fail_silently=False)
+        logger.info("send_first_tip_email: sent to %s for tip=%s", creator.user.email, tip.id)
+    except Exception as exc:
+        logger.error("send_first_tip_email: FAILED creator=%s error=%s", creator.id, exc)
+
+
+def send_first_jar_email(creator, jar) -> None:
+    """Email when a creator creates their first jar."""
+    jar_url = f"{_BASE_URL}/creator/{creator.slug}"
+    dashboard_url = f"{_BASE_URL}/dashboard"
+
+    inner = f"""
+<div style="text-align:center;margin-bottom:28px;">
+  <span style="font-size:48px;">🫙</span>
+  <h2 style="color:#00C896;margin:8px 0 4px;font-size:22px;">Your first jar is live!</h2>
+  <p style="color:#7A9088;font-size:14px;margin:0;">{creator.display_name}</p>
+</div>
+
+<div style="background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:20px;margin-bottom:24px;">
+  <p style="margin:0;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Jar name</p>
+  <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#E2E8F0;">{jar.name}</p>
+  {f'<p style="margin:8px 0 0;font-size:13px;color:#7A9088;">{jar.description[:200]}</p>' if jar.description else ''}
+  {f'<p style="margin:8px 0 0;font-size:14px;color:#00C896;font-weight:600;">Goal: R{jar.goal:.2f}</p>' if jar.goal else ''}
+</div>
+
+<p style="font-size:15px;line-height:1.7;color:#E2E8F0;margin:0 0 20px;">
+  Tip jars let you collect towards specific goals. Share the link with your fans and
+  watch the support roll in!
+</p>
+
+{_btn("Go to your page →", jar_url)}
+"""
+
+    html = _creator_email_wrapper(inner)
+    body = (
+        f"Hey {creator.display_name}! Your first jar '{jar.name}' is live.\n\n"
+        f"Dashboard: {dashboard_url}\n\n"
+        f"— The TippingJar Team"
+    )
+    msg = EmailMultiAlternatives(
+        subject=f"🫙 Your first jar '{jar.name}' is live!",
+        body=body,
+        from_email=_no_reply(),
+        to=[creator.user.email],
+    )
+    msg.attach_alternative(html, "text/html")
+    try:
+        msg.send(fail_silently=False)
+        logger.info("send_first_jar_email: sent to %s", creator.user.email)
+    except Exception as exc:
+        logger.error("send_first_jar_email: FAILED creator=%s error=%s", creator.id, exc)
+
+
+def send_first_thousand_email(creator) -> None:
+    """Congratulations email when creator crosses R1 000 total."""
+    dashboard_url = f"{_BASE_URL}/dashboard"
+
+    inner = f"""
+<div style="text-align:center;margin-bottom:28px;">
+  <span style="font-size:48px;">💰</span>
+  <h2 style="color:#00C896;margin:8px 0 4px;font-size:22px;">You've earned R1 000!</h2>
+  <p style="color:#7A9088;font-size:14px;margin:0;">A massive milestone, {creator.display_name}</p>
+</div>
+
+<div style="background:linear-gradient(135deg,#0D1A12,#111A16);border:1px solid #00C896;border-radius:12px;padding:28px;margin-bottom:24px;text-align:center;">
+  <p style="margin:0;font-size:13px;color:#7A9088;text-transform:uppercase;letter-spacing:1px;">Total tips earned</p>
+  <p style="margin:8px 0;font-size:48px;font-weight:900;color:#00C896;letter-spacing:-1px;">R1 000+</p>
+  <p style="margin:0;font-size:14px;color:#E2E8F0;">🏆 You're in the top tier of TippingJar creators</p>
+</div>
+
+<p style="font-size:15px;line-height:1.7;color:#E2E8F0;margin:0 0 20px;">
+  R1 000 in tips is no small feat — it means your fans believe in what you're doing.
+  Keep creating, keep sharing, and the support will keep growing!
+</p>
+
+{_btn("View your earnings →", dashboard_url)}
+"""
+
+    html = _creator_email_wrapper(inner)
+    body = (
+        f"Congratulations {creator.display_name}! You've crossed R1 000 in total tips. 🎉\n\n"
+        f"Dashboard: {dashboard_url}\n\n"
+        f"— The TippingJar Team"
+    )
+    msg = EmailMultiAlternatives(
+        subject="💰 Congratulations! You've earned R1 000 on TippingJar!",
+        body=body,
+        from_email=_no_reply(),
+        to=[creator.user.email],
+    )
+    msg.attach_alternative(html, "text/html")
+    try:
+        msg.send(fail_silently=False)
+        logger.info("send_first_thousand_email: sent to %s", creator.user.email)
+    except Exception as exc:
+        logger.error("send_first_thousand_email: FAILED creator=%s error=%s", creator.id, exc)
+
+
+def send_tipping_summary_email(creator, period_label: str, tips) -> None:
+    """
+    2-day tipping summary email.
+    `tips` is a queryset/list of completed Tip objects in the period.
+    """
+    dashboard_url = f"{_BASE_URL}/dashboard"
+    total = sum(float(t.amount) for t in tips)
+    count = len(tips)
+
+    tip_rows = "".join(
+        f"""
+<tr>
+  <td style="padding:8px 0;font-size:13px;color:#E2E8F0;border-bottom:1px solid #1E2E26;">{t.tipper_name or "Anonymous"}</td>
+  <td style="padding:8px 0;font-size:13px;color:#00C896;font-weight:600;text-align:right;border-bottom:1px solid #1E2E26;">R{float(t.amount):.2f}</td>
+</tr>"""
+        for t in tips[:10]  # cap at 10 rows in email
+    )
+    more_note = f'<p style="font-size:12px;color:#7A9088;margin:8px 0 0;">+{count - 10} more tips — view all in dashboard</p>' if count > 10 else ""
+
+    inner = f"""
+<h2 style="color:#00C896;margin:0 0 4px;font-size:20px;">Tips summary</h2>
+<p style="color:#7A9088;margin:0 0 24px;font-size:13px;">{period_label}</p>
+
+<div style="display:flex;gap:16px;margin-bottom:24px;">
+  <div style="flex:1;background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:18px;text-align:center;">
+    <p style="margin:0;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Total earned</p>
+    <p style="margin:4px 0 0;font-size:28px;font-weight:800;color:#00C896;">R{total:.2f}</p>
+  </div>
+  <div style="flex:1;background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:18px;text-align:center;">
+    <p style="margin:0;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Tips received</p>
+    <p style="margin:4px 0 0;font-size:28px;font-weight:800;color:#E2E8F0;">{count}</p>
+  </div>
+</div>
+
+<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+  <thead>
+    <tr>
+      <th style="text-align:left;font-size:11px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;padding-bottom:8px;border-bottom:1px solid #1E2E26;">Tipper</th>
+      <th style="text-align:right;font-size:11px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;padding-bottom:8px;border-bottom:1px solid #1E2E26;">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {tip_rows}
+  </tbody>
+</table>
+{more_note}
+
+{_btn("View full dashboard →", dashboard_url)}
+"""
+
+    html = _creator_email_wrapper(inner)
+    body = (
+        f"TippingJar tips summary for {creator.display_name} — {period_label}\n\n"
+        f"Total: R{total:.2f} across {count} tip{'s' if count != 1 else ''}.\n\n"
+        f"Dashboard: {dashboard_url}\n\n"
+        f"— The TippingJar Team"
+    )
+    msg = EmailMultiAlternatives(
+        subject=f"Your TippingJar summary — R{total:.2f} in {count} tip{'s' if count != 1 else ''}",
+        body=body,
+        from_email=_no_reply(),
+        to=[creator.user.email],
+    )
+    msg.attach_alternative(html, "text/html")
+    try:
+        msg.send(fail_silently=False)
+        logger.info("send_tipping_summary_email: sent to %s", creator.user.email)
+    except Exception as exc:
+        logger.error("send_tipping_summary_email: FAILED creator=%s error=%s", creator.id, exc)
+
+
 def send_dispute_status_update(dispute):
     """Notify disputer when admin updates the dispute status."""
     url = dispute.tracking_url

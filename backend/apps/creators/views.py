@@ -576,6 +576,50 @@ class AdminKycDeclineView(APIView):
         return Response({"detail": "KYC declined."})
 
 
+# ── Creator notifications ─────────────────────────────────────────────────────
+
+class MyNotificationsView(APIView):
+    """
+    GET  /api/creators/me/notifications/         — list last 50 notifications
+    POST /api/creators/me/notifications/read/    — mark all as read
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            creator = CreatorProfile.objects.get(user=request.user)
+        except CreatorProfile.DoesNotExist:
+            return Response([])
+        notifications = creator.notifications.all()[:50]
+        data = [
+            {
+                "id": n.id,
+                "type": n.notification_type,
+                "title": n.title,
+                "message": n.message,
+                "is_read": n.is_read,
+                "created_at": n.created_at,
+            }
+            for n in notifications
+        ]
+        return Response(data)
+
+
+class MarkNotificationsReadView(APIView):
+    """POST /api/creators/me/notifications/read/ — mark all notifications as read."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        try:
+            creator = CreatorProfile.objects.get(user=request.user)
+        except CreatorProfile.DoesNotExist:
+            return Response({"detail": "No creator profile."}, status=status.HTTP_404_NOT_FOUND)
+        updated = creator.notifications.filter(is_read=False).update(is_read=True)
+        return Response({"detail": f"{updated} notification(s) marked as read."})
+
+
 # ── Creator incoming pledges ──────────────────────────────────────────────────
 
 class CreatorIncomingPledgesView(generics.ListAPIView):

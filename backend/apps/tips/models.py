@@ -83,7 +83,6 @@ class Pledge(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        unique_together = [("fan", "creator")]
 
     def __str__(self):
         return f"{self.fan_name} → {self.creator} pledge R{self.amount}/mo"
@@ -110,7 +109,7 @@ class TipStreak(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = [("fan", "creator"), ("fan_email", "creator")]
+        pass  # Uniqueness enforced via conditional UniqueConstraints in migrations
 
     def __str__(self):
         return f"{self.fan_email} streak {self.current_streak}mo → {self.creator}"

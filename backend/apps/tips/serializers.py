@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from .models import Pledge, Tip, TipStreak
@@ -29,7 +31,7 @@ class TipSerializer(serializers.ModelSerializer):
 
 class CreateTipSerializer(serializers.Serializer):
     creator_slug = serializers.SlugField()
-    amount = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=1)
+    amount = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal("1"))
     message = serializers.CharField(max_length=500, required=False, allow_blank=True)
     tipper_name = serializers.CharField(max_length=100, required=False, default="Anonymous")
     tipper_email = serializers.EmailField(required=False, allow_blank=True, default="")

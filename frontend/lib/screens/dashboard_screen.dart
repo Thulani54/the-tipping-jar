@@ -1,3 +1,5 @@
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
@@ -25,6 +27,34 @@ import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../widgets/app_logo.dart';
 
+// ─── Notification model ───────────────────────────────────────────────────────
+class _NotifModel {
+  final int id;
+  final String type;
+  final String title;
+  final String message;
+  final bool isRead;
+  final DateTime createdAt;
+
+  const _NotifModel({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.message,
+    required this.isRead,
+    required this.createdAt,
+  });
+
+  factory _NotifModel.fromJson(Map<String, dynamic> j) => _NotifModel(
+        id: j['id'] as int,
+        type: j['type'] as String? ?? 'tip_received',
+        title: j['title'] as String? ?? '',
+        message: j['message'] as String? ?? '',
+        isRead: j['is_read'] as bool? ?? false,
+        createdAt: DateTime.tryParse(j['created_at'] as String? ?? '') ?? DateTime.now(),
+      );
+}
+
 // ─── Data bundle loaded in parallel ──────────────────────────────────────────
 class _DashboardData {
   final CreatorProfileModel profile;
@@ -47,10 +77,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _loading = true;
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Notifications state
+  List<_NotifModel> _notifications = [];
+  int _unreadCount = 0;
+
   @override
   void initState() {
     super.initState();
     _load();
+    _loadNotifications();
   }
 
   Future<void> _load() async {
@@ -75,6 +110,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
+  }
+
+  Future<void> _loadNotifications() async {
+    try {
+      final api = context.read<AuthProvider>().api;
+      final raw = await api.getNotifications();
+      if (mounted) {
+        final notifs = raw.map(_NotifModel.fromJson).toList();
+        setState(() {
+          _notifications = notifs;
+          _unreadCount = notifs.where((n) => !n.isRead).length;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _markNotificationsRead() async {
+    if (_unreadCount == 0) return;
+    setState(() => _unreadCount = 0);
+    try {
+      final api = context.read<AuthProvider>().api;
+      await api.markNotificationsRead();
+      if (mounted) {
+        setState(() {
+          _notifications = _notifications.map((n) => _NotifModel(
+            id: n.id, type: n.type, title: n.title, message: n.message,
+            isRead: true, createdAt: n.createdAt,
+          )).toList();
+        });
+      }
+    } catch (_) {}
   }
 
   void _onProfileUpdated(CreatorProfileModel updated) {
@@ -116,9 +182,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ]),
     actions: [
       IconButton(
-        icon: const Icon(Iconsax.notification, color: kMuted, size: 20),
+        icon: Stack(clipBehavior: Clip.none, children: [
+          const Icon(Iconsax.notification, color: kMuted, size: 20),
+          if (_unreadCount > 0)
+            Positioned(
+              right: -3, top: -3,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                child: Center(child: Text(
+                  _unreadCount > 9 ? '9+' : '$_unreadCount',
+                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800),
+                )),
+              ),
+            ),
+        ]),
         tooltip: 'Notifications',
-        onPressed: () => setState(() => _navIndex = 7),
+        onPressed: () {
+          setState(() => _navIndex = 7);
+          _markNotificationsRead();
+        },
       ),
       IconButton(
         icon: const Icon(Iconsax.profile_circle, color: kMuted, size: 20),
@@ -131,9 +215,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _wideLayout() => Row(children: [
     _Sidebar(
       selected: _navIndex,
-      onSelect: (i) => setState(() => _navIndex = i),
+      onSelect: (i) {
+        setState(() => _navIndex = i);
+        if (i == 7) _markNotificationsRead();
+      },
       onLogout: _logout,
       creatorSlug: _data?.profile.slug,
+      unreadNotifCount: _unreadCount,
     ),
     Expanded(child: _body()),
   ]);
@@ -252,7 +340,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (mounted) context.go('/');
           },
         ),
-      7 => _NotificationsPage(tips: d.tips),
+      7 => _NotificationsPage(
+          notifications: _notifications,
+          onMarkRead: _markNotificationsRead,
+          onRefresh: _loadNotifications,
+        ),
       _ => const SizedBox.shrink(),
     };
   }
@@ -302,7 +394,11 @@ class _Sidebar extends StatelessWidget {
   final void Function(int) onSelect;
   final VoidCallback onLogout;
   final String? creatorSlug;
-  const _Sidebar({required this.selected, required this.onSelect, required this.onLogout, this.creatorSlug});
+  final int unreadNotifCount;
+  const _Sidebar({
+    required this.selected, required this.onSelect, required this.onLogout,
+    this.creatorSlug, this.unreadNotifCount = 0,
+  });
 
   static const _items = [
     (Iconsax.home_2,        'Overview'),
@@ -336,9 +432,15 @@ class _Sidebar extends StatelessWidget {
             color: kMuted, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
       ),
       const SizedBox(height: 8),
-      ..._items.asMap().entries.map((e) => _SidebarItem(
+      ..._items.asMap().entries.map((e) {
+        // Notifications item (index 7) gets the unread badge
+        final badge = (e.key == 7 && unreadNotifCount > 0) ? unreadNotifCount : 0;
+        return _SidebarItem(
           icon: e.value.$1, label: e.value.$2,
-          active: selected == e.key, onTap: () => onSelect(e.key))),
+          active: selected == e.key, onTap: () => onSelect(e.key),
+          badgeCount: badge,
+        );
+      }),
       const Spacer(),
       const Divider(color: kBorder, height: 1),
       _SidebarItem(
@@ -361,8 +463,9 @@ class _SidebarItem extends StatelessWidget {
   final String label;
   final bool active, danger;
   final VoidCallback onTap;
+  final int badgeCount;
   const _SidebarItem({required this.icon, required this.label,
-      required this.active, required this.onTap, this.danger = false});
+      required this.active, required this.onTap, this.danger = false, this.badgeCount = 0});
 
   @override
   Widget build(BuildContext context) => GestureDetector(
@@ -377,9 +480,16 @@ class _SidebarItem extends StatelessWidget {
       child: Row(children: [
         Icon(icon, color: active ? kPrimary : danger ? Colors.redAccent : kMuted, size: 18),
         const SizedBox(width: 10),
-        Text(label, style: GoogleFonts.dmSans(
+        Expanded(child: Text(label, style: GoogleFonts.dmSans(
             color: active ? kPrimary : danger ? Colors.redAccent : kMuted,
-            fontWeight: active ? FontWeight.w600 : FontWeight.w500, fontSize: 13)),
+            fontWeight: active ? FontWeight.w600 : FontWeight.w500, fontSize: 13))),
+        if (badgeCount > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(8)),
+            child: Text(badgeCount > 9 ? '9+' : '$badgeCount',
+                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+          ),
       ]),
     ),
   );
@@ -4470,27 +4580,63 @@ class _DangerZoneCardState extends State<_DangerZoneCard> {
 
 // ─── Notifications page ────────────────────────────────────────────────────────
 class _NotificationsPage extends StatelessWidget {
-  final List<TipModel> tips;
-  const _NotificationsPage({required this.tips});
+  final List<_NotifModel> notifications;
+  final VoidCallback onMarkRead;
+  final VoidCallback onRefresh;
+  const _NotificationsPage({
+    required this.notifications,
+    required this.onMarkRead,
+    required this.onRefresh,
+  });
+
+  static IconData _iconFor(String type) => switch (type) {
+    'welcome'        => Icons.celebration_rounded,
+    'first_tip'      => Icons.emoji_events_rounded,
+    'tip_received'   => Iconsax.money_recive,
+    'tip_goal'       => Icons.flag_rounded,
+    'first_jar'      => Iconsax.bucket_circle,
+    'first_thousand' => Icons.workspace_premium_rounded,
+    'summary'        => Iconsax.chart_2,
+    _                => Iconsax.notification,
+  };
+
+  static Color _colorFor(String type) => switch (type) {
+    'welcome'        => kPrimary,
+    'first_tip'      => const Color(0xFFF59E0B),
+    'tip_received'   => kPrimary,
+    'tip_goal'       => const Color(0xFF6366F1),
+    'first_jar'      => const Color(0xFF10B981),
+    'first_thousand' => const Color(0xFFF59E0B),
+    'summary'        => const Color(0xFF3B82F6),
+    _                => kMuted,
+  };
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final sorted = [...tips]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    final recent = sorted.take(30).toList();
+    final hasUnread = notifications.any((n) => !n.isRead);
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(w > 900 ? 32 : 20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Notifications', style: GoogleFonts.dmSans(
-            color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5))
-            .animate().fadeIn(duration: 400.ms),
-        const SizedBox(height: 6),
-        Text('Recent activity on your tip page.',
-            style: GoogleFonts.dmSans(color: kMuted, fontSize: 13))
-            .animate().fadeIn(delay: 80.ms),
+        Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Notifications', style: GoogleFonts.dmSans(
+                color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5))
+                .animate().fadeIn(duration: 400.ms),
+            Text('Activity and milestones on your page.',
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 13))
+                .animate().fadeIn(delay: 80.ms),
+          ])),
+          if (hasUnread)
+            TextButton.icon(
+              onPressed: onMarkRead,
+              icon: const Icon(Icons.check_circle_outline_rounded, size: 14, color: kPrimary),
+              label: Text('Mark all read', style: GoogleFonts.dmSans(color: kPrimary, fontSize: 12)),
+            ),
+        ]),
         const SizedBox(height: 24),
-        if (recent.isEmpty)
+        if (notifications.isEmpty)
           Center(
             child: Padding(
               padding: const EdgeInsets.only(top: 60),
@@ -4500,40 +4646,44 @@ class _NotificationsPage extends StatelessWidget {
                 Text('No notifications yet', style: GoogleFonts.dmSans(
                     color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
                 const SizedBox(height: 6),
-                Text('When you receive tips, they\'ll appear here.',
+                Text('Tips, milestones, and updates will appear here.',
                     style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
               ]),
             ),
           )
         else
-          ...recent.asMap().entries.map((e) {
-            final t = e.value;
+          ...notifications.asMap().entries.map((e) {
+            final n = e.value;
+            final color = _colorFor(n.type);
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: kCardBg, borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kBorder),
+                color: n.isRead ? kCardBg : kCardBg.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: n.isRead ? kBorder : color.withValues(alpha: 0.35)),
               ),
-              child: Row(children: [
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Container(
                   width: 40, height: 40,
                   decoration: BoxDecoration(
-                      color: kPrimary.withValues(alpha: 0.12), shape: BoxShape.circle),
-                  child: const Icon(Iconsax.money_recive, color: kPrimary, size: 18),
+                      color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+                  child: Icon(_iconFor(n.type), color: color, size: 18),
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${t.tipperName} tipped you R${t.amount.toStringAsFixed(2)}',
-                      style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                  if (t.message.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text('"${t.message}"', style: GoogleFonts.dmSans(
-                        color: kMuted, fontSize: 12, fontStyle: FontStyle.italic),
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
-                  const SizedBox(height: 2),
-                  Text(_timeAgo(t.createdAt), style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                  Row(children: [
+                    Expanded(child: Text(n.title, style: GoogleFonts.dmSans(
+                        color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13))),
+                    if (!n.isRead)
+                      Container(width: 6, height: 6,
+                          decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)),
+                  ]),
+                  const SizedBox(height: 3),
+                  Text(n.message, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.4),
+                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Text(_timeAgo(n.createdAt), style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
                 ])),
               ]),
             ).animate().fadeIn(delay: Duration(milliseconds: 40 * e.key), duration: 300.ms);
@@ -4615,131 +4765,254 @@ class _QrCodeCardState extends State<_QrCodeCard> {
     ).animate().fadeIn(duration: 400.ms);
   }
 
+  Future<void> _downloadQrPng(String tipUrl) async {
+    try {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder, const Rect.fromLTWH(0, 0, 600, 600));
+      canvas.drawRect(
+        const Rect.fromLTWH(0, 0, 600, 600),
+        Paint()..color = Colors.white,
+      );
+      final painter = QrPainter(
+        data: tipUrl,
+        version: QrVersions.auto,
+        errorCorrectionLevel: QrErrorCorrectLevel.M,
+        color: const Color(0xFF0A0A0F),
+        emptyColor: Colors.white,
+        gapless: true,
+      );
+      painter.paint(canvas, const Size(600, 600));
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(600, 600);
+      final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+      final pngBytes = byteData.buffer.asUint8List();
+      final blob = html.Blob([pngBytes], 'image/png');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      html.AnchorElement(href: url)
+        ..setAttribute('download', 'tippingjar-qr.png')
+        ..click();
+      html.Url.revokeObjectUrl(url);
+    } catch (_) {}
+  }
+
   void _showShareDialog(BuildContext context, String tipUrl) {
-    // Rebuild default message with current slug in case it changed
     final defaultMsg = '💚 Tip me on TippingJar!\n\n'
         'Scan my QR code or visit my tip page — every rand helps me '
         'keep creating! 🙏\n\n'
         '👉 $tipUrl\n\n'
         '#TippingJar #SupportCreators';
 
+    void launchShare(String url) =>
+        launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => AlertDialog(
+        builder: (ctx, setS) => Dialog(
           backgroundColor: kCardBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(children: [
-            const Icon(Icons.share_rounded, color: kPrimary, size: 20),
-            const SizedBox(width: 10),
-            Text('Share your QR code', style: GoogleFonts.dmSans(
-                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
-          ]),
-          content: SizedBox(
-            width: 420,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                // QR preview
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: QrImageView(
-                      data: tipUrl,
-                      version: QrVersions.auto,
-                      size: 150,
-                      eyeStyle: const QrEyeStyle(
-                        eyeShape: QrEyeShape.square,
-                        color: Color(0xFF0A0A0F),
-                      ),
-                      dataModuleStyle: const QrDataModuleStyle(
-                        dataModuleShape: QrDataModuleShape.square,
-                        color: Color(0xFF0A0A0F),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text('Screenshot this QR and share it anywhere',
-                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
-                    textAlign: TextAlign.center),
+              padding: const EdgeInsets.all(24),
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                // Header
+                Row(children: [
+                  const Icon(Icons.share_rounded, color: kPrimary, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('Share your tip page', style: GoogleFonts.dmSans(
+                      color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16))),
+                  IconButton(onPressed: () => Navigator.pop(ctx),
+                      icon: const Icon(Icons.close_rounded, color: kMuted, size: 18),
+                      padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+                ]),
                 const SizedBox(height: 20),
 
+                // QR + Download
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Column(children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                      child: QrImageView(
+                        data: tipUrl, version: QrVersions.auto, size: 130,
+                        eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF0A0A0F)),
+                        dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square, color: Color(0xFF0A0A0F)),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _downloadQrPng(tipUrl),
+                      icon: const Icon(Icons.download_rounded, size: 14, color: kPrimary),
+                      label: Text('Download QR', style: GoogleFonts.dmSans(
+                          color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                      style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: kPrimary),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+                    ),
+                  ]),
+                ]),
+                const SizedBox(height: 20),
+                const Divider(color: kBorder),
+                const SizedBox(height: 16),
+
+                // Share platforms
+                Text('Share on', style: GoogleFonts.dmSans(
+                    color: kMuted, fontSize: 11, fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8)),
+                const SizedBox(height: 10),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  _SharePlatformBtn(
+                    label: 'WhatsApp',
+                    color: const Color(0xFF25D366),
+                    icon: Icons.chat_rounded,
+                    onTap: () {
+                      final encoded = Uri.encodeComponent(_msgCtrl.text);
+                      launchShare('https://wa.me/?text=$encoded');
+                    },
+                  ),
+                  _SharePlatformBtn(
+                    label: 'X / Twitter',
+                    color: const Color(0xFF000000),
+                    icon: Icons.alternate_email_rounded,
+                    onTap: () {
+                      final encoded = Uri.encodeComponent(_msgCtrl.text);
+                      launchShare('https://twitter.com/intent/tweet?text=$encoded');
+                    },
+                  ),
+                  _SharePlatformBtn(
+                    label: 'Facebook',
+                    color: const Color(0xFF1877F2),
+                    icon: Icons.facebook_rounded,
+                    onTap: () {
+                      final encoded = Uri.encodeComponent(tipUrl);
+                      launchShare('https://www.facebook.com/sharer/sharer.php?u=$encoded');
+                    },
+                  ),
+                  _SharePlatformBtn(
+                    label: 'Telegram',
+                    color: const Color(0xFF2AABEE),
+                    icon: Icons.send_rounded,
+                    onTap: () {
+                      final url = Uri.encodeComponent(tipUrl);
+                      final text = Uri.encodeComponent(_msgCtrl.text);
+                      launchShare('https://t.me/share/url?url=$url&text=$text');
+                    },
+                  ),
+                  _SharePlatformBtn(
+                    label: 'LinkedIn',
+                    color: const Color(0xFF0A66C2),
+                    icon: Icons.work_outline_rounded,
+                    onTap: () {
+                      final encoded = Uri.encodeComponent(tipUrl);
+                      launchShare('https://www.linkedin.com/sharing/share-offsite/?url=$encoded');
+                    },
+                  ),
+                ]),
+
+                const SizedBox(height: 20),
+                const Divider(color: kBorder),
+                const SizedBox(height: 16),
+
                 // Editable message
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Message', style: GoogleFonts.dmSans(
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text('Caption / Message', style: GoogleFonts.dmSans(
                       color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                ),
+                  TextButton(
+                    onPressed: () => setS(() => _msgCtrl.text = defaultMsg),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                    child: Text('Reset', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                  ),
+                ]),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _msgCtrl,
-                  maxLines: 7,
-                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13, height: 1.5),
+                  maxLines: 5,
+                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 12, height: 1.5),
                   decoration: InputDecoration(
-                    filled: true,
-                    fillColor: kDark,
+                    filled: true, fillColor: kDark,
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(color: kBorder)),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(color: kPrimary, width: 2)),
-                    contentPadding: const EdgeInsets.all(14),
+                    contentPadding: const EdgeInsets.all(12),
                   ),
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => setS(() => _msgCtrl.text = defaultMsg),
-                    child: Text('Reset to default',
-                        style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+
+                const SizedBox(height: 16),
+                Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: tipUrl));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Link copied!')));
+                    },
+                    icon: const Icon(Icons.link_rounded, size: 14, color: kMuted),
+                    label: Text('Copy link', style: GoogleFonts.dmSans(
+                        color: kMuted, fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: kBorder),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: _msgCtrl.text));
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Caption copied — now paste it when sharing!')));
+                    },
+                    icon: const Icon(Icons.copy_rounded, size: 14, color: Colors.white),
+                    label: Text('Copy caption', style: GoogleFonts.dmSans(
+                        color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimary, elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+                  ),
+                ]),
               ]),
             ),
           ),
-          actionsAlignment: MainAxisAlignment.spaceBetween,
-          actions: [
-            // Copy message
-            OutlinedButton.icon(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: _msgCtrl.text));
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Message copied to clipboard!')));
-              },
-              icon: const Icon(Icons.copy_rounded, size: 14, color: kPrimary),
-              label: Text('Copy', style: GoogleFonts.dmSans(
-                  color: kPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
-              style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: kPrimary),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
-            ),
-            // WhatsApp
-            ElevatedButton.icon(
-              onPressed: () {
-                final encoded = Uri.encodeComponent(_msgCtrl.text);
-                launchUrl(Uri.parse('https://wa.me/?text=$encoded'),
-                    mode: LaunchMode.externalApplication);
-              },
-              icon: const Icon(Icons.chat_rounded, size: 14, color: Colors.white),
-              label: Text('WhatsApp', style: GoogleFonts.dmSans(
-                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF25D366),
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-              ),
-            ),
-          ],
         ),
       ),
     );
   }
+}
+
+// ─── Share platform button ────────────────────────────────────────────────────
+class _SharePlatformBtn extends StatelessWidget {
+  final String label;
+  final Color color;
+  final IconData icon;
+  final VoidCallback onTap;
+  const _SharePlatformBtn({required this.label, required this.color, required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: color, size: 14),
+        const SizedBox(width: 6),
+        Text(label, style: GoogleFonts.dmSans(
+            color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+      ]),
+    ),
+  );
 }
 
 class _QrBox extends StatelessWidget {

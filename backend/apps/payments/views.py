@@ -5,8 +5,13 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
+from apps.creators.models import CreatorNotification
 from apps.payments import paystack as ps
-from apps.support.emails import send_tip_thank_you
+from apps.support.emails import (
+    send_first_thousand_email,
+    send_first_tip_email,
+    send_tip_thank_you,
+)
 from apps.tips.models import Tip
 
 
@@ -104,6 +109,58 @@ def _update_pledge(tip: Tip) -> None:
     )
 
 
+def _fire_tip_notifications(tip: Tip) -> None:
+    """
+    After a tip is confirmed as COMPLETED:
+    - Create in-app TIP_RECEIVED notification
+    - If first tip → create FIRST_TIP notification + email
+    - If total crosses R1 000 → create FIRST_THOUSAND notification + email (once)
+    """
+    creator = tip.creator
+
+    # Always: in-app tip-received notification
+    tipper = tip.tipper_name or "Anonymous"
+    CreatorNotification.objects.create(
+        creator=creator,
+        notification_type=CreatorNotification.Type.TIP_RECEIVED,
+        title=f"New tip — R{tip.amount:.2f} from {tipper}",
+        message=(
+            f"{tipper} sent you R{tip.amount:.2f}."
+            + (f" Message: \"{tip.message[:120]}\"" if tip.message else "")
+        ),
+    )
+
+    completed_tips = creator.tips.filter(status="completed")
+    completed_count = completed_tips.count()
+
+    # First tip ever
+    if completed_count == 1:
+        CreatorNotification.objects.create(
+            creator=creator,
+            notification_type=CreatorNotification.Type.FIRST_TIP,
+            title="You got your first tip! 🎉",
+            message=f"Congratulations! {tipper} just sent you your first tip of R{tip.amount:.2f}.",
+        )
+        send_first_tip_email(creator, tip)
+
+    # R1 000 milestone — fire only the first time total crosses 1000
+    from django.db.models import Sum
+    total = completed_tips.aggregate(t=Sum("amount"))["t"] or 0
+    prev_total = total - tip.amount
+    if prev_total < 1000 <= total:
+        already_notified = creator.notifications.filter(
+            notification_type=CreatorNotification.Type.FIRST_THOUSAND
+        ).exists()
+        if not already_notified:
+            CreatorNotification.objects.create(
+                creator=creator,
+                notification_type=CreatorNotification.Type.FIRST_THOUSAND,
+                title="You've earned R1 000! 💰",
+                message="You just crossed R1 000 in total tips. Amazing milestone — keep going!",
+            )
+            send_first_thousand_email(creator)
+
+
 @csrf_exempt
 def paystack_webhook(request):
     """
@@ -148,6 +205,7 @@ def paystack_webhook(request):
                 _update_streak(tip)
                 _check_milestones(tip)
                 _update_pledge(tip)
+                _fire_tip_notifications(tip)
 
     elif event_type == "charge.failed":
         Tip.objects.filter(paystack_reference=reference).update(

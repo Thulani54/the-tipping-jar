@@ -1034,4 +1034,26 @@ class ApiService {
       throw Exception('Upload failed: $body');
     }
   }
+
+  // ── Creator notifications ──────────────────────────────────────────
+
+  /// Fetch last 50 creator notifications.
+  Future<List<Map<String, dynamic>>> getNotifications() async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/creators/me/notifications/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  /// Mark all unread notifications as read.
+  Future<void> markNotificationsRead() async {
+    await http.post(
+      Uri.parse('$_baseUrl/creators/me/notifications/read/'),
+      headers: _headers,
+    );
+  }
 }
