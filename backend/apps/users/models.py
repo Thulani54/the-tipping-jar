@@ -15,6 +15,7 @@ class User(AbstractUser):
         FAN = "fan", "Fan"
         CREATOR = "creator", "Creator"
         ENTERPRISE = "enterprise", "Enterprise"
+        ADMIN = "admin", "Admin"
 
     class OtpMethod(models.TextChoices):
         EMAIL = "email", "Email"
@@ -26,6 +27,10 @@ class User(AbstractUser):
     @property
     def is_enterprise(self) -> bool:
         return self.role == self.Role.ENTERPRISE
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == self.Role.ADMIN
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
     bio = models.TextField(blank=True)
     phone_number = models.CharField(

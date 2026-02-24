@@ -17,6 +17,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _accessToken != null && _user != null;
   bool get isCreator => _user?.isCreator ?? false;
   bool get isEnterprise => _user?.role == 'enterprise';
+  bool get isAdmin => _user?.role == 'admin';
   bool get otpVerified => _otpVerified;
   bool get loading => _loading;
   bool get isInitialized => _initialized;

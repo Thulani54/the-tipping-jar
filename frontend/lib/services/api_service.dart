@@ -1062,6 +1062,114 @@ class ApiService {
     }
   }
 
+  // ── Admin portal ──────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getAdminStats() async {
+    final res = await http.get(Uri.parse('$_baseUrl/admin/stats/'), headers: _headers);
+    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    throw Exception('Failed to load admin stats');
+  }
+
+  Future<List<Map<String, dynamic>>> getAdminUsers({String? role, String? search}) async {
+    final params = <String, String>{
+      if (role != null) 'role': role,
+      if (search != null && search.isNotEmpty) 'search': search,
+    };
+    final uri = Uri.parse('$_baseUrl/admin/users/').replace(queryParameters: params);
+    final res = await http.get(uri, headers: _headers);
+    if (res.statusCode == 200) return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+    throw Exception('Failed to load users');
+  }
+
+  Future<void> adminUpdateUser(int id, Map<String, dynamic> data) async {
+    final res = await http.patch(Uri.parse('$_baseUrl/admin/users/$id/'),
+        headers: _headers, body: jsonEncode(data));
+    if (res.statusCode != 200) throw Exception('Failed to update user');
+  }
+
+  Future<List<Map<String, dynamic>>> getAdminTips({String? tipStatus, String? search}) async {
+    final params = <String, String>{
+      if (tipStatus != null) 'status': tipStatus,
+      if (search != null && search.isNotEmpty) 'search': search,
+    };
+    final uri = Uri.parse('$_baseUrl/admin/tips/').replace(queryParameters: params);
+    final res = await http.get(uri, headers: _headers);
+    if (res.statusCode == 200) return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+    throw Exception('Failed to load tips');
+  }
+
+  Future<List<Map<String, dynamic>>> getAdminCreators({String? kycStatus, String? search}) async {
+    final params = <String, String>{
+      if (kycStatus != null) 'kyc_status': kycStatus,
+      if (search != null && search.isNotEmpty) 'search': search,
+    };
+    final uri = Uri.parse('$_baseUrl/admin/creators/').replace(queryParameters: params);
+    final res = await http.get(uri, headers: _headers);
+    if (res.statusCode == 200) return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+    throw Exception('Failed to load creators');
+  }
+
+  Future<void> adminKycApprove(int creatorId) async {
+    final res = await http.post(
+        Uri.parse('$_baseUrl/admin/creators/$creatorId/kyc/approve/'), headers: _headers);
+    if (res.statusCode != 200) throw Exception('Failed to approve KYC');
+  }
+
+  Future<void> adminKycDecline(int creatorId, String reason) async {
+    final res = await http.post(
+        Uri.parse('$_baseUrl/admin/creators/$creatorId/kyc/decline/'),
+        headers: _headers, body: jsonEncode({'reason': reason}));
+    if (res.statusCode != 200) throw Exception('Failed to decline KYC');
+  }
+
+  Future<List<Map<String, dynamic>>> getAdminEnterprises({String? approvalStatus}) async {
+    final params = <String, String>{
+      if (approvalStatus != null) 'approval_status': approvalStatus,
+    };
+    final uri = Uri.parse('$_baseUrl/admin/enterprises/').replace(queryParameters: params);
+    final res = await http.get(uri, headers: _headers);
+    if (res.statusCode == 200) return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+    throw Exception('Failed to load enterprises');
+  }
+
+  Future<void> adminEnterpriseApprove(int id) async {
+    final res = await http.post(
+        Uri.parse('$_baseUrl/admin/enterprises/$id/approve/'), headers: _headers);
+    if (res.statusCode != 200) throw Exception('Failed to approve enterprise');
+  }
+
+  Future<void> adminEnterpriseReject(int id, String reason) async {
+    final res = await http.post(
+        Uri.parse('$_baseUrl/admin/enterprises/$id/reject/'),
+        headers: _headers, body: jsonEncode({'reason': reason}));
+    if (res.statusCode != 200) throw Exception('Failed to reject enterprise');
+  }
+
+  Future<List<Map<String, dynamic>>> getAdminBlogs() async {
+    final res = await http.get(Uri.parse('$_baseUrl/admin/blog/'), headers: _headers);
+    if (res.statusCode == 200) return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+    throw Exception('Failed to load admin blog posts');
+  }
+
+  Future<Map<String, dynamic>> adminCreateBlog(Map<String, dynamic> data) async {
+    final res = await http.post(Uri.parse('$_baseUrl/admin/blog/'),
+        headers: _headers, body: jsonEncode(data));
+    if (res.statusCode == 201) return jsonDecode(res.body) as Map<String, dynamic>;
+    throw Exception('Failed to create blog post: ${res.body}');
+  }
+
+  Future<Map<String, dynamic>> adminUpdateBlog(String slug, Map<String, dynamic> data) async {
+    final res = await http.patch(Uri.parse('$_baseUrl/admin/blog/$slug/'),
+        headers: _headers, body: jsonEncode(data));
+    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    throw Exception('Failed to update blog post: ${res.body}');
+  }
+
+  Future<void> adminDeleteBlog(String slug) async {
+    final res = await http.delete(Uri.parse('$_baseUrl/admin/blog/$slug/'), headers: _headers);
+    if (res.statusCode != 204) throw Exception('Failed to delete blog post');
+  }
+
   // ── Blog ──────────────────────────────────────────────────────────
 
   /// Public list of published blog posts.

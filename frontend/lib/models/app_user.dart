@@ -47,6 +47,7 @@ class AppUser {
 
   bool get isCreator => role == 'creator';
   bool get isEnterprise => role == 'enterprise';
+  bool get isAdmin => role == 'admin';
 
   AppUser copyWith({
     bool? twoFaEnabled, String? gender, String? dateOfBirth, String? bio,

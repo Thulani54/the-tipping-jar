@@ -29,9 +29,10 @@ import 'screens/otp_screen.dart';
 import 'screens/payment_callback_screen.dart';
 import 'screens/subscribe_screen.dart';
 import 'screens/partner_apply_screen.dart';
+import 'screens/admin_portal_screen.dart';
 
 /// Routes that require the user to be signed in.
-const _protectedRoutes = {'/dashboard', '/onboarding', '/fan-dashboard', '/enterprise-portal', '/otp-verify'};
+const _protectedRoutes = {'/dashboard', '/onboarding', '/fan-dashboard', '/enterprise-portal', '/otp-verify', '/admin-portal'};
 
 /// Routes that signed-in users should not visit.
 /// Note: /register is intentionally excluded — the register screen manages
@@ -61,6 +62,7 @@ GoRouter buildRouter(AuthProvider auth) {
 
       // OTP verified — redirect away from OTP screen
       if (loggedIn && auth.otpVerified && path == '/otp-verify') {
+        if (auth.isAdmin) return '/admin-portal';
         if (auth.isCreator) return '/dashboard';
         if (auth.isEnterprise) return '/enterprise-portal';
         return '/fan-dashboard';
@@ -68,6 +70,7 @@ GoRouter buildRouter(AuthProvider auth) {
 
       // Logged-in users visiting /login or /register go to their home
       if (_authRoutes.contains(path) && loggedIn && auth.otpVerified) {
+        if (auth.isAdmin) return '/admin-portal';
         if (auth.isCreator) return '/dashboard';
         if (auth.isEnterprise) return '/enterprise-portal';
         return '/fan-dashboard';
@@ -89,6 +92,7 @@ GoRouter buildRouter(AuthProvider auth) {
       GoRoute(path: '/fan-dashboard',  builder: (_, __) => const FanDashboardScreen()),
       GoRoute(path: '/enterprise',        builder: (_, __) => const EnterpriseScreen()),
       GoRoute(path: '/enterprise-portal', builder: (_, __) => const EnterprisePortalScreen()),
+      GoRoute(path: '/admin-portal',      builder: (_, __) => const AdminPortalScreen()),
       GoRoute(path: '/developers',   builder: (_, __) => const DeveloperScreen()),
       GoRoute(path: '/pricing',      builder: (_, __) => const PricingScreen()),
       GoRoute(path: '/changelog',    builder: (_, __) => const ChangelogScreen()),
