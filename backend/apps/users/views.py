@@ -1,4 +1,5 @@
 import logging
+import threading
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -12,6 +13,20 @@ logger = logging.getLogger(__name__)
 
 from .models import OTP, ApiKey, User
 from .serializers import ApiKeySerializer, RegisterSerializer, UserSerializer
+
+
+def _send_otp_email_bg(email: str, raw_code: str) -> None:
+    """Send an OTP email in a daemon thread so it never blocks the HTTP response."""
+    try:
+        send_mail(
+            subject="TippingJar — Your verification code",
+            message=f"Your TippingJar code is: {raw_code}\n\nValid for 10 minutes.",
+            from_email=settings.NO_REPLY_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+    except Exception as exc:
+        logger.error("OTP email delivery failed for %s: %s", email, exc)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -170,23 +185,12 @@ class OtpRequestView(APIView):
                 )
             channel_info = f"SMS to {user.phone_number[:4]}****"
         else:
-            # Email delivery
-            try:
-                send_mail(
-                    subject="TippingJar — Your verification code",
-                    message=f"Your TippingJar code is: {raw_code}\n\nValid for 10 minutes.",
-                    from_email=settings.NO_REPLY_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-            except Exception as exc:  # noqa: BLE001
-                logger.error("OTP email delivery failed for %s: %s", user.email, exc)
-                otp_obj.is_used = True
-                otp_obj.save(update_fields=["is_used"])
-                return Response(
-                    {"detail": "Failed to send verification email. Please try again or contact support."},
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                )
+            # Fire email in a background thread — login must never wait on SMTP.
+            threading.Thread(
+                target=_send_otp_email_bg,
+                args=(user.email, raw_code),
+                daemon=True,
+            ).start()
             channel_info = f"email to {user.email}"
 
         return Response(

@@ -166,6 +166,7 @@ EMAIL_PORT         = env.int("EMAIL_PORT", default=587)
 EMAIL_USE_TLS      = env.bool("EMAIL_USE_TLS", default=True)
 EMAIL_HOST_USER    = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_TIMEOUT      = 8  # seconds — prevents SMTP from blocking requests indefinitely
 
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="accounts@tippingjar.co.za")
 NO_REPLY_EMAIL     = env("NO_REPLY_EMAIL",     default="no-reply@tippingjar.co.za")
