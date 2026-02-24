@@ -17,6 +17,7 @@ class AppNav extends StatelessWidget implements PreferredSizeWidget {
     ('How it works', '/how-it-works'),
     ('Creators',     '/creators'),
     ('Enterprise',   '/enterprise'),
+    ('Blog',         '/blog'),
     ('Developers',   '/developers'),
     ('Contact',      '/contact'),
   ];
