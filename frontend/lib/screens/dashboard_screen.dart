@@ -212,19 +212,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ],
   );
 
-  Widget _wideLayout() => Row(children: [
-    _Sidebar(
-      selected: _navIndex,
-      onSelect: (i) {
-        setState(() => _navIndex = i);
-        if (i == 7) _markNotificationsRead();
-      },
-      onLogout: _logout,
-      creatorSlug: _data?.profile.slug,
-      unreadNotifCount: _unreadCount,
-    ),
-    Expanded(child: _body()),
-  ]);
+  Widget _wideLayout() => Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _Sidebar(
+        selected: _navIndex,
+        onSelect: (i) {
+          setState(() => _navIndex = i);
+          if (i == 7) _markNotificationsRead();
+        },
+        onLogout: _logout,
+        creatorSlug: _data?.profile.slug,
+        unreadNotifCount: _unreadCount,
+      ),
+      Expanded(child: _body()),
+    ]);
 
   Widget _narrowLayout() => _body();
 
