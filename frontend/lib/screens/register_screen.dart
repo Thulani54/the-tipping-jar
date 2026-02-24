@@ -1,6 +1,3 @@
-import 'dart:typed_data';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -29,9 +26,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscure = true;
   bool _obscureConfirm = true;
   String _role = 'creator';
-  String? _niche;
-  Uint8List? _avatarBytes;
-  String _avatarFilename = 'avatar.jpg';
   String? _error;
   String _gender = '';
   DateTime? _dateOfBirth;
@@ -43,11 +37,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _otpError;
   String _otpMethod = 'email';
   final _otpCtrl = TextEditingController();
-
-  static const _niches = [
-    'Music', 'Comedy', 'Fitness', 'Art', 'Gaming',
-    'Food', 'Tech', 'Lifestyle', 'Education', 'Fashion',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -152,23 +141,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ]).animate().fadeIn(delay: 80.ms, duration: 400.ms),
       const SizedBox(height: 28),
 
-      // ── Avatar picker ────────────────────────────────────────────
-      _avatarPicker().animate().fadeIn(delay: 100.ms, duration: 400.ms),
-      const SizedBox(height: 28),
-
       // ── Role toggle ──────────────────────────────────────────────
-      Text('I want to…', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+      Text('I am a…', style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
       const SizedBox(height: 10),
       Row(children: [
-        _roleBtn(Icons.volunteer_activism, 'Tip creators', 'fan'),
+        _roleBtn(Icons.volunteer_activism, 'Tipper', 'fan'),
         const SizedBox(width: 10),
         _roleBtn(Icons.star_rounded, 'Creator', 'creator'),
         const SizedBox(width: 10),
         _roleBtn(Icons.business_rounded, 'Enterprise', 'enterprise'),
       ]).animate().fadeIn(delay: 100.ms, duration: 400.ms),
-
-      // ── Creator-specific: niche selector ─────────────────────────
-      _nicheSelector(),
 
       const SizedBox(height: 24),
 
@@ -485,12 +467,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _finishRegistration(dynamic auth) async {
-    if (_avatarBytes != null) {
-      try { await auth.api.updateAvatar(_avatarBytes!, _avatarFilename); } catch (_) {}
-    }
-    if (_role == 'creator' && _niche != null) {
-      try { await auth.api.updateMyCreatorProfile({'category': _niche}); } catch (_) {}
-    }
     // Save gender and DOB if provided
     final profileData = <String, dynamic>{};
     if (_gender.isNotEmpty) profileData['gender'] = _gender;
@@ -507,52 +483,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       context.go('/enterprise-portal');
     } else {
       context.go('/fan-dashboard');
-    }
-  }
-
-  // ── Avatar picker ───────────────────────────────────────────────────────────
-  Widget _avatarPicker() {
-    return Center(
-      child: GestureDetector(
-        onTap: _pickAvatar,
-        child: Stack(clipBehavior: Clip.none, children: [
-          CircleAvatar(
-            radius: 44,
-            backgroundColor: kCardBg,
-            backgroundImage: _avatarBytes != null ? MemoryImage(_avatarBytes!) : null,
-            child: _avatarBytes == null
-                ? const Icon(Icons.person_rounded, color: kMuted, size: 40)
-                : null,
-          ),
-          Positioned(
-            bottom: 0, right: -4,
-            child: Container(
-              width: 30, height: 30,
-              decoration: BoxDecoration(
-                color: kPrimary,
-                shape: BoxShape.circle,
-                border: Border.all(color: kDark, width: 2),
-              ),
-              child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Future<void> _pickAvatar() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
-    );
-    if (result != null && result.files.single.bytes != null) {
-      setState(() {
-        _avatarBytes = result.files.single.bytes;
-        _avatarFilename = result.files.single.name.isNotEmpty
-            ? result.files.single.name
-            : 'avatar.jpg';
-      });
     }
   }
 
@@ -641,58 +571,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (picked != null) setState(() => _dateOfBirth = picked);
   }
 
-  // ── Niche / category selector (creator only) ────────────────────────────────
-  Widget _nicheSelector() {
-    return AnimatedSize(
-      duration: 300.ms,
-      curve: Curves.easeInOut,
-      child: _role == 'creator'
-          ? Padding(
-              padding: const EdgeInsets.only(top: 20),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('What do you create?',
-                    style: GoogleFonts.dmSans(
-                        color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8, runSpacing: 8,
-                  children: _niches.map((n) {
-                    final active = _niche == n;
-                    return GestureDetector(
-                      onTap: () => setState(() => _niche = active ? null : n),
-                      child: AnimatedContainer(
-                        duration: 180.ms,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: active ? kPrimary.withOpacity(0.12) : kCardBg,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                              color: active ? kPrimary : kBorder,
-                              width: active ? 2 : 1),
-                        ),
-                        child: Text(n,
-                            style: GoogleFonts.dmSans(
-                                color: active ? kPrimary : kMuted,
-                                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                                fontSize: 13)),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ]),
-            )
-          : const SizedBox.shrink(),
-    );
-  }
-
   Widget _roleBtn(IconData icon, String label, String value) {
     final active = _role == value;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() {
-          _role = value;
-          _niche = null; // reset niche when switching role
-        }),
+        onTap: () => setState(() => _role = value),
         child: AnimatedContainer(
           duration: 200.ms,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),

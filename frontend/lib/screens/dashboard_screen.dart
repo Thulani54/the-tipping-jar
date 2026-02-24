@@ -10,6 +10,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/app_user.dart';
 import '../models/commission_model.dart';
 import '../models/creator_post_model.dart';
@@ -4534,13 +4535,38 @@ class _NotificationsPage extends StatelessWidget {
 }
 
 // ─── QR code card ─────────────────────────────────────────────────────────────
-class _QrCodeCard extends StatelessWidget {
+class _QrCodeCard extends StatefulWidget {
   final String slug;
   const _QrCodeCard({required this.slug});
+  @override
+  State<_QrCodeCard> createState() => _QrCodeCardState();
+}
+
+class _QrCodeCardState extends State<_QrCodeCard> {
+  late final TextEditingController _msgCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final url = 'https://www.tippingjar.co.za/u/${widget.slug}';
+    _msgCtrl = TextEditingController(
+      text: '💚 Tip me on TippingJar!\n\n'
+          'Scan my QR code or visit my tip page — every rand helps me '
+          'keep creating! 🙏\n\n'
+          '👉 $url\n\n'
+          '#TippingJar #SupportCreators',
+    );
+  }
+
+  @override
+  void dispose() {
+    _msgCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tipUrl = 'https://www.tippingjar.co.za/u/$slug';
+    final tipUrl = 'https://www.tippingjar.co.za/u/${widget.slug}';
     final w = MediaQuery.of(context).size.width;
     final wide = w > 700;
 
@@ -4553,17 +4579,148 @@ class _QrCodeCard extends StatelessWidget {
       ),
       child: wide
           ? Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-              // QR code
               _QrBox(tipUrl: tipUrl),
               const SizedBox(width: 28),
-              Expanded(child: _QrInfo(tipUrl: tipUrl)),
+              Expanded(child: _QrInfo(
+                tipUrl: tipUrl,
+                onShare: () => _showShareDialog(context, tipUrl),
+              )),
             ])
           : Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
               _QrBox(tipUrl: tipUrl),
               const SizedBox(height: 20),
-              _QrInfo(tipUrl: tipUrl),
+              _QrInfo(
+                tipUrl: tipUrl,
+                onShare: () => _showShareDialog(context, tipUrl),
+              ),
             ]),
     ).animate().fadeIn(duration: 400.ms);
+  }
+
+  void _showShareDialog(BuildContext context, String tipUrl) {
+    // Rebuild default message with current slug in case it changed
+    final defaultMsg = '💚 Tip me on TippingJar!\n\n'
+        'Scan my QR code or visit my tip page — every rand helps me '
+        'keep creating! 🙏\n\n'
+        '👉 $tipUrl\n\n'
+        '#TippingJar #SupportCreators';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          backgroundColor: kCardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(children: [
+            const Icon(Icons.share_rounded, color: kPrimary, size: 20),
+            const SizedBox(width: 10),
+            Text('Share your QR code', style: GoogleFonts.dmSans(
+                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+          ]),
+          content: SizedBox(
+            width: 420,
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                // QR preview
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: QrImageView(
+                      data: tipUrl,
+                      version: QrVersions.auto,
+                      size: 150,
+                      eyeStyle: const QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: Color(0xFF0A0A0F),
+                      ),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: Color(0xFF0A0A0F),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text('Screenshot this QR and share it anywhere',
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+
+                // Editable message
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Message', style: GoogleFonts.dmSans(
+                      color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _msgCtrl,
+                  maxLines: 7,
+                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13, height: 1.5),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: kDark,
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: kBorder)),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: kPrimary, width: 2)),
+                    contentPadding: const EdgeInsets.all(14),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => setS(() => _msgCtrl.text = defaultMsg),
+                    child: Text('Reset to default',
+                        style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: [
+            // Copy message
+            OutlinedButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: _msgCtrl.text));
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Message copied to clipboard!')));
+              },
+              icon: const Icon(Icons.copy_rounded, size: 14, color: kPrimary),
+              label: Text('Copy', style: GoogleFonts.dmSans(
+                  color: kPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
+              style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: kPrimary),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+            ),
+            // WhatsApp
+            ElevatedButton.icon(
+              onPressed: () {
+                final encoded = Uri.encodeComponent(_msgCtrl.text);
+                launchUrl(Uri.parse('https://wa.me/?text=$encoded'),
+                    mode: LaunchMode.externalApplication);
+              },
+              icon: const Icon(Icons.chat_rounded, size: 14, color: Colors.white),
+              label: Text('WhatsApp', style: GoogleFonts.dmSans(
+                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF25D366),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -4599,7 +4756,8 @@ class _QrBox extends StatelessWidget {
 
 class _QrInfo extends StatelessWidget {
   final String tipUrl;
-  const _QrInfo({required this.tipUrl});
+  final VoidCallback onShare;
+  const _QrInfo({required this.tipUrl, required this.onShare});
 
   @override
   Widget build(BuildContext context) {
@@ -4609,9 +4767,21 @@ class _QrInfo extends StatelessWidget {
         const SizedBox(width: 8),
         Text('Scan & Pay', style: GoogleFonts.dmSans(
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+        const Spacer(),
+        ElevatedButton.icon(
+          onPressed: onShare,
+          icon: const Icon(Icons.share_rounded, size: 14, color: Colors.white),
+          label: Text('Share', style: GoogleFonts.dmSans(
+              fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimary, elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+          ),
+        ),
       ]),
       const SizedBox(height: 8),
-      Text('Share this QR code so fans can tip you instantly — no link needed. '
+      Text('Share your QR code so fans can tip you instantly — no link needed. '
           'Works with any QR scanner or camera app.',
           style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5)),
       const SizedBox(height: 16),
