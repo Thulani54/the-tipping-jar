@@ -499,6 +499,32 @@ class ApiService {
     throw Exception('Dispute not found');
   }
 
+  Future<List<DisputeModel>> getMyDisputes() async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/support/disputes/my/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      return (jsonDecode(res.body) as List)
+          .map((e) => DisputeModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception('Failed to load disputes');
+  }
+
+  Future<List<DisputeModel>> getEnterpriseDisputes() async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/support/disputes/enterprise/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      return (jsonDecode(res.body) as List)
+          .map((e) => DisputeModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception('Failed to load enterprise disputes');
+  }
+
   Future<Map<String, dynamic>> initiateTip({
     required String creatorSlug,
     required double amount,

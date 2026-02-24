@@ -125,6 +125,7 @@ class _EnterprisePortalScreenState extends State<EnterprisePortalScreen> {
           onCreated: _load,
         ),
       3 => _EnterpriseSettingsTab(enterprise: _enterprise!),
+      4 => const _EnterpriseDisputesTab(),
       _ => const SizedBox.shrink(),
     };
   }
@@ -145,6 +146,7 @@ class _Sidebar extends StatelessWidget {
       (Icons.people_rounded, 'Creators'),
       (Icons.account_balance_wallet_rounded, 'Distributions'),
       (Icons.settings_rounded, 'Settings'),
+      (Icons.shield_rounded, 'Disputes'),
     ];
 
     return Container(
@@ -291,7 +293,7 @@ class _TabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = ['Overview', 'Creators', 'Distributions', 'Settings'];
+    final tabs = ['Overview', 'Creators', 'Distributions', 'Settings', 'Disputes'];
     final approved = enterprise?.isApproved ?? false;
     return Container(
       color: kDarker,
@@ -1764,6 +1766,134 @@ class _InfoRow extends StatelessWidget {
             child: Text(label, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12))),
         Expanded(child: Text(value,
             style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500))),
+      ]),
+    );
+  }
+}
+
+// ─── Enterprise Disputes tab ──────────────────────────────────────────────────
+class _EnterpriseDisputesTab extends StatefulWidget {
+  const _EnterpriseDisputesTab();
+  @override
+  State<_EnterpriseDisputesTab> createState() => _EnterpriseDisputesTabState();
+}
+
+class _EnterpriseDisputesTabState extends State<_EnterpriseDisputesTab> {
+  List<dynamic>? _disputes;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final api = context.read<AuthProvider>().api;
+      final disputes = await api.getEnterpriseDisputes();
+      if (mounted) setState(() { _disputes = disputes; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(w > 860 ? 32 : 20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Disputes', style: GoogleFonts.dmSans(
+            color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
+        const SizedBox(height: 4),
+        Text('Disputes filed against tips for your managed creators.',
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
+        const SizedBox(height: 24),
+        if (_loading)
+          const Center(child: CircularProgressIndicator(color: kPrimary))
+        else if (_error != null)
+          Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13))
+        else if (_disputes == null || _disputes!.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 60),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.shield_rounded,
+                    color: kPrimary.withOpacity(0.4), size: 48),
+                const SizedBox(height: 16),
+                Text('No disputes', style: GoogleFonts.dmSans(
+                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                const SizedBox(height: 6),
+                Text('No disputes have been filed against your creators\' tips.',
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
+                    textAlign: TextAlign.center),
+              ]),
+            ),
+          )
+        else
+          ..._disputes!.asMap().entries.map((e) {
+            final d = e.value;
+            final status = d.status as String;
+            final statusColor = switch (status) {
+              'open'          => const Color(0xFFFBBF24),
+              'investigating' => const Color(0xFF06B6D4),
+              'resolved'      => kPrimary,
+              'closed'        => kMuted,
+              _               => kMuted,
+            };
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kCardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: status == 'open'
+                    ? const Color(0xFFFBBF24).withOpacity(0.3)
+                    : kBorder),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Text(d.reference as String,
+                      style: GoogleFonts.dmSans(
+                          color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13))),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: statusColor.withOpacity(0.4)),
+                    ),
+                    child: Text(d.statusLabel as String,
+                        style: GoogleFonts.dmSans(
+                            color: statusColor, fontSize: 11, fontWeight: FontWeight.w700)),
+                  ),
+                ]),
+                const SizedBox(height: 6),
+                Text(d.reasonLabel as String,
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+                if ((d.tipRef as String).isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text('Tip ref: ${d.tipRef}',
+                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                ],
+                const SizedBox(height: 10),
+                Row(children: [
+                  Text('Filed by: ${d.name}',
+                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => context.go('/dispute/${d.token}'),
+                    child: Text('View details →',
+                        style: GoogleFonts.dmSans(
+                            color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+              ]),
+            );
+          }),
       ]),
     );
   }

@@ -13,7 +13,8 @@ import '../widgets/app_nav.dart';
 // ─── File Dispute screen (POST) ───────────────────────────────────────────────
 
 class DisputeScreen extends StatefulWidget {
-  const DisputeScreen({super.key});
+  final String? tipRef;
+  const DisputeScreen({super.key, this.tipRef});
   @override
   State<DisputeScreen> createState() => _DisputeScreenState();
 }
@@ -42,6 +43,10 @@ class _DisputeScreenState extends State<DisputeScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.tipRef != null && widget.tipRef!.isNotEmpty) {
+      _tipCtrl.text = widget.tipRef!;
+      _reason = 'unauthorized';
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = context.read<AuthProvider>().user;
       if (user != null) {
@@ -137,11 +142,18 @@ class _DisputeScreenState extends State<DisputeScreen> {
         child: Form(
           key: _formKey,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _infoBox(
-              icon: Icons.info_outline_rounded,
-              color: kTeal,
-              text: 'Already filed a dispute? Check your email for the tracking link, or enter your token at tippingjar.co.za/dispute/{your-token}',
-            ),
+            if (widget.tipRef != null && widget.tipRef!.isNotEmpty)
+              _infoBox(
+                icon: Icons.access_time_rounded,
+                color: const Color(0xFFFBBF24),
+                text: 'You have 24 hours from the time of payment to dispute a transaction. The payment reference has been pre-filled below.',
+              )
+            else
+              _infoBox(
+                icon: Icons.info_outline_rounded,
+                color: kTeal,
+                text: 'Already filed a dispute? Check your email for the tracking link, or enter your token at tippingjar.co.za/dispute/{your-token}',
+              ),
             const SizedBox(height: 28),
             Text('Your details',
                 style: GoogleFonts.dmSans(color: Colors.white,

@@ -304,6 +304,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _DrawerItem(Iconsax.gallery, 'Content', _navIndex == 4, () { setState(() => _navIndex = 4); Navigator.pop(context); }),
         _DrawerItem(Iconsax.dollar_circle, 'Monetize', _navIndex == 5, () { setState(() => _navIndex = 5); Navigator.pop(context); }),
         _DrawerItem(Iconsax.notification, 'Notifications', _navIndex == 7, () { setState(() => _navIndex = 7); Navigator.pop(context); }),
+        _DrawerItem(Iconsax.shield_tick, 'Disputes', _navIndex == 8, () { setState(() => _navIndex = 8); Navigator.pop(context); }),
         const SizedBox(height: 8),
         const Divider(color: kBorder, height: 1),
         const Spacer(),
@@ -347,6 +348,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onMarkRead: _markNotificationsRead,
           onRefresh: _loadNotifications,
         ),
+      8 => _DisputesPage(),
       _ => const SizedBox.shrink(),
     };
   }
@@ -411,6 +413,7 @@ class _Sidebar extends StatelessWidget {
     (Iconsax.dollar_circle, 'Monetize'),
     (Iconsax.profile_circle,'Profile'),
     (Iconsax.notification,  'Notifications'),
+    (Iconsax.shield_tick,   'Disputes'),
   ];
 
   @override
@@ -5017,6 +5020,149 @@ class _SharePlatformBtn extends StatelessWidget {
   );
 }
 
+// ─── Disputes page (creator) ──────────────────────────────────────────────────
+class _DisputesPage extends StatefulWidget {
+  const _DisputesPage();
+  @override
+  State<_DisputesPage> createState() => _DisputesPageState();
+}
+
+class _DisputesPageState extends State<_DisputesPage> {
+  List<dynamic>? _disputes; // DisputeModel from api
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final api = context.read<AuthProvider>().api;
+      final disputes = await api.getMyDisputes();
+      if (mounted) setState(() { _disputes = disputes; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(w > 900 ? 32 : 20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Disputes', style: GoogleFonts.dmSans(
+                color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5))
+                .animate().fadeIn(duration: 400.ms),
+            Text('Disputes filed against your tips by tippers.',
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 13))
+                .animate().fadeIn(delay: 80.ms),
+          ])),
+          ElevatedButton.icon(
+            onPressed: () => context.go('/dispute'),
+            icon: const Icon(Icons.add_rounded, size: 15, color: Colors.white),
+            label: Text('New dispute', style: GoogleFonts.dmSans(
+                fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimary, elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 24),
+        if (_loading)
+          const Center(child: CircularProgressIndicator(color: kPrimary))
+        else if (_error != null)
+          Center(child: Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13)))
+        else if (_disputes == null || _disputes!.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 60),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Iconsax.shield_tick, color: kPrimary.withValues(alpha: 0.4), size: 48),
+                const SizedBox(height: 16),
+                Text('No disputes', style: GoogleFonts.dmSans(
+                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                const SizedBox(height: 6),
+                Text('Any disputes raised against your tips will appear here.',
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
+                    textAlign: TextAlign.center),
+              ]),
+            ),
+          )
+        else
+          ..._disputes!.asMap().entries.map((e) {
+            final d = e.value;
+            final status = d.status as String;
+            final statusColor = switch (status) {
+              'open'          => const Color(0xFFFBBF24),
+              'investigating' => kTeal,
+              'resolved'      => kPrimary,
+              'closed'        => kMuted,
+              _               => kMuted,
+            };
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kCardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: status == 'open'
+                    ? const Color(0xFFFBBF24).withValues(alpha: 0.3)
+                    : kBorder),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Text(d.reference as String,
+                      style: GoogleFonts.dmSans(
+                          color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13))),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                    ),
+                    child: Text(d.statusLabel as String,
+                        style: GoogleFonts.dmSans(
+                            color: statusColor, fontSize: 11, fontWeight: FontWeight.w700)),
+                  ),
+                ]),
+                const SizedBox(height: 6),
+                Text(d.reasonLabel as String,
+                    style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+                const SizedBox(height: 6),
+                if ((d.tipRef as String).isNotEmpty)
+                  Text('Ref: ${d.tipRef}',
+                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Text('Tipper: ${d.name}',
+                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => context.go('/dispute/${d.token}'),
+                    child: Text('View details →',
+                        style: GoogleFonts.dmSans(
+                            color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+              ]),
+            ).animate().fadeIn(delay: Duration(milliseconds: 50 * e.key), duration: 300.ms);
+          }),
+      ]),
+    );
+  }
+}
+
+// ─── QR widgets ───────────────────────────────────────────────────────────────
 class _QrBox extends StatelessWidget {
   final String tipUrl;
   const _QrBox({required this.tipUrl});

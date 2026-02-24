@@ -102,6 +102,7 @@ def send_tip_thank_you(tip):
     amount = f"R{tip.amount:.2f}"
     jar_name = tip.jar.name if tip.jar else None
     creator_page = f"https://www.tippingjar.co.za/creator/{creator.slug}"
+    dispute_url = f"https://www.tippingjar.co.za/dispute?ref={tip.paystack_reference}"
 
     custom_msg = (creator.thank_you_message.strip()
                   if creator.thank_you_message.strip()
@@ -116,6 +117,8 @@ def send_tip_thank_you(tip):
         f"You sent a {amount} tip{jar_line_text} to {creator.display_name}.\n\n"
         f"{custom_msg}\n\n"
         f"Visit {creator.display_name}'s page: {creator_page}\n\n"
+        f"Transaction reference: {tip.paystack_reference}\n"
+        f"You have 24 hours to dispute this transaction: {dispute_url}\n\n"
         f"— The TippingJar Team\n"
         f"  www.tippingjar.co.za"
     )
@@ -136,9 +139,20 @@ def send_tip_thank_you(tip):
     <p style="margin:0;font-size:15px;line-height:1.7;color:#E2E8F0;font-style:italic;">"{custom_msg}"</p>
     <p style="margin:10px 0 0;font-size:13px;color:#7A9088;">— {creator.display_name}</p>
   </div>
-  <a href="{creator_page}" style="display:block;text-align:center;background:#00C896;color:#fff;text-decoration:none;padding:14px 28px;border-radius:36px;font-weight:700;font-size:15px;margin-bottom:24px;">
+  <a href="{creator_page}" style="display:block;text-align:center;background:#00C896;color:#fff;text-decoration:none;padding:14px 28px;border-radius:36px;font-weight:700;font-size:15px;margin-bottom:20px;">
     Visit {creator.display_name}'s page →
   </a>
+  <div style="background:#0D1209;border:1px solid #1E2E26;border-radius:10px;padding:16px 20px;margin-bottom:24px;">
+    <p style="margin:0;font-size:12px;color:#7A9088;">
+      Transaction ref: <strong style="color:#E2E8F0;font-family:monospace;">{tip.paystack_reference}</strong>
+    </p>
+    <p style="margin:8px 0 0;font-size:12px;color:#7A9088;line-height:1.6;">
+      Something wrong? You have <strong style="color:#E2E8F0;">24 hours</strong> from the time of payment to dispute this transaction.
+    </p>
+    <a href="{dispute_url}" style="display:inline-block;margin-top:12px;background:transparent;color:#94A3A8;text-decoration:none;padding:8px 16px;border-radius:36px;font-weight:600;font-size:12px;border:1px solid #2E3A32;">
+      Dispute this transaction →
+    </a>
+  </div>
   <hr style="border-color:#1E2E26;margin:0 0 16px;">
   <p style="font-size:12px;color:#7A9088;margin:0;text-align:center;">
     TippingJar · <a href="https://www.tippingjar.co.za" style="color:#00C896;">www.tippingjar.co.za</a>

@@ -134,7 +134,7 @@ GoRouter buildRouter(AuthProvider auth) {
       ),
       GoRoute(path: '/partner-apply', builder: (_, __) => const PartnerApplyScreen()),
       GoRoute(path: '/contact',  builder: (_, __) => const ContactScreen()),
-      GoRoute(path: '/dispute',  builder: (_, __) => const DisputeScreen()),
+      GoRoute(path: '/dispute',  builder: (_, state) => DisputeScreen(tipRef: state.uri.queryParameters['ref'])),
       GoRoute(
         path: '/dispute/:token',
         builder: (_, state) =>
