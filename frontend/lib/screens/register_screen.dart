@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -37,6 +38,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _otpError;
   String _otpMethod = 'email';
   final _otpCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordCtrl.addListener(_onPasswordChanged);
+  }
+
+  void _onPasswordChanged() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +173,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               label: 'First name',
               hint: 'Jane',
               icon: Icons.badge_outlined,
-              validator: (v) => (v?.trim().isNotEmpty ?? false) ? null : 'Required',
+              validator: (v) {
+                if (v?.trim().isEmpty ?? true) return 'Required';
+                if (RegExp(r'[0-9]').hasMatch(v!.trim())) return 'No numbers in name';
+                return null;
+              },
             )),
             const SizedBox(width: 12),
             Expanded(child: _field(
@@ -172,7 +185,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               label: 'Last name',
               hint: 'Doe',
               icon: Icons.badge_outlined,
-              validator: (v) => (v?.trim().isNotEmpty ?? false) ? null : 'Required',
+              validator: (v) {
+                if (v?.trim().isEmpty ?? true) return 'Required';
+                if (RegExp(r'[0-9]').hasMatch(v!.trim())) return 'No numbers in name';
+                return null;
+              },
             )),
           ]),
           const SizedBox(height: 14),
@@ -193,19 +210,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
             validator: (v) => (v?.contains('@') ?? false) ? null : 'Enter a valid email',
           ),
           const SizedBox(height: 14),
-          _field(
-            ctrl: _passwordCtrl,
-            label: 'Password',
-            hint: '••••••••',
-            icon: Icons.lock_outline_rounded,
-            obscure: _obscure,
-            suffix: IconButton(
-              icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  color: kMuted, size: 18),
-              onPressed: () => setState(() => _obscure = !_obscure),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _field(
+              ctrl: _passwordCtrl,
+              label: 'Password',
+              hint: '••••••••',
+              icon: Icons.lock_outline_rounded,
+              obscure: _obscure,
+              suffix: IconButton(
+                icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    color: kMuted, size: 18),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+              validator: (v) {
+                if ((v?.length ?? 0) < 6) return 'Min 6 characters';
+                if (!RegExp(r'[0-9]').hasMatch(v!)) return 'Add at least 1 number';
+                if (!RegExp(r'[^a-zA-Z0-9\s]').hasMatch(v)) return 'Add at least 1 special character';
+                return null;
+              },
             ),
-            validator: (v) => (v?.length ?? 0) >= 8 ? null : 'Min 8 characters',
-          ),
+            if (_passwordCtrl.text.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _PasswordStrengthBar(password: _passwordCtrl.text),
+            ],
+          ]),
           const SizedBox(height: 14),
           _field(
             ctrl: _confirmPasswordCtrl,
@@ -224,9 +252,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _field(
             ctrl: _phoneCtrl,
             label: 'Phone number (optional)',
-            hint: '+27 82 123 4567',
+            hint: '0821234567',
             icon: Icons.phone_outlined,
             keyboardType: TextInputType.phone,
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+]'))],
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return null;
+              final d = v.trim();
+              if (RegExp(r'^0[6-8][0-9]{8}$').hasMatch(d)) return null;
+              if (RegExp(r'^\+27[6-8][0-9]{8}$').hasMatch(d)) return null;
+              return 'Enter a valid SA number (e.g. 0821234567)';
+            },
           ),
           const SizedBox(height: 14),
           _genderSelector(),
@@ -605,6 +641,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool obscure = false,
     TextInputType? keyboardType,
     Widget? suffix,
+    List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -614,6 +651,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         controller: ctrl,
         obscureText: obscure,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
         validator: validator,
         decoration: InputDecoration(
@@ -721,6 +759,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    _passwordCtrl.removeListener(_onPasswordChanged);
     _firstNameCtrl.dispose();
     _lastNameCtrl.dispose();
     _usernameCtrl.dispose();
@@ -730,6 +769,77 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _phoneCtrl.dispose();
     _otpCtrl.dispose();
     super.dispose();
+  }
+}
+
+// ─── Password strength bar ────────────────────────────────────────────────────
+class _PasswordStrengthBar extends StatelessWidget {
+  final String password;
+  const _PasswordStrengthBar({required this.password});
+
+  int get _score {
+    if (password.isEmpty) return 0;
+    int s = 0;
+    if (password.length >= 6) s++;
+    if (RegExp(r'[0-9]').hasMatch(password)) s++;
+    if (RegExp(r'[^a-zA-Z0-9\s]').hasMatch(password)) s++;
+    if (RegExp(r'[A-Z]').hasMatch(password)) s++;
+    return s;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final score = _score;
+    const levels = [
+      ('Weak',   Color(0xFFEF4444)),
+      ('Fair',   Color(0xFFF97316)),
+      ('Good',   Color(0xFFEAB308)),
+      ('Strong', kPrimary),
+    ];
+    final level = score > 0 ? levels[score - 1] : null;
+
+    final criteria = [
+      (password.length >= 6,                         'At least 6 characters'),
+      (RegExp(r'[0-9]').hasMatch(password),          'Contains a number'),
+      (RegExp(r'[^a-zA-Z0-9\s]').hasMatch(password), 'Contains a special character'),
+      (RegExp(r'[A-Z]').hasMatch(password),          'Contains an uppercase letter'),
+    ];
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // 4-segment progress bar
+      Row(children: List.generate(4, (i) => Expanded(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 4,
+          margin: EdgeInsets.only(right: i < 3 ? 4 : 0),
+          decoration: BoxDecoration(
+            color: i < score ? level!.$2 : kBorder,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      ))),
+      const SizedBox(height: 6),
+      if (level != null)
+        Text(level.$1,
+            style: GoogleFonts.dmSans(
+                color: level.$2, fontWeight: FontWeight.w600, fontSize: 11)),
+      const SizedBox(height: 8),
+      // Criteria checklist
+      ...criteria.map((c) => Padding(
+        padding: const EdgeInsets.only(bottom: 3),
+        child: Row(children: [
+          Icon(
+            c.$1 ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            size: 12,
+            color: c.$1 ? kPrimary : kMuted,
+          ),
+          const SizedBox(width: 6),
+          Text(c.$2,
+              style: GoogleFonts.dmSans(
+                  color: c.$1 ? Colors.white : kMuted, fontSize: 11)),
+        ]),
+      )),
+    ]);
   }
 }
 

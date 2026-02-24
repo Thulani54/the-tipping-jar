@@ -838,6 +838,11 @@ class _TipFormState extends State<_TipForm> {
         TextFormField(
           controller: _nameCtrl,
           style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+          validator: (v) {
+            if (v == null || v.trim().isEmpty) return null;
+            if (RegExp(r'[0-9]').hasMatch(v)) return 'Name cannot contain numbers';
+            return null;
+          },
           decoration: InputDecoration(
             hintText: 'Anonymous',
             hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
@@ -847,6 +852,10 @@ class _TipFormState extends State<_TipForm> {
                 borderSide: const BorderSide(color: kBorder)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kPrimary, width: 2)),
+            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.red.withValues(alpha: 0.5))),
+            focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
         ),
@@ -953,6 +962,7 @@ class _TipFormState extends State<_TipForm> {
   );
 
   Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
     setState(() { _submitting = true; _error = null; });
     try {
       final resp = await ApiService().initiateTip(

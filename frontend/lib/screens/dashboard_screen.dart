@@ -921,12 +921,18 @@ class _ProfilePageState extends State<_ProfilePage> {
             color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
         content: SingleChildScrollView(
           child: SizedBox(width: 400, child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _DlgField('Display name', nameCtrl, hint: 'Your public name'),
+            _DlgField('Display name', nameCtrl, hint: 'Your public name',
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Required';
+                  if (RegExp(r'[0-9]').hasMatch(v)) return 'Name cannot contain numbers';
+                  return null;
+                }),
             const SizedBox(height: 14),
             _DlgField('Tagline', taglineCtrl, hint: 'What you create — 80 chars', maxLength: 80),
             const SizedBox(height: 14),
             _DlgField('Monthly goal (R)', goalCtrl,
-                hint: '100', keyboardType: TextInputType.number),
+                hint: '100', keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
             const SizedBox(height: 14),
             _DlgField('Thank-you message', thankYouCtrl,
                 hint: 'Message sent to tippers after a successful tip',
@@ -1116,13 +1122,20 @@ class _BankingCard extends StatelessWidget {
               ),
             ]),
             const SizedBox(height: 12),
-            _DlgField('Account holder name', holderCtrl, hint: 'Full legal name'),
+            _DlgField('Account holder name', holderCtrl, hint: 'Full legal name',
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return null;
+                  if (RegExp(r'[0-9]').hasMatch(v)) return 'Name cannot contain numbers';
+                  return null;
+                }),
             const SizedBox(height: 12),
             _DlgField('Account number', accountCtrl,
                 hint: profile.bankAccountNumberMasked.isNotEmpty
                     ? profile.bankAccountNumberMasked
                     : 'Enter account number',
-                obscure: true),
+                obscure: true,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
             const SizedBox(height: 12),
             // Account type
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1816,8 +1829,11 @@ class _DlgField extends StatelessWidget {
   final int? maxLength;
   final int? maxLines;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final String? Function(String?)? validator;
   const _DlgField(this.label, this.ctrl,
-      {required this.hint, this.obscure = false, this.maxLength, this.maxLines, this.keyboardType});
+      {required this.hint, this.obscure = false, this.maxLength, this.maxLines,
+       this.keyboardType, this.inputFormatters, this.validator});
 
   @override
   Widget build(BuildContext context) => Column(
@@ -1832,6 +1848,8 @@ class _DlgField extends StatelessWidget {
         maxLength: maxLength,
         maxLines: maxLines ?? 1,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        validator: validator,
         style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
