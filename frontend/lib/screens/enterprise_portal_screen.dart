@@ -88,14 +88,16 @@ class _EnterprisePortalScreenState extends State<EnterprisePortalScreen> {
   }
 
   // ─── Wide layout: sidebar + content ──────────────────────────────────────────
-  Widget _wideLayout() => Row(children: [
-    _Sidebar(
-      enterprise: _enterprise,
-      selectedTab: _tab,
-      onTab: (i) => setState(() => _tab = i),
-    ),
-    Expanded(child: _content()),
-  ]);
+  Widget _wideLayout() => Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _Sidebar(
+        enterprise: _enterprise,
+        selectedTab: _tab,
+        onTab: (i) => setState(() => _tab = i),
+      ),
+      Expanded(child: _content()),
+    ]);
 
   Widget _narrowLayout() => Column(children: [
     _AppBarNarrow(enterprise: _enterprise),
