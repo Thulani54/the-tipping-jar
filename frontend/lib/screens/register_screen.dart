@@ -19,6 +19,8 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _firstNameCtrl = TextEditingController();
+  final _lastNameCtrl = TextEditingController();
   final _usernameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -173,6 +175,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
       Form(
         key: _formKey,
         child: Column(children: [
+          // First + last name side by side
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: _field(
+              ctrl: _firstNameCtrl,
+              label: 'First name',
+              hint: 'Jane',
+              icon: Icons.badge_outlined,
+              validator: (v) => (v?.trim().isNotEmpty ?? false) ? null : 'Required',
+            )),
+            const SizedBox(width: 12),
+            Expanded(child: _field(
+              ctrl: _lastNameCtrl,
+              label: 'Last name',
+              hint: 'Doe',
+              icon: Icons.badge_outlined,
+              validator: (v) => (v?.trim().isNotEmpty ?? false) ? null : 'Required',
+            )),
+          ]),
+          const SizedBox(height: 14),
           _field(
             ctrl: _usernameCtrl,
             label: 'Username',
@@ -796,7 +817,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           email: email,
           password: password,
           role: _role,
-          phoneNumber: _phoneCtrl.text.trim());
+          phoneNumber: _phoneCtrl.text.trim(),
+          firstName: _firstNameCtrl.text.trim(),
+          lastName: _lastNameCtrl.text.trim());
       // Auto-login to get auth token
       await auth.login(email, password);
       if (!mounted) return;
@@ -815,6 +838,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    _firstNameCtrl.dispose();
+    _lastNameCtrl.dispose();
     _usernameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();

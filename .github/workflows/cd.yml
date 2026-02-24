@@ -100,6 +100,16 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Push SMS Portal env vars to App Service
+        run: |
+          az webapp config appsettings set \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              SMS_PORTAL_USERNAME="${{ secrets.SMS_PORTAL_USERNAME }}" \
+              SMS_PORTAL_PASSWORD="${{ secrets.SMS_PORTAL_PASSWORD }}" \
+              SMS_PORTAL_ENDPOINT="${{ secrets.SMS_PORTAL_ENDPOINT }}"
+
       - name: Deploy backend container to App Service
         uses: azure/webapps-deploy@v2
         with:

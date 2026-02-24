@@ -124,6 +124,8 @@ class ApiService {
     required String password,
     required String role,
     String phoneNumber = '',
+    String firstName = '',
+    String lastName = '',
   }) async {
     final body = <String, dynamic>{
       'username': username,
@@ -132,6 +134,8 @@ class ApiService {
       'role': role,
     };
     if (phoneNumber.isNotEmpty) body['phone_number'] = phoneNumber;
+    if (firstName.isNotEmpty) body['first_name'] = firstName;
+    if (lastName.isNotEmpty) body['last_name'] = lastName;
     final res = await http.post(
       Uri.parse('$_baseUrl/users/register/'),
       headers: _headers,

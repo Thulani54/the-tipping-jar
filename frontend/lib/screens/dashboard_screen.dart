@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/app_user.dart';
 import '../models/commission_model.dart';
 import '../models/creator_post_model.dart';
@@ -478,6 +479,10 @@ class _OverviewPage extends StatelessWidget {
           _WeeklyChart(data: stats.weeklyData, labels: stats.weekLabels),
           const SizedBox(height: 28),
 
+          // QR code — scan & pay
+          _QrCodeCard(slug: profile.slug),
+          const SizedBox(height: 28),
+
           // Recent tips
           Row(children: [
             Text('Recent tips', style: GoogleFonts.dmSans(
@@ -795,6 +800,10 @@ class _ProfilePageState extends State<_ProfilePage> {
             ),
           ]),
         ),
+        const SizedBox(height: 20),
+
+        // QR code — scan & pay
+        _QrCodeCard(slug: _profile.slug),
         const SizedBox(height: 20),
 
         // Profile completion
@@ -4513,5 +4522,116 @@ class _NotificationsPage extends StatelessWidget {
     if (diff.inDays < 1) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return DateFormat('d MMM yyyy').format(dt);
+  }
+}
+
+// ─── QR code card ─────────────────────────────────────────────────────────────
+class _QrCodeCard extends StatelessWidget {
+  final String slug;
+  const _QrCodeCard({required this.slug});
+
+  @override
+  Widget build(BuildContext context) {
+    final tipUrl = 'https://www.tippingjar.co.za/u/$slug';
+    final w = MediaQuery.of(context).size.width;
+    final wide = w > 700;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: kCardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorder),
+      ),
+      child: wide
+          ? Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              // QR code
+              _QrBox(tipUrl: tipUrl),
+              const SizedBox(width: 28),
+              Expanded(child: _QrInfo(tipUrl: tipUrl)),
+            ])
+          : Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              _QrBox(tipUrl: tipUrl),
+              const SizedBox(height: 20),
+              _QrInfo(tipUrl: tipUrl),
+            ]),
+    ).animate().fadeIn(duration: 400.ms);
+  }
+}
+
+class _QrBox extends StatelessWidget {
+  final String tipUrl;
+  const _QrBox({required this.tipUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: QrImageView(
+        data: tipUrl,
+        version: QrVersions.auto,
+        size: 160,
+        eyeStyle: const QrEyeStyle(
+          eyeShape: QrEyeShape.square,
+          color: Color(0xFF0A0A0F),
+        ),
+        dataModuleStyle: const QrDataModuleStyle(
+          dataModuleShape: QrDataModuleShape.square,
+          color: Color(0xFF0A0A0F),
+        ),
+        errorCorrectionLevel: QrErrorCorrectLevel.M,
+      ),
+    );
+  }
+}
+
+class _QrInfo extends StatelessWidget {
+  final String tipUrl;
+  const _QrInfo({required this.tipUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Icon(Iconsax.scan, color: kPrimary, size: 18),
+        const SizedBox(width: 8),
+        Text('Scan & Pay', style: GoogleFonts.dmSans(
+            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+      ]),
+      const SizedBox(height: 8),
+      Text('Share this QR code so fans can tip you instantly — no link needed. '
+          'Works with any QR scanner or camera app.',
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5)),
+      const SizedBox(height: 16),
+      GestureDetector(
+        onTap: () {
+          Clipboard.setData(ClipboardData(text: tipUrl));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tip link copied!')),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: kDark,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: kBorder),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.link_rounded, color: kMuted, size: 14),
+            const SizedBox(width: 8),
+            Flexible(child: Text(tipUrl,
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
+                overflow: TextOverflow.ellipsis)),
+            const SizedBox(width: 10),
+            const Icon(Icons.copy_rounded, color: kPrimary, size: 14),
+          ]),
+        ),
+      ),
+    ]);
   }
 }

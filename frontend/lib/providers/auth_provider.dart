@@ -86,6 +86,8 @@ class AuthProvider extends ChangeNotifier {
     required String password,
     required String role,
     String phoneNumber = '',
+    String firstName = '',
+    String lastName = '',
   }) async {
     _loading = true;
     notifyListeners();
@@ -96,6 +98,8 @@ class AuthProvider extends ChangeNotifier {
         password: password,
         role: role,
         phoneNumber: phoneNumber,
+        firstName: firstName,
+        lastName: lastName,
       );
     } finally {
       _loading = false;

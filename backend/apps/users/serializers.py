@@ -6,10 +6,12 @@ from .models import OTP, ApiKey, User
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     phone_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "password", "role", "phone_number")
+        fields = ("id", "username", "email", "password", "role", "phone_number", "first_name", "last_name")
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
@@ -21,7 +23,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = (
             "id", "username", "email", "role", "avatar", "bio",
             "phone_number", "otp_method", "two_fa_enabled",
-            "gender", "date_of_birth",
+            "gender", "date_of_birth", "first_name", "last_name",
         )
         read_only_fields = ("id", "email")
 
