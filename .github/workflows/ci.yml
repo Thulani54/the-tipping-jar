@@ -95,4 +95,4 @@ jobs:
         run: flutter test
 
       - name: Build web (smoke check)
-        run: flutter build web --release
+        run: flutter build web --release --no-tree-shake-icons

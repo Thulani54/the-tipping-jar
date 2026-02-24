@@ -12,7 +12,7 @@ COPY . .
 
 # Build for web (production)
 ARG API_BASE_URL=https://api.tippingjar.co.za
-RUN flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL}
+RUN flutter build web --release --no-tree-shake-icons --dart-define=API_BASE_URL=${API_BASE_URL}
 
 # ── Disable Flutter's service worker entirely ───────────────────────────────────
 # Flutter's SW caches main.dart.js for up to 1 year; without a content-hash in
