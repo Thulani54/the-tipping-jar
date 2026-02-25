@@ -1,9 +1,10 @@
 """
 Management command: seed_admin
 
-Creates a default admin user if no user with role='admin' exists yet.
-Credentials are read from env vars so they never live in source code:
+Ensures the designated admin account exists and has correct credentials.
+Runs on every container start (idempotent — safe to run repeatedly).
 
+Credentials are read from env vars:
     ADMIN_EMAIL    (default: admin@tippingjar.co.za)
     ADMIN_PASSWORD (default: TippingAdmin#2026)
     ADMIN_USERNAME (default: admin)
@@ -17,32 +18,49 @@ from apps.users.models import User
 
 
 class Command(BaseCommand):
-    help = "Create the default admin user if none exists."
+    help = "Ensure the admin account exists with correct credentials."
 
     def handle(self, *args, **options):
-        email = os.environ.get("ADMIN_EMAIL", "admin@tippingjar.co.za")
+        email    = os.environ.get("ADMIN_EMAIL",    "admin@tippingjar.co.za")
         password = os.environ.get("ADMIN_PASSWORD", "TippingAdmin#2026")
         username = os.environ.get("ADMIN_USERNAME", "admin")
 
-        if User.objects.filter(role=User.Role.ADMIN).exists():
-            self.stdout.write("Admin user already exists — skipping.")
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                role=User.Role.ADMIN,
+                is_staff=True,
+                two_fa_enabled=False,
+            )
+            self.stdout.write(self.style.SUCCESS(f"Admin user created: {email}"))
             return
 
-        if User.objects.filter(email=email).exists():
-            # Promote the existing account to admin
-            User.objects.filter(email=email).update(role=User.Role.ADMIN)
+        # User found — ensure every field is correct.
+        changed = []
+        if user.role != User.Role.ADMIN:
+            user.role = User.Role.ADMIN
+            changed.append("role")
+        if not user.is_active:
+            user.is_active = True
+            changed.append("is_active")
+        if not user.is_staff:
+            user.is_staff = True
+            changed.append("is_staff")
+        if getattr(user, "two_fa_enabled", False):
+            user.two_fa_enabled = False
+            changed.append("two_fa_enabled")
+        if not user.check_password(password):
+            user.set_password(password)
+            changed.append("password")
+
+        if changed:
+            user.save()
             self.stdout.write(self.style.SUCCESS(
-                f"Existing user {email} promoted to admin."
+                f"Admin user {email} fixed: {', '.join(changed)}"
             ))
-            return
-
-        User.objects.create_user(
-            username=username,
-            email=email,
-            password=password,
-            role=User.Role.ADMIN,
-            is_staff=True,
-        )
-        self.stdout.write(self.style.SUCCESS(
-            f"Admin user created: {email}"
-        ))
+        else:
+            self.stdout.write(f"Admin user {email} — OK.")
