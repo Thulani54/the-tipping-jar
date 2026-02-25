@@ -1023,11 +1023,6 @@ class _BlogEditorDialogState extends State<_BlogEditorDialog> {
   bool _published = false;
   bool _saving = false;
 
-  // Bold/italic/underline state for toolbar
-  bool _bold = false;
-  bool _italic = false;
-  bool _underline = false;
-
   @override
   void initState() {
     super.initState();
