@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.blog.models import BlogPost
+from apps.careers.models import JobOpening
 from apps.creators.models import CreatorKycDocument, CreatorProfile
 from apps.enterprise.models import Enterprise, EnterpriseDocument
 from apps.tips.models import Tip
@@ -89,6 +90,17 @@ class AdminBlogSerializer(serializers.ModelSerializer):
         fields = [
             "id", "title", "slug", "category", "excerpt", "content",
             "cover_image", "author_name", "read_time", "is_published",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class AdminJobSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobOpening
+        fields = [
+            "id", "title", "department", "location",
+            "employment_type", "description", "is_active",
             "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]

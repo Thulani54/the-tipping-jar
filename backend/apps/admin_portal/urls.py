@@ -7,6 +7,8 @@ from .views import (
     AdminEnterpriseApproveView,
     AdminEnterpriseListView,
     AdminEnterpriseRejectView,
+    AdminJobDetailView,
+    AdminJobListCreateView,
     AdminKycApproveView,
     AdminKycDeclineView,
     AdminStatsView,
@@ -28,4 +30,6 @@ urlpatterns = [
     path("enterprises/<int:pk>/reject/",    AdminEnterpriseRejectView.as_view(),  name="admin-enterprise-reject"),
     path("blog/",                           AdminBlogListCreateView.as_view(),    name="admin-blog-list"),
     path("blog/<slug:slug>/",               AdminBlogDetailView.as_view(),        name="admin-blog-detail"),
+    path("careers/",                        AdminJobListCreateView.as_view(),     name="admin-jobs-list"),
+    path("careers/<int:pk>/",               AdminJobDetailView.as_view(),         name="admin-job-detail"),
 ]

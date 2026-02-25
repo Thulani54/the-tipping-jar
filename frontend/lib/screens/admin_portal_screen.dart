@@ -27,6 +27,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
     (Icons.verified_user_outlined, 'Creators'),
     (Icons.business_outlined, 'Enterprises'),
     (Icons.article_outlined, 'Blog'),
+    (Icons.work_outline, 'Careers'),
   ];
 
   @override
@@ -44,6 +45,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
       case 3: body = _CreatorsTab(api: api); break;
       case 4: body = _EnterprisesTab(api: api); break;
       case 5: body = _BlogTab(api: api); break;
+      case 6: body = _CareersTab(api: api); break;
       default: body = const SizedBox();
     }
 
@@ -112,6 +114,7 @@ class _Sidebar extends StatelessWidget {
     (Icons.verified_user_outlined, 'Creators'),
     (Icons.business_outlined, 'Enterprises'),
     (Icons.article_outlined, 'Blog'),
+    (Icons.work_outline, 'Careers'),
   ];
 
   @override
@@ -1269,6 +1272,383 @@ class _BlogEditorDialogState extends State<_BlogEditorDialog> {
         await widget.api.adminUpdateBlog(widget.post!['slug'] as String, data);
       } else {
         await widget.api.adminCreateBlog(data);
+      }
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+}
+
+// ─── Careers tab ─────────────────────────────────────────────────────────────
+
+class _CareersTab extends StatefulWidget {
+  final ApiService api;
+  const _CareersTab({required this.api});
+  @override State<_CareersTab> createState() => _CareersTabState();
+}
+
+class _CareersTabState extends State<_CareersTab> {
+  List<Map<String, dynamic>> _jobs = [];
+  bool _loading = true;
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final list = await widget.api.getAdminJobs();
+      if (mounted) setState(() { _jobs = list; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      Container(
+        color: kDarker,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(children: [
+          Text('${_jobs.length} roles', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
+          const Spacer(),
+          ElevatedButton.icon(
+            onPressed: () => _openEditor(context, null),
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('New Role'),
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+          ),
+        ]),
+      ),
+      if (_loading) const Expanded(child: _Loader())
+      else Expanded(
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: _jobs.length,
+          itemBuilder: (_, i) {
+            final j = _jobs[i];
+            final active = j['is_active'] as bool? ?? true;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: kCardBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: kBorder)),
+              child: Row(children: [
+                Container(width: 8, height: 8,
+                    decoration: BoxDecoration(
+                        color: active ? const Color(0xFF34D399) : kMuted,
+                        shape: BoxShape.circle)),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(j['title'] as String? ?? '', style: GoogleFonts.dmSans(
+                      color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                  Text('${j['department'] ?? ''} · ${j['location'] ?? ''} · ${j['employment_type'] ?? ''}',
+                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                ])),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(
+                    icon: Icon(active ? Icons.visibility_off : Icons.visibility,
+                        color: kMuted, size: 18),
+                    tooltip: active ? 'Deactivate' : 'Activate',
+                    onPressed: () => _toggleActive(j),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: kMuted, size: 18),
+                    onPressed: () => _openEditor(context, j),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Color(0xFFF87171), size: 18),
+                    onPressed: () => _confirmDelete(context, j),
+                  ),
+                ]),
+              ]),
+            );
+          },
+        ),
+      ),
+    ]);
+  }
+
+  Future<void> _toggleActive(Map<String, dynamic> job) async {
+    final current = job['is_active'] as bool? ?? true;
+    await widget.api.adminUpdateJob(job['id'] as int, {'is_active': !current});
+    _load();
+  }
+
+  Future<void> _confirmDelete(BuildContext context, Map<String, dynamic> job) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: kCardBg,
+        title: Text('Delete Role?', style: GoogleFonts.dmSans(color: Colors.white)),
+        content: Text('Delete "${job['title']}"?',
+            style: GoogleFonts.dmSans(color: kMuted)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel', style: TextStyle(color: kMuted))),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF87171)),
+              child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await widget.api.adminDeleteJob(job['id'] as int);
+      _load();
+    }
+  }
+
+  Future<void> _openEditor(BuildContext context, Map<String, dynamic>? job) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => _JobEditorDialog(api: widget.api, job: job),
+    );
+    if (result == true) _load();
+  }
+}
+
+// ─── Job editor dialog ────────────────────────────────────────────────────────
+
+class _JobEditorDialog extends StatefulWidget {
+  final ApiService api;
+  final Map<String, dynamic>? job;
+  const _JobEditorDialog({required this.api, this.job});
+  @override State<_JobEditorDialog> createState() => _JobEditorDialogState();
+}
+
+class _JobEditorDialogState extends State<_JobEditorDialog> {
+  final _titleCtrl = TextEditingController();
+  final _locationCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  String _department = 'Engineering';
+  String _employmentType = 'Full-time';
+  bool _active = true;
+  bool _saving = false;
+
+  static const _departments = [
+    'Engineering', 'Design', 'Growth', 'Operations',
+    'Marketing', 'Product', 'Finance', 'Other',
+  ];
+  static const _types = ['Full-time', 'Part-time', 'Contract', 'Internship'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.job != null) {
+      final j = widget.job!;
+      _titleCtrl.text = j['title'] as String? ?? '';
+      _locationCtrl.text = j['location'] as String? ?? 'Remote';
+      _descCtrl.text = j['description'] as String? ?? '';
+      _department = j['department'] as String? ?? 'Engineering';
+      _employmentType = j['employment_type'] as String? ?? 'Full-time';
+      _active = j['is_active'] as bool? ?? true;
+    } else {
+      _locationCtrl.text = 'Remote';
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose(); _locationCtrl.dispose(); _descCtrl.dispose();
+    super.dispose();
+  }
+
+  void _insertTag(String open, String close) {
+    final sel = _descCtrl.selection;
+    final text = _descCtrl.text;
+    if (sel.isValid && !sel.isCollapsed) {
+      final selected = text.substring(sel.start, sel.end);
+      final newText = text.replaceRange(sel.start, sel.end, '$open$selected$close');
+      _descCtrl.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(
+            offset: sel.start + open.length + selected.length + close.length),
+      );
+    } else {
+      final pos = sel.isValid ? sel.start : text.length;
+      final newText = text.substring(0, pos) + '$open$close' + text.substring(pos);
+      _descCtrl.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: pos + open.length),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.job != null;
+    return Dialog(
+      backgroundColor: kCardBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+            maxWidth: 680, maxHeight: MediaQuery.of(context).size.height * 0.9),
+        child: Column(children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kBorder))),
+            child: Row(children: [
+              Text(isEdit ? 'Edit Role' : 'New Job Opening',
+                  style: GoogleFonts.dmSans(color: Colors.white,
+                      fontWeight: FontWeight.w700, fontSize: 16)),
+              const Spacer(),
+              IconButton(icon: const Icon(Icons.close, color: kMuted),
+                  onPressed: () => Navigator.pop(context, false)),
+            ]),
+          ),
+          Expanded(child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _FieldLabel('Job Title'),
+              _Input(ctrl: _titleCtrl, hint: 'e.g. Senior Flutter Engineer'),
+              const SizedBox(height: 14),
+              Row(children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _FieldLabel('Department'),
+                  DropdownButtonFormField<String>(
+                    value: _department,
+                    dropdownColor: kDarker,
+                    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
+                    decoration: _inputDecoration(),
+                    items: _departments.map((d) =>
+                        DropdownMenuItem(value: d, child: Text(d))).toList(),
+                    onChanged: (v) { if (v != null) setState(() => _department = v); },
+                  ),
+                ])),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _FieldLabel('Type'),
+                  DropdownButtonFormField<String>(
+                    value: _employmentType,
+                    dropdownColor: kDarker,
+                    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
+                    decoration: _inputDecoration(),
+                    items: _types.map((t) =>
+                        DropdownMenuItem(value: t, child: Text(t))).toList(),
+                    onChanged: (v) { if (v != null) setState(() => _employmentType = v); },
+                  ),
+                ])),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _FieldLabel('Location'),
+                  _Input(ctrl: _locationCtrl, hint: 'Remote'),
+                ])),
+              ]),
+              const SizedBox(height: 14),
+              _FieldLabel('Job Description'),
+              // Toolbar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: kDarker,
+                  borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+                  border: Border.all(color: kBorder),
+                ),
+                child: Wrap(spacing: 4, children: [
+                  _ToolbarBtn('B', bold: true,   onTap: () => _insertTag('<strong>', '</strong>')),
+                  _ToolbarBtn('I', italic: true,  onTap: () => _insertTag('<em>', '</em>')),
+                  _ToolbarBtn('U', underline: true, onTap: () => _insertTag('<u>', '</u>')),
+                  _ToolbarDivider(),
+                  _ToolbarBtn('H2', onTap: () => _insertTag('<h2>', '</h2>')),
+                  _ToolbarBtn('H3', onTap: () => _insertTag('<h3>', '</h3>')),
+                  _ToolbarDivider(),
+                  _ToolbarBtn('• List', onTap: () => _insertTag('<ul>\n  <li>', '</li>\n</ul>')),
+                  _ToolbarBtn('1. List', onTap: () => _insertTag('<ol>\n  <li>', '</li>\n</ol>')),
+                ]),
+              ),
+              TextField(
+                controller: _descCtrl,
+                maxLines: 12,
+                style: GoogleFonts.dmMono(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'Describe the role, responsibilities, requirements…',
+                  hintStyle: GoogleFonts.dmMono(color: kMuted, fontSize: 12),
+                  filled: true, fillColor: kDark,
+                  contentPadding: const EdgeInsets.all(14),
+                  border: OutlineInputBorder(
+                    borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
+                    borderSide: const BorderSide(color: kBorder),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
+                    borderSide: const BorderSide(color: kBorder),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
+                    borderSide: const BorderSide(color: kPrimary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(children: [
+                Switch(value: _active, activeColor: kPrimary,
+                    onChanged: (v) => setState(() => _active = v)),
+                const SizedBox(width: 8),
+                Text(_active ? 'Active (visible on careers page)' : 'Inactive (hidden)',
+                    style: GoogleFonts.dmSans(
+                        color: _active ? const Color(0xFF34D399) : kMuted, fontSize: 13)),
+              ]),
+            ]),
+          )),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: const BoxDecoration(border: Border(top: BorderSide(color: kBorder))),
+            child: Row(children: [
+              const Spacer(),
+              TextButton(onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel', style: TextStyle(color: kMuted))),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: _saving ? null : _save,
+                style: ElevatedButton.styleFrom(backgroundColor: kPrimary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                child: _saving
+                    ? const SizedBox(width: 18, height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Text(isEdit ? 'Save Changes' : 'Create Role'),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    if (_titleCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Job title is required.'), backgroundColor: Colors.red));
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final data = {
+        'title': _titleCtrl.text.trim(),
+        'department': _department,
+        'location': _locationCtrl.text.trim().isEmpty ? 'Remote' : _locationCtrl.text.trim(),
+        'employment_type': _employmentType,
+        'description': _descCtrl.text.trim(),
+        'is_active': _active,
+      };
+      if (widget.job != null) {
+        await widget.api.adminUpdateJob(widget.job!['id'] as int, data);
+      } else {
+        await widget.api.adminCreateJob(data);
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {

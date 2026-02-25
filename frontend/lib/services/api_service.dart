@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/api_key_model.dart';
 import '../models/app_user.dart';
 import '../models/blog_post_model.dart';
+import '../models/job_opening_model.dart';
 import '../models/commission_model.dart';
 import '../models/creator_post_model.dart';
 import '../models/dispute_model.dart';
@@ -1168,6 +1169,43 @@ class ApiService {
   Future<void> adminDeleteBlog(String slug) async {
     final res = await http.delete(Uri.parse('$_baseUrl/admin/blog/$slug/'), headers: _headers);
     if (res.statusCode != 204) throw Exception('Failed to delete blog post');
+  }
+
+  Future<List<Map<String, dynamic>>> getAdminJobs() async {
+    final res = await http.get(Uri.parse('$_baseUrl/admin/careers/'), headers: _headers);
+    if (res.statusCode == 200) return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+    throw Exception('Failed to load jobs');
+  }
+
+  Future<Map<String, dynamic>> adminCreateJob(Map<String, dynamic> data) async {
+    final res = await http.post(Uri.parse('$_baseUrl/admin/careers/'),
+        headers: _headers, body: jsonEncode(data));
+    if (res.statusCode == 201) return jsonDecode(res.body) as Map<String, dynamic>;
+    throw Exception('Failed to create job: ${res.body}');
+  }
+
+  Future<Map<String, dynamic>> adminUpdateJob(int id, Map<String, dynamic> data) async {
+    final res = await http.patch(Uri.parse('$_baseUrl/admin/careers/$id/'),
+        headers: _headers, body: jsonEncode(data));
+    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    throw Exception('Failed to update job: ${res.body}');
+  }
+
+  Future<void> adminDeleteJob(int id) async {
+    final res = await http.delete(Uri.parse('$_baseUrl/admin/careers/$id/'), headers: _headers);
+    if (res.statusCode != 204) throw Exception('Failed to delete job');
+  }
+
+  // ── Careers ───────────────────────────────────────────────────────
+
+  Future<List<JobOpeningModel>> getJobs() async {
+    final res = await http.get(Uri.parse('$_baseUrl/careers/'), headers: _headers);
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? []) : body as List;
+      return list.map((e) => JobOpeningModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load jobs');
   }
 
   // ── Blog ──────────────────────────────────────────────────────────

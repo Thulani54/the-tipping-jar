@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.blog.models import BlogPost
+from apps.careers.models import JobOpening
 from apps.creators.models import CreatorKycDocument, CreatorProfile
 from apps.enterprise.models import Enterprise
 from apps.tips.models import Tip
@@ -17,6 +18,7 @@ from .serializers import (
     AdminBlogSerializer,
     AdminCreatorSerializer,
     AdminEnterpriseSerializer,
+    AdminJobSerializer,
     AdminTipSerializer,
     AdminUserSerializer,
 )
@@ -224,4 +226,38 @@ class AdminBlogDetailView(APIView):
     def delete(self, request, slug):
         post = get_object_or_404(BlogPost, slug=slug)
         post.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ── Careers (full CRUD for admin) ──────────────────────────────────────────────
+
+class AdminJobListCreateView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        jobs = JobOpening.objects.all()
+        return Response(AdminJobSerializer(jobs, many=True).data)
+
+    def post(self, request):
+        serializer = AdminJobSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminJobDetailView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def patch(self, request, pk):
+        job = get_object_or_404(JobOpening, pk=pk)
+        serializer = AdminJobSerializer(job, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        job = get_object_or_404(JobOpening, pk=pk)
+        job.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

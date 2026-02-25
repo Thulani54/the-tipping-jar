@@ -1,11 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../models/job_opening_model.dart';
+import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/app_nav.dart';
 
-class CareersScreen extends StatelessWidget {
+class CareersScreen extends StatefulWidget {
   const CareersScreen({super.key});
+
+  @override
+  State<CareersScreen> createState() => _CareersScreenState();
+}
+
+class _CareersScreenState extends State<CareersScreen> {
+  List<JobOpeningModel>? _jobs;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final jobs = await ApiService().getJobs();
+      if (mounted) setState(() => _jobs = jobs);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +43,7 @@ class CareersScreen extends StatelessWidget {
         child: Column(children: [
           _hero(),
           _perks(),
-          _jobs(),
+          _jobsSection(),
           _footer(),
         ]),
       ),
@@ -65,53 +92,83 @@ class CareersScreen extends StatelessWidget {
               fontSize: 28, letterSpacing: -0.8),
           textAlign: TextAlign.center),
       const SizedBox(height: 40),
-      Wrap(spacing: 20, runSpacing: 20, alignment: WrapAlignment.center,
-        children: [
-          _PerkCard(Icons.public_rounded, 'Fully remote', 'Work from anywhere. We care about results, not where you sit.'),
-          _PerkCard(Icons.beach_access_rounded, 'Unlimited PTO', 'Take the time you need. We trust you.'),
-          _PerkCard(Icons.account_balance_rounded, 'Equity', 'Every full-time hire gets meaningful equity in TippingJar.'),
-          _PerkCard(Icons.health_and_safety_rounded, 'Health cover', 'Full medical, dental, and vision for you and your family.'),
-          _PerkCard(Icons.laptop_mac_rounded, 'Hardware stipend', '\$2,000 to set up your ideal workspace.'),
-          _PerkCard(Icons.school_rounded, 'Learning budget', '\$1,000/year for courses, books, and conferences.'),
-        ],
-      ),
+      Wrap(spacing: 20, runSpacing: 20, alignment: WrapAlignment.center, children: [
+        _PerkCard(Icons.public_rounded,         'Fully remote',      'Work from anywhere. We care about results, not where you sit.'),
+        _PerkCard(Icons.beach_access_rounded,   'Unlimited PTO',     'Take the time you need. We trust you.'),
+        _PerkCard(Icons.account_balance_rounded,'Equity',            'Every full-time hire gets meaningful equity in TippingJar.'),
+        _PerkCard(Icons.health_and_safety_rounded,'Health cover',    'Full medical, dental, and vision for you and your family.'),
+        _PerkCard(Icons.laptop_mac_rounded,     'Hardware stipend',  'R35,000 to set up your ideal workspace.'),
+        _PerkCard(Icons.school_rounded,         'Learning budget',   'R18,000/year for courses, books, and conferences.'),
+      ]),
     ]),
   );
 
-  Widget _jobs() => Container(
-    padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 28),
-    color: kDarker,
-    child: Column(children: [
-      Text('Open roles',
-          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
-              fontSize: 28, letterSpacing: -0.8),
-          textAlign: TextAlign.center),
-      const SizedBox(height: 36),
-      ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
+  Widget _jobsSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 28),
+      color: kDarker,
+      child: Column(children: [
+        Text('Open roles',
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
+                fontSize: 28, letterSpacing: -0.8),
+            textAlign: TextAlign.center),
+        const SizedBox(height: 36),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: _jobsBody(),
+        ),
+      ]),
+    );
+  }
+
+  Widget _jobsBody() {
+    if (_error != null) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text('Could not load jobs. Please try again later.',
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 15),
+            textAlign: TextAlign.center),
+      );
+    }
+    if (_jobs == null) {
+      return const SizedBox(height: 120,
+          child: Center(child: SpinKitFadingCircle(color: kPrimary, size: 28)));
+    }
+    if (_jobs!.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: kBorder)),
         child: Column(children: [
-          _JobSection('Engineering', [
-            _Job('Senior Full-Stack Engineer', 'Remote', 'Full-time', const Color(0xFF818CF8)),
-            _Job('Flutter Engineer', 'Remote', 'Full-time', const Color(0xFF818CF8)),
-            _Job('DevOps / Platform Engineer', 'Remote', 'Full-time', const Color(0xFF818CF8)),
-          ]),
-          const SizedBox(height: 28),
-          _JobSection('Design', [
-            _Job('Product Designer', 'Remote', 'Full-time', kPrimary),
-          ]),
-          const SizedBox(height: 28),
-          _JobSection('Growth', [
-            _Job('Head of Creator Marketing', 'Remote', 'Full-time', const Color(0xFFFBBF24)),
-            _Job('Creator Success Manager', 'Remote', 'Full-time', const Color(0xFFFBBF24)),
-          ]),
-          const SizedBox(height: 28),
-          _JobSection('Operations', [
-            _Job('Finance & Compliance Lead', 'Remote', 'Full-time', const Color(0xFFF87171)),
-          ]),
+          const Icon(Icons.work_outline, color: kMuted, size: 36),
+          const SizedBox(height: 14),
+          Text('No open roles right now', style: GoogleFonts.dmSans(
+              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+          const SizedBox(height: 8),
+          Text('Check back soon — we\'re always growing.',
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
+              textAlign: TextAlign.center),
         ]),
-      ),
-    ]),
-  );
+      );
+    }
+
+    // Group by department
+    final byDept = <String, List<JobOpeningModel>>{};
+    for (final job in _jobs!) {
+      byDept.putIfAbsent(job.department, () => []).add(job);
+    }
+
+    return Column(
+      children: byDept.entries.toList().asMap().entries.map((entry) {
+        final dept = entry.value.key;
+        final jobs = entry.value.value;
+        return Column(children: [
+          if (entry.key > 0) const SizedBox(height: 28),
+          _JobSection(dept: dept, jobs: jobs),
+        ]);
+      }).toList(),
+    );
+  }
 
   Widget _footer() => Container(
     color: kDarker,
@@ -121,10 +178,28 @@ class CareersScreen extends StatelessWidget {
   );
 }
 
+// ─── Department colour ────────────────────────────────────────────────────────
+
+Color _deptColor(String dept) {
+  switch (dept.toLowerCase()) {
+    case 'engineering': return const Color(0xFF818CF8);
+    case 'design':      return kPrimary;
+    case 'growth':
+    case 'marketing':   return const Color(0xFFFBBF24);
+    case 'operations':
+    case 'finance':     return const Color(0xFFF87171);
+    case 'product':     return const Color(0xFF0097B2);
+    default:            return const Color(0xFF34D399);
+  }
+}
+
+// ─── Perks card ───────────────────────────────────────────────────────────────
+
 class _PerkCard extends StatelessWidget {
   final IconData icon;
   final String title, body;
   const _PerkCard(this.icon, this.title, this.body);
+
   @override
   Widget build(BuildContext context) => Container(
     width: 240,
@@ -145,55 +220,59 @@ class _PerkCard extends StatelessWidget {
   ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1);
 }
 
-class _Job {
-  final String title, location, type;
-  final Color color;
-  const _Job(this.title, this.location, this.type, this.color);
-}
+// ─── Job section ──────────────────────────────────────────────────────────────
 
 class _JobSection extends StatelessWidget {
   final String dept;
-  final List<_Job> jobs;
-  const _JobSection(this.dept, this.jobs);
+  final List<JobOpeningModel> jobs;
+  const _JobSection({required this.dept, required this.jobs});
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(dept, style: GoogleFonts.dmSans(
-          color: kMuted, fontWeight: FontWeight.w600, fontSize: 12,
-          letterSpacing: 0.6)),
+      Text(dept.toUpperCase(), style: GoogleFonts.dmSans(
+          color: kMuted, fontWeight: FontWeight.w600, fontSize: 11,
+          letterSpacing: 0.8)),
       const SizedBox(height: 10),
       ...jobs.map((j) => _JobCard(job: j)),
     ],
   );
 }
 
+// ─── Job card ─────────────────────────────────────────────────────────────────
+
 class _JobCard extends StatelessWidget {
-  final _Job job;
+  final JobOpeningModel job;
   const _JobCard({required this.job});
+
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kBorder)),
-    child: Row(children: [
-      Container(width: 8, height: 8,
-          decoration: BoxDecoration(color: job.color, shape: BoxShape.circle)),
-      const SizedBox(width: 14),
-      Expanded(child: Text(job.title, style: GoogleFonts.dmSans(
-          color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))),
-      const SizedBox(width: 12),
-      Text(job.location, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
-      const SizedBox(width: 12),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(color: kPrimary.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(36),
-            border: Border.all(color: kPrimary.withOpacity(0.25))),
-        child: Text(job.type, style: GoogleFonts.dmSans(
-            color: kPrimary, fontWeight: FontWeight.w600, fontSize: 11)),
-      ),
-    ]),
-  ).animate().fadeIn(duration: 350.ms);
+  Widget build(BuildContext context) {
+    final color = _deptColor(job.department);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: kCardBg, borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kBorder)),
+      child: Row(children: [
+        Container(width: 8, height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 14),
+        Expanded(child: Text(job.title, style: GoogleFonts.dmSans(
+            color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))),
+        const SizedBox(width: 12),
+        Text(job.location, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+        const SizedBox(width: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+              color: kPrimary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(36),
+              border: Border.all(color: kPrimary.withOpacity(0.25))),
+          child: Text(job.employmentType, style: GoogleFonts.dmSans(
+              color: kPrimary, fontWeight: FontWeight.w600, fontSize: 11)),
+        ),
+      ]),
+    ).animate().fadeIn(duration: 350.ms);
+  }
 }

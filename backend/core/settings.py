@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "apps.enterprise",
     "apps.platform",
     "apps.blog",
+    "apps.careers",
     "apps.admin_portal",
 ]
 
