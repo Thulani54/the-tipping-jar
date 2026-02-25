@@ -76,6 +76,13 @@ GoRouter buildRouter(AuthProvider auth) {
         return '/fan-dashboard';
       }
 
+      // Admins who land on the wrong portal (e.g. restored fan session) get
+      // pushed to the admin portal automatically.
+      if (loggedIn && auth.otpVerified && auth.isAdmin) {
+        const wrongPortals = {'/fan-dashboard', '/dashboard', '/enterprise-portal', '/onboarding'};
+        if (wrongPortals.contains(path)) return '/admin-portal';
+      }
+
       return null; // no redirect needed
     },
     routes: [
