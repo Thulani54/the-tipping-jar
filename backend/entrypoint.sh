@@ -6,6 +6,9 @@ echo "SECRET_KEY set:   $([ -n "$SECRET_KEY" ] && echo yes || echo NO)"
 
 echo "Running database migrations..."
 python manage.py migrate --noinput
+
+echo "Seeding admin user (no-op if already exists)..."
+python manage.py seed_admin
 MIGRATE_EXIT=$?
 
 if [ $MIGRATE_EXIT -ne 0 ]; then
