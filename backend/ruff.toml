@@ -5,6 +5,9 @@ line-length = 100
 select = ["E", "F", "W", "I"]
 ignore = ["E501", "E402", "E731"]
 
+[lint.isort]
+known-first-party = ["apps", "core"]
+
 [lint.per-file-ignores]
 "*/migrations/*.py" = ["E501", "F401"]
 "manage.py" = ["F401"]

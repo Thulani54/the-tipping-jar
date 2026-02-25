@@ -23,7 +23,6 @@ from .serializers import (
     AdminUserSerializer,
 )
 
-
 # ── Platform stats ─────────────────────────────────────────────────────────────
 
 class AdminStatsView(APIView):

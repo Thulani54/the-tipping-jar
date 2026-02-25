@@ -6,9 +6,18 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
-import '../theme.dart';
 
-// ─── Entry point ──────────────────────────────────────────────────────────────
+
+// ─── Admin-portal colour palette (light-blue DeepSeek theme) ─────────────────
+const Color _aBackground    = Color(0xFFF8FAFF);
+const Color _aBackgroundAlt = Color(0xFFEDF2FC);
+const Color _aSurface       = Color(0xFFFFFFFF);
+const Color _aPrimary       = Color(0xFF3C5DFF);
+const Color _aTextMain      = Color(0xFF0F1A2F);
+const Color _aMuted         = Color(0xFF6E7FA3);
+const Color _aBorder        = Color(0xFFD0D9FF);
+
+// ─── Entry point ──────────────────────────────────────────────────────────
 
 class AdminPortalScreen extends StatefulWidget {
   const AdminPortalScreen({super.key});
@@ -51,7 +60,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
 
     if (desktop) {
       return Scaffold(
-        backgroundColor: kDark,
+        backgroundColor: _aBackground,
         body: Row(children: [
           _Sidebar(
             selected: _tab,
@@ -64,29 +73,29 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
     }
 
     return Scaffold(
-      backgroundColor: kDark,
+      backgroundColor: _aBackground,
       appBar: AppBar(
-        backgroundColor: kDarker,
+        backgroundColor: _aBackgroundAlt,
         elevation: 0,
         title: Text('Admin Portal', style: GoogleFonts.dmSans(
-            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+            color: _aTextMain, fontWeight: FontWeight.w700, fontSize: 16)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: kMuted, size: 20),
+            icon: const Icon(Icons.logout, color: _aMuted, size: 20),
             onPressed: () => _logout(context),
           ),
         ],
       ),
       body: body,
       bottomNavigationBar: NavigationBar(
-        backgroundColor: kDarker,
-        indicatorColor: kPrimary.withOpacity(0.15),
+        backgroundColor: _aBackgroundAlt,
+        indicatorColor: _aPrimary.withOpacity(0.15),
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         destinations: _tabs.map((t) => NavigationDestination(
-          icon: Icon(t.$1, color: kMuted, size: 20),
-          selectedIcon: Icon(t.$1, color: kPrimary, size: 20),
+          icon: Icon(t.$1, color: _aMuted, size: 20),
+          selectedIcon: Icon(t.$1, color: _aPrimary, size: 20),
           label: t.$2,
         )).toList(),
       ),
@@ -120,7 +129,7 @@ class _Sidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: 220,
-    color: kDarker,
+    color: _aBackgroundAlt,
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const SizedBox(height: 32),
       Padding(
@@ -128,18 +137,18 @@ class _Sidebar extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(
             width: 36, height: 36,
-            decoration: BoxDecoration(color: kPrimary.withOpacity(0.15),
+            decoration: BoxDecoration(color: _aPrimary.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.admin_panel_settings, color: kPrimary, size: 20),
+            child: const Icon(Icons.admin_panel_settings, color: _aPrimary, size: 20),
           ),
           const SizedBox(height: 10),
           Text('Admin Portal', style: GoogleFonts.dmSans(
-              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-          Text('TippingJar', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+              color: _aTextMain, fontWeight: FontWeight.w700, fontSize: 15)),
+          Text('TippingJar', style: GoogleFonts.dmSans(color: _aMuted, fontSize: 11)),
         ]),
       ),
       const SizedBox(height: 28),
-      const Divider(color: kBorder, height: 1),
+      const Divider(color: _aBorder, height: 1),
       const SizedBox(height: 12),
       ..._tabs.asMap().entries.map((e) => _SidebarItem(
         icon: e.value.$1,
@@ -148,7 +157,7 @@ class _Sidebar extends StatelessWidget {
         onTap: () => onSelect(e.key),
       )),
       const Spacer(),
-      const Divider(color: kBorder, height: 1),
+      const Divider(color: _aBorder, height: 1),
       _SidebarItem(
         icon: Icons.logout,
         label: 'Logout',
@@ -177,14 +186,14 @@ class _SidebarItem extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: active ? kPrimary.withOpacity(0.12) : Colors.transparent,
+          color: active ? _aPrimary.withOpacity(0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(children: [
-          Icon(icon, size: 18, color: active ? kPrimary : kMuted),
+          Icon(icon, size: 18, color: active ? _aPrimary : _aMuted),
           const SizedBox(width: 10),
           Text(label, style: GoogleFonts.dmSans(
-              color: active ? kPrimary : kMuted,
+              color: active ? _aPrimary : _aMuted,
               fontSize: 13, fontWeight: active ? FontWeight.w600 : FontWeight.w500)),
         ]),
       ),
@@ -227,12 +236,12 @@ class _OverviewTabState extends State<_OverviewTab> {
         const SizedBox(height: 20),
         Wrap(spacing: 16, runSpacing: 16, children: [
           _StatCard('Total Users',       '${s['total_users'] ?? 0}',   Icons.people,          const Color(0xFF818CF8)),
-          _StatCard('Creators',          '${s['total_creators'] ?? 0}', Icons.person_pin,       kPrimary),
+          _StatCard('Creators',          '${s['total_creators'] ?? 0}', Icons.person_pin,       _aPrimary),
           _StatCard('Fans',              '${s['total_fans'] ?? 0}',    Icons.favorite,         const Color(0xFFF87171)),
           _StatCard('Enterprises',       '${s['total_enterprises'] ?? 0}', Icons.business,     const Color(0xFF0097B2)),
           _StatCard('Total Tips',        '${s['total_tips'] ?? 0}',    Icons.receipt_long,     const Color(0xFFFBBF24)),
           _StatCard('Volume (R)',        'R ${_fmt(s['total_volume'])}', Icons.attach_money,   const Color(0xFF34D399)),
-          _StatCard('Tips Today',        '${s['tips_today'] ?? 0}',    Icons.today,            kPrimary),
+          _StatCard('Tips Today',        '${s['tips_today'] ?? 0}',    Icons.today,            _aPrimary),
           _StatCard('Tips This Month',   '${s['tips_this_month'] ?? 0}', Icons.calendar_month, const Color(0xFF818CF8)),
           _StatCard('Pending KYC',       '${s['pending_kyc'] ?? 0}',  Icons.pending_actions,  const Color(0xFFFBBF24)),
           _StatCard('Pending Enterprises', '${s['pending_enterprises'] ?? 0}', Icons.hourglass_top, const Color(0xFFF87171)),
@@ -284,7 +293,7 @@ class _UsersTabState extends State<_UsersTab> {
     return Column(children: [
       // Filters
       Container(
-        color: kDarker,
+        color: _aBackgroundAlt,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(children: [
           Expanded(child: _SearchField(ctrl: _searchCtrl, onSubmit: _load)),
@@ -307,9 +316,9 @@ class _UsersTabState extends State<_UsersTab> {
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(color: kCardBg,
+              decoration: BoxDecoration(color: _aSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: kBorder)),
+                  border: Border.all(color: _aBorder)),
               child: Row(children: [
                 Container(width: 36, height: 36,
                   decoration: BoxDecoration(color: roleColor.withOpacity(0.15), shape: BoxShape.circle),
@@ -321,27 +330,27 @@ class _UsersTabState extends State<_UsersTab> {
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(u['email'] as String? ?? '', style: GoogleFonts.dmSans(
-                      color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                      color: _aTextMain, fontWeight: FontWeight.w600, fontSize: 13)),
                   Text('${u['first_name'] ?? ''} ${u['last_name'] ?? ''}'.trim().isNotEmpty
                       ? '${u['first_name']} ${u['last_name']}'.trim()
                       : u['username'] as String? ?? '',
-                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                      style: GoogleFonts.dmSans(color: _aMuted, fontSize: 11)),
                 ])),
                 _RoleBadge(u['role'] as String? ?? ''),
                 const SizedBox(width: 12),
                 _ActiveDot(u['is_active'] as bool? ?? true),
                 const SizedBox(width: 8),
                 PopupMenuButton<String>(
-                  color: kCardBg,
-                  icon: const Icon(Icons.more_vert, color: kMuted, size: 18),
+                  color: _aSurface,
+                  icon: const Icon(Icons.more_vert, color: _aMuted, size: 18),
                   onSelected: (val) => _onUserAction(u, val),
                   itemBuilder: (_) => [
                     if ((u['is_active'] as bool? ?? true))
-                      const PopupMenuItem(value: 'deactivate', child: Text('Deactivate', style: TextStyle(color: Colors.white, fontSize: 13))),
+                      const PopupMenuItem(value: 'deactivate', child: Text('Deactivate', style: TextStyle(color: _aTextMain, fontSize: 13))),
                     if (!(u['is_active'] as bool? ?? true))
-                      const PopupMenuItem(value: 'activate', child: Text('Activate', style: TextStyle(color: Colors.white, fontSize: 13))),
-                    const PopupMenuItem(value: 'make_admin', child: Text('Make Admin', style: TextStyle(color: Colors.white, fontSize: 13))),
-                    const PopupMenuItem(value: 'make_fan', child: Text('Set as Fan', style: TextStyle(color: Colors.white, fontSize: 13))),
+                      const PopupMenuItem(value: 'activate', child: Text('Activate', style: TextStyle(color: _aTextMain, fontSize: 13))),
+                    const PopupMenuItem(value: 'make_admin', child: Text('Make Admin', style: TextStyle(color: _aTextMain, fontSize: 13))),
+                    const PopupMenuItem(value: 'make_fan', child: Text('Set as Fan', style: TextStyle(color: _aTextMain, fontSize: 13))),
                   ],
                 ),
               ]),
@@ -370,7 +379,7 @@ class _UsersTabState extends State<_UsersTab> {
   void _showSnack(String msg, {bool error = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: error ? Colors.red : kPrimary,
+      backgroundColor: error ? Colors.red : _aPrimary,
     ));
   }
 }
@@ -412,7 +421,7 @@ class _TipsTabState extends State<_TipsTab> {
 
     return Column(children: [
       Container(
-        color: kDarker,
+        color: _aBackgroundAlt,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(children: [
           Expanded(child: _SearchField(ctrl: _searchCtrl, hint: 'Search email or creator…', onSubmit: _load)),
@@ -423,13 +432,13 @@ class _TipsTabState extends State<_TipsTab> {
         ]),
       ),
       Container(
-        color: kDarker.withOpacity(0.5),
+        color: _aBackgroundAlt.withOpacity(0.5),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         child: Row(children: [
-          Text('${_tips.length} tips', style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+          Text('${_tips.length} tips', style: GoogleFonts.dmSans(color: _aMuted, fontSize: 12)),
           const SizedBox(width: 16),
           Text('Total: R${total.toStringAsFixed(2)}',
-              style: GoogleFonts.dmSans(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+              style: GoogleFonts.dmSans(color: _aPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
         ]),
       ),
       if (_loading) const Expanded(child: _Loader())
@@ -443,18 +452,18 @@ class _TipsTabState extends State<_TipsTab> {
             final stColor = st == 'completed' ? const Color(0xFF34D399)
                 : st == 'failed' ? const Color(0xFFF87171)
                 : st == 'refunded' ? const Color(0xFF818CF8)
-                : kMuted;
+                : _aMuted;
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: kCardBg,
+              decoration: BoxDecoration(color: _aSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: kBorder)),
+                  border: Border.all(color: _aBorder)),
               child: Row(children: [
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     Text('R${t['amount'] ?? '0'}',
-                        style: GoogleFonts.dmSans(color: Colors.white,
+                        style: GoogleFonts.dmSans(color: _aTextMain,
                             fontWeight: FontWeight.w700, fontSize: 15)),
                     const SizedBox(width: 10),
                     Container(
@@ -467,21 +476,21 @@ class _TipsTabState extends State<_TipsTab> {
                   ]),
                   const SizedBox(height: 4),
                   Text('From: ${t['tipper_name'] ?? ''} (${t['tipper_email'] ?? ''})',
-                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                      style: GoogleFonts.dmSans(color: _aMuted, fontSize: 11)),
                   Text('To: ${t['creator_name'] ?? t['creator_slug'] ?? ''}',
-                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                      style: GoogleFonts.dmSans(color: _aMuted, fontSize: 11)),
                   if ((t['message'] as String? ?? '').isNotEmpty)
                     Text('"${t['message']}"',
-                        style: GoogleFonts.dmSans(color: kMuted, fontSize: 11,
+                        style: GoogleFonts.dmSans(color: _aMuted, fontSize: 11,
                             fontStyle: FontStyle.italic)),
                 ])),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   Text(_shortDate(t['created_at'] as String? ?? ''),
-                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                      style: GoogleFonts.dmSans(color: _aMuted, fontSize: 11)),
                   if ((t['paystack_reference'] as String? ?? '').isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text('Ref: ${t['paystack_reference']}',
-                        style: GoogleFonts.dmSans(color: kMuted, fontSize: 10),
+                        style: GoogleFonts.dmSans(color: _aMuted, fontSize: 10),
                         overflow: TextOverflow.ellipsis),
                   ],
                 ]),
@@ -528,7 +537,7 @@ class _CreatorsTabState extends State<_CreatorsTab> {
   Widget build(BuildContext context) {
     return Column(children: [
       Container(
-        color: kDarker,
+        color: _aBackgroundAlt,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(children: [
           Expanded(child: _SearchField(ctrl: _searchCtrl, hint: 'Search creator…', onSubmit: _load)),
@@ -572,22 +581,22 @@ class _CreatorCard extends StatelessWidget {
     final kycColor = kyc == 'approved' ? const Color(0xFF34D399)
         : kyc == 'declined' ? const Color(0xFFF87171)
         : kyc == 'pending' ? const Color(0xFFFBBF24)
-        : kMuted;
+        : _aMuted;
     final docs = (creator['kyc_documents'] as List? ?? []);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: kCardBg,
+      decoration: BoxDecoration(color: _aSurface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: kBorder)),
+          border: Border.all(color: _aBorder)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(creator['display_name'] as String? ?? '', style: GoogleFonts.dmSans(
-                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                color: _aTextMain, fontWeight: FontWeight.w700, fontSize: 14)),
             Text(creator['email'] as String? ?? '',
-                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+                style: GoogleFonts.dmSans(color: _aMuted, fontSize: 12)),
           ])),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -610,12 +619,12 @@ class _CreatorCard extends StatelessWidget {
         if (docs.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text('Documents:', style: GoogleFonts.dmSans(
-              color: kMuted, fontSize: 11, fontWeight: FontWeight.w600)),
+              color: _aMuted, fontSize: 11, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Wrap(spacing: 8, runSpacing: 4, children: docs.map<Widget>((d) {
             final docStatus = d['status'] as String? ?? 'pending';
             final dc = docStatus == 'approved' ? const Color(0xFF34D399)
-                : docStatus == 'declined' ? const Color(0xFFF87171) : kMuted;
+                : docStatus == 'declined' ? const Color(0xFFF87171) : _aMuted;
             return GestureDetector(
               onTap: () {
                 final url = d['file'] as String? ?? '';
@@ -670,23 +679,23 @@ class _CreatorCard extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: kCardBg,
-        title: Text('Decline KYC', style: GoogleFonts.dmSans(color: Colors.white)),
+        backgroundColor: _aSurface,
+        title: Text('Decline KYC', style: GoogleFonts.dmSans(color: _aTextMain)),
         content: TextField(
           controller: ctrl,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: _aTextMain),
           decoration: InputDecoration(
             hintText: 'Reason (optional)',
-            hintStyle: const TextStyle(color: kMuted),
-            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: kBorder),
+            hintStyle: const TextStyle(color: _aMuted),
+            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: _aBorder),
                 borderRadius: BorderRadius.circular(8)),
-            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: kPrimary),
+            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: _aPrimary),
                 borderRadius: BorderRadius.circular(8)),
           ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel', style: TextStyle(color: kMuted))),
+              child: const Text('Cancel', style: TextStyle(color: _aMuted))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF87171)),
@@ -730,7 +739,7 @@ class _EnterprisesTabState extends State<_EnterprisesTab> {
   Widget build(BuildContext context) {
     return Column(children: [
       Container(
-        color: kDarker,
+        color: _aBackgroundAlt,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(children: [
           for (final f in ['', 'pending', 'approved', 'rejected'])
@@ -777,16 +786,16 @@ class _EnterpriseCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: kCardBg,
+      decoration: BoxDecoration(color: _aSurface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: kBorder)),
+          border: Border.all(color: _aBorder)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(enterprise['company_name'] as String? ?? '', style: GoogleFonts.dmSans(
-                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                color: _aTextMain, fontWeight: FontWeight.w700, fontSize: 15)),
             Text(enterprise['owner_email'] as String? ?? '',
-                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+                style: GoogleFonts.dmSans(color: _aMuted, fontSize: 12)),
           ])),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -806,7 +815,7 @@ class _EnterpriseCard extends StatelessWidget {
         if (docs.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text('Documents: ${docs.length}',
-              style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+              style: GoogleFonts.dmSans(color: _aMuted, fontSize: 11)),
         ],
         if (st == 'pending') ...[
           const SizedBox(height: 12),
@@ -842,23 +851,23 @@ class _EnterpriseCard extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: kCardBg,
-        title: Text('Reject Enterprise', style: GoogleFonts.dmSans(color: Colors.white)),
+        backgroundColor: _aSurface,
+        title: Text('Reject Enterprise', style: GoogleFonts.dmSans(color: _aTextMain)),
         content: TextField(
           controller: ctrl,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: _aTextMain),
           decoration: InputDecoration(
             hintText: 'Reason',
-            hintStyle: const TextStyle(color: kMuted),
-            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: kBorder),
+            hintStyle: const TextStyle(color: _aMuted),
+            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: _aBorder),
                 borderRadius: BorderRadius.circular(8)),
-            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: kPrimary),
+            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: _aPrimary),
                 borderRadius: BorderRadius.circular(8)),
           ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel', style: TextStyle(color: kMuted))),
+              child: const Text('Cancel', style: TextStyle(color: _aMuted))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF87171)),
@@ -900,16 +909,16 @@ class _BlogTabState extends State<_BlogTab> {
   Widget build(BuildContext context) {
     return Column(children: [
       Container(
-        color: kDarker,
+        color: _aBackgroundAlt,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(children: [
-          Text('${_posts.length} posts', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
+          Text('${_posts.length} posts', style: GoogleFonts.dmSans(color: _aMuted, fontSize: 13)),
           const Spacer(),
           ElevatedButton.icon(
             onPressed: () => _openEditor(context, null),
             icon: const Icon(Icons.add, size: 16),
             label: const Text('New Post'),
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimary,
+            style: ElevatedButton.styleFrom(backgroundColor: _aPrimary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
           ),
@@ -926,32 +935,32 @@ class _BlogTabState extends State<_BlogTab> {
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: kCardBg,
+              decoration: BoxDecoration(color: _aSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: kBorder)),
+                  border: Border.all(color: _aBorder)),
               child: Row(children: [
                 Container(
                   width: 8, height: 8,
                   decoration: BoxDecoration(
-                      color: published ? const Color(0xFF34D399) : kMuted,
+                      color: published ? const Color(0xFF34D399) : _aMuted,
                       shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(p['title'] as String? ?? '', style: GoogleFonts.dmSans(
-                      color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                      color: _aTextMain, fontWeight: FontWeight.w600, fontSize: 13)),
                   Text('${p['category'] ?? ''} · ${p['author_name'] ?? ''} · ${_shortDate(p['created_at'] as String? ?? '')}',
-                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                      style: GoogleFonts.dmSans(color: _aMuted, fontSize: 11)),
                 ])),
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   IconButton(
                     icon: Icon(published ? Icons.visibility_off : Icons.visibility,
-                        color: kMuted, size: 18),
+                        color: _aMuted, size: 18),
                     tooltip: published ? 'Unpublish' : 'Publish',
                     onPressed: () => _togglePublish(p),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: kMuted, size: 18),
+                    icon: const Icon(Icons.edit_outlined, color: _aMuted, size: 18),
                     onPressed: () => _openEditor(context, p),
                   ),
                   IconButton(
@@ -977,13 +986,13 @@ class _BlogTabState extends State<_BlogTab> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: kCardBg,
-        title: Text('Delete Post?', style: GoogleFonts.dmSans(color: Colors.white)),
+        backgroundColor: _aSurface,
+        title: Text('Delete Post?', style: GoogleFonts.dmSans(color: _aTextMain)),
         content: Text('Are you sure you want to delete "${post['title']}"?',
-            style: GoogleFonts.dmSans(color: kMuted)),
+            style: GoogleFonts.dmSans(color: _aMuted)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel', style: TextStyle(color: kMuted))),
+              child: const Text('Cancel', style: TextStyle(color: _aMuted))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF87171)),
@@ -1076,7 +1085,7 @@ class _BlogEditorDialogState extends State<_BlogEditorDialog> {
   Widget build(BuildContext context) {
     final isEdit = widget.post != null;
     return Dialog(
-      backgroundColor: kCardBg,
+      backgroundColor: _aSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -1088,15 +1097,15 @@ class _BlogEditorDialogState extends State<_BlogEditorDialog> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: kBorder)),
+              border: Border(bottom: BorderSide(color: _aBorder)),
             ),
             child: Row(children: [
               Text(isEdit ? 'Edit Post' : 'New Blog Post',
-                  style: GoogleFonts.dmSans(color: Colors.white,
+                  style: GoogleFonts.dmSans(color: _aTextMain,
                       fontWeight: FontWeight.w700, fontSize: 16)),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.close, color: kMuted),
+                icon: const Icon(Icons.close, color: _aMuted),
                 onPressed: () => Navigator.pop(context, false),
               ),
             ]),
@@ -1114,8 +1123,8 @@ class _BlogEditorDialogState extends State<_BlogEditorDialog> {
                   _FieldLabel('Category'),
                   DropdownButtonFormField<String>(
                     value: _category,
-                    dropdownColor: kDarker,
-                    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
+                    dropdownColor: _aBackgroundAlt,
+                    style: GoogleFonts.dmSans(color: _aTextMain, fontSize: 13),
                     decoration: _inputDecoration(),
                     items: const [
                       DropdownMenuItem(value: 'creator-guide', child: Text('Creator Guide')),
@@ -1149,10 +1158,10 @@ class _BlogEditorDialogState extends State<_BlogEditorDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                  color: kDarker,
+                  color: _aBackgroundAlt,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(8), topRight: Radius.circular(8)),
-                  border: Border.all(color: kBorder),
+                  border: Border.all(color: _aBorder),
                 ),
                 child: Wrap(spacing: 4, children: [
                   _ToolbarBtn('B', bold: true,  onTap: () => _insertTag('<strong>', '</strong>')),
@@ -1183,27 +1192,27 @@ class _BlogEditorDialogState extends State<_BlogEditorDialog> {
               TextField(
                 controller: _contentCtrl,
                 maxLines: 16,
-                style: GoogleFonts.dmMono(color: Colors.white, fontSize: 13),
+                style: GoogleFonts.dmMono(color: _aTextMain, fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'Write your post content in HTML…\n\nExample:\n<p>Hello world</p>\n<h2>A heading</h2>',
-                  hintStyle: GoogleFonts.dmMono(color: kMuted, fontSize: 12),
+                  hintStyle: GoogleFonts.dmMono(color: _aMuted, fontSize: 12),
                   filled: true,
-                  fillColor: kDark,
+                  fillColor: _aBackground,
                   contentPadding: const EdgeInsets.all(14),
                   border: OutlineInputBorder(
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
-                    borderSide: const BorderSide(color: kBorder),
+                    borderSide: const BorderSide(color: _aBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
-                    borderSide: const BorderSide(color: kBorder),
+                    borderSide: const BorderSide(color: _aBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
-                    borderSide: const BorderSide(color: kPrimary),
+                    borderSide: const BorderSide(color: _aPrimary),
                   ),
                 ),
               ),
@@ -1211,29 +1220,29 @@ class _BlogEditorDialogState extends State<_BlogEditorDialog> {
               // Published toggle
               Row(children: [
                 Switch(value: _published,
-                    activeColor: kPrimary,
+                    activeColor: _aPrimary,
                     onChanged: (v) => setState(() => _published = v)),
                 const SizedBox(width: 8),
                 Text(_published ? 'Published (visible on site)' : 'Draft (hidden from public)',
                     style: GoogleFonts.dmSans(
-                        color: _published ? const Color(0xFF34D399) : kMuted, fontSize: 13)),
+                        color: _published ? const Color(0xFF34D399) : _aMuted, fontSize: 13)),
               ]),
             ]),
           )),
           // Footer
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            decoration: const BoxDecoration(border: Border(top: BorderSide(color: kBorder))),
+            decoration: const BoxDecoration(border: Border(top: BorderSide(color: _aBorder))),
             child: Row(children: [
               const Spacer(),
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel', style: TextStyle(color: kMuted)),
+                child: const Text('Cancel', style: TextStyle(color: _aMuted)),
               ),
               const SizedBox(width: 10),
               ElevatedButton(
                 onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(backgroundColor: kPrimary,
+                style: ElevatedButton.styleFrom(backgroundColor: _aPrimary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
@@ -1312,16 +1321,16 @@ class _CareersTabState extends State<_CareersTab> {
   Widget build(BuildContext context) {
     return Column(children: [
       Container(
-        color: kDarker,
+        color: _aBackgroundAlt,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(children: [
-          Text('${_jobs.length} roles', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
+          Text('${_jobs.length} roles', style: GoogleFonts.dmSans(color: _aMuted, fontSize: 13)),
           const Spacer(),
           ElevatedButton.icon(
             onPressed: () => _openEditor(context, null),
             icon: const Icon(Icons.add, size: 16),
             label: const Text('New Role'),
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimary,
+            style: ElevatedButton.styleFrom(backgroundColor: _aPrimary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
           ),
@@ -1338,30 +1347,30 @@ class _CareersTabState extends State<_CareersTab> {
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: kCardBg,
+              decoration: BoxDecoration(color: _aSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: kBorder)),
+                  border: Border.all(color: _aBorder)),
               child: Row(children: [
                 Container(width: 8, height: 8,
                     decoration: BoxDecoration(
-                        color: active ? const Color(0xFF34D399) : kMuted,
+                        color: active ? const Color(0xFF34D399) : _aMuted,
                         shape: BoxShape.circle)),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(j['title'] as String? ?? '', style: GoogleFonts.dmSans(
-                      color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                      color: _aTextMain, fontWeight: FontWeight.w600, fontSize: 13)),
                   Text('${j['department'] ?? ''} · ${j['location'] ?? ''} · ${j['employment_type'] ?? ''}',
-                      style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+                      style: GoogleFonts.dmSans(color: _aMuted, fontSize: 11)),
                 ])),
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   IconButton(
                     icon: Icon(active ? Icons.visibility_off : Icons.visibility,
-                        color: kMuted, size: 18),
+                        color: _aMuted, size: 18),
                     tooltip: active ? 'Deactivate' : 'Activate',
                     onPressed: () => _toggleActive(j),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: kMuted, size: 18),
+                    icon: const Icon(Icons.edit_outlined, color: _aMuted, size: 18),
                     onPressed: () => _openEditor(context, j),
                   ),
                   IconButton(
@@ -1387,13 +1396,13 @@ class _CareersTabState extends State<_CareersTab> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: kCardBg,
-        title: Text('Delete Role?', style: GoogleFonts.dmSans(color: Colors.white)),
+        backgroundColor: _aSurface,
+        title: Text('Delete Role?', style: GoogleFonts.dmSans(color: _aTextMain)),
         content: Text('Delete "${job['title']}"?',
-            style: GoogleFonts.dmSans(color: kMuted)),
+            style: GoogleFonts.dmSans(color: _aMuted)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel', style: TextStyle(color: kMuted))),
+              child: const Text('Cancel', style: TextStyle(color: _aMuted))),
           ElevatedButton(onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF87171)),
               child: const Text('Delete')),
@@ -1486,7 +1495,7 @@ class _JobEditorDialogState extends State<_JobEditorDialog> {
   Widget build(BuildContext context) {
     final isEdit = widget.job != null;
     return Dialog(
-      backgroundColor: kCardBg,
+      backgroundColor: _aSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -1495,13 +1504,13 @@ class _JobEditorDialogState extends State<_JobEditorDialog> {
           // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kBorder))),
+            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: _aBorder))),
             child: Row(children: [
               Text(isEdit ? 'Edit Role' : 'New Job Opening',
-                  style: GoogleFonts.dmSans(color: Colors.white,
+                  style: GoogleFonts.dmSans(color: _aTextMain,
                       fontWeight: FontWeight.w700, fontSize: 16)),
               const Spacer(),
-              IconButton(icon: const Icon(Icons.close, color: kMuted),
+              IconButton(icon: const Icon(Icons.close, color: _aMuted),
                   onPressed: () => Navigator.pop(context, false)),
             ]),
           ),
@@ -1516,8 +1525,8 @@ class _JobEditorDialogState extends State<_JobEditorDialog> {
                   _FieldLabel('Department'),
                   DropdownButtonFormField<String>(
                     value: _department,
-                    dropdownColor: kDarker,
-                    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
+                    dropdownColor: _aBackgroundAlt,
+                    style: GoogleFonts.dmSans(color: _aTextMain, fontSize: 13),
                     decoration: _inputDecoration(),
                     items: _departments.map((d) =>
                         DropdownMenuItem(value: d, child: Text(d))).toList(),
@@ -1529,8 +1538,8 @@ class _JobEditorDialogState extends State<_JobEditorDialog> {
                   _FieldLabel('Type'),
                   DropdownButtonFormField<String>(
                     value: _employmentType,
-                    dropdownColor: kDarker,
-                    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
+                    dropdownColor: _aBackgroundAlt,
+                    style: GoogleFonts.dmSans(color: _aTextMain, fontSize: 13),
                     decoration: _inputDecoration(),
                     items: _types.map((t) =>
                         DropdownMenuItem(value: t, child: Text(t))).toList(),
@@ -1549,10 +1558,10 @@ class _JobEditorDialogState extends State<_JobEditorDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                  color: kDarker,
+                  color: _aBackgroundAlt,
                   borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(8), topRight: Radius.circular(8)),
-                  border: Border.all(color: kBorder),
+                  border: Border.all(color: _aBorder),
                 ),
                 child: Wrap(spacing: 4, children: [
                   _ToolbarBtn('B', bold: true,   onTap: () => _insertTag('<strong>', '</strong>')),
@@ -1569,51 +1578,51 @@ class _JobEditorDialogState extends State<_JobEditorDialog> {
               TextField(
                 controller: _descCtrl,
                 maxLines: 12,
-                style: GoogleFonts.dmMono(color: Colors.white, fontSize: 13),
+                style: GoogleFonts.dmMono(color: _aTextMain, fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'Describe the role, responsibilities, requirements…',
-                  hintStyle: GoogleFonts.dmMono(color: kMuted, fontSize: 12),
-                  filled: true, fillColor: kDark,
+                  hintStyle: GoogleFonts.dmMono(color: _aMuted, fontSize: 12),
+                  filled: true, fillColor: _aBackground,
                   contentPadding: const EdgeInsets.all(14),
                   border: OutlineInputBorder(
                     borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
-                    borderSide: const BorderSide(color: kBorder),
+                    borderSide: const BorderSide(color: _aBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
-                    borderSide: const BorderSide(color: kBorder),
+                    borderSide: const BorderSide(color: _aBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
-                    borderSide: const BorderSide(color: kPrimary),
+                    borderSide: const BorderSide(color: _aPrimary),
                   ),
                 ),
               ),
               const SizedBox(height: 14),
               Row(children: [
-                Switch(value: _active, activeColor: kPrimary,
+                Switch(value: _active, activeColor: _aPrimary,
                     onChanged: (v) => setState(() => _active = v)),
                 const SizedBox(width: 8),
                 Text(_active ? 'Active (visible on careers page)' : 'Inactive (hidden)',
                     style: GoogleFonts.dmSans(
-                        color: _active ? const Color(0xFF34D399) : kMuted, fontSize: 13)),
+                        color: _active ? const Color(0xFF34D399) : _aMuted, fontSize: 13)),
               ]),
             ]),
           )),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            decoration: const BoxDecoration(border: Border(top: BorderSide(color: kBorder))),
+            decoration: const BoxDecoration(border: Border(top: BorderSide(color: _aBorder))),
             child: Row(children: [
               const Spacer(),
               TextButton(onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel', style: TextStyle(color: kMuted))),
+                  child: const Text('Cancel', style: TextStyle(color: _aMuted))),
               const SizedBox(width: 10),
               ElevatedButton(
                 onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(backgroundColor: kPrimary,
+                style: ElevatedButton.styleFrom(backgroundColor: _aPrimary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
@@ -1672,9 +1681,9 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: 180,
     padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(color: kCardBg,
+    decoration: BoxDecoration(color: _aSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kBorder)),
+        border: Border.all(color: _aBorder)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(width: 36, height: 36,
         decoration: BoxDecoration(color: color.withOpacity(0.12),
@@ -1682,9 +1691,9 @@ class _StatCard extends StatelessWidget {
         child: Icon(icon, color: color, size: 18)),
       const SizedBox(height: 12),
       Text(value, style: GoogleFonts.dmSans(
-          color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22)),
+          color: _aTextMain, fontWeight: FontWeight.w800, fontSize: 22)),
       const SizedBox(height: 4),
-      Text(label, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+      Text(label, style: GoogleFonts.dmSans(color: _aMuted, fontSize: 12)),
     ]),
   );
 }
@@ -1694,14 +1703,14 @@ class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);
   @override
   Widget build(BuildContext context) => Text(text, style: GoogleFonts.dmSans(
-      color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18));
+      color: _aTextMain, fontWeight: FontWeight.w700, fontSize: 18));
 }
 
 class _Loader extends StatelessWidget {
   const _Loader();
   @override
   Widget build(BuildContext context) =>
-      const Center(child: SpinKitFadingCircle(color: kPrimary, size: 32));
+      const Center(child: SpinKitFadingCircle(color: _aPrimary, size: 32));
 }
 
 class _RoleChip extends StatelessWidget {
@@ -1720,12 +1729,12 @@ class _RoleChip extends StatelessWidget {
           margin: const EdgeInsets.only(right: 6),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: active ? kPrimary.withOpacity(0.15) : Colors.transparent,
+            color: active ? _aPrimary.withOpacity(0.15) : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: active ? kPrimary.withOpacity(0.4) : kBorder),
+            border: Border.all(color: active ? _aPrimary.withOpacity(0.4) : _aBorder),
           ),
           child: Text(label, style: GoogleFonts.dmSans(
-              color: active ? kPrimary : kMuted,
+              color: active ? _aPrimary : _aMuted,
               fontSize: 11, fontWeight: active ? FontWeight.w600 : FontWeight.w500)),
         ),
       ),
@@ -1742,20 +1751,20 @@ class _SearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) => TextField(
     controller: ctrl,
-    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
+    style: GoogleFonts.dmSans(color: _aTextMain, fontSize: 13),
     onSubmitted: (_) => onSubmit(),
     decoration: InputDecoration(
       hintText: hint,
-      hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
-      prefixIcon: const Icon(Icons.search, color: kMuted, size: 18),
-      filled: true, fillColor: kDark,
+      hintStyle: GoogleFonts.dmSans(color: _aMuted, fontSize: 13),
+      prefixIcon: const Icon(Icons.search, color: _aMuted, size: 18),
+      filled: true, fillColor: _aBackground,
       contentPadding: const EdgeInsets.symmetric(vertical: 10),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: kBorder)),
+          borderSide: const BorderSide(color: _aBorder)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: kBorder)),
+          borderSide: const BorderSide(color: _aBorder)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: kPrimary)),
+          borderSide: const BorderSide(color: _aPrimary)),
     ),
   );
 }
@@ -1795,9 +1804,9 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 3),
     child: Row(children: [
-      Text('$label: ', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+      Text('$label: ', style: GoogleFonts.dmSans(color: _aMuted, fontSize: 11)),
       Expanded(child: Text(value, style: GoogleFonts.dmSans(
-          color: Colors.white, fontSize: 11), overflow: TextOverflow.ellipsis)),
+          color: _aTextMain, fontSize: 11), overflow: TextOverflow.ellipsis)),
     ]),
   );
 }
@@ -1809,7 +1818,7 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Text(text, style: GoogleFonts.dmSans(
-        color: kMuted, fontSize: 11, fontWeight: FontWeight.w600)),
+        color: _aMuted, fontSize: 11, fontWeight: FontWeight.w600)),
   );
 }
 
@@ -1823,22 +1832,22 @@ class _Input extends StatelessWidget {
   Widget build(BuildContext context) => TextField(
     controller: ctrl,
     maxLines: maxLines,
-    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
+    style: GoogleFonts.dmSans(color: _aTextMain, fontSize: 13),
     decoration: _inputDecoration(hint: hint),
   );
 }
 
 InputDecoration _inputDecoration({String hint = ''}) => InputDecoration(
   hintText: hint,
-  hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
-  filled: true, fillColor: kDark,
+  hintStyle: GoogleFonts.dmSans(color: _aMuted, fontSize: 13),
+  filled: true, fillColor: _aBackground,
   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: kBorder)),
+      borderSide: const BorderSide(color: _aBorder)),
   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: kBorder)),
+      borderSide: const BorderSide(color: _aBorder)),
   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: kPrimary)),
+      borderSide: const BorderSide(color: _aPrimary)),
 );
 
 class _ToolbarBtn extends StatelessWidget {
@@ -1856,11 +1865,11 @@ class _ToolbarBtn extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         margin: const EdgeInsets.symmetric(vertical: 2),
-        decoration: BoxDecoration(color: kCardBg,
+        decoration: BoxDecoration(color: _aSurface,
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: kBorder)),
+            border: Border.all(color: _aBorder)),
         child: Text(label, style: GoogleFonts.dmSans(
-            color: Colors.white, fontSize: 11,
+            color: _aTextMain, fontSize: 11,
             fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
             decoration: underline ? TextDecoration.underline : TextDecoration.none)),
@@ -1873,7 +1882,7 @@ class _ToolbarDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const SizedBox(
     width: 1, height: 24,
-    child: VerticalDivider(color: kBorder, width: 1),
+    child: VerticalDivider(color: _aBorder, width: 1),
   );
 }
 
@@ -1881,11 +1890,11 @@ class _ToolbarDivider extends StatelessWidget {
 
 Color _roleColor(String role) {
   switch (role) {
-    case 'creator': return kPrimary;
+    case 'creator': return _aPrimary;
     case 'enterprise': return const Color(0xFF0097B2);
     case 'admin': return const Color(0xFF818CF8);
     case 'fan': return const Color(0xFFFBBF24);
-    default: return kMuted;
+    default: return _aMuted;
   }
 }
 
