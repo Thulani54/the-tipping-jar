@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
 
 env:
-  ACR_REGISTRY: tippingjarregistry.azurecr.io
-  BACKEND_IMAGE: tippingjarregistry.azurecr.io/backend
-  FRONTEND_IMAGE: tippingjarregistry.azurecr.io/frontend
-  BACKEND_APP: tippingjar-backend
-  FRONTEND_APP: tippingjar-frontend
+  ACR_REGISTRY: tippingjarregistry2.azurecr.io
+  BACKEND_IMAGE: tippingjarregistry2.azurecr.io/backend
+  FRONTEND_IMAGE: tippingjarregistry2.azurecr.io/frontend
+  BACKEND_APP: tippingjar-be
+  FRONTEND_APP: tippingjar-fe
   RESOURCE_GROUP: TippingJar
 
 jobs:
