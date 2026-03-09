@@ -731,35 +731,38 @@ class _TipFormState extends State<_TipForm> {
   );
 
   // ── Form ──────────────────────────────────────────────────────────
+  static const _inputFill   = Color(0xFFF5F7F6);
+  static const _labelColor  = Color(0xFF0A0F0D);
+  static const _hintColor   = Color(0xFF9AB0A8);
+  static const _inputBorder = Color(0xFFD8E4E0);
+
   Widget _formState() => Container(
     key: const ValueKey('form'),
     padding: const EdgeInsets.all(28),
     decoration: BoxDecoration(
-      color: kCardBg, borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: kBorder),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(color: const Color(0xFFE8F0EC)),
       boxShadow: [BoxShadow(
-          color: kPrimary.withValues(alpha: 0.04),
-          blurRadius: 32, offset: const Offset(0, 8))],
+          color: Colors.black.withValues(alpha: 0.06),
+          blurRadius: 24, offset: const Offset(0, 6))],
     ),
     child: Form(
       key: _formKey,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Header
         Text(
-          'Support ${widget.creator.displayName} 💚',
-          style: GoogleFonts.dmSans(color: Colors.white,
+          'Support ${widget.creator.displayName}',
+          style: GoogleFonts.dmSans(color: _labelColor,
               fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.4),
         ).animate().fadeIn(duration: 400.ms),
         const SizedBox(height: 4),
         Text('Choose an amount and leave a message.',
-            style: GoogleFonts.dmSans(color: kMuted, fontSize: 13))
+            style: GoogleFonts.dmSans(color: _hintColor, fontSize: 13))
             .animate().fadeIn(delay: 60.ms, duration: 400.ms),
         const SizedBox(height: 24),
 
         // Amount presets
-        Text('Amount', style: GoogleFonts.dmSans(
-            color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-        const SizedBox(height: 10),
         _AmountGrid(
           presets: _presets,
           selected: _usingCustom ? null : _amount,
@@ -776,21 +779,21 @@ class _TipFormState extends State<_TipForm> {
           controller: _customCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+          style: GoogleFonts.dmSans(color: _labelColor, fontSize: 14),
           onChanged: (v) {
             final parsed = double.tryParse(v);
             setState(() => _customAmount = parsed);
           },
           decoration: InputDecoration(
             hintText: 'Custom amount',
-            hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
-            prefixText: '\$ ',
-            prefixStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
-            filled: true, fillColor: kDark,
+            hintStyle: GoogleFonts.dmSans(color: _hintColor, fontSize: 14),
+            prefixText: 'R ',
+            prefixStyle: GoogleFonts.dmSans(color: _hintColor, fontSize: 14),
+            filled: true, fillColor: _inputFill,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                  color: _usingCustom ? kPrimary : kBorder,
+                  color: _usingCustom ? kPrimary : _inputBorder,
                   width: _usingCustom ? 2 : 1),
             ),
             focusedBorder: OutlineInputBorder(
@@ -802,42 +805,13 @@ class _TipFormState extends State<_TipForm> {
         ),
         const SizedBox(height: 20),
 
-        // Fee breakdown preview
-        AnimatedContainer(
-          duration: 200.ms,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: kPrimary.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kPrimary.withValues(alpha: 0.2)),
-          ),
-          child: Column(children: [
-            Row(children: [
-              const Icon(Icons.volunteer_activism_rounded, color: kPrimary, size: 14),
-              const SizedBox(width: 8),
-              Expanded(child: Text(
-                'Sending to ${widget.creator.displayName}',
-                style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 13),
-              )),
-              Text('R${_finalAmount.toStringAsFixed(2)}',
-                  style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
-            ]),
-            const SizedBox(height: 8),
-            _FeeRow('Platform fee (${_platformFeePct.toInt()}%)', '- R${_platformFee.toStringAsFixed(2)}', kMuted),
-            _FeeRow('Service fee (${_serviceFeePct.toInt()}%)', '- R${_serviceFee.toStringAsFixed(2)}', kMuted),
-            const Divider(color: kBorder, height: 10),
-            _FeeRow('Creator receives', 'R${_creatorNet.toStringAsFixed(2)}', Colors.white, bold: true),
-          ]),
-        ),
-        const SizedBox(height: 20),
-
         // Name
         Text('Your name (optional)', style: GoogleFonts.dmSans(
-            color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+            color: _labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(height: 8),
         TextFormField(
           controller: _nameCtrl,
-          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+          style: GoogleFonts.dmSans(color: _labelColor, fontSize: 14),
           validator: (v) {
             if (v == null || v.trim().isEmpty) return null;
             if (RegExp(r'[0-9]').hasMatch(v)) return 'Name cannot contain numbers';
@@ -845,11 +819,11 @@ class _TipFormState extends State<_TipForm> {
           },
           decoration: InputDecoration(
             hintText: 'Anonymous',
-            hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
-            prefixIcon: const Icon(Icons.person_outline_rounded, color: kMuted, size: 18),
-            filled: true, fillColor: kDark,
+            hintStyle: GoogleFonts.dmSans(color: _hintColor, fontSize: 14),
+            prefixIcon: const Icon(Icons.person_outline_rounded, color: _hintColor, size: 18),
+            filled: true, fillColor: _inputFill,
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kBorder)),
+                borderSide: const BorderSide(color: _inputBorder)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kPrimary, width: 2)),
             errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
@@ -861,21 +835,21 @@ class _TipFormState extends State<_TipForm> {
         ),
         const SizedBox(height: 14),
 
-        // Email (for payment receipt)
-        Text('Email (for payment receipt)', style: GoogleFonts.dmSans(
-            color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+        // Email
+        Text('Email (for receipt)', style: GoogleFonts.dmSans(
+            color: _labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(height: 8),
         TextFormField(
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
-          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+          style: GoogleFonts.dmSans(color: _labelColor, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'you@example.com (optional)',
-            hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
-            prefixIcon: const Icon(Icons.email_outlined, color: kMuted, size: 18),
-            filled: true, fillColor: kDark,
+            hintStyle: GoogleFonts.dmSans(color: _hintColor, fontSize: 14),
+            prefixIcon: const Icon(Icons.email_outlined, color: _hintColor, size: 18),
+            filled: true, fillColor: _inputFill,
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kBorder)),
+                borderSide: const BorderSide(color: _inputBorder)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kPrimary, width: 2)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -884,21 +858,21 @@ class _TipFormState extends State<_TipForm> {
         const SizedBox(height: 14),
 
         // Message
-        Text('Leave a message (optional)', style: GoogleFonts.dmSans(
-            color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+        Text('Message (optional)', style: GoogleFonts.dmSans(
+            color: _labelColor, fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(height: 8),
         TextFormField(
           controller: _messageCtrl,
           maxLines: 3,
           maxLength: 280,
-          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+          style: GoogleFonts.dmSans(color: _labelColor, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'Say something nice… 👋',
-            hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
-            filled: true, fillColor: kDark,
-            counterStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 11),
+            hintStyle: GoogleFonts.dmSans(color: _hintColor, fontSize: 14),
+            filled: true, fillColor: _inputFill,
+            counterStyle: GoogleFonts.dmSans(color: _hintColor, fontSize: 11),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kBorder)),
+                borderSide: const BorderSide(color: _inputBorder)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kPrimary, width: 2)),
             contentPadding: const EdgeInsets.all(14),
@@ -910,9 +884,9 @@ class _TipFormState extends State<_TipForm> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.08),
+              color: Colors.red.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
             ),
             child: Row(children: [
               const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 15),
@@ -952,10 +926,10 @@ class _TipFormState extends State<_TipForm> {
 
         // Security note
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const Icon(Icons.lock_outline_rounded, color: kMuted, size: 13),
+          const Icon(Icons.lock_outline_rounded, color: _hintColor, size: 13),
           const SizedBox(width: 5),
           Text('Secure payments via Paystack',
-              style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+              style: GoogleFonts.dmSans(color: _hintColor, fontSize: 12)),
         ]),
       ]),
     ),

@@ -133,6 +133,11 @@ GoRouter buildRouter(AuthProvider auth) {
             CreatorScreen(slug: state.pathParameters['slug']!),
       ),
       GoRoute(
+        path: '/c/:slug',
+        builder: (_, state) =>
+            CreatorScreen(slug: state.pathParameters['slug']!),
+      ),
+      GoRoute(
         path: '/tip/:slug',
         builder: (_, state) =>
             TipScreen(slug: state.pathParameters['slug']!),
