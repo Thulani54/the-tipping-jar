@@ -30,6 +30,7 @@ import 'screens/payment_callback_screen.dart';
 import 'screens/subscribe_screen.dart';
 import 'screens/partner_apply_screen.dart';
 import 'screens/admin_portal_screen.dart';
+import 'screens/not_found_screen.dart';
 
 /// Routes that require the user to be signed in.
 const _protectedRoutes = {'/dashboard', '/onboarding', '/fan-dashboard', '/enterprise-portal', '/otp-verify', '/admin-portal'};
@@ -44,6 +45,8 @@ const _authRoutes = {'/login'};
 GoRouter buildRouter(AuthProvider auth) {
   return GoRouter(
     initialLocation: '/',
+    errorBuilder: (context, state) =>
+        NotFoundScreen(path: state.uri.path),
     refreshListenable: auth, // re-evaluate redirect whenever auth changes
     redirect: (context, state) {
       final loggedIn = auth.isAuthenticated;
