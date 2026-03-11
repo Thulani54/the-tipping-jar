@@ -35,3 +35,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/logo.svg
+    - assets/images/default_banner.svg

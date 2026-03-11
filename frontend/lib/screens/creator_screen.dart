@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -361,9 +362,9 @@ class _HeroBanner extends StatelessWidget {
                 ? Image.network(
                     creator.coverImage!,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _fallbackGradient(accent),
+                    errorBuilder: (_, __, ___) => _defaultBanner(),
                   )
-                : _fallbackGradient(accent),
+                : _defaultBanner(),
           ),
           // Gradient overlay (always, so text is legible if image is bright)
           Positioned.fill(
@@ -440,14 +441,11 @@ class _HeroBanner extends StatelessWidget {
     ]);
   }
 
-  Widget _fallbackGradient(Color accent) => Container(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [accent, accent.withOpacity(0.6)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-    ),
+  Widget _defaultBanner() => SvgPicture.asset(
+    'assets/images/default_banner.svg',
+    fit: BoxFit.cover,
+    width: double.infinity,
+    height: 200,
   );
 }
 

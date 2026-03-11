@@ -299,6 +299,26 @@ class ApiService {
     throw Exception('Failed to update profile: ${res.body}');
   }
 
+  /// Upload a cover/banner image for the creator's public page.
+  Future<CreatorProfileModel> updateCoverImage(
+      Uint8List bytes, String fileName) async {
+    final req = http.MultipartRequest(
+        'PATCH', Uri.parse('$_baseUrl/creators/me/'))
+      ..headers.addAll(_authHeaders)
+      ..files.add(http.MultipartFile.fromBytes(
+        'cover_image',
+        bytes,
+        filename: fileName,
+      ));
+    final streamed = await req.send();
+    final res = await http.Response.fromStream(streamed);
+    if (res.statusCode == 200) {
+      return CreatorProfileModel.fromJson(
+          jsonDecode(res.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to upload banner: ${res.body}');
+  }
+
   // ── Bank account validation ───────────────────────────────────────
 
   /// Validate a bank account via Paystack's resolve endpoint.

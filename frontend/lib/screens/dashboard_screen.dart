@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -822,11 +823,36 @@ class _ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<_ProfilePage> {
   late CreatorProfileModel _profile;
+  bool _uploadingBanner = false;
 
   @override
   void initState() {
     super.initState();
     _profile = widget.profile;
+  }
+
+  Future<void> _uploadBanner() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image, withData: true, allowMultiple: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.bytes == null) return;
+    setState(() => _uploadingBanner = true);
+    try {
+      final api = context.read<AuthProvider>().api;
+      final updated = await api.updateCoverImage(file.bytes!, file.name);
+      setState(() { _profile = updated; _uploadingBanner = false; });
+      widget.onUpdated(updated);
+    } catch (e) {
+      setState(() => _uploadingBanner = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload banner: $e'),
+              backgroundColor: Colors.red.shade700),
+        );
+      }
+    }
   }
 
   @override
@@ -862,10 +888,50 @@ class _ProfilePageState extends State<_ProfilePage> {
 
         // Profile card
         Container(
-          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(color: kCardBg,
               borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorder)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Banner section
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+              child: Stack(
+                children: [
+                  SizedBox(
+                    height: 120, width: double.infinity,
+                    child: _profile.coverImage != null && _profile.coverImage!.isNotEmpty
+                        ? Image.network(_profile.coverImage!, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _bannerFallback())
+                        : _bannerFallback(),
+                  ),
+                  Positioned(
+                    top: 8, right: 8,
+                    child: GestureDetector(
+                      onTap: _uploadingBanner ? null : _uploadBanner,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.55),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: _uploadingBanner
+                            ? const SizedBox(width: 12, height: 12,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : Row(mainAxisSize: MainAxisSize.min, children: [
+                                const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 13),
+                                const SizedBox(width: 5),
+                                Text('Change banner',
+                                    style: GoogleFonts.dmSans(color: Colors.white,
+                                        fontSize: 11, fontWeight: FontWeight.w600)),
+                              ]),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Container(
                 width: 64, height: 64,
@@ -922,6 +988,8 @@ class _ProfilePageState extends State<_ProfilePage> {
                 ),
               ]),
             ),
+              ]), // inner Column
+            ), // Padding
           ]),
         ),
         const SizedBox(height: 20),
@@ -1018,6 +1086,13 @@ class _ProfilePageState extends State<_ProfilePage> {
       ]),
     );
   }
+
+  Widget _bannerFallback() => SvgPicture.asset(
+    'assets/images/default_banner.svg',
+    fit: BoxFit.cover,
+    width: double.infinity,
+    height: 120,
+  );
 
   Future<void> _showEditProfileDialog(BuildContext context) async {
     final nameCtrl = TextEditingController(text: _profile.displayName);

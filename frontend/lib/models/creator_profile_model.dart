@@ -34,6 +34,7 @@ class CreatorProfileModel {
   final String displayName;
   final String slug;
   final String tagline;
+  final String? coverImage;
   final double? tipGoal;
   final double totalTips;
   final bool hasBankConnected;
@@ -61,6 +62,7 @@ class CreatorProfileModel {
     required this.displayName,
     required this.slug,
     required this.tagline,
+    this.coverImage,
     required this.tipGoal,
     required this.totalTips,
     required this.hasBankConnected,
@@ -88,6 +90,7 @@ class CreatorProfileModel {
         displayName: j['display_name'] as String? ?? '',
         slug: j['slug'] as String? ?? '',
         tagline: j['tagline'] as String? ?? '',
+        coverImage: j['cover_image'] as String?,
         tipGoal: j['tip_goal'] != null ? double.parse(j['tip_goal'].toString()) : null,
         totalTips: double.parse((j['total_tips'] ?? 0).toString()),
         hasBankConnected: j['has_bank_connected'] as bool? ?? false,
@@ -113,6 +116,7 @@ class CreatorProfileModel {
   CreatorProfileModel copyWith({
     String? displayName,
     String? tagline,
+    String? coverImage,
     double? tipGoal,
     bool? hasBankConnected,
     String? bankName,
@@ -137,6 +141,7 @@ class CreatorProfileModel {
         displayName: displayName ?? this.displayName,
         slug: slug,
         tagline: tagline ?? this.tagline,
+        coverImage: coverImage ?? this.coverImage,
         tipGoal: tipGoal ?? this.tipGoal,
         totalTips: totalTips,
         hasBankConnected: hasBankConnected ?? this.hasBankConnected,
