@@ -144,10 +144,7 @@ class _MiniNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     height: 56,
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
-    ),
+    color: kPrimary,
     padding: const EdgeInsets.symmetric(horizontal: 24),
     child: Row(children: [
       GestureDetector(
@@ -156,21 +153,22 @@ class _MiniNav extends StatelessWidget {
           const AppLogoIcon(size: 28),
           const SizedBox(width: 8),
           Text('TippingJar', style: GoogleFonts.dmSans(
-              color: const Color(0xFF111827), fontWeight: FontWeight.w700, fontSize: 14)),
+              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
         ]),
       ),
       const Spacer(),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(36),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(36),
+          border: Border.all(color: Colors.white.withOpacity(0.35)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.bolt_rounded, color: kPrimary, size: 13),
+          const Icon(Icons.bolt_rounded, color: Colors.white, size: 13),
           const SizedBox(width: 4),
           Text('Powered by TippingJar',
-              style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 11, fontWeight: FontWeight.w500)),
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500)),
         ]),
       ),
     ]),
