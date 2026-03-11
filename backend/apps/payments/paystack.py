@@ -56,7 +56,6 @@ def create_subaccount(
         "settlement_bank": settlement_bank,
         "account_number": account_number,
         "percentage_charge": percentage_charge,
-        "currency": "ZAR",
     }
     resp = requests.post(f"{_BASE}/subaccount", json=payload, headers=_headers(), timeout=15)
     data = resp.json()
