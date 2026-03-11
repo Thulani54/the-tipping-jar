@@ -204,44 +204,47 @@ class _WideBody extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      // Left: profile + jars + tiers + milestones + content + commissions + recent tips
+      // Left: hero banner + profile + content
       Expanded(
         flex: 4,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(40),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _CreatorCard(creator: creator),
-            if (creator.tipGoal != null) ...[
-              const SizedBox(height: 20),
-              _GoalBar(tipGoal: creator.tipGoal!, totalTips: creator.totalTips),
-            ],
-            if (jars.isNotEmpty) ...[
-              const SizedBox(height: 32),
-              _JarsSection(jars: jars, creatorSlug: creator.slug),
-            ],
-            if (tiers.isNotEmpty) ...[
-              const SizedBox(height: 32),
-              _TiersSection(tiers: tiers, creatorSlug: creator.slug, creatorName: creator.displayName),
-            ],
-            if (milestones.isNotEmpty) ...[
-              const SizedBox(height: 32),
-              _MilestonesSection(milestones: milestones),
-            ],
-            if (publicPosts.isNotEmpty) ...[
-              const SizedBox(height: 32),
-              _ContentSection(
-                creatorSlug: creator.slug,
-                publicPosts: publicPosts,
-                unlockedPosts: unlockedPosts,
-                onUnlocked: onUnlocked,
-              ),
-            ],
-            if (commissionSlot != null && commissionSlot!.isOpen) ...[
-              const SizedBox(height: 32),
-              _CommissionsSection(slot: commissionSlot!, creatorSlug: creator.slug, creatorName: creator.displayName),
-            ],
-            const SizedBox(height: 32),
-            _TipFeed(tips: tips),
+            _HeroBanner(creator: creator),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(32, 20, 32, 40),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (creator.tipGoal != null) ...[
+                  _GoalBar(tipGoal: creator.tipGoal!, totalTips: creator.totalTips),
+                  const SizedBox(height: 24),
+                ],
+                if (jars.isNotEmpty) ...[
+                  _JarsSection(jars: jars, creatorSlug: creator.slug),
+                  const SizedBox(height: 32),
+                ],
+                if (tiers.isNotEmpty) ...[
+                  _TiersSection(tiers: tiers, creatorSlug: creator.slug, creatorName: creator.displayName),
+                  const SizedBox(height: 32),
+                ],
+                if (milestones.isNotEmpty) ...[
+                  _MilestonesSection(milestones: milestones),
+                  const SizedBox(height: 32),
+                ],
+                if (publicPosts.isNotEmpty) ...[
+                  _ContentSection(
+                    creatorSlug: creator.slug,
+                    publicPosts: publicPosts,
+                    unlockedPosts: unlockedPosts,
+                    onUnlocked: onUnlocked,
+                  ),
+                  const SizedBox(height: 32),
+                ],
+                if (commissionSlot != null && commissionSlot!.isOpen) ...[
+                  _CommissionsSection(slot: commissionSlot!, creatorSlug: creator.slug, creatorName: creator.displayName),
+                  const SizedBox(height: 32),
+                ],
+                _TipFeed(tips: tips),
+              ]),
+            ),
           ]),
         ),
       ),
@@ -286,108 +289,166 @@ class _NarrowBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-    padding: const EdgeInsets.all(20),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _CreatorCard(creator: creator),
-      if (creator.tipGoal != null) ...[
-        const SizedBox(height: 16),
-        _GoalBar(tipGoal: creator.tipGoal!, totalTips: creator.totalTips),
-      ],
-      if (jars.isNotEmpty) ...[
-        const SizedBox(height: 24),
-        _JarsSection(jars: jars, creatorSlug: creator.slug),
-      ],
-      if (tiers.isNotEmpty) ...[
-        const SizedBox(height: 24),
-        _TiersSection(tiers: tiers, creatorSlug: creator.slug, creatorName: creator.displayName),
-      ],
-      if (milestones.isNotEmpty) ...[
-        const SizedBox(height: 24),
-        _MilestonesSection(milestones: milestones),
-      ],
-      if (publicPosts.isNotEmpty) ...[
-        const SizedBox(height: 24),
-        _ContentSection(
-          creatorSlug: creator.slug,
-          publicPosts: publicPosts,
-          unlockedPosts: unlockedPosts,
-          onUnlocked: onUnlocked,
-        ),
-      ],
-      if (commissionSlot != null && commissionSlot!.isOpen) ...[
-        const SizedBox(height: 24),
-        _CommissionsSection(slot: commissionSlot!, creatorSlug: creator.slug, creatorName: creator.displayName),
-      ],
-      const SizedBox(height: 28),
-      _TipForm(creator: creator, onTipSent: onTipSent),
-      const SizedBox(height: 32),
-      _TipFeed(tips: tips),
+      _HeroBanner(creator: creator),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (creator.tipGoal != null) ...[
+            _GoalBar(tipGoal: creator.tipGoal!, totalTips: creator.totalTips),
+            const SizedBox(height: 20),
+          ],
+          if (jars.isNotEmpty) ...[
+            _JarsSection(jars: jars, creatorSlug: creator.slug),
+            const SizedBox(height: 24),
+          ],
+          if (tiers.isNotEmpty) ...[
+            _TiersSection(tiers: tiers, creatorSlug: creator.slug, creatorName: creator.displayName),
+            const SizedBox(height: 24),
+          ],
+          if (milestones.isNotEmpty) ...[
+            _MilestonesSection(milestones: milestones),
+            const SizedBox(height: 24),
+          ],
+          if (publicPosts.isNotEmpty) ...[
+            _ContentSection(
+              creatorSlug: creator.slug,
+              publicPosts: publicPosts,
+              unlockedPosts: unlockedPosts,
+              onUnlocked: onUnlocked,
+            ),
+            const SizedBox(height: 24),
+          ],
+          if (commissionSlot != null && commissionSlot!.isOpen) ...[
+            _CommissionsSection(slot: commissionSlot!, creatorSlug: creator.slug, creatorName: creator.displayName),
+            const SizedBox(height: 24),
+          ],
+          _TipForm(creator: creator, onTipSent: onTipSent),
+          const SizedBox(height: 32),
+          _TipFeed(tips: tips),
+        ]),
+      ),
     ]),
   );
 }
 
-// ─── Creator card ─────────────────────────────────────────────────────────────
-class _CreatorCard extends StatelessWidget {
+// ─── Hero banner ──────────────────────────────────────────────────────────────
+class _HeroBanner extends StatelessWidget {
   final Creator creator;
-  const _CreatorCard({required this.creator});
+  const _HeroBanner({required this.creator});
 
-  Color get _avatarColor {
-    final colors = [kPrimary, const Color(0xFF60A5FA), const Color(0xFFF472B6),
-        const Color(0xFFFBBF24), const Color(0xFF818CF8)];
+  Color get _accent {
+    const colors = [kPrimary, Color(0xFF60A5FA), Color(0xFFF472B6),
+        Color(0xFFFBBF24), Color(0xFF818CF8)];
     return colors[creator.slug.length % colors.length];
   }
 
   @override
   Widget build(BuildContext context) {
+    final accent = _accent;
+    final hasCover = creator.coverImage != null && creator.coverImage!.isNotEmpty;
+
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // Avatar
-      Container(
-        width: 80, height: 80,
-        decoration: BoxDecoration(
-          color: _avatarColor.withValues(alpha: 0.15),
-          shape: BoxShape.circle,
-          border: Border.all(color: _avatarColor.withValues(alpha: 0.4), width: 2),
-        ),
-        child: Center(
-          child: Text(
-            creator.displayName.isNotEmpty
-                ? creator.displayName[0].toUpperCase() : '?',
-            style: GoogleFonts.dmSans(
-                color: _avatarColor, fontWeight: FontWeight.w900, fontSize: 34),
+      // ── Cover image / gradient strip ─────────────────────────────────────
+      Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Background
+          SizedBox(
+            height: 200,
+            width: double.infinity,
+            child: hasCover
+                ? Image.network(
+                    creator.coverImage!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _fallbackGradient(accent),
+                  )
+                : _fallbackGradient(accent),
           ),
-        ),
-      ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
-      const SizedBox(height: 16),
+          // Gradient overlay (always, so text is legible if image is bright)
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(hasCover ? 0.15 : 0.0),
+                    Colors.black.withOpacity(hasCover ? 0.55 : 0.35),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Avatar overlapping the bottom edge
+          Positioned(
+            left: 24,
+            bottom: -36,
+            child: Container(
+              width: 76, height: 76,
+              decoration: BoxDecoration(
+                color: accent.withOpacity(0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 12)],
+              ),
+              child: Center(
+                child: creator.avatar != null && creator.avatar!.isNotEmpty
+                    ? ClipOval(child: Image.network(creator.avatar!, fit: BoxFit.cover, width: 76, height: 76))
+                    : Text(
+                        creator.displayName.isNotEmpty ? creator.displayName[0].toUpperCase() : '?',
+                        style: GoogleFonts.dmSans(
+                            color: hasCover ? Colors.white : accent,
+                            fontWeight: FontWeight.w900, fontSize: 32),
+                      ),
+              ),
+            ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+          ),
+        ],
+      ),
 
-      // Name + slug
-      Text(creator.displayName, style: GoogleFonts.dmSans(
-          color: const Color(0xFF111827), fontWeight: FontWeight.w800,
-          fontSize: 28, letterSpacing: -0.8))
-          .animate().fadeIn(delay: 80.ms, duration: 400.ms).slideY(begin: 0.1),
-      const SizedBox(height: 4),
-      Text('@${creator.slug}', style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 14))
-          .animate().fadeIn(delay: 120.ms, duration: 400.ms),
-
-      // Tagline
-      if (creator.tagline.isNotEmpty) ...[
-        const SizedBox(height: 10),
-        Text(creator.tagline, style: GoogleFonts.dmSans(
-            color: const Color(0xFF111827).withValues(alpha: 0.75), fontSize: 15, height: 1.5))
-            .animate().fadeIn(delay: 160.ms, duration: 400.ms),
-      ],
-
-      const SizedBox(height: 20),
-
-      // Stats
-      Row(children: [
-        _StatPill(
-          icon: Icons.volunteer_activism_rounded,
-          label: _tipTier(creator.totalTips),
-          sub: 'total received',
-        ),
-      ]).animate().fadeIn(delay: 200.ms, duration: 400.ms),
+      // ── Info below banner ─────────────────────────────────────────────────
+      const SizedBox(height: 48), // space for avatar overlap
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(creator.displayName, style: GoogleFonts.dmSans(
+              color: const Color(0xFF111827), fontWeight: FontWeight.w800,
+              fontSize: 26, letterSpacing: -0.6))
+              .animate().fadeIn(delay: 80.ms, duration: 400.ms).slideY(begin: 0.1),
+          const SizedBox(height: 2),
+          Text('@${creator.slug}', style: GoogleFonts.dmSans(
+              color: const Color(0xFF6B7280), fontSize: 13))
+              .animate().fadeIn(delay: 120.ms, duration: 400.ms),
+          if (creator.tagline.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(creator.tagline, style: GoogleFonts.dmSans(
+                color: const Color(0xFF374151), fontSize: 14, height: 1.5))
+                .animate().fadeIn(delay: 160.ms, duration: 400.ms),
+          ],
+          const SizedBox(height: 16),
+          Row(children: [
+            _StatPill(
+              icon: Icons.volunteer_activism_rounded,
+              label: _tipTier(creator.totalTips),
+              sub: 'total received',
+            ),
+          ]).animate().fadeIn(delay: 200.ms, duration: 400.ms),
+          const SizedBox(height: 8),
+        ]),
+      ),
     ]);
   }
+
+  Widget _fallbackGradient(Color accent) => Container(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [accent, accent.withOpacity(0.6)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+    ),
+  );
 }
 
 // ─── Tip tier label helper ─────────────────────────────────────────────────────
