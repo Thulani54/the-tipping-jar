@@ -542,6 +542,127 @@ def send_tipping_summary_email(creator, period_label: str, tips) -> None:
         logger.error("send_tipping_summary_email: FAILED creator=%s error=%s", creator.id, exc)
 
 
+def send_banking_confirmed(creator) -> None:
+    """Email to creator when their banking details are saved and subaccount is created."""
+    dashboard_url = f"{_BASE_URL}/dashboard"
+
+    inner = f"""
+<div style="text-align:center;margin-bottom:28px;">
+  <span style="font-size:48px;">🏦</span>
+  <h2 style="color:#00C896;margin:8px 0 4px;font-size:22px;">Banking details confirmed!</h2>
+  <p style="color:#7A9088;font-size:14px;margin:0;">Your payout account is set up, {creator.display_name}.</p>
+</div>
+
+<div style="background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:20px;margin-bottom:24px;">
+  <p style="margin:0;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Bank</p>
+  <p style="margin:4px 0 16px;font-size:15px;font-weight:600;color:#E2E8F0;">{creator.bank_name or "Your bank"}</p>
+  <p style="margin:0;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Account holder</p>
+  <p style="margin:4px 0 16px;font-size:15px;font-weight:600;color:#E2E8F0;">{creator.bank_account_holder or creator.display_name}</p>
+  <p style="margin:0;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Account number</p>
+  <p style="margin:4px 0 0;font-size:15px;font-weight:600;color:#E2E8F0;">{creator.bank_account_number_masked or "••••••••"}</p>
+</div>
+
+<div style="background:#0D1A12;border-left:3px solid #00C896;padding:14px 18px;border-radius:0 8px 8px 0;margin-bottom:24px;">
+  <p style="margin:0;font-size:14px;color:#E2E8F0;line-height:1.6;">
+    Tips you receive will be paid out directly to your bank via Paystack.
+    Payouts typically arrive within <strong>1–2 business days</strong>.
+  </p>
+</div>
+
+<p style="font-size:13px;color:#7A9088;line-height:1.6;margin:0 0 20px;">
+  Need to update these details? You can do so at any time from your profile settings on the dashboard.
+</p>
+
+{_btn("Go to dashboard →", dashboard_url)}
+"""
+
+    html = _creator_email_wrapper(inner)
+    body = (
+        f"Hi {creator.display_name},\n\n"
+        f"Your banking details have been confirmed and your payout account is set up.\n\n"
+        f"Bank: {creator.bank_name or 'Your bank'}\n"
+        f"Account holder: {creator.bank_account_holder or creator.display_name}\n\n"
+        f"Tips will be paid out directly to your bank within 1–2 business days.\n\n"
+        f"Dashboard: {dashboard_url}\n\n"
+        f"— The TippingJar Team"
+    )
+    msg = EmailMultiAlternatives(
+        subject="Banking details confirmed — payouts are set up ✓",
+        body=body,
+        from_email=_no_reply(),
+        to=[creator.user.email],
+    )
+    msg.attach_alternative(html, "text/html")
+    try:
+        msg.send(fail_silently=False)
+        logger.info("send_banking_confirmed: sent to %s", creator.user.email)
+    except Exception as exc:
+        logger.error("send_banking_confirmed: FAILED creator=%s error=%s", creator.id, exc)
+
+
+def send_tip_received_to_creator(tip) -> None:
+    """Email to creator on every completed tip."""
+    creator = tip.creator
+    dashboard_url = f"{_BASE_URL}/dashboard"
+    tipper = tip.tipper_name or "Anonymous"
+    amount = f"R{tip.amount:.2f}"
+    creator_net = f"R{tip.creator_net:.2f}"
+    jar_name = tip.jar.name if tip.jar else None
+
+    inner = f"""
+<div style="text-align:center;margin-bottom:28px;">
+  <span style="font-size:48px;">💚</span>
+  <h2 style="color:#00C896;margin:8px 0 4px;font-size:22px;">You received a tip!</h2>
+  <p style="color:#7A9088;font-size:14px;margin:0;">{tipper} just supported you.</p>
+</div>
+
+<div style="background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:24px;margin-bottom:24px;text-align:center;">
+  <p style="margin:0;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Tip amount</p>
+  <p style="margin:6px 0 4px;font-size:40px;font-weight:800;color:#00C896;">{amount}</p>
+  <p style="margin:0;font-size:13px;color:#7A9088;">from <strong style="color:#E2E8F0;">{tipper}</strong></p>
+  {f'<p style="margin:8px 0 0;font-size:13px;color:#7A9088;">Jar: <strong style="color:#E2E8F0;">{jar_name}</strong></p>' if jar_name else ''}
+  {f'<p style="margin:10px 0 0;font-size:13px;color:#7A9088;">Message: <em style="color:#E2E8F0;">&ldquo;{tip.message[:200]}&rdquo;</em></p>' if tip.message else ''}
+</div>
+
+<div style="background:#0D1A12;border:1px solid #1E2E26;border-radius:10px;padding:16px 20px;margin-bottom:24px;">
+  <p style="margin:0 0 10px;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Breakdown</p>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tr><td style="color:#7A9088;padding:3px 0;">Tip amount</td><td style="text-align:right;color:#E2E8F0;">{amount}</td></tr>
+    <tr><td style="color:#7A9088;padding:3px 0;">Platform fee (4%)</td><td style="text-align:right;color:#7A9088;">−R{tip.platform_fee:.2f}</td></tr>
+    <tr><td style="color:#7A9088;padding:3px 0;">Processing fee (~3%)</td><td style="text-align:right;color:#7A9088;">−R{tip.service_fee:.2f}</td></tr>
+    <tr style="border-top:1px solid #1E2E26;">
+      <td style="color:#00C896;font-weight:700;padding:8px 0 0;">You receive</td>
+      <td style="text-align:right;color:#00C896;font-weight:700;padding-top:8px;">{creator_net}</td>
+    </tr>
+  </table>
+</div>
+
+{_btn("View dashboard →", dashboard_url)}
+"""
+
+    html = _creator_email_wrapper(inner)
+    body = (
+        f"Hi {creator.display_name},\n\n"
+        f"You just received a {amount} tip from {tipper}.\n"
+        f"You receive: {creator_net} (after fees)\n\n"
+        f"{f'Message: {tip.message}' + chr(10) + chr(10) if tip.message else ''}"
+        f"Dashboard: {dashboard_url}\n\n"
+        f"— The TippingJar Team"
+    )
+    msg = EmailMultiAlternatives(
+        subject=f"💚 New tip — {amount} from {tipper}",
+        body=body,
+        from_email=_no_reply(),
+        to=[creator.user.email],
+    )
+    msg.attach_alternative(html, "text/html")
+    try:
+        msg.send(fail_silently=False)
+        logger.info("send_tip_received_to_creator: sent to %s tip=%s", creator.user.email, tip.id)
+    except Exception as exc:
+        logger.error("send_tip_received_to_creator: FAILED creator=%s tip=%s error=%s", creator.id, tip.id, exc)
+
+
 def send_dispute_status_update(dispute):
     """Notify disputer when admin updates the dispute status."""
     url = dispute.tracking_url

@@ -10,6 +10,7 @@ from apps.payments import paystack as ps
 from apps.support.emails import (
     send_first_thousand_email,
     send_first_tip_email,
+    send_tip_received_to_creator,
     send_tip_thank_you,
 )
 from apps.tips.models import Tip
@@ -118,8 +119,9 @@ def _fire_tip_notifications(tip: Tip) -> None:
     """
     creator = tip.creator
 
-    # Always: in-app tip-received notification
+    # Always: email + in-app tip-received notification
     tipper = tip.tipper_name or "Anonymous"
+    send_tip_received_to_creator(tip)
     CreatorNotification.objects.create(
         creator=creator,
         notification_type=CreatorNotification.Type.TIP_RECEIVED,

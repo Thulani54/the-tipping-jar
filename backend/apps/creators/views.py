@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.payments import paystack as ps
+from apps.support.emails import send_banking_confirmed
 from apps.tips.models import Tip
 
 from .models import (
@@ -67,6 +68,7 @@ def _maybe_create_paystack_subaccount(profile: CreatorProfile) -> None:
             "Created Paystack subaccount %s for creator %s",
             profile.paystack_subaccount_code, profile.slug,
         )
+        send_banking_confirmed(profile)
     except RuntimeError as exc:
         logger.warning("Paystack subaccount creation failed for %s: %s", profile.slug, exc)
 

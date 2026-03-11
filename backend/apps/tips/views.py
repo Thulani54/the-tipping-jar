@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 
 from apps.creators.models import CreatorProfile, Jar
 from apps.payments import paystack as ps
-from apps.support.emails import send_tip_thank_you
+from apps.support.emails import send_tip_received_to_creator, send_tip_thank_you
 
 from .models import Pledge, Tip, TipStreak
 from .serializers import CreateTipSerializer, PledgeSerializer, TipSerializer, TipStreakSerializer
@@ -236,6 +236,7 @@ class VerifyTipView(APIView):
             if rows:
                 tip.refresh_from_db()
                 send_tip_thank_you(tip)
+                send_tip_received_to_creator(tip)
             else:
                 tip.refresh_from_db()
         elif paystack_status in ("failed", "abandoned"):
