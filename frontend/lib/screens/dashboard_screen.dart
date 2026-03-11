@@ -1326,9 +1326,12 @@ class _BankingCard extends StatelessWidget {
                   final api = context.read<AuthProvider>().api;
                   final result = await api.validateBankAccount(
                       accountCtrl.text.trim(), selectedBankCode);
+                  final skipped = result['skipped'] == true;
                   setS(() {
                     verifying = false;
-                    verifiedAccountName = result['account_name'] as String?;
+                    verifiedAccountName = skipped
+                        ? 'Account details accepted'
+                        : result['account_name'] as String? ?? 'Verified';
                   });
                 } catch (e) {
                   setS(() {

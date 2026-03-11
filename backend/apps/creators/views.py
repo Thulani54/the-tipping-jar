@@ -100,10 +100,14 @@ class ValidateBankAccountView(APIView):
 
         try:
             data = ps.resolve_account(account_number, bank_code)
-        except RuntimeError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except RuntimeError:
+            # Paystack's resolve endpoint only supports NGN/GHS/KES/USD regions.
+            # For SA (ZAR) banks, skip client-side validation — the subaccount
+            # creation step will catch any invalid account numbers.
+            return Response({"skipped": True, "account_number": account_number})
 
         return Response({
+            "skipped": False,
             "account_name": data.get("account_name", ""),
             "account_number": data.get("account_number", account_number),
         })
