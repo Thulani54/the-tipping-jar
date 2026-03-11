@@ -205,7 +205,9 @@ class VerifyTipView(APIView):
         creator_slug = tip.creator.slug
 
         # Already resolved — no need to call Paystack again
-        if tip.status in (Tip.Status.COMPLETED, Tip.Status.FAILED, Tip.Status.REFUNDED):
+        # NOTE: FAILED is intentionally excluded here so we can re-verify with Paystack
+        # in case the tip was prematurely marked failed before Paystack confirmed success.
+        if tip.status in (Tip.Status.COMPLETED, Tip.Status.REFUNDED):
             return Response({
                 "status": tip.status,
                 "tip_id": tip.id,
@@ -226,10 +228,11 @@ class VerifyTipView(APIView):
         paystack_status = tx_data.get("status", "")
 
         if paystack_status == "success":
-            # Atomic update — only mark completed if still pending (avoids double-email with webhook)
-            rows = Tip.objects.filter(pk=tip.pk, status=Tip.Status.PENDING).update(
-                status=Tip.Status.COMPLETED
-            )
+            # Mark completed if pending OR if previously marked failed (race condition recovery).
+            # Avoids double-email with webhook by only sending if the row actually changed.
+            rows = Tip.objects.filter(
+                pk=tip.pk, status__in=[Tip.Status.PENDING, Tip.Status.FAILED]
+            ).update(status=Tip.Status.COMPLETED)
             if rows:
                 tip.refresh_from_db()
                 send_tip_thank_you(tip)

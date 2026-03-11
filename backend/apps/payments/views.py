@@ -208,7 +208,8 @@ def paystack_webhook(request):
                 _fire_tip_notifications(tip)
 
     elif event_type == "charge.failed":
-        Tip.objects.filter(paystack_reference=reference).update(
+        # Only mark failed if still pending — never downgrade a completed tip
+        Tip.objects.filter(paystack_reference=reference, status=Tip.Status.PENDING).update(
             status=Tip.Status.FAILED
         )
 
