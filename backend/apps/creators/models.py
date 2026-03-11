@@ -22,6 +22,10 @@ class CreatorProfile(models.Model):
         help_text="Paystack subaccount code (ACCT_xxxx) — auto-created on bank detail save",
     )
     paystack_subaccount_id = models.CharField(max_length=100, blank=True)
+    paystack_split_code = models.CharField(
+        max_length=100, blank=True,
+        help_text="Paystack split code (SPL_xxxx) — routes platform fee + creator payout",
+    )
     thank_you_message = models.TextField(
         blank=True, default="",
         help_text="Custom thank-you note sent to tippers after a successful payment.",

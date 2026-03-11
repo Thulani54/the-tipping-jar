@@ -73,6 +73,37 @@ def get_subaccount(subaccount_code: str) -> dict:
     return data["data"]
 
 
+def create_split(name: str, creator_subaccount_code: str, platform_subaccount_code: str, platform_share: float = 3.0) -> dict:
+    """
+    Create a Paystack transaction split for a creator.
+
+    Split structure:
+        - platform_subaccount  → platform_share %  (IMALI BADALA — TippingJar fee)
+        - creator_subaccount   → (100 - platform_share) %
+        - main account         → 0%
+        - bearer               → creator subaccount (bears Paystack processing fees)
+
+    Returns the split data dict including split_code (SPL_xxxx).
+    Raises RuntimeError on failure.
+    """
+    creator_share = round(100.0 - platform_share, 4)
+    payload = {
+        "name": name,
+        "type": "percentage",
+        "subaccounts": [
+            {"subaccount": platform_subaccount_code, "share": platform_share},
+            {"subaccount": creator_subaccount_code,  "share": creator_share},
+        ],
+        "bearer_type": "subaccount",
+        "bearer_subaccount": creator_subaccount_code,
+    }
+    resp = requests.post(f"{_BASE}/split", json=payload, headers=_headers(), timeout=15)
+    data = resp.json()
+    if not data.get("status"):
+        raise RuntimeError(data.get("message", "Paystack split creation failed."))
+    return data["data"]
+
+
 def resolve_account(account_number: str, bank_code: str) -> dict:
     """
     Validate a bank account number and return the account name.
@@ -99,11 +130,15 @@ def initialize_transaction(
     amount_zar: float,
     reference: str,
     subaccount_code: str | None = None,
+    split_code: str | None = None,
     callback_url: str | None = None,
     metadata: dict | None = None,
 ) -> dict:
     """
     Initialize a Paystack payment transaction.
+
+    Prefer split_code (SPL_xxxx) over subaccount_code when both are set —
+    the split already encodes the creator subaccount plus the platform share.
 
     Returns dict with keys: authorization_url, access_code, reference.
     """
@@ -116,9 +151,12 @@ def initialize_transaction(
         "currency": "ZAR",
     }
 
-    if subaccount_code:
+    if split_code:
+        # Transaction split handles routing to platform + creator subaccounts.
+        # Bearer is already encoded in the split (creator bears Paystack fees).
+        payload["split_code"] = split_code
+    elif subaccount_code:
         payload["subaccount"] = subaccount_code
-        # Creator (subaccount) bears Paystack's processing fees
         payload["bearer"] = "subaccount"
 
     if callback_url:

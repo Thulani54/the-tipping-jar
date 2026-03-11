@@ -154,6 +154,7 @@ class InitiateTipView(APIView):
                 email=tipper_email,
                 amount_zar=amount,
                 reference=reference,
+                split_code=creator.paystack_split_code or None,
                 subaccount_code=creator.paystack_subaccount_code or None,
                 callback_url=callback_url,
                 metadata={

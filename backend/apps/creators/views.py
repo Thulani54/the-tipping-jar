@@ -57,9 +57,9 @@ def _maybe_create_paystack_subaccount(profile: CreatorProfile) -> None:
     try:
         sub = ps.create_subaccount(
             business_name=profile.display_name or profile.user.username,
-            settlement_bank=profile.bank_routing_number,   # bank code
+            settlement_bank=profile.bank_routing_number,
             account_number=profile.bank_account_number,
-            percentage_charge=settings.PLATFORM_FEE_PERCENT,
+            percentage_charge=0,  # split handles all routing; master gets 0%
         )
         profile.paystack_subaccount_code = sub.get("subaccount_code", "")
         profile.paystack_subaccount_id   = str(sub.get("id", ""))
@@ -68,6 +68,20 @@ def _maybe_create_paystack_subaccount(profile: CreatorProfile) -> None:
             "Created Paystack subaccount %s for creator %s",
             profile.paystack_subaccount_code, profile.slug,
         )
+
+        # Create the transaction split: IMALI BADALA 3% + creator 97%
+        platform_sub = getattr(settings, "PAYSTACK_PLATFORM_SUBACCOUNT_CODE", "")
+        if platform_sub:
+            split = ps.create_split(
+                name=f"TippingJar — {profile.slug}",
+                creator_subaccount_code=profile.paystack_subaccount_code,
+                platform_subaccount_code=platform_sub,
+                platform_share=settings.PLATFORM_FEE_PERCENT,
+            )
+            profile.paystack_split_code = split.get("split_code", "")
+            profile.save(update_fields=["paystack_split_code"])
+            logger.info("Created split %s for creator %s", profile.paystack_split_code, profile.slug)
+
         send_banking_confirmed(profile)
     except RuntimeError as exc:
         logger.warning("Paystack subaccount creation failed for %s: %s", profile.slug, exc)

@@ -158,11 +158,13 @@ STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
 # ── Paystack ──────────────────────────────────────────────────────
 PAYSTACK_SECRET_KEY = env("PAYSTACK_SECRET_KEY", default="")
 PAYSTACK_WEBHOOK_SECRET = env("PAYSTACK_WEBHOOK_SECRET", default="")
-# Platform fee taken from every tip (goes to TippingJar master account)
-# 4% platform + ~3% Paystack processing = creator nets 93%
-PLATFORM_FEE_PERCENT = env.float("PLATFORM_FEE_PERCENT", default=4.0)
+# Platform fee taken from every tip → IMALI BADALA (PTY)LTD subaccount via split
+# 3% platform + ~3% Paystack processing (bearer=creator) = creator nets ~94%
+PLATFORM_FEE_PERCENT = env.float("PLATFORM_FEE_PERCENT", default=3.0)
 # Service fee charged to creator (Paystack's own processing fee share)
 SERVICE_FEE_PERCENT = env.float("SERVICE_FEE_PERCENT", default=3.0)
+# IMALI BADALA (PTY)LTD Paystack subaccount — receives 3% platform fee on every split
+PAYSTACK_PLATFORM_SUBACCOUNT_CODE = env("PAYSTACK_PLATFORM_SUBACCOUNT_CODE", default="ACCT_thnwavs7n0vb5or")
 
 # ── Email ──────────────────────────────────────────────────────────────────────
 EMAIL_BACKEND      = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
