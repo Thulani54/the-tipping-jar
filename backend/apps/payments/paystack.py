@@ -90,6 +90,7 @@ def create_split(name: str, creator_subaccount_code: str, platform_subaccount_co
     payload = {
         "name": name,
         "type": "percentage",
+        "currency": "ZAR",
         "subaccounts": [
             {"subaccount": platform_subaccount_code, "share": platform_share},
             {"subaccount": creator_subaccount_code,  "share": creator_share},
