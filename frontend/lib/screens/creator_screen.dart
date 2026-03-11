@@ -394,14 +394,30 @@ class _CreatorCard extends StatelessWidget {
 
 // ─── Tip tier label helper ─────────────────────────────────────────────────────
 String _tipTier(double amount) {
-  if (amount <= 0) return 'R0';
-  if (amount < 500) return 'R1+';
-  if (amount < 1000) return 'R500+';
-  if (amount < 5000) return 'R1k+';
-  if (amount < 10000) return 'R5k+';
-  if (amount < 50000) return 'R10k+';
-  if (amount < 100000) return 'R50k+';
-  return 'R100k+';
+  if (amount <= 0)        return 'R0';
+  if (amount < 10)        return 'R1+';
+  if (amount < 50)        return 'R10+';
+  if (amount < 100)       return 'R50+';
+  if (amount < 500)       return 'R100+';
+  if (amount < 1000)      return 'R500+';
+  if (amount < 2500)      return 'R1k+';
+  if (amount < 5000)      return 'R2.5k+';
+  if (amount < 10000)     return 'R5k+';
+  if (amount < 20000)     return 'R10k+';
+  if (amount < 80000)     return 'R20k+';
+  if (amount < 200000)    return 'R80k+';
+  if (amount < 500000)    return 'R200k+';
+  if (amount < 1000000)   return 'R500k+';
+  if (amount < 2000000)   return 'R1M+';
+  if (amount < 20000000)  return 'R2M+';
+  return 'R20M+';
+}
+
+// ─── Name masking helper ────────────────────────────────────────────────────────
+String _maskName(String name) {
+  if (name.isEmpty) return 'A***';
+  final visible = (name.length - 3).clamp(1, name.length);
+  return name.substring(0, visible) + '***'.substring(0, name.length - visible < 3 ? name.length - visible : 3);
 }
 
 class _StatPill extends StatelessWidget {
@@ -536,7 +552,7 @@ class _PublicTipRow extends StatelessWidget {
       const SizedBox(width: 10),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text(tip.tipperName, style: GoogleFonts.dmSans(
+          Text(_maskName(tip.tipperName), style: GoogleFonts.dmSans(
               color: const Color(0xFF111827), fontWeight: FontWeight.w700, fontSize: 13)),
           const SizedBox(width: 6),
           Text(_relative, style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 11)),
