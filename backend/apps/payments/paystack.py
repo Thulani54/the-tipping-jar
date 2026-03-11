@@ -74,6 +74,25 @@ def get_subaccount(subaccount_code: str) -> dict:
     return data["data"]
 
 
+def resolve_account(account_number: str, bank_code: str) -> dict:
+    """
+    Validate a bank account number and return the account name.
+
+    Returns dict with keys: account_number, account_name.
+    Raises RuntimeError if the account cannot be resolved.
+    """
+    resp = requests.get(
+        f"{_BASE}/bank/resolve",
+        params={"account_number": account_number, "bank_code": bank_code},
+        headers=_headers(),
+        timeout=15,
+    )
+    data = resp.json()
+    if not data.get("status"):
+        raise RuntimeError(data.get("message", "Could not verify account. Check the number and bank."))
+    return data["data"]
+
+
 # ── Transaction ───────────────────────────────────────────────────────────────
 
 def initialize_transaction(

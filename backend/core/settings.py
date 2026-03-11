@@ -159,7 +159,8 @@ STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
 PAYSTACK_SECRET_KEY = env("PAYSTACK_SECRET_KEY", default="")
 PAYSTACK_WEBHOOK_SECRET = env("PAYSTACK_WEBHOOK_SECRET", default="")
 # Platform fee taken from every tip (goes to TippingJar master account)
-PLATFORM_FEE_PERCENT = env.float("PLATFORM_FEE_PERCENT", default=3.0)
+# 4% platform + ~3% Paystack processing = creator nets 93%
+PLATFORM_FEE_PERCENT = env.float("PLATFORM_FEE_PERCENT", default=4.0)
 # Service fee charged to creator (Paystack's own processing fee share)
 SERVICE_FEE_PERCENT = env.float("SERVICE_FEE_PERCENT", default=3.0)
 

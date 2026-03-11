@@ -299,6 +299,24 @@ class ApiService {
     throw Exception('Failed to update profile: ${res.body}');
   }
 
+  // ── Bank account validation ───────────────────────────────────────
+
+  /// Validate a bank account via Paystack's resolve endpoint.
+  /// Returns { 'account_name': '...', 'account_number': '...' }
+  Future<Map<String, dynamic>> validateBankAccount(
+      String accountNumber, String bankCode) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/creators/me/banking/validate/'),
+      headers: _headers,
+      body: jsonEncode({'account_number': accountNumber, 'bank_code': bankCode}),
+    );
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    final body = jsonDecode(res.body) as Map<String, dynamic>;
+    throw Exception(body['detail'] ?? 'Could not verify account number.');
+  }
+
   // ── KYC documents ─────────────────────────────────────────────────
 
   Future<List<KycDocumentModel>> getKycDocuments() async {

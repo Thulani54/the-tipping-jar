@@ -29,6 +29,7 @@ from .views import (
     PublicMilestoneListView,
     PublicPostListView,
     PublicTierListView,
+    ValidateBankAccountView,
 )
 
 urlpatterns = [
@@ -48,6 +49,7 @@ urlpatterns = [
     path("me/commission-slot/", MyCommissionSlotView.as_view(), name="my-commission-slot"),
     path("me/commissions/", MyCommissionRequestListView.as_view(), name="my-commissions"),
     path("me/commissions/<int:pk>/", MyCommissionRequestDetailView.as_view(), name="my-commission-detail"),
+    path("me/banking/validate/", ValidateBankAccountView.as_view(), name="validate-bank-account"),
     path("me/kyc/", MyKycDocumentListCreateView.as_view(), name="my-kyc-docs"),
     path("admin/<int:pk>/kyc/approve/", AdminKycApproveView.as_view(), name="admin-kyc-approve"),
     path("admin/<int:pk>/kyc/decline/", AdminKycDeclineView.as_view(), name="admin-kyc-decline"),

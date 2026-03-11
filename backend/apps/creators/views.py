@@ -71,6 +71,44 @@ def _maybe_create_paystack_subaccount(profile: CreatorProfile) -> None:
         logger.warning("Paystack subaccount creation failed for %s: %s", profile.slug, exc)
 
 
+class ValidateBankAccountView(APIView):
+    """
+    POST /api/creators/me/banking/validate/
+
+    Validate a bank account number against a Paystack bank code.
+    Returns the resolved account name so the creator can confirm before saving.
+
+    Request body: { "account_number": "...", "bank_code": "..." }
+    Response:     { "account_name": "...", "account_number": "..." }
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        account_number = request.data.get("account_number", "").strip()
+        bank_code = request.data.get("bank_code", "").strip()
+
+        if not account_number or not bank_code:
+            return Response(
+                {"detail": "account_number and bank_code are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not settings.PAYSTACK_SECRET_KEY:
+            # Dev mode — skip real validation
+            return Response({"account_name": "Dev Mode Account", "account_number": account_number})
+
+        try:
+            data = ps.resolve_account(account_number, bank_code)
+        except RuntimeError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "account_name": data.get("account_name", ""),
+            "account_number": data.get("account_number", account_number),
+        })
+
+
 class CreatorListView(generics.ListAPIView):
     queryset = CreatorProfile.objects.filter(is_active=True).order_by("-created_at")
     serializer_class = CreatorProfileSerializer

@@ -1180,6 +1180,8 @@ class _BankingCard extends StatelessWidget {
     final accountCtrl = TextEditingController();
     String accountType = profile.bankAccountType.isEmpty ? 'cheque' : profile.bankAccountType;
     bool saving = false;
+    bool verifying = false;
+    String? verifiedAccountName; // set after Paystack resolves the account
     String? error;
 
     await showDialog(
@@ -1233,6 +1235,7 @@ class _BankingCard extends StatelessWidget {
                 onChanged: (v) => setS(() {
                   selectedBank = v ?? selectedBank;
                   selectedBankCode = _saBanks.firstWhere((b) => b.$1 == selectedBank).$2;
+                  verifiedAccountName = null; // reset verification on bank change
                 }),
               ),
             ]),
@@ -1279,6 +1282,27 @@ class _BankingCard extends StatelessWidget {
                 Text('Locked', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
               ]),
             ),
+            if (verifiedAccountName != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF22C55E).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF22C55E).withValues(alpha: 0.35)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.check_circle_rounded, color: Color(0xFF22C55E), size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Account verified', style: GoogleFonts.dmSans(
+                        color: const Color(0xFF22C55E), fontWeight: FontWeight.w600, fontSize: 12)),
+                    Text(verifiedAccountName!, style: GoogleFonts.dmSans(
+                        color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                  ])),
+                ]),
+              ),
+            ],
             if (error != null) ...[
               const SizedBox(height: 10),
               Text(error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
@@ -1290,45 +1314,72 @@ class _BankingCard extends StatelessWidget {
             onPressed: () => Navigator.pop(ctx),
             child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted)),
           ),
-          ElevatedButton(
-            onPressed: saving ? null : () async {
-              if (holderCtrl.text.trim().isEmpty) {
-                setS(() => error = 'Account holder name is required.');
-                return;
-              }
-              if (accountCtrl.text.trim().isEmpty && !profile.hasBankConnected) {
-                setS(() => error = 'Account number is required.');
-                return;
-              }
-              setS(() { saving = true; error = null; });
-              try {
-                final payload = <String, dynamic>{
-                  'bank_name': selectedBank,
-                  'bank_account_holder': holderCtrl.text.trim(),
-                  'bank_routing_number': selectedBankCode,
-                  'bank_account_type': accountType,
-                  'bank_country': 'ZA',
-                };
-                if (accountCtrl.text.trim().isNotEmpty) {
-                  payload['bank_account_number'] = accountCtrl.text.trim();
+          if (verifiedAccountName == null)
+            ElevatedButton(
+              onPressed: verifying ? null : () async {
+                if (accountCtrl.text.trim().isEmpty) {
+                  setS(() => error = 'Enter your account number to verify.');
+                  return;
                 }
-                final api = context.read<AuthProvider>().api;
-                final updated = await api.updateMyCreatorProfile(payload);
-                if (ctx.mounted) Navigator.pop(ctx);
-                onUpdated(updated);
-              } catch (e) {
-                setS(() { saving = false; error = e.toString().replaceFirst('Exception: ', ''); });
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimary, foregroundColor: Colors.white,
-                elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
-            child: saving
-                ? const SizedBox(width: 16, height: 16,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : Text('Save details', style: GoogleFonts.dmSans(
-                    fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
-          ),
+                setS(() { verifying = true; error = null; });
+                try {
+                  final api = context.read<AuthProvider>().api;
+                  final result = await api.validateBankAccount(
+                      accountCtrl.text.trim(), selectedBankCode);
+                  setS(() {
+                    verifying = false;
+                    verifiedAccountName = result['account_name'] as String?;
+                  });
+                } catch (e) {
+                  setS(() {
+                    verifying = false;
+                    error = e.toString().replaceFirst('Exception: ', '');
+                  });
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimary, foregroundColor: Colors.white,
+                  elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+              child: verifying
+                  ? const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text('Verify account', style: GoogleFonts.dmSans(
+                      fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+            )
+          else
+            ElevatedButton(
+              onPressed: saving ? null : () async {
+                if (holderCtrl.text.trim().isEmpty) {
+                  setS(() => error = 'Account holder name is required.');
+                  return;
+                }
+                setS(() { saving = true; error = null; });
+                try {
+                  final payload = <String, dynamic>{
+                    'bank_name': selectedBank,
+                    'bank_account_holder': holderCtrl.text.trim(),
+                    'bank_routing_number': selectedBankCode,
+                    'bank_account_type': accountType,
+                    'bank_country': 'ZA',
+                    'bank_account_number': accountCtrl.text.trim(),
+                  };
+                  final api = context.read<AuthProvider>().api;
+                  final updated = await api.updateMyCreatorProfile(payload);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  onUpdated(updated);
+                } catch (e) {
+                  setS(() { saving = false; error = e.toString().replaceFirst('Exception: ', ''); });
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF22C55E), foregroundColor: Colors.white,
+                  elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+              child: saving
+                  ? const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text('Confirm & Save', style: GoogleFonts.dmSans(
+                      fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
+            ),
         ],
       )),
     );
