@@ -1178,7 +1178,7 @@ class _BankingCard extends StatelessWidget {
 
     final holderCtrl = TextEditingController(text: profile.bankAccountHolder);
     final accountCtrl = TextEditingController();
-    String accountType = profile.bankAccountType.isEmpty ? 'cheque' : profile.bankAccountType;
+    String accountType = profile.bankAccountType.isEmpty ? 'checking' : profile.bankAccountType;
     bool saving = false;
     bool verifying = false;
     String? verifiedAccountName; // set after Paystack resolves the account
@@ -1261,7 +1261,7 @@ class _BankingCard extends StatelessWidget {
                   color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
               const SizedBox(height: 8),
               Row(children: [
-                _TypeChip('Cheque / Current', accountType == 'cheque', () => setS(() => accountType = 'cheque')),
+                _TypeChip('Cheque / Current', accountType == 'checking', () => setS(() => accountType = 'checking')),
                 const SizedBox(width: 8),
                 _TypeChip('Savings', accountType == 'savings', () => setS(() => accountType = 'savings')),
               ]),
