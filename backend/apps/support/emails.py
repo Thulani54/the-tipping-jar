@@ -58,23 +58,45 @@ def send_contact_confirmation(contact):
         f"  support@tippingjar.co.za\n"
         f"  tippingjar.co.za"
     )
-    html = f"""
-<div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;padding:32px;background:#0A0F0D;color:#E2E8F0;border-radius:12px;">
+    html = f"""<!DOCTYPE html>
+<html lang="en" style="background-color:#0A0F0D;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>
+    :root {{ color-scheme: light dark; }}
+    body {{ margin:0;padding:0;background-color:#0A0F0D !important; }}
+    @media (prefers-color-scheme: dark) {{
+      body {{ background-color:#0A0F0D !important; }}
+      .wrap {{ background-color:#0A0F0D !important;color:#E2E8F0 !important; }}
+      .card {{ background-color:#111A16 !important;border-color:#1E2E26 !important; }}
+    }}
+  </style>
+</head>
+<body style="margin:0;padding:16px 0;background-color:#0A0F0D;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0A0F0D;">
+  <tr><td align="center" style="padding:0 16px;">
+<div class="wrap" style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto;padding:32px;background-color:#0A0F0D;color:#E2E8F0;border-radius:12px;">
   <h2 style="color:#00C896;margin-bottom:4px;">We got your message ✓</h2>
   <p style="color:#7A9088;font-size:14px;">Hi {contact.name}, thanks for reaching out.</p>
-  <p style="font-size:15px;line-height:1.6;">
+  <p style="font-size:15px;line-height:1.6;color:#E2E8F0;">
     We received your enquiry and will get back to you within <strong>1–2 business days</strong>.
   </p>
-  <div style="background:#111A16;border:1px solid #1E2E26;border-radius:8px;padding:16px;margin:20px 0;">
+  <div class="card" style="background-color:#111A16;border:1px solid #1E2E26;border-radius:8px;padding:16px;margin:20px 0;">
     <p style="margin:0;font-size:13px;color:#7A9088;">Subject: {contact.get_subject_display()}</p>
-    <p style="margin:8px 0 0;font-size:14px;">{contact.message[:300]}{'...' if len(contact.message) > 300 else ''}</p>
+    <p style="margin:8px 0 0;font-size:14px;color:#E2E8F0;">{contact.message[:300]}{'...' if len(contact.message) > 300 else ''}</p>
   </div>
   <p style="font-size:13px;color:#7A9088;">If urgent, reply to this email.</p>
-  <hr style="border-color:#1E2E26;margin:24px 0;">
+  <hr style="border-color:#1E2E26;margin:24px 0;border-top:1px solid #1E2E26;border-bottom:none;">
   <p style="font-size:12px;color:#7A9088;margin:0;">
-    TippingJar · <a href="https://tippingjar.co.za" style="color:#00C896;">tippingjar.co.za</a> · support@tippingjar.co.za
+    TippingJar · <a href="https://tippingjar.co.za" style="color:#00C896;text-decoration:none;">tippingjar.co.za</a> · support@tippingjar.co.za
   </p>
-</div>"""
+</div>
+  </td></tr>
+</table>
+</body>
+</html>"""
 
     msg = EmailMultiAlternatives(
         subject="We received your message — TippingJar Support",
@@ -123,26 +145,45 @@ def send_tip_thank_you(tip):
         f"  www.tippingjar.co.za"
     )
 
-    html = f"""
-<div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;padding:32px;background:#0A0F0D;color:#E2E8F0;border-radius:12px;">
+    html = f"""<!DOCTYPE html>
+<html lang="en" style="background-color:#0A0F0D;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>
+    :root {{ color-scheme: light dark; }}
+    body {{ margin:0;padding:0;background-color:#0A0F0D !important; }}
+    @media (prefers-color-scheme: dark) {{
+      body {{ background-color:#0A0F0D !important; }}
+      .wrap {{ background-color:#0A0F0D !important;color:#E2E8F0 !important; }}
+      .card {{ background-color:#111A16 !important;border-color:#1E2E26 !important; }}
+      .card2 {{ background-color:#0D1A12 !important;border-color:#1E2E26 !important; }}
+    }}
+  </style>
+</head>
+<body style="margin:0;padding:16px 0;background-color:#0A0F0D;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0A0F0D;">
+  <tr><td align="center" style="padding:0 16px;">
+<div class="wrap" style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto;padding:32px;background-color:#0A0F0D;color:#E2E8F0;border-radius:12px;">
   <div style="text-align:center;margin-bottom:28px;">
     <span style="font-size:40px;">💚</span>
     <h2 style="color:#00C896;margin:8px 0 4px;">{creator.display_name} says thank you!</h2>
     <p style="color:#7A9088;font-size:14px;margin:0;">Hi {tipper_name}, your tip was received.</p>
   </div>
-  <div style="background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:20px;margin:0 0 24px;">
+  <div class="card" style="background-color:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:20px;margin:0 0 24px;">
     <p style="margin:0;font-size:13px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Tip amount</p>
     <p style="margin:4px 0 0;font-size:28px;font-weight:800;color:#00C896;">{amount}</p>
     {'<p style="margin:6px 0 0;font-size:13px;color:#7A9088;">Jar: <strong style=\\"color:#E2E8F0;\\">' + jar_name + '</strong></p>' if jar_name else ''}
   </div>
-  <div style="background:#0D1A12;border-left:3px solid #00C896;padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:24px;">
+  <div class="card2" style="background-color:#0D1A12;border-left:3px solid #00C896;padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:24px;">
     <p style="margin:0;font-size:15px;line-height:1.7;color:#E2E8F0;font-style:italic;">"{custom_msg}"</p>
     <p style="margin:10px 0 0;font-size:13px;color:#7A9088;">— {creator.display_name}</p>
   </div>
-  <a href="{creator_page}" style="display:block;text-align:center;background:#00C896;color:#fff;text-decoration:none;padding:14px 28px;border-radius:36px;font-weight:700;font-size:15px;margin-bottom:20px;">
+  <a href="{creator_page}" style="display:block;text-align:center;background-color:#00C896;color:#fff;text-decoration:none;padding:14px 28px;border-radius:36px;font-weight:700;font-size:15px;margin-bottom:20px;">
     Visit {creator.display_name}'s page →
   </a>
-  <div style="background:#0D1209;border:1px solid #1E2E26;border-radius:10px;padding:16px 20px;margin-bottom:24px;">
+  <div class="card2" style="background-color:#0D1A12;border:1px solid #1E2E26;border-radius:10px;padding:16px 20px;margin-bottom:24px;">
     <p style="margin:0;font-size:12px;color:#7A9088;">
       Transaction ref: <strong style="color:#E2E8F0;font-family:monospace;">{tip.paystack_reference}</strong>
     </p>
@@ -153,11 +194,15 @@ def send_tip_thank_you(tip):
       Dispute this transaction →
     </a>
   </div>
-  <hr style="border-color:#1E2E26;margin:0 0 16px;">
+  <hr style="border-color:#1E2E26;margin:0 0 16px;border-top:1px solid #1E2E26;border-bottom:none;">
   <p style="font-size:12px;color:#7A9088;margin:0;text-align:center;">
-    TippingJar · <a href="https://www.tippingjar.co.za" style="color:#00C896;">www.tippingjar.co.za</a>
+    TippingJar · <a href="https://www.tippingjar.co.za" style="color:#00C896;text-decoration:none;">www.tippingjar.co.za</a>
   </p>
-</div>"""
+</div>
+  </td></tr>
+</table>
+</body>
+</html>"""
 
     msg = EmailMultiAlternatives(
         subject=subject,
@@ -193,28 +238,50 @@ def send_dispute_confirmation(dispute):
         f"— TippingJar Support\n"
         f"  support@tippingjar.co.za"
     )
-    html = f"""
-<div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;padding:32px;background:#0A0F0D;color:#E2E8F0;border-radius:12px;">
+    html = f"""<!DOCTYPE html>
+<html lang="en" style="background-color:#0A0F0D;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>
+    :root {{ color-scheme: light dark; }}
+    body {{ margin:0;padding:0;background-color:#0A0F0D !important; }}
+    @media (prefers-color-scheme: dark) {{
+      body {{ background-color:#0A0F0D !important; }}
+      .wrap {{ background-color:#0A0F0D !important;color:#E2E8F0 !important; }}
+      .card {{ background-color:#111A16 !important;border-color:#1E2E26 !important; }}
+    }}
+  </style>
+</head>
+<body style="margin:0;padding:16px 0;background-color:#0A0F0D;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0A0F0D;">
+  <tr><td align="center" style="padding:0 16px;">
+<div class="wrap" style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto;padding:32px;background-color:#0A0F0D;color:#E2E8F0;border-radius:12px;">
   <h2 style="color:#00C896;margin-bottom:4px;">Dispute received ✓</h2>
   <p style="color:#7A9088;font-size:14px;">Reference: <strong style="color:#E2E8F0;">{ref}</strong></p>
-  <p style="font-size:15px;line-height:1.6;">
+  <p style="font-size:15px;line-height:1.6;color:#E2E8F0;">
     Hi {dispute.name}, we've logged your dispute and will review it within <strong>2 business days</strong>.
   </p>
-  <div style="background:#111A16;border:1px solid #1E2E26;border-radius:8px;padding:16px;margin:20px 0;">
+  <div class="card" style="background-color:#111A16;border:1px solid #1E2E26;border-radius:8px;padding:16px;margin:20px 0;">
     <p style="margin:0;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Reason</p>
-    <p style="margin:4px 0 12px;font-size:14px;">{dispute.get_reason_display()}</p>
+    <p style="margin:4px 0 12px;font-size:14px;color:#E2E8F0;">{dispute.get_reason_display()}</p>
     <p style="margin:0;font-size:12px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Description</p>
-    <p style="margin:4px 0 0;font-size:14px;">{dispute.description[:200]}{'...' if len(dispute.description) > 200 else ''}</p>
+    <p style="margin:4px 0 0;font-size:14px;color:#E2E8F0;">{dispute.description[:200]}{'...' if len(dispute.description) > 200 else ''}</p>
   </div>
-  <a href="{url}" style="display:inline-block;background:#00C896;color:#fff;text-decoration:none;padding:12px 28px;border-radius:36px;font-weight:700;font-size:14px;margin:8px 0;">
+  <a href="{url}" style="display:inline-block;background-color:#00C896;color:#fff;text-decoration:none;padding:12px 28px;border-radius:36px;font-weight:700;font-size:14px;margin:8px 0;">
     Track my dispute →
   </a>
   <p style="font-size:12px;color:#7A9088;margin-top:8px;">Or copy this link: {url}</p>
-  <hr style="border-color:#1E2E26;margin:24px 0;">
+  <hr style="border-color:#1E2E26;margin:24px 0;border-top:1px solid #1E2E26;border-bottom:none;">
   <p style="font-size:12px;color:#7A9088;margin:0;">
-    TippingJar · <a href="https://tippingjar.co.za" style="color:#00C896;">tippingjar.co.za</a> · support@tippingjar.co.za
+    TippingJar · <a href="https://tippingjar.co.za" style="color:#00C896;text-decoration:none;">tippingjar.co.za</a> · support@tippingjar.co.za
   </p>
-</div>"""
+</div>
+  </td></tr>
+</table>
+</body>
+</html>"""
 
     msg = EmailMultiAlternatives(
         subject=f"Dispute {ref} received — TippingJar",
@@ -253,22 +320,51 @@ _BASE_URL = "https://www.tippingjar.co.za"
 
 
 def _creator_email_wrapper(inner_html: str) -> str:
-    """Shared outer layout for all creator-facing emails."""
-    return f"""
-<div style="font-family:Inter,sans-serif;max-width:580px;margin:auto;background:#0A0F0D;border-radius:14px;overflow:hidden;">
-  <div style="background:#0D1A12;border-bottom:1px solid #1E2E26;padding:24px 32px;">
+    """Shared outer layout for all creator-facing emails. Dark-mode safe."""
+    return f"""<!DOCTYPE html>
+<html lang="en" style="background-color:#0A0F0D;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>
+    :root {{ color-scheme: light dark; }}
+    body {{ margin:0;padding:0;background-color:#0A0F0D !important; }}
+    @media (prefers-color-scheme: dark) {{
+      body {{ background-color:#0A0F0D !important; }}
+      .ew {{ background-color:#0A0F0D !important;color:#E2E8F0 !important; }}
+      .ew-hdr {{ background-color:#0D1A12 !important; }}
+      .ew-card {{ background-color:#111A16 !important;border-color:#1E2E26 !important; }}
+      .ew-card2 {{ background-color:#0D1A12 !important;border-color:#1E2E26 !important; }}
+      .ew-ftr {{ border-color:#1E2E26 !important; }}
+      .t-muted {{ color:#7A9088 !important; }}
+      .t-body {{ color:#E2E8F0 !important; }}
+      .t-green {{ color:#00C896 !important; }}
+      .t-footer {{ color:#4A6358 !important; }}
+    }}
+  </style>
+</head>
+<body style="margin:0;padding:16px 0;background-color:#0A0F0D;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0A0F0D;">
+  <tr><td align="center" style="padding:0 16px;">
+<div class="ew" style="font-family:Inter,Arial,sans-serif;max-width:580px;margin:auto;background-color:#0A0F0D;border-radius:14px;overflow:hidden;color:#E2E8F0;">
+  <div class="ew-hdr" style="background-color:#0D1A12;border-bottom:1px solid #1E2E26;padding:24px 32px;">
     <span style="font-size:22px;font-weight:800;color:#00C896;letter-spacing:-0.5px;">TippingJar</span>
   </div>
-  <div style="padding:32px 32px 24px;">
+  <div style="padding:32px 32px 24px;background-color:#0A0F0D;">
     {inner_html}
   </div>
-  <div style="border-top:1px solid #1E2E26;padding:16px 32px;text-align:center;">
+  <div class="ew-ftr" style="border-top:1px solid #1E2E26;padding:16px 32px;text-align:center;background-color:#0A0F0D;">
     <p style="margin:0;font-size:12px;color:#4A6358;">
       TippingJar · <a href="{_BASE_URL}" style="color:#00C896;text-decoration:none;">{_BASE_URL.replace("https://","")}</a>
       · <a href="mailto:support@tippingjar.co.za" style="color:#4A6358;text-decoration:none;">support@tippingjar.co.za</a>
     </p>
   </div>
-</div>"""
+</div>
+  </td></tr>
+</table>
+</body>
+</html>"""
 
 
 def _btn(text: str, url: str) -> str:
@@ -677,17 +773,39 @@ def send_dispute_status_update(dispute):
         f"View full details:\n  {url}\n\n"
         f"— TippingJar Support"
     )
-    html = f"""
-<div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;padding:32px;background:#0A0F0D;color:#E2E8F0;border-radius:12px;">
+    html = f"""<!DOCTYPE html>
+<html lang="en" style="background-color:#0A0F0D;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>
+    :root {{ color-scheme: light dark; }}
+    body {{ margin:0;padding:0;background-color:#0A0F0D !important; }}
+    @media (prefers-color-scheme: dark) {{
+      body {{ background-color:#0A0F0D !important; }}
+      .wrap {{ background-color:#0A0F0D !important;color:#E2E8F0 !important; }}
+      .card {{ background-color:#111A16 !important;border-color:#1E2E26 !important; }}
+    }}
+  </style>
+</head>
+<body style="margin:0;padding:16px 0;background-color:#0A0F0D;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0A0F0D;">
+  <tr><td align="center" style="padding:0 16px;">
+<div class="wrap" style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto;padding:32px;background-color:#0A0F0D;color:#E2E8F0;border-radius:12px;">
   <h2 style="color:#00C896;margin-bottom:4px;">Dispute update — {ref}</h2>
-  <p style="font-size:15px;">Hi {dispute.name}, your dispute status has changed to
+  <p style="font-size:15px;color:#E2E8F0;">Hi {dispute.name}, your dispute status has changed to
     <strong style="color:#00C896;">{status_label}</strong>.
   </p>
-  {'<div style="background:#111A16;border:1px solid #1E2E26;border-radius:8px;padding:16px;margin:16px 0;"><p style="margin:0;font-size:13px;color:#7A9088;">Notes from our team</p><p style="margin:6px 0 0;font-size:14px;">' + dispute.admin_notes + '</p></div>' if dispute.admin_notes else ''}
-  <a href="{url}" style="display:inline-block;background:#00C896;color:#fff;text-decoration:none;padding:12px 28px;border-radius:36px;font-weight:700;font-size:14px;margin:8px 0;">
+  {'<div class=\\"card\\" style=\\"background-color:#111A16;border:1px solid #1E2E26;border-radius:8px;padding:16px;margin:16px 0;\\"><p style=\\"margin:0;font-size:13px;color:#7A9088;\\">Notes from our team</p><p style=\\"margin:6px 0 0;font-size:14px;color:#E2E8F0;\\">' + dispute.admin_notes + '</p></div>' if dispute.admin_notes else ''}
+  <a href="{url}" style="display:inline-block;background-color:#00C896;color:#fff;text-decoration:none;padding:12px 28px;border-radius:36px;font-weight:700;font-size:14px;margin:8px 0;">
     View dispute →
   </a>
-</div>"""
+</div>
+  </td></tr>
+</table>
+</body>
+</html>"""
 
     msg = EmailMultiAlternatives(
         subject=f"Dispute {ref} updated — {status_label}",
