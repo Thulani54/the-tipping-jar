@@ -350,43 +350,39 @@ class _HeroBanner extends StatelessWidget {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       // ── Cover image / gradient strip ─────────────────────────────────────
-      Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Background
-          Container(
-            height: 200,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: NetworkImage(
-                  hasCover ? creator.coverImage! : '/default_banner.jpg',
-                ),
-                fit: BoxFit.cover,
-                onError: (_, __) {},
-              ),
+      SizedBox(
+        height: 200,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          clipBehavior: Clip.none,
+          children: [
+            // Background — use Image.network so Flutter web HTML renderer renders it
+            Image.network(
+              hasCover ? creator.coverImage! : '/default_banner.jpg',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(color: const Color(0xFF1E293B)),
             ),
-          ),
-          // Gradient overlay (always, so text is legible if image is bright)
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.15),
-                    Colors.black.withOpacity(0.55),
-                  ],
+            // Gradient overlay (always, so text is legible if image is bright)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.15),
+                      Colors.black.withOpacity(0.55),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          // Avatar overlapping the bottom edge
-          Positioned(
-            left: 24,
-            bottom: -36,
-            child: Container(
+            // Avatar overlapping the bottom edge
+            Positioned(
+              left: 24,
+              bottom: -36,
+              child: Container(
               width: 76, height: 76,
               decoration: BoxDecoration(
                 color: accent.withOpacity(0.2),
@@ -407,6 +403,7 @@ class _HeroBanner extends StatelessWidget {
             ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
           ),
         ],
+      ),
       ),
 
       // ── Info below banner ─────────────────────────────────────────────────
