@@ -899,9 +899,11 @@ class _ProfilePageState extends State<_ProfilePage> {
                     height: 120, width: double.infinity,
                     decoration: BoxDecoration(
                       image: DecorationImage(
-                        image: (_profile.coverImage != null && _profile.coverImage!.isNotEmpty)
-                            ? NetworkImage(_profile.coverImage!) as ImageProvider
-                            : const AssetImage('assets/images/default_banner.jpg'),
+                        image: NetworkImage(
+                          (_profile.coverImage != null && _profile.coverImage!.isNotEmpty)
+                              ? _profile.coverImage!
+                              : '/default_banner.jpg',
+                        ),
                         fit: BoxFit.cover,
                         onError: (_, __) {},
                       ),
@@ -1096,7 +1098,7 @@ class _ProfilePageState extends State<_ProfilePage> {
     height: 120,
     decoration: const BoxDecoration(
       image: DecorationImage(
-        image: AssetImage('assets/images/default_banner.jpg'),
+        image: NetworkImage('/default_banner.jpg'),
         fit: BoxFit.cover,
       ),
     ),

@@ -359,9 +359,9 @@ class _HeroBanner extends StatelessWidget {
             width: double.infinity,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: hasCover
-                    ? NetworkImage(creator.coverImage!) as ImageProvider
-                    : const AssetImage('assets/images/default_banner.jpg'),
+                image: NetworkImage(
+                  hasCover ? creator.coverImage! : '/default_banner.jpg',
+                ),
                 fit: BoxFit.cover,
                 onError: (_, __) {},
               ),
