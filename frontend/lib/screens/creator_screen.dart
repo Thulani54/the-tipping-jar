@@ -354,14 +354,15 @@ class _HeroBanner extends StatelessWidget {
         height: 200,
         width: double.infinity,
         child: Stack(
-          fit: StackFit.expand,
           clipBehavior: Clip.none,
           children: [
-            // Background — use Image.network so Flutter web HTML renderer renders it
-            Image.network(
-              hasCover ? creator.coverImage! : '/default_banner.jpg',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: const Color(0xFF1E293B)),
+            // Background — Positioned.fill forces explicit 0/0/0/0 CSS in HTML renderer
+            Positioned.fill(
+              child: Image.network(
+                hasCover ? creator.coverImage! : '/default_banner.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(color: const Color(0xFF1E293B)),
+              ),
             ),
             // Gradient overlay (always, so text is legible if image is bright)
             Positioned.fill(
