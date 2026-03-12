@@ -354,16 +354,18 @@ class _HeroBanner extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           // Background
-          SizedBox(
+          Container(
             height: 200,
             width: double.infinity,
-            child: hasCover
-                ? Image.network(
-                    creator.coverImage!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _defaultBanner(),
-                  )
-                : _defaultBanner(),
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: hasCover
+                    ? NetworkImage(creator.coverImage!) as ImageProvider
+                    : const AssetImage('assets/images/default_banner.jpg'),
+                fit: BoxFit.cover,
+                onError: (_, __) {},
+              ),
+            ),
           ),
           // Gradient overlay (always, so text is legible if image is bright)
           Positioned.fill(
@@ -440,12 +442,6 @@ class _HeroBanner extends StatelessWidget {
     ]);
   }
 
-  Widget _defaultBanner() => Image.asset(
-    'assets/images/default_banner.png',
-    fit: BoxFit.cover,
-    width: double.infinity,
-    height: 200,
-  );
 }
 
 // ─── Tip tier label helper ─────────────────────────────────────────────────────

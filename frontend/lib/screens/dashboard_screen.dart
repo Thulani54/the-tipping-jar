@@ -895,12 +895,17 @@ class _ProfilePageState extends State<_ProfilePage> {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
               child: Stack(
                 children: [
-                  SizedBox(
+                  Container(
                     height: 120, width: double.infinity,
-                    child: _profile.coverImage != null && _profile.coverImage!.isNotEmpty
-                        ? Image.network(_profile.coverImage!, fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _bannerFallback())
-                        : _bannerFallback(),
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: (_profile.coverImage != null && _profile.coverImage!.isNotEmpty)
+                            ? NetworkImage(_profile.coverImage!) as ImageProvider
+                            : const AssetImage('assets/images/default_banner.jpg'),
+                        fit: BoxFit.cover,
+                        onError: (_, __) {},
+                      ),
+                    ),
                   ),
                   Positioned(
                     top: 8, right: 8,
@@ -1086,11 +1091,15 @@ class _ProfilePageState extends State<_ProfilePage> {
     );
   }
 
-  Widget _bannerFallback() => Image.asset(
-    'assets/images/default_banner.png',
-    fit: BoxFit.cover,
+  Widget _bannerFallback() => Container(
     width: double.infinity,
     height: 120,
+    decoration: const BoxDecoration(
+      image: DecorationImage(
+        image: AssetImage('assets/images/default_banner.jpg'),
+        fit: BoxFit.cover,
+      ),
+    ),
   );
 
   Future<void> _showEditProfileDialog(BuildContext context) async {
