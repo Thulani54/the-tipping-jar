@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -1087,8 +1086,8 @@ class _ProfilePageState extends State<_ProfilePage> {
     );
   }
 
-  Widget _bannerFallback() => SvgPicture.asset(
-    'assets/images/default_banner.svg',
+  Widget _bannerFallback() => Image.asset(
+    'assets/images/default_banner.png',
     fit: BoxFit.cover,
     width: double.infinity,
     height: 120,

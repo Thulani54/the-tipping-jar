@@ -3,7 +3,6 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -441,8 +440,8 @@ class _HeroBanner extends StatelessWidget {
     ]);
   }
 
-  Widget _defaultBanner() => SvgPicture.asset(
-    'assets/images/default_banner.svg',
+  Widget _defaultBanner() => Image.asset(
+    'assets/images/default_banner.png',
     fit: BoxFit.cover,
     width: double.infinity,
     height: 200,
