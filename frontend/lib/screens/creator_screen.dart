@@ -373,8 +373,8 @@ class _HeroBanner extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(hasCover ? 0.15 : 0.0),
-                    Colors.black.withOpacity(hasCover ? 0.55 : 0.35),
+                    Colors.black.withOpacity(0.15),
+                    Colors.black.withOpacity(0.55),
                   ],
                 ),
               ),
@@ -398,7 +398,7 @@ class _HeroBanner extends StatelessWidget {
                     : Text(
                         creator.displayName.isNotEmpty ? creator.displayName[0].toUpperCase() : '?',
                         style: GoogleFonts.dmSans(
-                            color: hasCover ? Colors.white : accent,
+                            color: Colors.white,
                             fontWeight: FontWeight.w900, fontSize: 32),
                       ),
               ),
