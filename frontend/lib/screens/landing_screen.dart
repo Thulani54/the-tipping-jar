@@ -5,16 +5,23 @@ import 'package:google_fonts/google_fonts.dart';
 import '../widgets/app_logo.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
-const _dark        = Color(0xFF0A0F0D);
-const _darker      = Color(0xFF060A08);
-const _orange      = Color(0xFF004423);
-const _orangeLight = Color(0xFF1A6B3E);
+const _green       = Color(0xFF004423);   // brand primary
+const _greenMid    = Color(0xFF1A6B3E);   // secondary green
+const _bgWhite     = Colors.white;
+const _bgSage      = Color(0xFFF3F8F4);   // light sage section alt
+const _ink         = Color(0xFF0C1A13);   // near-black headline
+const _inkBody     = Color(0xFF374740);   // body text
+const _inkMuted    = Color(0xFF7A9285);   // muted text
+const _border      = Color(0xFFDDEDE4);   // light green-tinted border
+const _darkFooter  = Color(0xFF060A08);   // footer / CTA bg
+const _darkCard    = Color(0xFF111A16);   // phone screen bg
+const _white       = Colors.white;
+
+// accent chips reused in feature / step cards
 const _pink        = Color(0xFF0097B2);
 const _purple      = Color(0xFF2563EB);
-const _cardBg      = Color(0xFF111A16);
-const _border      = Color(0xFF1E2E26);
-const _textMuted   = Color(0xFF7A9088);
-const _white       = Colors.white;
+const _teal        = Color(0xFF22D3EE);
+const _lime        = Color(0xFF4ADE80);
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -44,7 +51,7 @@ class _LandingScreenState extends State<LandingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _dark,
+      backgroundColor: _bgWhite,
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -77,7 +84,13 @@ class _NavBar extends StatelessWidget {
     final w = MediaQuery.of(context).size.width;
     return AnimatedContainer(
       duration: 250.ms,
-      color: solid ? _darker.withOpacity(0.95) : Colors.transparent,
+      decoration: BoxDecoration(
+        color: solid ? _bgWhite.withOpacity(0.97) : Colors.transparent,
+        border: solid
+            ? const Border(
+                bottom: BorderSide(color: Color(0xFFE6F0E9), width: 1))
+            : const Border(),
+      ),
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
@@ -89,7 +102,7 @@ class _NavBar extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text('TippingJar',
                     style: GoogleFonts.dmSans(
-                        color: _white,
+                        color: _ink,
                         fontWeight: FontWeight.w700,
                         fontSize: 17,
                         letterSpacing: -0.3)),
@@ -122,7 +135,7 @@ class _NavBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(label,
               style: GoogleFonts.dmSans(
-                  color: _textMuted,
+                  color: _inkBody,
                   fontSize: 13,
                   fontWeight: FontWeight.w500)),
         ),
@@ -132,25 +145,28 @@ class _NavBar extends StatelessWidget {
       OutlinedButton(
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
-          foregroundColor: _white,
+          foregroundColor: _ink,
           side: const BorderSide(color: _border),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
         child: Text(label,
-            style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w500)),
+            style: GoogleFonts.dmSans(
+                fontSize: 13, fontWeight: FontWeight.w500, color: _ink)),
       );
 
   Widget _solidBtn(String label, VoidCallback onTap, BuildContext ctx) =>
       ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _orange,
+          backgroundColor: _green,
           foregroundColor: _white,
           shadowColor: Colors.transparent,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
         ),
         child: Text(label,
             style: GoogleFonts.dmSans(
@@ -169,42 +185,45 @@ class _HeroSection extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: const NetworkImage(
-            'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=1920&q=80',
-          ),
-          fit: BoxFit.cover,
-          colorFilter: const ColorFilter.mode(
-            Color(0xFF001A0C),
-            BlendMode.multiply,
-          ),
-        ),
-      ),
+      color: _bgWhite,
       child: Stack(
         children: [
-          // Subtle dot-grid (light dots on dark photo background)
+          // Subtle dot grid — very faint on white
           Positioned.fill(
             child: CustomPaint(painter: _DotGridPainter()),
           ),
-          // Soft white glow at top-centre
+          // Soft green glow blob top-right
           Positioned(
-            top: -240,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 800,
-                height: 640,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.white.withOpacity(0.04),
-                      Colors.transparent,
-                    ],
-                    stops: const [0.0, 1.0],
-                  ),
+            top: -160,
+            right: -160,
+            child: Container(
+              width: 600,
+              height: 600,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF00C272).withOpacity(0.10),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Softer second blob bottom-left
+          Positioned(
+            bottom: -80,
+            left: -80,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    _green.withOpacity(0.06),
+                    Colors.transparent,
+                  ],
                 ),
               ),
             ),
@@ -214,7 +233,7 @@ class _HeroSection extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(
                 narrow ? 24 : 64, 120, narrow ? 24 : 64, 80),
             child: narrow
-                // ── Mobile: stacked, centred ──────────────────────────
+                // ── Mobile: stacked ──────────────────────────────────
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -227,7 +246,7 @@ class _HeroSection extends StatelessWidget {
                         'Get paid by the people\nwho love your work.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.dmSans(
-                          color: Colors.white,
+                          color: _ink,
                           fontSize: 38,
                           fontWeight: FontWeight.w800,
                           height: 1.07,
@@ -243,9 +262,7 @@ class _HeroSection extends StatelessWidget {
                         'Let fans support you — no subscriptions, no friction.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.dmSans(
-                            color: Colors.white.withOpacity(0.62),
-                            fontSize: 16,
-                            height: 1.65),
+                            color: _inkBody, fontSize: 16, height: 1.65),
                       )
                           .animate()
                           .fadeIn(delay: 240.ms, duration: 600.ms)
@@ -289,7 +306,7 @@ class _HeroSection extends StatelessWidget {
                               'Get paid by the people\nwho love your work.',
                               textAlign: TextAlign.left,
                               style: GoogleFonts.dmSans(
-                                color: Colors.white,
+                                color: _ink,
                                 fontSize: 58,
                                 fontWeight: FontWeight.w800,
                                 height: 1.07,
@@ -305,7 +322,7 @@ class _HeroSection extends StatelessWidget {
                               'Let fans support you — no subscriptions, no friction.',
                               textAlign: TextAlign.left,
                               style: GoogleFonts.dmSans(
-                                  color: Colors.white.withOpacity(0.62),
+                                  color: _inkBody,
                                   fontSize: 17,
                                   height: 1.65),
                             )
@@ -317,7 +334,10 @@ class _HeroSection extends StatelessWidget {
                               spacing: 12,
                               runSpacing: 10,
                               alignment: WrapAlignment.start,
-                              children: [_primaryCta(context), _secondaryCta(context)],
+                              children: [
+                                _primaryCta(context),
+                                _secondaryCta(context)
+                              ],
                             )
                                 .animate()
                                 .fadeIn(delay: 360.ms, duration: 500.ms)
@@ -347,8 +367,8 @@ class _HeroSection extends StatelessWidget {
   Widget _badge() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
-          border: Border.all(color: Colors.white.withOpacity(0.15)),
+          color: _green.withOpacity(0.07),
+          border: Border.all(color: _green.withOpacity(0.22)),
           borderRadius: BorderRadius.circular(100),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -356,11 +376,11 @@ class _HeroSection extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-                color: const Color(0xFF34D8A0),
+                color: const Color(0xFF00C272),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                      color: const Color(0xFF34D8A0).withOpacity(0.5),
+                      color: const Color(0xFF00C272).withOpacity(0.5),
                       blurRadius: 6,
                       spreadRadius: 1)
                 ]),
@@ -369,7 +389,7 @@ class _HeroSection extends StatelessWidget {
           Text(
             "South Africa's creator tipping platform",
             style: GoogleFonts.dmSans(
-                color: Colors.white.withOpacity(0.80),
+                color: _green,
                 fontSize: 12,
                 fontWeight: FontWeight.w600),
           ),
@@ -380,7 +400,7 @@ class _HeroSection extends StatelessWidget {
         width: 3,
         height: 3,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.25),
+          color: _inkMuted.withOpacity(0.4),
           shape: BoxShape.circle,
         ),
       );
@@ -388,11 +408,12 @@ class _HeroSection extends StatelessWidget {
   Widget _primaryCta(BuildContext context) => ElevatedButton(
         onPressed: () => context.go('/register'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _orange,
+          backgroundColor: _green,
           foregroundColor: _white,
           elevation: 0,
           shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(36)),
         ),
@@ -404,19 +425,22 @@ class _HeroSection extends StatelessWidget {
   Widget _secondaryCta(BuildContext context) =>
       DateTime.now().isAfter(DateTime(2026, 3, 23))
           ? OutlinedButton(
-        onPressed: () => context.go('/creators'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: _white,
-          side: BorderSide(color: _white.withOpacity(0.3)),
-          backgroundColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(32)),
-        ),
-        child: Text('View Creators',
-            style: GoogleFonts.dmSans(
-                fontSize: 15, fontWeight: FontWeight.w600, color: _white)),
-          )
+              onPressed: () => context.go('/creators'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _green,
+                side: BorderSide(color: _green.withOpacity(0.35)),
+                backgroundColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 28, vertical: 16),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(32)),
+              ),
+              child: Text('View Creators',
+                  style: GoogleFonts.dmSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: _green)),
+            )
           : const SizedBox.shrink();
 
   Widget _trustLine() => Row(
@@ -425,20 +449,17 @@ class _HeroSection extends StatelessWidget {
           _dot(),
           const SizedBox(width: 8),
           Text('No credit card required',
-              style: GoogleFonts.dmSans(
-                  color: Colors.white.withOpacity(0.40), fontSize: 13)),
+              style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13)),
           const SizedBox(width: 20),
           _dot(),
           const SizedBox(width: 8),
           Text('Free to get started',
-              style: GoogleFonts.dmSans(
-                  color: Colors.white.withOpacity(0.40), fontSize: 13)),
+              style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13)),
           const SizedBox(width: 20),
           _dot(),
           const SizedBox(width: 8),
           Text('Proudly South African',
-              style: GoogleFonts.dmSans(
-                  color: Colors.white.withOpacity(0.40), fontSize: 13)),
+              style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13)),
         ],
       );
 }
@@ -448,10 +469,10 @@ class _DotGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = const Color(0xFF004423).withOpacity(0.055)
       ..style = PaintingStyle.fill;
 
-    const spacing = 30.0;
+    const spacing = 28.0;
     const radius = 1.0;
 
     for (double x = 0; x <= size.width + spacing; x += spacing) {
@@ -469,7 +490,6 @@ class _DotGridPainter extends CustomPainter {
 class _PhoneMockup extends StatelessWidget {
   const _PhoneMockup();
 
-  // Titanium frame palette (Space Black iPhone 15 Pro)
   static const _bodyColor = Color(0xFF1C1C1E);
   static const _frameEdge = Color(0xFF48484A);
   static const _frameFlat = Color(0xFF3A3A3C);
@@ -485,57 +505,53 @@ class _PhoneMockup extends StatelessWidget {
             clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
-              // ── Screen glow pool beneath phone ──────────────────────
+              // Screen glow pool beneath phone
               Positioned(
-                left: 28, right: 28, bottom: -24,
+                left: 28,
+                right: 28,
+                bottom: -24,
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(60),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF004423).withOpacity(0.70),
-                        blurRadius: 90,
-                        spreadRadius: 18,
+                        color: _green.withOpacity(0.30),
+                        blurRadius: 80,
+                        spreadRadius: 12,
                       ),
                     ],
                   ),
                 ),
               ),
 
-              // ── Phone + physical side buttons ────────────────────────
               IntrinsicHeight(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Left: silent switch + volume
                     Padding(
                       padding: const EdgeInsets.only(right: 2.5),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           const SizedBox(height: 82),
-                          _sideBtn(22),   // silent switch
+                          _sideBtn(22),
                           const SizedBox(height: 16),
-                          _sideBtn(52),   // vol +
+                          _sideBtn(52),
                           const SizedBox(height: 10),
-                          _sideBtn(52),   // vol −
+                          _sideBtn(52),
                         ],
                       ),
                     ),
-
-                    // Centre: phone body
                     Flexible(child: _phoneBody()),
-
-                    // Right: power button
                     Padding(
                       padding: const EdgeInsets.only(left: 2.5),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           const SizedBox(height: 130),
-                          _sideBtn(72),   // power
+                          _sideBtn(72),
                         ],
                       ),
                     ),
@@ -562,19 +578,16 @@ class _PhoneMockup extends StatelessWidget {
         decoration: BoxDecoration(
           color: _bodyColor,
           borderRadius: BorderRadius.circular(50),
-          // Outer titanium edge highlight
           border: Border.all(color: _frameEdge, width: 1.2),
           boxShadow: [
-            // Deep drop shadow
             BoxShadow(
-              color: Colors.black.withOpacity(0.92),
-              blurRadius: 70,
-              offset: const Offset(0, 36),
+              color: Colors.black.withOpacity(0.18),
+              blurRadius: 60,
+              offset: const Offset(0, 30),
             ),
-            // Ambient green screen glow
             BoxShadow(
-              color: const Color(0xFF004423).withOpacity(0.30),
-              blurRadius: 90,
+              color: _green.withOpacity(0.12),
+              blurRadius: 80,
               spreadRadius: -8,
             ),
           ],
@@ -591,9 +604,10 @@ class _PhoneMockup extends StatelessWidget {
                   _homeIndicator(),
                 ],
               ),
-              // Glass sheen — diagonal highlight across top-left
               Positioned(
-                top: 0, left: 0, right: 0,
+                top: 0,
+                left: 0,
+                right: 0,
                 child: IgnorePointer(
                   child: Container(
                     height: 240,
@@ -625,17 +639,16 @@ class _PhoneMockup extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Dynamic island pill
             Container(
               width: 112,
               height: 30,
               decoration: BoxDecoration(
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: const Color(0xFF2A2A2E), width: 1),
+                border: Border.all(
+                    color: const Color(0xFF2A2A2E), width: 1),
               ),
             ),
-            // Status row
             Row(children: [
               Text('9:41',
                   style: GoogleFonts.dmSans(
@@ -644,7 +657,6 @@ class _PhoneMockup extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.3)),
               const Spacer(),
-              // Signal bars (hand-drawn, more realistic)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -665,7 +677,6 @@ class _PhoneMockup extends StatelessWidget {
               const SizedBox(width: 6),
               const Icon(Icons.wifi_rounded, color: _white, size: 13),
               const SizedBox(width: 5),
-              // Battery pill
               Row(children: [
                 Container(
                   width: 24,
@@ -705,47 +716,48 @@ class _PhoneMockup extends StatelessWidget {
       );
 
   Widget _appScreen() => Container(
-        color: _cardBg,
+        color: _darkCard,
         padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Nav bar
             Row(children: [
-              const Icon(Icons.arrow_back_ios_rounded,
-                  color: _textMuted, size: 14),
+              Icon(Icons.arrow_back_ios_rounded,
+                  color: _inkMuted, size: 14),
               const Spacer(),
               Text('TippingJar',
                   style: GoogleFonts.dmSans(
-                      color: _white, fontWeight: FontWeight.w700, fontSize: 13)),
+                      color: _white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13)),
               const Spacer(),
-              const Icon(Icons.ios_share_rounded, color: _textMuted, size: 14),
+              Icon(Icons.ios_share_rounded,
+                  color: _inkMuted, size: 14),
             ]),
             const SizedBox(height: 16),
-
-            // Creator profile — avatar with glowing ring
             Center(
               child: Column(children: [
                 Container(
-                  width: 68, height: 68,
+                  width: 68,
+                  height: 68,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: _orange.withOpacity(0.45),
+                        color: _green.withOpacity(0.45),
                         blurRadius: 18,
                         spreadRadius: 2,
                       ),
                     ],
                     border: Border.all(
-                        color: _orange.withOpacity(0.5), width: 2.5),
+                        color: _green.withOpacity(0.5), width: 2.5),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(2.5),
                     child: Container(
                       decoration: const BoxDecoration(
-                          color: _orange, shape: BoxShape.circle),
+                          color: _green, shape: BoxShape.circle),
                       child: Center(
                         child: Text('TM',
                             style: GoogleFonts.dmSans(
@@ -766,15 +778,13 @@ class _PhoneMockup extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text('Music Producer & Beatmaker',
                     style: GoogleFonts.dmSans(
-                        color: _textMuted, fontSize: 10.5)),
+                        color: _inkMuted, fontSize: 10.5)),
               ]),
             ),
             const SizedBox(height: 18),
-
-            // Amount chips
             Text('Choose an amount',
                 style: GoogleFonts.dmSans(
-                    color: _textMuted,
+                    color: _inkMuted,
                     fontSize: 10,
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 7),
@@ -789,10 +799,10 @@ class _PhoneMockup extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 7),
                     decoration: BoxDecoration(
-                      color: e.$2 ? _orange : _dark,
+                      color: e.$2 ? _green : const Color(0xFF0A0F0D),
                       borderRadius: BorderRadius.circular(36),
                       border: Border.all(
-                          color: e.$2 ? _orange : _border),
+                          color: e.$2 ? _green : const Color(0xFF1E2E26)),
                     ),
                     child: Text(e.$1,
                         textAlign: TextAlign.center,
@@ -806,17 +816,15 @@ class _PhoneMockup extends StatelessWidget {
               ],
             ]),
             const SizedBox(height: 11),
-
-            // Send tip button
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: _orange,
+                color: _green,
                 borderRadius: BorderRadius.circular(36),
                 boxShadow: [
                   BoxShadow(
-                    color: _orange.withOpacity(0.40),
+                    color: _green.withOpacity(0.40),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
@@ -837,11 +845,9 @@ class _PhoneMockup extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-
-            // Recent tips
             Text('Recent tips',
                 style: GoogleFonts.dmSans(
-                    color: _textMuted,
+                    color: _inkMuted,
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.4)),
@@ -874,15 +880,18 @@ class _PhoneMockup extends StatelessWidget {
       {bool muted = false}) {
     return Row(children: [
       Container(
-        width: 28, height: 28,
+        width: 28,
+        height: 28,
         decoration: BoxDecoration(
-          color: muted ? _border : _orange.withOpacity(0.15),
+          color: muted
+              ? const Color(0xFF1E2E26)
+              : _green.withOpacity(0.15),
           shape: BoxShape.circle,
         ),
         child: Center(
           child: Text(initials,
               style: GoogleFonts.dmSans(
-                  color: muted ? _textMuted : _orange,
+                  color: muted ? _inkMuted : _green,
                   fontWeight: FontWeight.w700,
                   fontSize: 9)),
         ),
@@ -891,22 +900,22 @@ class _PhoneMockup extends StatelessWidget {
       Expanded(
         child: Text(name,
             style: GoogleFonts.dmSans(
-                color: muted ? _textMuted : _white,
+                color: muted ? _inkMuted : _white,
                 fontSize: 11,
                 fontWeight: FontWeight.w500)),
       ),
       Text(amount,
           style: GoogleFonts.dmSans(
-              color: _orange, fontWeight: FontWeight.w800, fontSize: 12)),
+              color: _green, fontWeight: FontWeight.w800, fontSize: 12)),
       const SizedBox(width: 6),
       Text(time,
           style: GoogleFonts.dmSans(
-              color: _textMuted.withOpacity(0.5), fontSize: 10)),
+              color: _inkMuted.withOpacity(0.5), fontSize: 10)),
     ]);
   }
 }
 
-// ─── Glow blob (used in CTA section) ─────────────────────────────────────────
+// ─── Glow blob ────────────────────────────────────────────────────────────────
 class _GlowBlob extends StatelessWidget {
   final Color color;
   final double size;
@@ -932,7 +941,7 @@ class _HowItWorksSection extends StatelessWidget {
         Icons.person_add_alt_1_rounded,
         'Create your page',
         'Sign up as a creator in 60 seconds. Customise your profile, set a tip goal, and share your link.',
-        _orange,
+        _green,
       ),
       (
         Icons.link_rounded,
@@ -949,7 +958,7 @@ class _HowItWorksSection extends StatelessWidget {
     ];
 
     return _SectionWrapper(
-      dark: true,
+      alt: true,
       child: Column(
         children: [
           _SectionHeader(
@@ -1013,28 +1022,34 @@ class _StepCardState extends State<_StepCard> {
         width: 300,
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: _hovered ? _cardBg : const Color(0xFF111118),
+          color: _bgWhite,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
               color: _hovered
-                  ? widget.color.withOpacity(0.5)
+                  ? widget.color.withOpacity(0.4)
                   : _border),
           boxShadow: _hovered
               ? [
                   BoxShadow(
-                      color: widget.color.withOpacity(0.15),
+                      color: widget.color.withOpacity(0.12),
                       blurRadius: 40,
                       offset: const Offset(0, 12))
                 ]
-              : [],
+              : [
+                  const BoxShadow(
+                      color: Color(0x07000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 4))
+                ],
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: widget.color.withOpacity(0.12),
+                color: widget.color.withOpacity(0.10),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(widget.icon, color: widget.color, size: 22),
@@ -1042,7 +1057,7 @@ class _StepCardState extends State<_StepCard> {
             const Spacer(),
             Text('0${widget.number}',
                 style: GoogleFonts.dmSans(
-                    color: widget.color.withOpacity(0.3),
+                    color: widget.color.withOpacity(0.22),
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -1)),
@@ -1050,13 +1065,13 @@ class _StepCardState extends State<_StepCard> {
           const SizedBox(height: 20),
           Text(widget.title,
               style: GoogleFonts.dmSans(
-                  color: _white,
+                  color: _ink,
                   fontWeight: FontWeight.w700,
                   fontSize: 17)),
           const SizedBox(height: 10),
           Text(widget.body,
               style: GoogleFonts.dmSans(
-                  color: _textMuted, fontSize: 14, height: 1.6)),
+                  color: _inkBody, fontSize: 14, height: 1.6)),
         ]),
       )
           .animate()
@@ -1072,28 +1087,27 @@ class _FeaturesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final features = [
       (Icons.flash_on_rounded, 'Instant payouts',
-          'No holding periods. Funds go straight to your bank — fast and reliable.', _orange),
+          'No holding periods. Funds go straight to your bank — fast and reliable.', _green),
       (Icons.face_rounded, 'Anonymous tips',
           'Fans can tip without creating an account — zero friction.', _pink),
       (Icons.bar_chart_rounded, 'Live analytics',
           'Watch tips roll in with a real-time dashboard built for creators.', _purple),
       (Icons.lock_rounded, 'Bank-grade security',
-          'Bank-grade encryption. PCI-DSS compliant payments, always.', const Color(0xFF22D3EE)),
+          'Bank-grade encryption. PCI-DSS compliant payments, always.', _teal),
       (Icons.palette_rounded, 'Custom pages',
-          'Personalise your tip page with cover art, a tagline, and a monthly goal.', const Color(0xFF4ADE80)),
+          'Personalise your tip page with cover art, a tagline, and a monthly goal.', _lime),
       (Icons.public_rounded, 'Works worldwide',
-          'Accept tips in 135+ currencies across 48 countries.', _orangeLight),
+          'Accept tips in 135+ currencies across 48 countries.', _greenMid),
     ];
 
     return _SectionWrapper(
-      dark: false,
+      alt: false,
       child: Column(children: [
         _SectionHeader(
           tag: 'Features',
           title: 'Everything a creator\nactually needs',
           subtitle:
               'We cut the fluff and kept only what matters for getting paid.',
-          dark: false,
         ),
         const SizedBox(height: 56),
         Wrap(
@@ -1145,34 +1159,33 @@ class _FeatureCardState extends State<_FeatureCard> {
         width: 280,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: _hovered
-              ? const Color(0xFFF5F5FA)
-              : const Color(0xFFF8F8FC),
+          color: _hovered ? const Color(0xFFF5FAF6) : const Color(0xFFF8FBF8),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
               color: _hovered
-                  ? widget.color.withOpacity(0.4)
-                  : const Color(0xFFE8E8F0)),
+                  ? widget.color.withOpacity(0.35)
+                  : _border),
           boxShadow: _hovered
               ? [
                   BoxShadow(
-                      color: widget.color.withOpacity(0.12),
+                      color: widget.color.withOpacity(0.10),
                       blurRadius: 32,
                       offset: const Offset(0, 8))
                 ]
               : [
                   const BoxShadow(
-                      color: Color(0x08000000),
+                      color: Color(0x06000000),
                       blurRadius: 8,
                       offset: Offset(0, 2))
                 ],
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: widget.color.withOpacity(0.1),
+              color: widget.color.withOpacity(0.10),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(widget.icon, color: widget.color, size: 20),
@@ -1180,15 +1193,13 @@ class _FeatureCardState extends State<_FeatureCard> {
           const SizedBox(height: 16),
           Text(widget.title,
               style: GoogleFonts.dmSans(
-                  color: const Color(0xFF0D0D12),
+                  color: _ink,
                   fontWeight: FontWeight.w700,
                   fontSize: 15)),
           const SizedBox(height: 8),
           Text(widget.body,
               style: GoogleFonts.dmSans(
-                  color: const Color(0xFF6B6B80),
-                  fontSize: 13,
-                  height: 1.6)),
+                  color: _inkBody, fontSize: 13, height: 1.6)),
         ]),
       )
           .animate()
@@ -1205,11 +1216,11 @@ class _CreatorSpotlightSection extends StatelessWidget {
     final creators = [
       ('Mia Chen', 'Illustrator & comic artist', 'R3,240', _pink, 'MC'),
       ('Raj Patel', 'Indie game developer', 'R1,870', _purple, 'RP'),
-      ('Lena Torres', 'Music producer & DJ', 'R5,100', _orange, 'LT'),
+      ('Lena Torres', 'Music producer & DJ', 'R5,100', _green, 'LT'),
     ];
 
     return _SectionWrapper(
-      dark: true,
+      alt: true,
       child: Column(children: [
         _SectionHeader(
           tag: 'Creator spotlight',
@@ -1256,15 +1267,22 @@ class _CreatorCard extends StatelessWidget {
       width: 280,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: _bgWhite,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _border),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x07000000),
+              blurRadius: 16,
+              offset: Offset(0, 4))
+        ],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      child:
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
           height: 72,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.35),
+            color: color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(10),
           ),
         ),
@@ -1276,7 +1294,7 @@ class _CreatorCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
-              border: Border.all(color: _cardBg, width: 3),
+              border: Border.all(color: _bgWhite, width: 3),
             ),
             child: Center(
               child: Text(initials,
@@ -1293,20 +1311,21 @@ class _CreatorCard extends StatelessWidget {
                 children: [
                   Text(name,
                       style: GoogleFonts.dmSans(
-                          color: _white,
+                          color: _ink,
                           fontWeight: FontWeight.w700,
                           fontSize: 15)),
                   Text(role,
-                      style: GoogleFonts.dmSans(
-                          color: _textMuted, fontSize: 12)),
+                      style:
+                          GoogleFonts.dmSans(color: _inkMuted, fontSize: 12)),
                 ]),
           ),
         ]),
         const SizedBox(height: 20),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: _dark,
+            color: _bgSage,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: _border),
           ),
@@ -1314,12 +1333,12 @@ class _CreatorCard extends StatelessWidget {
             Icon(Icons.volunteer_activism, color: color, size: 16),
             const SizedBox(width: 8),
             Text('Total tips earned',
-                style: GoogleFonts.dmSans(
-                    color: _textMuted, fontSize: 12)),
+                style:
+                    GoogleFonts.dmSans(color: _inkMuted, fontSize: 12)),
             const Spacer(),
             Text(earned,
                 style: GoogleFonts.dmSans(
-                    color: _white,
+                    color: _ink,
                     fontWeight: FontWeight.w800,
                     fontSize: 15)),
           ]),
@@ -1331,10 +1350,10 @@ class _CreatorCard extends StatelessWidget {
             onPressed: () => context.go('/explore'),
             style: OutlinedButton.styleFrom(
               foregroundColor: color,
-              side: BorderSide(color: color.withOpacity(0.4)),
+              side: BorderSide(color: color.withOpacity(0.35)),
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
             child: Text('Send a tip',
                 style: GoogleFonts.dmSans(
@@ -1357,11 +1376,12 @@ class _CtaSection extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 40),
+        padding:
+            const EdgeInsets.symmetric(vertical: 80, horizontal: 40),
         decoration: BoxDecoration(
           color: const Color(0xFF001A12),
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: _border),
+          border: Border.all(color: const Color(0xFF1E2E26)),
         ),
         child: Stack(
           children: [
@@ -1369,12 +1389,12 @@ class _CtaSection extends StatelessWidget {
                 top: -40,
                 right: -40,
                 child: _GlowBlob(
-                    color: _orange.withOpacity(0.2), size: 300)),
+                    color: _green.withOpacity(0.20), size: 300)),
             Positioned(
                 bottom: -60,
                 left: 40,
                 child: _GlowBlob(
-                    color: _purple.withOpacity(0.2), size: 260)),
+                    color: _purple.withOpacity(0.18), size: 260)),
             Column(children: [
               Text('Ready to fill your jar?',
                   style: GoogleFonts.dmSans(
@@ -1387,9 +1407,10 @@ class _CtaSection extends StatelessWidget {
                   .fadeIn(duration: 500.ms)
                   .slideY(begin: 0.2, curve: Curves.easeOut),
               const SizedBox(height: 16),
-              Text('Set up your creator page in under a minute.\nNo credit card required.',
+              Text(
+                  'Set up your creator page in under a minute.\nNo credit card required.',
                   style: GoogleFonts.dmSans(
-                      color: _textMuted, fontSize: 16, height: 1.6),
+                      color: _inkMuted, fontSize: 16, height: 1.6),
                   textAlign: TextAlign.center)
                   .animate()
                   .fadeIn(delay: 150.ms, duration: 500.ms),
@@ -1397,7 +1418,7 @@ class _CtaSection extends StatelessWidget {
               ElevatedButton(
                 onPressed: () => context.go('/register'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _orange,
+                  backgroundColor: _green,
                   foregroundColor: _white,
                   shadowColor: Colors.transparent,
                   elevation: 0,
@@ -1432,9 +1453,10 @@ class _Footer extends StatelessWidget {
     final w = MediaQuery.of(context).size.width;
     final mobile = w < 700;
     final cols = [
-      ('Product',  [('Features', '/features')]),
-      ('Company',  [('About', '/about'), ('Blog', '/blog')]),
-      ('Legal',    [('Privacy', '/privacy'), ('Terms', '/terms'), ('Cookies', '/cookies')]),
+      ('Product', [('Features', '/features')]),
+      ('Company', [('About', '/about'), ('Blog', '/blog')]),
+      ('Legal',
+          [('Privacy', '/privacy'), ('Terms', '/terms'), ('Cookies', '/cookies')]),
     ];
     final brand = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1444,36 +1466,44 @@ class _Footer extends StatelessWidget {
           const SizedBox(width: 8),
           Text('TippingJar',
               style: GoogleFonts.dmSans(
-                  color: _white, fontWeight: FontWeight.w700, fontSize: 15)),
+                  color: _white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15)),
         ]),
         const SizedBox(height: 12),
         Text('Supporting creators,\none tip at a time.',
-            style: GoogleFonts.dmSans(color: _textMuted, fontSize: 13, height: 1.6)),
+            style: GoogleFonts.dmSans(
+                color: _inkMuted, fontSize: 13, height: 1.6)),
       ],
     );
 
     Widget linkCol((String, List<(String, String)>) col) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(col.$1, style: GoogleFonts.dmSans(
-            color: _white, fontWeight: FontWeight.w600, fontSize: 13)),
-        const SizedBox(height: 12),
-        ...col.$2.map((link) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: GestureDetector(
-            onTap: () => context.go(link.$2),
-            child: Text(link.$1,
-                style: GoogleFonts.dmSans(color: _textMuted, fontSize: 13)),
-          ),
-        )),
-      ],
-    );
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(col.$1,
+                style: GoogleFonts.dmSans(
+                    color: _white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13)),
+            const SizedBox(height: 12),
+            ...col.$2.map((link) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GestureDetector(
+                    onTap: () => context.go(link.$2),
+                    child: Text(link.$1,
+                        style: GoogleFonts.dmSans(
+                            color: _inkMuted, fontSize: 13)),
+                  ),
+                )),
+          ],
+        );
 
     return Container(
-      color: _darker,
+      color: _darkFooter,
       padding: EdgeInsets.symmetric(
           horizontal: mobile ? 24 : 40, vertical: 48),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      child:
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (mobile) ...[
           brand,
           const SizedBox(height: 32),
@@ -1488,10 +1518,10 @@ class _Footer extends StatelessWidget {
             ...cols.map((col) => Expanded(child: linkCol(col))),
           ]),
         const SizedBox(height: 40),
-        const Divider(color: _border),
+        Divider(color: const Color(0xFF1E2E26)),
         const SizedBox(height: 20),
         Text('© 2026 TippingJar. All rights reserved.',
-            style: GoogleFonts.dmSans(color: _textMuted, fontSize: 12)),
+            style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12)),
       ]),
     );
   }
@@ -1499,15 +1529,15 @@ class _Footer extends StatelessWidget {
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 class _SectionWrapper extends StatelessWidget {
-  final bool dark;
+  final bool alt;
   final Widget child;
-  const _SectionWrapper({required this.dark, required this.child});
+  const _SectionWrapper({required this.alt, required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: dark ? _dark : Colors.white,
+      color: alt ? _bgSage : _bgWhite,
       padding: const EdgeInsets.symmetric(vertical: 96, horizontal: 40),
       child: child,
     );
@@ -1518,38 +1548,33 @@ class _SectionHeader extends StatelessWidget {
   final String tag;
   final String title;
   final String subtitle;
-  final bool dark;
-  const _SectionHeader(
-      {required this.tag,
-      required this.title,
-      required this.subtitle,
-      this.dark = true});
+  const _SectionHeader({
+    required this.tag,
+    required this.title,
+    required this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final titleColor = dark ? _white : const Color(0xFF0D0D12);
-    final subtitleColor = dark ? _textMuted : const Color(0xFF6B6B80);
-
     return Column(children: [
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: _orange.withOpacity(dark ? 0.1 : 0.08),
-          border: Border.all(color: _orange.withOpacity(0.3)),
+          color: _green.withOpacity(0.08),
+          border: Border.all(color: _green.withOpacity(0.28)),
           borderRadius: BorderRadius.circular(100),
         ),
         child: Text(tag,
             style: GoogleFonts.dmSans(
-                color: _orange,
+                color: _green,
                 fontSize: 12,
                 fontWeight: FontWeight.w600)),
-      )
-          .animate()
-          .fadeIn(duration: 400.ms),
+      ).animate().fadeIn(duration: 400.ms),
       const SizedBox(height: 16),
       Text(title,
           style: GoogleFonts.dmSans(
-              color: titleColor,
+              color: _ink,
               fontWeight: FontWeight.w800,
               fontSize: 38,
               height: 1.15,
@@ -1563,11 +1588,9 @@ class _SectionHeader extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 520),
         child: Text(subtitle,
             style: GoogleFonts.dmSans(
-                color: subtitleColor, fontSize: 16, height: 1.65),
+                color: _inkBody, fontSize: 16, height: 1.65),
             textAlign: TextAlign.center),
-      )
-          .animate()
-          .fadeIn(delay: 200.ms, duration: 500.ms),
+      ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
     ]);
   }
 }
