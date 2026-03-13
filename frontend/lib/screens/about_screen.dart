@@ -18,7 +18,6 @@ class AboutScreen extends StatelessWidget {
           _hero(),
           _mission(),
           _values(),
-          _team(),
           _cta(context),
           _footer(),
         ]),

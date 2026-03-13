@@ -1432,8 +1432,8 @@ class _Footer extends StatelessWidget {
     final w = MediaQuery.of(context).size.width;
     final mobile = w < 700;
     final cols = [
-      ('Product',  [('Features', '/features'), ('Pricing', '/pricing'), ('Changelog', '/changelog')]),
-      ('Company',  [('About', '/about'), ('Blog', '/blog'), ('Careers', '/careers')]),
+      ('Product',  [('Features', '/features')]),
+      ('Company',  [('About', '/about'), ('Blog', '/blog')]),
       ('Legal',    [('Privacy', '/privacy'), ('Terms', '/terms'), ('Cookies', '/cookies')]),
     ];
     final brand = Column(
