@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -52,8 +53,11 @@ class _LandingScreenState extends State<LandingScreen> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: _bgWhite,
     body: Stack(children: [
-      SingleChildScrollView(
+      ScrollConfiguration(
+        behavior: _SmoothScroll(),
+        child: SingleChildScrollView(
         controller: _scroll,
+        physics: const BouncingScrollPhysics(),
         child: Column(children: [
           const _HeroSection(),
           const _EarningsTicker(),
@@ -63,10 +67,23 @@ class _LandingScreenState extends State<LandingScreen> {
           const _CtaSection(),
           const _Footer(),
         ]),
-      ),
+      )),
       _NavBar(solid: _navSolid),
     ]),
   );
+}
+
+// ─── Smooth scroll behaviour (enables trackpad/mouse-wheel momentum on web) ───
+class _SmoothScroll extends ScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+  };
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      const BouncingScrollPhysics();
 }
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
