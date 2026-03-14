@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -8,9 +9,19 @@ import '../models/api_key_model.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../widgets/app_nav.dart';
+import '../widgets/site_footer.dart';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const _baseUrl = 'https://api.tippingjar.co.za/v1';
+
+// ─── Light palette ────────────────────────────────────────────────────────────
+const _bgWhite  = Color(0xFFFFFFFF);
+const _bgSage   = Color(0xFFF5F9F6);
+const _ink      = Color(0xFF080F0B);
+const _inkBody  = Color(0xFF38524A);
+const _inkMuted = Color(0xFF7A9487);
+const _lBorder  = Color(0xFFDBEAE1);
+const _lGreen   = Color(0xFF004423);
 
 class DeveloperScreen extends StatefulWidget {
   const DeveloperScreen({super.key});
@@ -97,8 +108,11 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final body = SingleChildScrollView(
+    final body = ScrollConfiguration(
+      behavior: _SmoothScroll(),
+      child: SingleChildScrollView(
       controller: _scroll,
+      physics: const ClampingScrollPhysics(),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _hero(context),
         _authSection(context),
@@ -111,12 +125,12 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
         _platformApiSection(context),
         _partnerProgramSection(context),
         _cta(context),
-        _footer(),
+        const SiteFooter(),
       ]),
-    );
+    ));
 
     return Scaffold(
-      backgroundColor: kDark,
+      backgroundColor: _bgWhite,
       appBar: AppNav(activeRoute: '/developers'),
       body: w > 1080
           ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -132,16 +146,16 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
     width: 230,
     child: Container(
       height: MediaQuery.of(context).size.height,
-      decoration: const BoxDecoration(
-        color: kDarker,
-        border: Border(right: BorderSide(color: kBorder)),
+      decoration: BoxDecoration(
+        color: _bgSage,
+        border: Border(right: BorderSide(color: _lBorder)),
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('CONTENTS',
               style: GoogleFonts.dmSans(
-                  color: kMuted, fontSize: 10,
+                  color: _inkMuted, fontSize: 10,
                   fontWeight: FontWeight.w700, letterSpacing: 1.4)),
           const SizedBox(height: 12),
           ..._sidebarItems.asMap().entries.map((e) {
@@ -153,18 +167,18 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
                 margin: const EdgeInsets.only(bottom: 2),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                 decoration: BoxDecoration(
-                  color: active ? kPrimary.withOpacity(0.1) : Colors.transparent,
+                  color: active ? _lGreen.withOpacity(0.08) : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: active ? kPrimary.withOpacity(0.3) : Colors.transparent),
+                    color: active ? _lGreen.withOpacity(0.22) : Colors.transparent),
                 ),
                 child: Row(children: [
                   Icon(e.value.$1,
-                      color: active ? kPrimary : kMuted, size: 14),
+                      color: active ? _lGreen : _inkMuted, size: 14),
                   const SizedBox(width: 10),
                   Text(e.value.$2,
                       style: GoogleFonts.dmSans(
-                          color: active ? kPrimary : kMuted,
+                          color: active ? _lGreen : _inkMuted,
                           fontSize: 13, fontWeight: FontWeight.w500)),
                 ]),
               ),
@@ -174,17 +188,17 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: kCardBg,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: kBorder),
+              border: Border.all(color: _lBorder),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Base URL', style: GoogleFonts.dmSans(
-                  color: kMuted, fontSize: 10, fontWeight: FontWeight.w700,
+                  color: _inkMuted, fontSize: 10, fontWeight: FontWeight.w700,
                   letterSpacing: 1)),
               const SizedBox(height: 6),
               Text(_baseUrl, style: GoogleFonts.jetBrainsMono(
-                  color: kPrimary, fontSize: 10)),
+                  color: _lGreen, fontSize: 10)),
             ]),
           ),
         ]),
@@ -198,40 +212,40 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
     return Container(
       key: _heroKey,
       width: double.infinity,
-      decoration: const BoxDecoration(color: kDarker),
+      decoration: const BoxDecoration(color: _bgSage),
       child: Stack(children: [
-        Positioned.fill(child: CustomPaint(painter: _DotGridPainter())),
-        Padding(
+        Positioned.fill(child: CustomPaint(painter: _LightDotPainter())),
+        Positioned.fill(child: Padding(
           padding: EdgeInsets.symmetric(
               horizontal: w > 900 ? 80 : 28, vertical: 96),
-          child: Column(children: [
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
-            color: kPrimary.withOpacity(0.1),
+            color: _lGreen.withOpacity(0.08),
             borderRadius: BorderRadius.circular(36),
-            border: Border.all(color: kPrimary.withOpacity(0.3)),
+            border: Border.all(color: _lGreen.withOpacity(0.22)),
           ),
           child: Text('API v1  ·  REST  ·  JSON',
               style: GoogleFonts.jetBrainsMono(
-                  color: kPrimary, fontWeight: FontWeight.w600, fontSize: 11)),
+                  color: _lGreen, fontWeight: FontWeight.w600, fontSize: 11)),
         ).animate().fadeIn(duration: 400.ms),
         const SizedBox(height: 20),
         Text('TippingJar\nDeveloper Platform',
             style: GoogleFonts.dmSans(
-                color: Colors.white,
+                color: _ink,
                 fontWeight: FontWeight.w800,
                 fontSize: w > 700 ? 52 : 34,
                 letterSpacing: -2,
                 height: 1.05),
             textAlign: TextAlign.center)
-            .animate().fadeIn(delay: 80.ms, duration: 500.ms).slideY(begin: 0.2),
+            .animate().fadeIn(delay: 80.ms, duration: 500.ms).slideY(begin: 0.15),
         const SizedBox(height: 20),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: Text(
             'A fast, secure REST API to integrate tipping flows into any product. Accept tips in ZAR, manage creator jars, issue payouts, and react to events with signed webhooks.',
-            style: GoogleFonts.dmSans(color: kMuted, fontSize: 17, height: 1.7),
+            style: GoogleFonts.dmSans(color: _inkBody, fontSize: 17, height: 1.7),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 160.ms, duration: 500.ms),
         ),
@@ -244,22 +258,22 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
                 style: GoogleFonts.dmSans(
                     fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimary, foregroundColor: Colors.white,
+              backgroundColor: _lGreen, foregroundColor: Colors.white,
               elevation: 0, shadowColor: Colors.transparent,
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
             ),
           ),
           OutlinedButton.icon(
             onPressed: () => _scrollToIdx(1),
-            icon: const Icon(Icons.lock_outlined, size: 16),
+            icon: Icon(Icons.lock_outlined, size: 16, color: _ink),
             label: Text('Get API Key',
-                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 15)),
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 15, color: _inkBody)),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: kBorder),
+              foregroundColor: _ink,
+              side: BorderSide(color: _lBorder),
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
             ),
           ),
         ]).animate().fadeIn(delay: 240.ms, duration: 500.ms),
@@ -273,7 +287,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
           ],
         ).animate().fadeIn(delay: 320.ms, duration: 500.ms),
       ]),
-        ),
+        )),
       ]),
     );
   }
@@ -1339,74 +1353,84 @@ tip = requests.post(
   }
 
   // ─── CTA ──────────────────────────────────────────────────────────────────
-  Widget _cta(BuildContext context) => Container(
-    margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 56),
-    padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 40),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [kPrimary.withOpacity(0.08), kTeal.withOpacity(0.08)],
-        begin: Alignment.topLeft, end: Alignment.bottomRight,
-      ),
-      borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: kPrimary.withOpacity(0.2)),
-    ),
-    child: Column(children: [
-      Container(
-        width: 56, height: 56,
-        decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
-        child: const Icon(Icons.api_rounded, color: Colors.white, size: 24),
-      ),
-      const SizedBox(height: 20),
-      Text('Start building today',
-          style: GoogleFonts.dmSans(color: Colors.white,
-              fontWeight: FontWeight.w800, fontSize: 32, letterSpacing: -1),
-          textAlign: TextAlign.center),
-      const SizedBox(height: 10),
-      Text('Free sandbox environment · No credit card required · ZAR currency ready',
-          style: GoogleFonts.dmSans(color: kMuted, fontSize: 15),
-          textAlign: TextAlign.center),
-      const SizedBox(height: 32),
-      Wrap(spacing: 14, runSpacing: 12, alignment: WrapAlignment.center, children: [
-        ElevatedButton(
-          onPressed: () => context.go('/register'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kPrimary, foregroundColor: Colors.white,
-            elevation: 0, shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+  Widget _cta(BuildContext context) {
+    final mobile = MediaQuery.of(context).size.width < 680;
+    return Container(
+      color: _bgWhite,
+      padding: EdgeInsets.fromLTRB(mobile ? 16 : 32, 64, mobile ? 16 : 32, 64),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 860),
+          child: Container(
+            padding: EdgeInsets.fromLTRB(
+                mobile ? 28 : 56, mobile ? 48 : 56,
+                mobile ? 28 : 56, mobile ? 40 : 56),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF003D1F), Color(0xFF00622E), Color(0xFF007A38)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(color: _lGreen.withOpacity(0.28),
+                    blurRadius: 56, offset: const Offset(0, 20)),
+              ],
+            ),
+            child: Column(children: [
+              Container(
+                width: 52, height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.api_rounded, color: Colors.white, size: 24),
+              ),
+              const SizedBox(height: 20),
+              Text('Start building today',
+                  style: GoogleFonts.dmSans(
+                      color: Colors.white, fontWeight: FontWeight.w800,
+                      fontSize: mobile ? 28 : 40,
+                      letterSpacing: -1.5, height: 1.1),
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              Text('Free sandbox · No credit card · ZAR currency ready',
+                  style: GoogleFonts.dmSans(
+                      color: Colors.white.withOpacity(0.55), fontSize: 15),
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 32),
+              Wrap(spacing: 12, runSpacing: 12, alignment: WrapAlignment.center, children: [
+                ElevatedButton(
+                  onPressed: () => context.go('/register'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white, foregroundColor: _lGreen,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                  ),
+                  child: Text('Get your API key',
+                      style: GoogleFonts.dmSans(fontWeight: FontWeight.w700,
+                          fontSize: 15, color: _lGreen)),
+                ),
+                OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white.withOpacity(0.28)),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                  ),
+                  child: Text('View on GitHub',
+                      style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 15,
+                          color: Colors.white.withOpacity(0.85))),
+                ),
+              ]),
+            ]),
           ),
-          child: Text('Get your API key',
-              style: GoogleFonts.dmSans(fontWeight: FontWeight.w700,
-                  fontSize: 15, color: Colors.white)),
         ),
-        OutlinedButton(
-          onPressed: () {},
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.white,
-            side: const BorderSide(color: kBorder),
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-          ),
-          child: Text('View on GitHub',
-              style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 15)),
-        ),
-      ]),
-    ]),
-  );
-
-  Widget _footer() => Container(
-    color: kDarker,
-    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 28),
-    child: Column(children: [
-      Text('© 2026 TippingJar · tippingjar.co.za · support@tippingjar.co.za',
-          style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
-          textAlign: TextAlign.center),
-      const SizedBox(height: 6),
-      Text('API v1  ·  All amounts in ZAR  ·  HTTPS only',
-          style: GoogleFonts.dmSans(color: kMuted.withOpacity(0.6), fontSize: 11),
-          textAlign: TextAlign.center),
-    ]),
-  );
+      ),
+    );
+  }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
   Widget _infoBox({required IconData icon, required Color color,
@@ -1660,10 +1684,10 @@ class _Stat extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(children: [
     Text(value, style: GoogleFonts.dmSans(
-        color: kPrimary, fontWeight: FontWeight.w900,
+        color: _lGreen, fontWeight: FontWeight.w900,
         fontSize: 24, letterSpacing: -0.5)),
     const SizedBox(height: 4),
-    Text(label, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
+    Text(label, style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13)),
   ]);
 }
 
@@ -2491,22 +2515,31 @@ class _RequirementCard extends StatelessWidget {
   );
 }
 
-// ─── Dot grid background ─────────────────────────────────────────────────────
-class _DotGridPainter extends CustomPainter {
+// ─── Light dot painter ────────────────────────────────────────────────────────
+class _LightDotPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = const Color(0xFF004423).withOpacity(0.06)
       ..style = PaintingStyle.fill;
-    const spacing = 30.0;
-    const radius = 1.0;
-    for (double x = 0; x <= size.width + spacing; x += spacing) {
-      for (double y = 0; y <= size.height + spacing; y += spacing) {
-        canvas.drawCircle(Offset(x, y), radius, paint);
-      }
-    }
+    const spacing = 28.0;
+    for (double x = 0; x <= size.width; x += spacing)
+      for (double y = 0; y <= size.height; y += spacing)
+        canvas.drawCircle(Offset(x, y), 1.2, paint);
   }
-
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+// ─── Smooth scroll ────────────────────────────────────────────────────────────
+class _SmoothScroll extends ScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+  };
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      const ClampingScrollPhysics();
 }

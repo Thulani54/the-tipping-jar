@@ -48,9 +48,10 @@ class EnterpriseScreen extends StatelessWidget {
       color: _bgSage,
       child: Stack(children: [
         Positioned.fill(child: CustomPaint(painter: _LightDotPainter())),
-        Padding(
+        Positioned.fill(
+          child: Padding(
           padding: EdgeInsets.symmetric(horizontal: w > 900 ? 80 : 28, vertical: mobile ? 64 : 96),
-          child: Column(children: [
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
@@ -104,7 +105,7 @@ class EnterpriseScreen extends StatelessWidget {
               ),
             ]).animate().fadeIn(delay: 240.ms, duration: 500.ms),
           ]),
-        ),
+          )),
       ]),
     );
   }

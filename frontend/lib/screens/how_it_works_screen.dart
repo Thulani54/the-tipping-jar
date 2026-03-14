@@ -120,9 +120,10 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
       color: _bgSage,
       child: Stack(children: [
         Positioned.fill(child: CustomPaint(painter: _LightDotPainter())),
-        Padding(
+        Positioned.fill(
+          child: Padding(
           padding: EdgeInsets.symmetric(vertical: mobile ? 64 : 92, horizontal: 28),
-          child: Column(children: [
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             _tag('How it works'),
             const SizedBox(height: 22),
             Text('Simple for fans.\nPowerful for creators.',
@@ -142,7 +143,7 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
               ),
             ).animate().fadeIn(delay: 150.ms, duration: 500.ms),
           ]),
-        ),
+          )),
       ]),
     );
   }

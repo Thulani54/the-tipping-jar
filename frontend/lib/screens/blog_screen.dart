@@ -71,7 +71,7 @@ class _BlogScreenState extends State<BlogScreen> {
     color: _bgSage,
     child: Stack(children: [
       Positioned.fill(child: CustomPaint(painter: _LightDotPainter())),
-      Column(children: [
+      Positioned.fill(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
@@ -93,7 +93,7 @@ class _BlogScreenState extends State<BlogScreen> {
             style: GoogleFonts.dmSans(color: _inkBody, fontSize: 17, height: 1.6),
             textAlign: TextAlign.center)
             .animate().fadeIn(delay: 160.ms),
-      ]),
+      ])),
     ]),
   );
 

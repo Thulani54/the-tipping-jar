@@ -138,9 +138,10 @@ class _FeaturesScreenState extends State<FeaturesScreen>
       color: _bgSage,
       child: Stack(children: [
         Positioned.fill(child: CustomPaint(painter: _LightDotPainter())),
-        Padding(
+        Positioned.fill(
+          child: Padding(
           padding: EdgeInsets.symmetric(vertical: mobile ? 64 : 88, horizontal: 28),
-          child: Column(children: [
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             _tag('Features'),
             const SizedBox(height: 20),
             Text('Built for creators\nwho mean business.',
@@ -159,7 +160,7 @@ class _FeaturesScreenState extends State<FeaturesScreen>
               ),
             ).animate().fadeIn(delay: 150.ms, duration: 500.ms),
           ]),
-        ),
+          )),
       ]),
     );
   }
