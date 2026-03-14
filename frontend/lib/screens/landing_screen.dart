@@ -1121,90 +1121,190 @@ class _CtaSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    final mobile = w < 680;
+
+    final stats = [
+      ('12 000+', 'Active creators'),
+      ('R 2.4M+', 'Paid out this month'),
+      ('1–2 days', 'Average payout time'),
+    ];
+
+    final trustPills = ['No credit card', 'Free forever', 'Cancel anytime'];
+
     return Container(
-      color: _darkBg,
-      width: double.infinity,
-      child: Stack(children: [
-        // Grid overlay
-        Positioned.fill(child: CustomPaint(painter: _DarkGridPainter())),
-        // Green glow orbs
-        Positioned(top: -80, right: 80, child: Container(width: 400, height: 400,
-          decoration: BoxDecoration(shape: BoxShape.circle,
-            gradient: RadialGradient(colors: [_green.withOpacity(0.22), Colors.transparent])),
-        )),
-        Positioned(bottom: -80, left: 40, child: Container(width: 300, height: 300,
-          decoration: BoxDecoration(shape: BoxShape.circle,
-            gradient: RadialGradient(colors: [_blue.withOpacity(0.15), Colors.transparent])),
-        )),
-        // Content
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 112, horizontal: 32),
-          child: Column(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: _greenBright.withOpacity(0.10),
-                border: Border.all(color: _greenBright.withOpacity(0.25)),
-                borderRadius: BorderRadius.circular(100),
+      color: _bgSage,
+      padding: EdgeInsets.fromLTRB(mobile ? 16 : 32, 0, mobile ? 16 : 32, 80),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF003D1F), Color(0xFF00622E), Color(0xFF007A38)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: Text('Get started today', style: GoogleFonts.dmSans(
-                  color: _greenBright, fontSize: 12.5, fontWeight: FontWeight.w600)),
-            ).animate().fadeIn(duration: 400.ms),
-            const SizedBox(height: 24),
-            Text('Ready to fill\nyour jar?',
-                style: GoogleFonts.dmSans(
-                    color: _white, fontWeight: FontWeight.w800, fontSize: 56,
-                    height: 1.05, letterSpacing: -2.5),
-                textAlign: TextAlign.center)
-                .animate().fadeIn(delay: 100.ms, duration: 500.ms)
-                .slideY(begin: 0.15, curve: Curves.easeOut),
-            const SizedBox(height: 18),
-            Text('Set up your creator page in under a minute.\nNo credit card. No subscription. No nonsense.',
-                style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 16.5, height: 1.65),
-                textAlign: TextAlign.center)
-                .animate().fadeIn(delay: 200.ms, duration: 500.ms),
-            const SizedBox(height: 44),
-            ElevatedButton(
-              onPressed: () => context.go('/register'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _white, foregroundColor: _green,
-                elevation: 0, shadowColor: Colors.transparent,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+              boxShadow: [
+                BoxShadow(
+                  color: _green.withOpacity(0.30),
+                  blurRadius: 60,
+                  offset: const Offset(0, 24),
+                ),
+              ],
+            ),
+            child: Stack(children: [
+              // subtle dot grid overlay
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: CustomPaint(painter: _DotGridPainter()),
+                ),
               ),
-              child: Text('Create your free page →', style: GoogleFonts.dmSans(
-                  fontSize: 16.5, fontWeight: FontWeight.w700, color: _green)),
-            )
-                .animate()
-                .fadeIn(delay: 300.ms, duration: 500.ms)
-                .scale(begin: const Offset(0.92, 0.92), curve: Curves.easeOut),
-            const SizedBox(height: 24),
-            Text('Free forever · No credit card required · Cancel anytime',
-                style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12.5))
-                .animate().fadeIn(delay: 400.ms, duration: 400.ms),
-          ]),
+              // top-right glow
+              Positioned(
+                top: -60, right: -60,
+                child: Container(
+                  width: 280, height: 280,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(colors: [
+                      _greenBright.withOpacity(0.18),
+                      Colors.transparent,
+                    ]),
+                  ),
+                ),
+              ),
+              // content
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                    mobile ? 28 : 56, mobile ? 48 : 60,
+                    mobile ? 28 : 56, mobile ? 40 : 56),
+                child: Column(children: [
+                  // stats strip
+                  if (!mobile)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 44),
+                      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withOpacity(0.10)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: stats.map((s) => Column(children: [
+                          Text(s.$1, style: GoogleFonts.dmSans(
+                              color: _white, fontWeight: FontWeight.w800,
+                              fontSize: 22, letterSpacing: -0.8)),
+                          const SizedBox(height: 2),
+                          Text(s.$2, style: GoogleFonts.dmSans(
+                              color: Colors.white.withOpacity(0.55), fontSize: 12)),
+                        ])).toList(),
+                      ),
+                    ).animate().fadeIn(duration: 400.ms),
+
+                  // headline
+                  Text('Ready to fill\nyour jar?',
+                      style: GoogleFonts.dmSans(
+                          color: _white, fontWeight: FontWeight.w800,
+                          fontSize: mobile ? 40 : 58,
+                          height: 1.05, letterSpacing: -2.2),
+                      textAlign: TextAlign.center)
+                      .animate().fadeIn(delay: 80.ms, duration: 500.ms)
+                      .slideY(begin: 0.12, curve: Curves.easeOut),
+                  const SizedBox(height: 16),
+                  Text('Create your page in under a minute.\nStart earning from your very first tip.',
+                      style: GoogleFonts.dmSans(
+                          color: Colors.white.withOpacity(0.60),
+                          fontSize: mobile ? 14.5 : 16, height: 1.65),
+                      textAlign: TextAlign.center)
+                      .animate().fadeIn(delay: 160.ms, duration: 500.ms),
+                  const SizedBox(height: 36),
+
+                  // buttons
+                  Wrap(
+                    spacing: 12, runSpacing: 12,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => context.go('/register'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _white,
+                          foregroundColor: _green,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 18),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                        ),
+                        child: Text('Create your free page →',
+                            style: GoogleFonts.dmSans(
+                                fontSize: 15, fontWeight: FontWeight.w700, color: _green)),
+                      ),
+                      OutlinedButton(
+                        onPressed: () => context.go('/features'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _white,
+                          side: BorderSide(color: Colors.white.withOpacity(0.30)),
+                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                        ),
+                        child: Text('See how it works',
+                            style: GoogleFonts.dmSans(
+                                fontSize: 15, fontWeight: FontWeight.w600,
+                                color: Colors.white.withOpacity(0.85))),
+                      ),
+                    ],
+                  ).animate().fadeIn(delay: 240.ms, duration: 500.ms)
+                      .scale(begin: const Offset(0.94, 0.94), curve: Curves.easeOut),
+                  const SizedBox(height: 24),
+
+                  // trust pills
+                  Wrap(
+                    spacing: 8, runSpacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: trustPills.map((t) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(color: Colors.white.withOpacity(0.14)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.check_circle_rounded,
+                            size: 12, color: _greenGlow),
+                        const SizedBox(width: 5),
+                        Text(t, style: GoogleFonts.dmSans(
+                            color: Colors.white.withOpacity(0.65),
+                            fontSize: 11.5, fontWeight: FontWeight.w500)),
+                      ]),
+                    )).toList(),
+                  ).animate().fadeIn(delay: 340.ms, duration: 400.ms),
+                ]),
+              ),
+            ]),
+          ),
         ),
-      ]),
+      ),
     );
   }
 }
 
-class _DarkGridPainter extends CustomPainter {
+class _DotGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.025)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-    const spacing = 52.0;
+      ..color = Colors.white.withOpacity(0.04)
+      ..style = PaintingStyle.fill;
+    const spacing = 28.0;
     for (double x = 0; x <= size.width; x += spacing)
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    for (double y = 0; y <= size.height; y += spacing)
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+      for (double y = 0; y <= size.height; y += spacing)
+        canvas.drawCircle(Offset(x, y), 1.2, paint);
   }
   @override
   bool shouldRepaint(covariant CustomPainter old) => false;
 }
+
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 class _Footer extends StatelessWidget {
