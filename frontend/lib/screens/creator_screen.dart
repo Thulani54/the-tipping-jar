@@ -1,5 +1,9 @@
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'dart:async';
 import 'dart:ui';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +11,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
 import '../models/commission_model.dart';
 import '../models/creator.dart';
 import '../models/creator_post_model.dart';
@@ -14,9 +19,20 @@ import '../models/jar_model.dart';
 import '../models/milestone_model.dart';
 import '../models/tier_model.dart';
 import '../models/tip.dart';
+import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/app_logo.dart';
+
+// ─── Palette ──────────────────────────────────────────────────────────────────
+const _bgWhite   = Colors.white;
+const _bgSage    = Color(0xFFF5F9F6);
+const _ink       = Color(0xFF080F0B);
+const _inkBody   = Color(0xFF38524A);
+const _inkMuted  = Color(0xFF7A9487);
+const _border    = Color(0xFFDBEAE1);
+const _green     = Color(0xFF004423);
+const _greenMid  = Color(0xFF006B3A);
 
 // ─── Public creator profile + tip page ───────────────────────────────────────
 class CreatorScreen extends StatefulWidget {
@@ -36,6 +52,7 @@ class _CreatorScreenState extends State<CreatorScreen> {
   CommissionSlotModel? _commissionSlot;
   // null = locked, non-null = unlocked (may be empty if no posts)
   List<CreatorPostModel>? _unlockedPosts;
+  bool _hasTipped = false;
   bool _loading = true;
   String? _loadError;
 
@@ -48,7 +65,9 @@ class _CreatorScreenState extends State<CreatorScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _loadError = null; });
     try {
+      final auth = context.read<AuthProvider>();
       final api = ApiService();
+      final authApi = ApiService(authToken: auth.accessToken);
       final results = await Future.wait([
         api.getCreator(widget.slug),
         api.getCreatorTips(widget.slug),
@@ -56,17 +75,31 @@ class _CreatorScreenState extends State<CreatorScreen> {
         api.getPublicPosts(widget.slug),
         api.getPublicTiers(widget.slug).catchError((_) => <TierModel>[]),
         api.getPublicMilestones(widget.slug).catchError((_) => <MilestoneModel>[]),
+        // Check if logged-in user has tipped this creator
+        if (auth.isAuthenticated)
+          authApi.hasTipped(widget.slug).catchError((_) => false),
       ]);
-      if (mounted) setState(() {
-        _creator     = results[0] as Creator;
-        _tips        = results[1] as List<Tip>;
-        _jars        = results[2] as List<JarModel>;
-        _publicPosts = results[3] as List<CreatorPostModel>;
-        _tiers       = results[4] as List<TierModel>;
-        _milestones  = results[5] as List<MilestoneModel>;
-        _unlockedPosts = null;
-        _loading = false;
-      });
+      if (mounted) {
+        final tipped = auth.isAuthenticated ? (results[6] as bool? ?? false) : false;
+        // Auto-unlock posts if user has tipped
+        List<CreatorPostModel>? unlocked;
+        if (tipped && auth.user != null) {
+          try {
+            unlocked = await authApi.unlockPosts(widget.slug, auth.user!.email);
+          } catch (_) {}
+        }
+        setState(() {
+          _creator       = results[0] as Creator;
+          _tips          = results[1] as List<Tip>;
+          _jars          = results[2] as List<JarModel>;
+          _publicPosts   = results[3] as List<CreatorPostModel>;
+          _tiers         = results[4] as List<TierModel>;
+          _milestones    = results[5] as List<MilestoneModel>;
+          _hasTipped     = tipped;
+          _unlockedPosts = unlocked;
+          _loading = false;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() { _loadError = e.toString(); _loading = false; });
     }
@@ -85,7 +118,7 @@ class _CreatorScreenState extends State<CreatorScreen> {
     final wide = MediaQuery.of(context).size.width > 900;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _bgSage,
       body: Column(children: [
         _MiniNav(creatorName: creator.displayName),
         Expanded(
@@ -110,12 +143,12 @@ class _CreatorScreenState extends State<CreatorScreen> {
   }
 
   Widget _splash() => const Scaffold(
-    backgroundColor: Colors.white,
-    body: Center(child: CircularProgressIndicator(color: kPrimary)),
+    backgroundColor: _bgSage,
+    body: Center(child: CircularProgressIndicator(color: _green)),
   );
 
   Widget _error() => Scaffold(
-    backgroundColor: Colors.white,
+    backgroundColor: _bgSage,
     body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
       const Icon(Icons.sentiment_dissatisfied_rounded, color: Color(0xFF6B7280), size: 48),
       const SizedBox(height: 16),
@@ -144,31 +177,35 @@ class _MiniNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     height: 56,
-    color: kPrimary,
+    color: _bgWhite,
     padding: const EdgeInsets.symmetric(horizontal: 24),
+    decoration: const BoxDecoration(
+      color: _bgWhite,
+      border: Border(bottom: BorderSide(color: _border)),
+    ),
     child: Row(children: [
       GestureDetector(
         onTap: () => context.go('/'),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const AppLogoIcon(size: 28),
+          const AppLogoIcon(size: 26),
           const SizedBox(width: 8),
           Text('TippingJar', style: GoogleFonts.dmSans(
-              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+              color: _ink, fontWeight: FontWeight.w700, fontSize: 14)),
         ]),
       ),
       const Spacer(),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
+          color: _green.withOpacity(0.07),
           borderRadius: BorderRadius.circular(36),
-          border: Border.all(color: Colors.white.withOpacity(0.35)),
+          border: Border.all(color: _green.withOpacity(0.20)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.bolt_rounded, color: Colors.white, size: 13),
+          const Icon(Icons.bolt_rounded, color: _greenMid, size: 13),
           const SizedBox(width: 4),
           Text('Powered by TippingJar',
-              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500)),
+              style: GoogleFonts.dmSans(color: _greenMid, fontSize: 11, fontWeight: FontWeight.w500)),
         ]),
       ),
     ]),
@@ -204,14 +241,14 @@ class _WideBody extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      // Left: hero banner + profile + content
+      // Left: hero banner + profile + content (sage tinted)
       Expanded(
-        flex: 4,
+        flex: 1,
         child: SingleChildScrollView(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             _HeroBanner(creator: creator),
             Padding(
-              padding: const EdgeInsets.fromLTRB(32, 20, 32, 40),
+              padding: const EdgeInsets.fromLTRB(28, 20, 28, 40),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 if (creator.tipGoal != null) ...[
                   _GoalBar(tipGoal: creator.tipGoal!, totalTips: creator.totalTips),
@@ -229,6 +266,7 @@ class _WideBody extends StatelessWidget {
                   _MilestonesSection(milestones: milestones),
                   const SizedBox(height: 32),
                 ],
+                _LiveStreamBanner(creatorSlug: creator.slug, creator: creator),
                 if (publicPosts.isNotEmpty) ...[
                   _ContentSection(
                     creatorSlug: creator.slug,
@@ -249,13 +287,16 @@ class _WideBody extends StatelessWidget {
         ),
       ),
       // Divider
-      Container(width: 1, color: const Color(0xFFE5E7EB)),
-      // Right: tip form (sticky)
+      Container(width: 1, color: _border),
+      // Right: tip form on white panel
       Expanded(
-        flex: 5,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(40, 40, 40, 40),
-          child: _TipForm(creator: creator, onTipSent: onTipSent),
+        flex: 1,
+        child: Container(
+          color: _bgWhite,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(36, 36, 36, 36),
+            child: _TipForm(creator: creator, onTipSent: onTipSent),
+          ),
         ),
       ),
     ],
@@ -310,6 +351,7 @@ class _NarrowBody extends StatelessWidget {
             _MilestonesSection(milestones: milestones),
             const SizedBox(height: 24),
           ],
+          _LiveStreamBanner(creatorSlug: creator.slug, creator: creator),
           if (publicPosts.isNotEmpty) ...[
             _ContentSection(
               creatorSlug: creator.slug,
@@ -351,18 +393,30 @@ class _HeroBanner extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       // ── Cover image / gradient strip ─────────────────────────────────────
       SizedBox(
-        height: 200,
+        height: 260,
         width: double.infinity,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             // Background — Positioned.fill forces explicit 0/0/0/0 CSS in HTML renderer
             Positioned.fill(
-              child: Image.network(
-                hasCover ? creator.coverImage! : '/default_banner.jpg',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: const Color(0xFF1E293B)),
-              ),
+              child: hasCover
+                  ? Image.network(
+                      creator.coverImage!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => CustomPaint(
+                        painter: _DefaultBannerPainter(
+                            accent: accent,
+                            initial: creator.displayName.isNotEmpty ? creator.displayName[0].toUpperCase() : '?'),
+                        child: const SizedBox.expand(),
+                      ),
+                    )
+                  : CustomPaint(
+                      painter: _DefaultBannerPainter(
+                          accent: accent,
+                          initial: creator.displayName.isNotEmpty ? creator.displayName[0].toUpperCase() : '?'),
+                      child: const SizedBox.expand(),
+                    ),
             ),
             // Gradient overlay (always, so text is legible if image is bright)
             Positioned.fill(
@@ -384,7 +438,7 @@ class _HeroBanner extends StatelessWidget {
               left: 24,
               bottom: -36,
               child: Container(
-              width: 76, height: 76,
+              width: 92, height: 92,
               decoration: BoxDecoration(
                 color: accent.withOpacity(0.2),
                 shape: BoxShape.circle,
@@ -393,12 +447,12 @@ class _HeroBanner extends StatelessWidget {
               ),
               child: Center(
                 child: creator.avatar != null && creator.avatar!.isNotEmpty
-                    ? ClipOval(child: Image.network(creator.avatar!, fit: BoxFit.cover, width: 76, height: 76))
+                    ? ClipOval(child: Image.network(creator.avatar!, fit: BoxFit.cover, width: 92, height: 92))
                     : Text(
                         creator.displayName.isNotEmpty ? creator.displayName[0].toUpperCase() : '?',
                         style: GoogleFonts.dmSans(
                             color: Colors.white,
-                            fontWeight: FontWeight.w900, fontSize: 32),
+                            fontWeight: FontWeight.w900, fontSize: 38),
                       ),
               ),
             ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
@@ -413,17 +467,17 @@ class _HeroBanner extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(creator.displayName, style: GoogleFonts.dmSans(
-              color: const Color(0xFF111827), fontWeight: FontWeight.w800,
+              color: _ink, fontWeight: FontWeight.w800,
               fontSize: 26, letterSpacing: -0.6))
               .animate().fadeIn(delay: 80.ms, duration: 400.ms).slideY(begin: 0.1),
           const SizedBox(height: 2),
           Text('@${creator.slug}', style: GoogleFonts.dmSans(
-              color: const Color(0xFF6B7280), fontSize: 13))
+              color: _inkMuted, fontSize: 13))
               .animate().fadeIn(delay: 120.ms, duration: 400.ms),
           if (creator.tagline.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(creator.tagline, style: GoogleFonts.dmSans(
-                color: const Color(0xFF374151), fontSize: 14, height: 1.5))
+                color: _inkBody, fontSize: 14, height: 1.5))
                 .animate().fadeIn(delay: 160.ms, duration: 400.ms),
           ],
           const SizedBox(height: 16),
@@ -431,7 +485,7 @@ class _HeroBanner extends StatelessWidget {
             _StatPill(
               icon: Icons.volunteer_activism_rounded,
               label: _tipTier(creator.totalTips),
-              sub: 'total received',
+              sub: 'tipped to ${creator.displayName}',
             ),
           ]).animate().fadeIn(delay: 200.ms, duration: 400.ms),
           const SizedBox(height: 8),
@@ -440,6 +494,82 @@ class _HeroBanner extends StatelessWidget {
     ]);
   }
 
+}
+
+// ─── Default banner painter ────────────────────────────────────────────────────
+class _DefaultBannerPainter extends CustomPainter {
+  final Color accent;
+  final String initial;
+  const _DefaultBannerPainter({required this.accent, required this.initial});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Rich gradient base
+    final grad = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color.lerp(accent, Colors.black, 0.55)!,
+        Color.lerp(accent, Colors.black, 0.30)!,
+        Color.lerp(accent, Colors.white, 0.10)!,
+      ],
+      stops: const [0.0, 0.55, 1.0],
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..shader = grad.createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+    );
+
+    // Decorative circles (abstract depth)
+    final circlePaint = Paint()
+      ..color = Colors.white.withOpacity(0.07)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(size.width * 0.78, size.height * 0.25), size.height * 1.1, circlePaint);
+    canvas.drawCircle(Offset(size.width * 0.15, size.height * 1.1), size.height * 0.7, circlePaint);
+
+    // Subtle ring
+    final ringPaint = Paint()
+      ..color = Colors.white.withOpacity(0.06)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawCircle(Offset(size.width * 0.78, size.height * 0.25), size.height * 0.75, ringPaint);
+
+    // Dot grid (top-right quadrant)
+    final dotPaint = Paint()
+      ..color = Colors.white.withOpacity(0.08)
+      ..style = PaintingStyle.fill;
+    const spacing = 22.0;
+    for (double x = size.width * 0.5; x <= size.width; x += spacing) {
+      for (double y = 0; y <= size.height * 0.6; y += spacing) {
+        canvas.drawCircle(Offset(x, y), 1.2, dotPaint);
+      }
+    }
+
+    // Large watermark initial (faint)
+    final tp = TextPainter(
+      text: TextSpan(
+        text: initial,
+        style: TextStyle(
+          color: Colors.white.withOpacity(0.06),
+          fontSize: size.height * 1.4,
+          fontWeight: FontWeight.w900,
+          letterSpacing: -8,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(size.width * 0.38, -size.height * 0.35));
+
+    // Thin horizontal accent line near bottom
+    canvas.drawRect(
+      Rect.fromLTWH(0, size.height - 3, size.width * 0.35, 3),
+      Paint()..color = accent.withOpacity(0.6),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _DefaultBannerPainter old) =>
+      old.accent != accent || old.initial != initial;
 }
 
 // ─── Tip tier label helper ─────────────────────────────────────────────────────
@@ -479,16 +609,16 @@ class _StatPill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     decoration: BoxDecoration(
-      color: Colors.white, borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFFE5E7EB)),
+      color: _bgSage, borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: _border),
     ),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, color: kPrimary, size: 16),
+      Icon(icon, color: _green, size: 16),
       const SizedBox(width: 8),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: GoogleFonts.dmSans(
-            color: const Color(0xFF111827), fontWeight: FontWeight.w800, fontSize: 15)),
-        Text(sub, style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 11)),
+            color: _ink, fontWeight: FontWeight.w800, fontSize: 15)),
+        Text(sub, style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 11)),
       ]),
     ]),
   );
@@ -506,29 +636,29 @@ class _GoalBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        color: _bgWhite, borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _border),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Text('Monthly goal', style: GoogleFonts.dmSans(
-              color: const Color(0xFF6B7280), fontWeight: FontWeight.w600, fontSize: 12)),
+              color: _inkMuted, fontWeight: FontWeight.w600, fontSize: 12)),
           const Spacer(),
           Text('$pct%', style: GoogleFonts.dmSans(
-              color: kPrimary, fontWeight: FontWeight.w700, fontSize: 12)),
+              color: _green, fontWeight: FontWeight.w700, fontSize: 12)),
         ]),
         const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: progress, minHeight: 6,
-            backgroundColor: const Color(0xFFE5E7EB),
-            valueColor: const AlwaysStoppedAnimation<Color>(kPrimary),
+            backgroundColor: _border,
+            valueColor: const AlwaysStoppedAnimation<Color>(_green),
           ),
         ),
         const SizedBox(height: 6),
         Text('R${totalTips.toStringAsFixed(0)} of R${tipGoal.toStringAsFixed(0)}',
-            style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 12)),
+            style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12)),
       ]),
     ).animate().fadeIn(delay: 240.ms, duration: 400.ms);
   }
@@ -543,17 +673,17 @@ class _TipFeed extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Recent supporters', style: GoogleFonts.dmSans(
-          color: const Color(0xFF111827), fontWeight: FontWeight.w700, fontSize: 15)),
+          color: _ink, fontWeight: FontWeight.w700, fontSize: 15)),
       const SizedBox(height: 12),
       if (tips.isEmpty)
         Container(
           padding: const EdgeInsets.symmetric(vertical: 28),
           alignment: Alignment.center,
           child: Column(children: [
-            const Icon(Icons.favorite_border_rounded, color: Color(0xFF6B7280), size: 32),
+            const Icon(Icons.favorite_border_rounded, color: _inkMuted, size: 32),
             const SizedBox(height: 10),
             Text('No tips yet — be the first!',
-                style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 14)),
+                style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 14)),
           ]),
         )
       else
@@ -586,8 +716,8 @@ class _PublicTipRow extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 8),
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: Colors.white, borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFFE5E7EB)),
+      color: _bgWhite, borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: _border),
     ),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(
@@ -603,17 +733,17 @@ class _PublicTipRow extends StatelessWidget {
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Text(_maskName(tip.tipperName), style: GoogleFonts.dmSans(
-              color: const Color(0xFF111827), fontWeight: FontWeight.w700, fontSize: 13)),
+              color: _ink, fontWeight: FontWeight.w700, fontSize: 13)),
           const SizedBox(width: 6),
-          Text(_relative, style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 11)),
+          Text(_relative, style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 11)),
           const Spacer(),
           Text('R${tip.amount.toStringAsFixed(2)}', style: GoogleFonts.dmSans(
-              color: kPrimary, fontWeight: FontWeight.w800, fontSize: 13)),
+              color: _green, fontWeight: FontWeight.w800, fontSize: 13)),
         ]),
         if (tip.message.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(tip.message, style: GoogleFonts.dmSans(
-              color: const Color(0xFF6B7280), fontSize: 12, height: 1.45),
+              color: _inkBody, fontSize: 12, height: 1.45),
               maxLines: 3, overflow: TextOverflow.ellipsis),
         ],
       ])),
@@ -810,36 +940,66 @@ class _TipFormState extends State<_TipForm> {
   );
 
   // ── Form ──────────────────────────────────────────────────────────
-  static const _inputFill   = Color(0xFFF5F7F6);
-  static const _labelColor  = Color(0xFF0A0F0D);
-  static const _hintColor   = Color(0xFF9AB0A8);
-  static const _inputBorder = Color(0xFFD8E4E0);
+  static const _inputFill   = _bgSage;
+  static const _labelColor  = _ink;
+  static const _hintColor   = _inkMuted;
+  static const _inputBorder = _border;
 
   Widget _formState() => Container(
     key: const ValueKey('form'),
     padding: const EdgeInsets.all(28),
     decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: const Color(0xFFE8F0EC)),
+      color: _bgWhite,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: _border),
       boxShadow: [BoxShadow(
-          color: Colors.black.withValues(alpha: 0.06),
-          blurRadius: 24, offset: const Offset(0, 6))],
+          color: _green.withOpacity(0.06),
+          blurRadius: 20, offset: const Offset(0, 4))],
     ),
     child: Form(
       key: _formKey,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Header
-        Text(
-          'Support ${widget.creator.displayName}',
-          style: GoogleFonts.dmSans(color: _labelColor,
-              fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.4),
-        ).animate().fadeIn(duration: 400.ms),
-        const SizedBox(height: 4),
-        Text('Choose an amount and leave a message.',
-            style: GoogleFonts.dmSans(color: _hintColor, fontSize: 13))
-            .animate().fadeIn(delay: 60.ms, duration: 400.ms),
-        const SizedBox(height: 24),
+        // Header — creator identity row
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: _green.withOpacity(0.10),
+              shape: BoxShape.circle,
+              border: Border.all(color: _border, width: 1.5),
+            ),
+            child: Center(
+              child: widget.creator.avatar != null && widget.creator.avatar!.isNotEmpty
+                  ? ClipOval(child: Image.network(widget.creator.avatar!, fit: BoxFit.cover, width: 44, height: 44))
+                  : Text(
+                      widget.creator.displayName.isNotEmpty ? widget.creator.displayName[0].toUpperCase() : 'T',
+                      style: GoogleFonts.dmSans(color: _green, fontWeight: FontWeight.w800, fontSize: 18),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Supporting', style: GoogleFonts.dmSans(color: _hintColor, fontSize: 11, fontWeight: FontWeight.w500)),
+            Text(widget.creator.displayName, style: GoogleFonts.dmSans(
+                color: _labelColor, fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: -0.3)),
+          ])),
+          // Live amount badge
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: _green,
+              borderRadius: BorderRadius.circular(36),
+            ),
+            child: Text(
+              'R${_finalAmount.toStringAsFixed(0)}',
+              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: -0.5),
+            ),
+          ),
+        ]).animate().fadeIn(duration: 400.ms),
+        const SizedBox(height: 20),
+        Container(height: 1, color: _border),
+        const SizedBox(height: 20),
 
         // Amount presets
         _AmountGrid(
@@ -1005,10 +1165,10 @@ class _TipFormState extends State<_TipForm> {
 
         // Security note
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const Icon(Icons.lock_outline_rounded, color: _hintColor, size: 13),
+          Icon(Icons.lock_outline_rounded, color: _inkMuted, size: 13),
           const SizedBox(width: 5),
           Text('Secure payments via Paystack',
-              style: GoogleFonts.dmSans(color: _hintColor, fontSize: 12)),
+              style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12)),
         ]),
       ]),
     ),
@@ -1169,10 +1329,10 @@ class _JarsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        const Icon(Icons.savings_rounded, color: kPrimary, size: 16),
+        const Icon(Icons.savings_rounded, color: _green, size: 16),
         const SizedBox(width: 8),
         Text('Active Jars',
-            style: GoogleFonts.dmSans(color: const Color(0xFF111827), fontWeight: FontWeight.w700, fontSize: 15)),
+            style: GoogleFonts.dmSans(color: _ink, fontWeight: FontWeight.w700, fontSize: 15)),
       ]),
       const SizedBox(height: 12),
       ...jars.asMap().entries.map((e) => _JarCard(jar: e.value, delay: e.key * 80)
@@ -1207,48 +1367,48 @@ class _JarCardState extends State<_JarCard> {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: _bgWhite,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _hovered ? kPrimary.withValues(alpha: 0.5) : const Color(0xFFE5E7EB)),
+            border: Border.all(color: _hovered ? _green.withOpacity(0.40) : _border),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Container(
                 width: 32, height: 32,
                 decoration: BoxDecoration(
-                    color: kPrimary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.savings_rounded, color: kPrimary, size: 16),
+                    color: _green.withOpacity(0.09), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.savings_rounded, color: _green, size: 16),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(jar.name,
-                    style: GoogleFonts.dmSans(color: const Color(0xFF111827), fontWeight: FontWeight.w700, fontSize: 14),
+                    style: GoogleFonts.dmSans(color: _ink, fontWeight: FontWeight.w700, fontSize: 14),
                     overflow: TextOverflow.ellipsis),
               ),
               Text('R${jar.totalRaised.toStringAsFixed(0)} raised',
-                  style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+                  style: GoogleFonts.dmSans(color: _green, fontWeight: FontWeight.w700, fontSize: 13)),
             ]),
             if (jar.description.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(jar.description,
-                  style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 12, height: 1.4),
+                  style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12, height: 1.4),
                   maxLines: 2, overflow: TextOverflow.ellipsis),
             ],
             if (progress != null) ...[
               const SizedBox(height: 10),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 Text('Goal: R${jar.goal!.toStringAsFixed(0)}',
-                    style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 11)),
+                    style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 11)),
                 Text('${jar.progressPct!.toStringAsFixed(0)}%',
-                    style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11)),
+                    style: GoogleFonts.dmSans(color: _green, fontWeight: FontWeight.w700, fontSize: 11)),
               ]),
               const SizedBox(height: 6),
               ClipRRect(
                 borderRadius: BorderRadius.circular(36),
                 child: LinearProgressIndicator(
                   value: progress.clamp(0.0, 1.0),
-                  backgroundColor: const Color(0xFFE5E7EB),
-                  valueColor: const AlwaysStoppedAnimation(kPrimary),
+                  backgroundColor: _border,
+                  valueColor: const AlwaysStoppedAnimation(_green),
                   minHeight: 5,
                 ),
               ),
@@ -1256,15 +1416,513 @@ class _JarCardState extends State<_JarCard> {
             const SizedBox(height: 10),
             Row(children: [
               Text('${jar.tipCount} tip${jar.tipCount == 1 ? '' : 's'}',
-                  style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 11)),
+                  style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 11)),
               const Spacer(),
               Text('Tip this jar →',
-                  style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w600, fontSize: 12)),
+                  style: GoogleFonts.dmSans(color: _green, fontWeight: FontWeight.w600, fontSize: 12)),
             ]),
           ]),
         ),
       ),
     );
+  }
+}
+
+// ─── Live room: Jitsi embed + comments + tip panel ───────────────────────────
+class _LiveStreamBanner extends StatefulWidget {
+  final String creatorSlug;
+  final Creator creator;
+  const _LiveStreamBanner({required this.creatorSlug, required this.creator});
+
+  @override
+  State<_LiveStreamBanner> createState() => _LiveStreamBannerState();
+}
+
+class _LiveStreamBannerState extends State<_LiveStreamBanner> {
+  Map<String, dynamic>? _stream;
+  bool _hasTipped = false;
+  bool _checkingAccess = true;
+  Timer? _streamPollTimer;
+  Timer? _commentPollTimer;
+
+  final List<Map<String, dynamic>> _comments = [];
+  int _lastCommentId = 0;
+  final _commentCtrl = TextEditingController();
+  final _scrollCtrl  = ScrollController();
+  bool _joining = false;
+  bool _streamEndedWhileWatching = false;
+  static int _iframeCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _initAccess();
+    _streamPollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _checkStream());
+  }
+
+  @override
+  void dispose() {
+    _streamPollTimer?.cancel();
+    _commentPollTimer?.cancel();
+    _commentCtrl.dispose();
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initAccess() async {
+    final auth = context.read<AuthProvider>();
+    // Check tip access for authenticated users
+    if (auth.isAuthenticated) {
+      try {
+        final tipped = await ApiService(authToken: auth.accessToken)
+            .hasTipped(widget.creatorSlug);
+        if (mounted) setState(() => _hasTipped = tipped);
+      } catch (_) {}
+    }
+    if (mounted) setState(() => _checkingAccess = false);
+    await _checkStream();
+  }
+
+  Future<void> _checkStream() async {
+    try {
+      final s = await ApiService().getActiveLiveStream(widget.creatorSlug);
+      final wasLive = _stream != null;
+      if (mounted) setState(() {
+        // If fan was watching and stream just ended, show the ended overlay
+        if (wasLive && s == null && _joining) {
+          _streamEndedWhileWatching = true;
+          _joining = false;
+        }
+        _stream = s;
+        // Reset "ended" state when a new stream starts
+        if (s != null && _streamEndedWhileWatching) _streamEndedWhileWatching = false;
+      });
+      if (!wasLive && s != null) _startCommentPoll();
+      if (wasLive && s == null) _commentPollTimer?.cancel();
+    } catch (_) {}
+  }
+
+  void _startCommentPoll() {
+    _commentPollTimer?.cancel();
+    _commentPollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _pollComments());
+    _pollComments();
+  }
+
+  Future<void> _pollComments() async {
+    try {
+      final fresh = await ApiService().getLiveComments(
+        widget.creatorSlug, since: _lastCommentId,
+      );
+      if (fresh.isEmpty || !mounted) return;
+      setState(() {
+        _comments.addAll(fresh);
+        _lastCommentId = fresh.last['id'] as int;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollCtrl.hasClients) {
+          _scrollCtrl.animateTo(
+            _scrollCtrl.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _sendComment() async {
+    final msg  = _commentCtrl.text.trim();
+    if (msg.isEmpty) return;
+    final auth = context.read<AuthProvider>();
+    final name = auth.user?.username ?? 'Guest';
+    _commentCtrl.clear();
+    try {
+      await ApiService().postLiveComment(widget.creatorSlug, name, msg);
+    } catch (_) {}
+  }
+
+  Future<void> _joinStream(String roomName) async {
+    // Show disclaimer first
+    final accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(color: _green.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.lock_rounded, color: _green, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text('Before you join', style: GoogleFonts.dmSans(
+              color: _ink, fontWeight: FontWeight.w800, fontSize: 16))),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _disclaimerRow(Icons.lock_outline_rounded, 'End-to-end encrypted',
+              'This stream is private and encrypted. We cannot view or access this chat.'),
+          const SizedBox(height: 14),
+          _disclaimerRow(Icons.visibility_off_rounded, 'Observer only',
+              'You will watch and listen only. Audio and video sharing are disabled for viewers.'),
+          const SizedBox(height: 14),
+          _disclaimerRow(Icons.block_rounded, 'No explicit content',
+              'Do not share or request explicit content. Violations may result in account suspension.'),
+          const SizedBox(height: 14),
+          _disclaimerRow(Icons.gavel_rounded, 'Terms of use',
+              'By joining you confirm you have read and accept the Tipping Jar Terms of Use.'),
+        ]),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _green, foregroundColor: Colors.white, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: Text('I understand, join stream',
+                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13)),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (accepted != true || !mounted) return;
+
+    final auth = context.read<AuthProvider>();
+    final displayName = Uri.encodeComponent(auth.user?.username ?? 'Guest');
+    _iframeCount++;
+    final viewId = 'jitsi-fan-$_iframeCount';
+    // Observer-only: no audio/video, no prejoin prompt
+    final src = 'https://meet.tippingjar.co.za/$roomName'
+        '#config.prejoinPageEnabled=false'
+        '&config.startWithAudioMuted=true'
+        '&config.startWithVideoMuted=true'
+        '&config.startSilent=true'
+        '&config.disableAudioLevels=true'
+        '&config.enableNoisyMicDetection=false'
+        '&config.toolbarButtons=["fullscreen","tileview","hangup"]'
+        '&userInfo.displayName=$displayName';
+    ui_web.platformViewRegistry.registerViewFactory(viewId, (_) {
+      final iframe = html.IFrameElement()
+        ..src = src
+        ..style.border = 'none'
+        ..style.width = '100%'
+        ..style.height = '100%'
+        ..allow = 'fullscreen; autoplay';
+      return iframe;
+    });
+    setState(() => _joining = true);
+  }
+
+  Widget _disclaimerRow(IconData icon, String title, String body) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        width: 28, height: 28,
+        decoration: BoxDecoration(color: _green.withValues(alpha: 0.08), shape: BoxShape.circle),
+        child: Icon(icon, color: _green, size: 14),
+      ),
+      const SizedBox(width: 10),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: GoogleFonts.dmSans(color: _ink, fontWeight: FontWeight.w700, fontSize: 13)),
+        const SizedBox(height: 2),
+        Text(body, style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12, height: 1.4)),
+      ])),
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_checkingAccess) return const SizedBox.shrink();
+    // Keep banner visible when stream ended while fan was watching
+    if (_stream == null && !_streamEndedWhileWatching) return const SizedBox.shrink();
+
+    final title    = _stream?['title'] as String? ?? 'Live Stream';
+    final roomName = _stream?['room_name'] as String? ?? '';
+    final wide     = MediaQuery.of(context).size.width > 800;
+    final auth     = context.watch<AuthProvider>();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        boxShadow: [BoxShadow(color: Colors.red.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, 4))],
+      ),
+      child: Column(children: [
+        // ── Header bar ──────────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.red.withValues(alpha: 0.04),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            border: Border(bottom: BorderSide(color: Colors.red.withValues(alpha: 0.15))),
+          ),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: _streamEndedWhileWatching ? Colors.grey : Colors.red,
+                borderRadius: BorderRadius.circular(36),
+              ),
+              child: Text(_streamEndedWhileWatching ? '■ ENDED' : '● LIVE',
+                  style: GoogleFonts.dmSans(
+                      color: Colors.white, fontWeight: FontWeight.w800, fontSize: 10)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(title, style: GoogleFonts.dmSans(
+                color: _ink, fontWeight: FontWeight.w700, fontSize: 14),
+                overflow: TextOverflow.ellipsis)),
+            if (_streamEndedWhileWatching)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(20)),
+                child: Text('Ended', style: GoogleFonts.dmSans(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w600)),
+              )
+            else if (auth.isAuthenticated && auth.user != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(auth.user!.username,
+                    style: GoogleFonts.dmSans(color: _green, fontSize: 11, fontWeight: FontWeight.w600)),
+              ),
+          ]),
+        ),
+
+        // ── Access gate or live room ─────────────────────────────────────
+        if (_streamEndedWhileWatching)
+          _videoSection(roomName)  // show "stream ended" full width
+        else if (!_hasTipped)
+          _tipGate(auth)
+        else
+          SizedBox(
+            height: wide ? 520 : 640,
+            child: wide
+                ? Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    Expanded(flex: 3, child: _videoSection(roomName)),
+                    Container(width: 1, color: Colors.red.withValues(alpha: 0.12)),
+                    SizedBox(width: 320, child: _sidePanel()),
+                  ])
+                : Column(children: [
+                    SizedBox(height: 280, child: _videoSection(roomName)),
+                    Expanded(child: _sidePanel()),
+                  ]),
+          ),
+      ]),
+    ).animate().fadeIn(duration: 400.ms);
+  }
+
+  // ── Tip gate: shown to users who haven't tipped ──────────────────────────
+  Widget _tipGate(AuthProvider auth) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 64, height: 64,
+          decoration: BoxDecoration(color: _green.withValues(alpha: 0.08), shape: BoxShape.circle),
+          child: const Icon(Icons.lock_rounded, color: _green, size: 28),
+        ),
+        const SizedBox(height: 16),
+        Text('Tip to watch live',
+            style: GoogleFonts.dmSans(color: _ink, fontWeight: FontWeight.w800, fontSize: 18)),
+        const SizedBox(height: 8),
+        Text(
+          'Only supporters who\'ve tipped ${widget.creator.displayName} can join the live stream.',
+          style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13, height: 1.5),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton.icon(
+          onPressed: () {
+            Scrollable.ensureVisible(context,
+                duration: const Duration(milliseconds: 400), curve: Curves.easeOut,
+                alignment: 1.0);
+          },
+          icon: const Icon(Icons.favorite_rounded, size: 16),
+          label: Text('Tip ${widget.creator.displayName}',
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _green, foregroundColor: Colors.white, elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
+          ),
+        ),
+        if (!auth.isAuthenticated) ...[
+          const SizedBox(height: 12),
+          Text('Already tipped? Log in to your account.',
+              style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12)),
+        ],
+      ]),
+    );
+  }
+
+  Widget _videoSection(String roomName) {
+    // Stream ended while the fan was watching
+    if (_streamEndedWhileWatching) {
+      return Container(
+        color: const Color(0xFF0A0F0B),
+        child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), shape: BoxShape.circle),
+            child: const Icon(Icons.stop_circle_outlined, color: Colors.white54, size: 32),
+          ),
+          const SizedBox(height: 16),
+          Text('Stream has ended', style: GoogleFonts.dmSans(
+              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+          const SizedBox(height: 6),
+          Text('The creator has ended this live session.',
+              style: GoogleFonts.dmSans(color: Colors.white54, fontSize: 13)),
+        ])),
+      );
+    }
+    if (!_joining) {
+      return Container(
+        color: const Color(0xFF0A0F0B),
+        child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.15), shape: BoxShape.circle),
+            child: const Icon(Icons.videocam_rounded, color: Colors.red, size: 32),
+          ),
+          const SizedBox(height: 16),
+          Text('Tap to join the live stream',
+              style: GoogleFonts.dmSans(color: Colors.white70, fontSize: 14)),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: () => _joinStream(roomName),
+            icon: const Icon(Icons.play_arrow_rounded, size: 18),
+            label: Text('Join Stream',
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red, foregroundColor: Colors.white, elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
+            ),
+          ),
+        ])),
+      );
+    }
+    return ClipRRect(
+      child: HtmlElementView(viewType: 'jitsi-fan-$_iframeCount'),
+    );
+  }
+
+  Widget _sidePanel() {
+    return Column(children: [
+      // Comment feed
+      Expanded(
+        child: _comments.isEmpty
+            ? Center(child: Text('No comments yet.\nBe the first!',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13, height: 1.5)))
+            : ListView.builder(
+                controller: _scrollCtrl,
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+                itemCount: _comments.length,
+                itemBuilder: (_, i) {
+                  final c = _comments[i];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Container(
+                        width: 28, height: 28,
+                        decoration: BoxDecoration(
+                          color: _green.withValues(alpha: 0.12), shape: BoxShape.circle),
+                        child: Center(child: Text(
+                          (c['username'] as String).isNotEmpty
+                              ? (c['username'] as String)[0].toUpperCase() : '?',
+                          style: GoogleFonts.dmSans(
+                              color: _green, fontWeight: FontWeight.w700, fontSize: 12),
+                        )),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(c['username'] as String,
+                            style: GoogleFonts.dmSans(
+                                color: _green, fontWeight: FontWeight.w700, fontSize: 11)),
+                        Text(c['message'] as String,
+                            style: GoogleFonts.dmSans(color: _ink, fontSize: 13, height: 1.4)),
+                      ])),
+                    ]),
+                  );
+                },
+              ),
+      ),
+
+      // Tip button
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Scrollable.ensureVisible(context,
+                  duration: const Duration(milliseconds: 400), curve: Curves.easeOut,
+                  alignment: 1.0);
+            },
+            icon: const Icon(Icons.favorite_rounded, size: 16),
+            label: Text('Tip ${widget.creator.displayName}',
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _green, foregroundColor: Colors.white, elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+      ),
+
+      // Divider + comment input (no name field — uses logged-in username)
+      Container(height: 1, color: _border),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+        child: Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _commentCtrl,
+              style: GoogleFonts.dmSans(fontSize: 13, color: _ink),
+              onSubmitted: (_) => _sendComment(),
+              decoration: InputDecoration(
+                hintText: 'Say something...',
+                hintStyle: GoogleFonts.dmSans(fontSize: 13, color: _inkMuted),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                isDense: true,
+                filled: true, fillColor: _bgSage,
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: _border)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: _green, width: 1.5)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: _sendComment,
+            child: Container(
+              width: 38, height: 38,
+              decoration: BoxDecoration(color: _green, borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+            ),
+          ),
+        ]),
+      ),
+    ]);
   }
 }
 
@@ -1701,14 +2359,14 @@ class _AmountGrid extends StatelessWidget {
           duration: 150.ms,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           decoration: BoxDecoration(
-            color: active ? kPrimary.withValues(alpha: 0.12) : const Color(0xFFF8F9FA),
+            color: active ? _green : _bgSage,
             borderRadius: BorderRadius.circular(36),
             border: Border.all(
-                color: active ? kPrimary : const Color(0xFFE5E7EB),
-                width: active ? 2 : 1),
+                color: active ? _green : _border,
+                width: 1.5),
           ),
           child: Text('R${v.toInt()}', style: GoogleFonts.dmSans(
-              color: active ? kPrimary : const Color(0xFF111827),
+              color: active ? Colors.white : _ink,
               fontWeight: FontWeight.w700, fontSize: 14)),
         ),
       );
@@ -1730,10 +2388,10 @@ class _TiersSection extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const SizedBox(height: 32),
       Text('Support Tiers', style: GoogleFonts.dmSans(
-          color: const Color(0xFF111827), fontWeight: FontWeight.w800, fontSize: 20,
+          color: _ink, fontWeight: FontWeight.w800, fontSize: 20,
           letterSpacing: -0.4)),
       const SizedBox(height: 4),
-      Text('Choose a monthly support level', style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 13)),
+      Text('Choose a monthly support level', style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13)),
       const SizedBox(height: 16),
       Wrap(
         spacing: 12, runSpacing: 12,
@@ -1758,28 +2416,28 @@ class _TierCard extends StatelessWidget {
     width: 240,
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: _bgWhite,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFE5E7EB)),
+      border: Border.all(color: _border),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(tier.name, style: GoogleFonts.dmSans(
-          color: const Color(0xFF111827), fontWeight: FontWeight.w700, fontSize: 16)),
+          color: _ink, fontWeight: FontWeight.w700, fontSize: 16)),
       const SizedBox(height: 4),
       Text('R${tier.price.toStringAsFixed(0)}/month', style: GoogleFonts.dmSans(
-          color: kPrimary, fontWeight: FontWeight.w800, fontSize: 18)),
+          color: _green, fontWeight: FontWeight.w800, fontSize: 18)),
       if (tier.description.isNotEmpty) ...[
         const SizedBox(height: 8),
-        Text(tier.description, style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 12, height: 1.4)),
+        Text(tier.description, style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12, height: 1.4)),
       ],
       if (tier.perks.isNotEmpty) ...[
         const SizedBox(height: 12),
         ...tier.perks.map((p) => Padding(
           padding: const EdgeInsets.only(bottom: 4),
           child: Row(children: [
-            const Icon(Icons.check_circle_outline_rounded, color: kPrimary, size: 14),
+            const Icon(Icons.check_circle_outline_rounded, color: _green, size: 14),
             const SizedBox(width: 6),
-            Expanded(child: Text(p, style: GoogleFonts.dmSans(color: const Color(0xFF374151), fontSize: 12))),
+            Expanded(child: Text(p, style: GoogleFonts.dmSans(color: _inkBody, fontSize: 12))),
           ]),
         )),
       ],
@@ -1964,9 +2622,9 @@ class _MilestonesSection extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const SizedBox(height: 32),
       Text('Milestones', style: GoogleFonts.dmSans(
-          color: const Color(0xFF111827), fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.4)),
+          color: _ink, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.4)),
       const SizedBox(height: 4),
-      Text('Help unlock these goals', style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 13)),
+      Text('Help unlock these goals', style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13)),
       const SizedBox(height: 16),
       ...active.asMap().entries.map((e) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
@@ -1987,36 +2645,36 @@ class _MilestoneCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _bgWhite,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: milestone.isAchieved
-            ? kPrimary.withValues(alpha: 0.5)
-            : const Color(0xFFE5E7EB)),
+            ? _green.withOpacity(0.45)
+            : _border),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Text(milestone.title, style: GoogleFonts.dmSans(
-              color: const Color(0xFF111827), fontWeight: FontWeight.w700, fontSize: 15))),
+              color: _ink, fontWeight: FontWeight.w700, fontSize: 15))),
           if (milestone.isAchieved)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: kPrimary.withValues(alpha: 0.15),
+                color: _green.withOpacity(0.10),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: kPrimary.withValues(alpha: 0.4)),
+                border: Border.all(color: _green.withOpacity(0.35)),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.check_circle_rounded, color: kPrimary, size: 13),
+                const Icon(Icons.check_circle_rounded, color: _green, size: 13),
                 const SizedBox(width: 4),
                 Text('Unlocked!', style: GoogleFonts.dmSans(
-                    color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11)),
+                    color: _green, fontWeight: FontWeight.w700, fontSize: 11)),
               ]),
             ),
         ]),
         if (milestone.description.isNotEmpty) ...[
           const SizedBox(height: 6),
           Text(milestone.description, style: GoogleFonts.dmSans(
-              color: const Color(0xFF6B7280), fontSize: 12, height: 1.4)),
+              color: _inkMuted, fontSize: 12, height: 1.4)),
         ],
         const SizedBox(height: 12),
         ClipRRect(
@@ -2024,20 +2682,20 @@ class _MilestoneCard extends StatelessWidget {
           child: LinearProgressIndicator(
             value: progress,
             minHeight: 6,
-            backgroundColor: const Color(0xFFE5E7EB),
+            backgroundColor: _border,
             valueColor: AlwaysStoppedAnimation<Color>(
-                milestone.isAchieved ? kPrimary : kPrimary.withValues(alpha: 0.7)),
+                milestone.isAchieved ? _green : _green.withOpacity(0.65)),
           ),
         ),
         const SizedBox(height: 8),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(
             'R${milestone.currentMonthTotal.toStringAsFixed(0)} raised this month',
-            style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 11),
+            style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 11),
           ),
           Text(
             'Goal: R${milestone.targetAmount.toStringAsFixed(0)}',
-            style: GoogleFonts.dmSans(color: const Color(0xFF374151), fontWeight: FontWeight.w600, fontSize: 11),
+            style: GoogleFonts.dmSans(color: _inkBody, fontWeight: FontWeight.w600, fontSize: 11),
           ),
         ]),
       ]),
@@ -2058,42 +2716,42 @@ class _CommissionsSection extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const SizedBox(height: 32),
       Text('Commission Work', style: GoogleFonts.dmSans(
-          color: const Color(0xFF111827), fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.4)),
+          color: _ink, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.4)),
       const SizedBox(height: 4),
-      Text('Request custom work from $creatorName', style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 13)),
+      Text('Request custom work from $creatorName', style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13)),
       const SizedBox(height: 16),
       Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _bgWhite,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(color: _border),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
+                color: _green.withOpacity(0.09),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                border: Border.all(color: _green.withOpacity(0.30)),
               ),
               child: Text('Open for commissions', style: GoogleFonts.dmSans(
-                  color: Colors.greenAccent, fontWeight: FontWeight.w600, fontSize: 11)),
+                  color: _greenMid, fontWeight: FontWeight.w600, fontSize: 11)),
             ),
           ]),
           const SizedBox(height: 12),
           Text(
             'From R${slot.basePrice.toStringAsFixed(0)}',
-            style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 22),
+            style: GoogleFonts.dmSans(color: _green, fontWeight: FontWeight.w800, fontSize: 22),
           ),
           if (slot.description.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(slot.description, style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 13, height: 1.5)),
+            Text(slot.description, style: GoogleFonts.dmSans(color: _inkBody, fontSize: 13, height: 1.5)),
           ],
           const SizedBox(height: 6),
           Text('Turnaround: ${slot.turnaroundDays} days',
-              style: GoogleFonts.dmSans(color: const Color(0xFF6B7280), fontSize: 12)),
+              style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12)),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,

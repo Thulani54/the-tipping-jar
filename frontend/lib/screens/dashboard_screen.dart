@@ -2,6 +2,8 @@
 import 'dart:html' as html;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:ui_web' as ui_web;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,6 +28,8 @@ import '../models/tip_model.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../widgets/app_logo.dart';
+import 'referral_tab.dart';
+import 'studio_tab.dart';
 
 // ─── Notification model ───────────────────────────────────────────────────────
 class _NotifModel {
@@ -305,6 +309,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _DrawerItem(Iconsax.dollar_circle, 'Monetize', _navIndex == 5, () { setState(() => _navIndex = 5); Navigator.pop(context); }),
         _DrawerItem(Iconsax.notification, 'Notifications', _navIndex == 7, () { setState(() => _navIndex = 7); Navigator.pop(context); }),
         _DrawerItem(Iconsax.shield_tick, 'Disputes', _navIndex == 8, () { setState(() => _navIndex = 8); Navigator.pop(context); }),
+        _DrawerItem(Iconsax.brush_2, 'Studio', _navIndex == 9, () { setState(() => _navIndex = 9); Navigator.pop(context); }),
+        _DrawerItem(Iconsax.people, 'Referrals', _navIndex == 10, () { setState(() => _navIndex = 10); Navigator.pop(context); }),
         const SizedBox(height: 8),
         const Divider(color: kBorder, height: 1),
         const Spacer(),
@@ -328,6 +334,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           profile: d.profile, stats: d.stats, tips: d.tips,
           onCopyLink: _copyLink, onRefresh: _load,
           onNavigateToProfile: () => setState(() => _navIndex = 6),
+          onNavigateToReferrals: () => setState(() => _navIndex = 10),
         ),
       1 => _TipsPage(tips: d.tips, onRefresh: _load),
       2 => _JarsPage(profile: d.profile),
@@ -349,6 +356,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onRefresh: _loadNotifications,
         ),
       8 => _DisputesPage(),
+      9 => StudioPage(
+          creatorSlug: d.profile.slug,
+          creatorName: d.profile.displayName,
+        ),
+      10 => const ReferralTab(),
       _ => const SizedBox.shrink(),
     };
   }
@@ -414,6 +426,8 @@ class _Sidebar extends StatelessWidget {
     (Iconsax.profile_circle,'Profile'),
     (Iconsax.notification,  'Notifications'),
     (Iconsax.shield_tick,   'Disputes'),
+    (Iconsax.brush_2,       'Studio'),
+    (Iconsax.people,        'Referrals'),
   ];
 
   @override
@@ -530,9 +544,10 @@ class _OverviewPage extends StatelessWidget {
   final List<TipModel> tips;
   final VoidCallback onCopyLink, onRefresh;
   final VoidCallback onNavigateToProfile;
+  final VoidCallback onNavigateToReferrals;
   const _OverviewPage({required this.profile, required this.stats,
       required this.tips, required this.onCopyLink, required this.onRefresh,
-      required this.onNavigateToProfile});
+      required this.onNavigateToProfile, required this.onNavigateToReferrals});
 
   @override
   Widget build(BuildContext context) {
@@ -597,6 +612,10 @@ class _OverviewPage extends StatelessWidget {
 
           // QR code — scan & pay
           _QrCodeCard(slug: profile.slug),
+          const SizedBox(height: 28),
+
+          // Referral banner
+          _ReferralBannerCard(onTap: onNavigateToReferrals).animate().fadeIn(delay: 400.ms),
           const SizedBox(height: 28),
 
           // Recent tips
@@ -2429,6 +2448,43 @@ class _EmptyTips extends StatelessWidget {
   );
 }
 
+class _ReferralBannerCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ReferralBannerCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF004423), Color(0xFF006B3A)],
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(children: [
+        Container(
+          width: 44, height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.group_add_rounded, color: Colors.white, size: 22),
+        ),
+        const SizedBox(width: 16),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Know a content creator?',
+              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+          Text('Refer them and earn 1% of their tips for 6 months.',
+              style: GoogleFonts.dmSans(color: Colors.white70, fontSize: 12, height: 1.4)),
+        ])),
+        const Icon(Icons.chevron_right_rounded, color: Colors.white54, size: 20),
+      ]),
+    ),
+  );
+}
+
 class _BankWarningBanner extends StatelessWidget {
   final VoidCallback onConnect;
   const _BankWarningBanner({required this.onConnect});
@@ -2478,6 +2534,12 @@ class _ContentPageState extends State<_ContentPage> {
   bool _loading = true;
   String? _error;
 
+  // Live stream state
+  bool _isLive = false;
+  String? _liveRoomName;
+  bool _liveLoading = false;
+  static int _jitsiViewCounter = 0;
+
   @override
   void initState() {
     super.initState();
@@ -2491,6 +2553,164 @@ class _ContentPageState extends State<_ContentPage> {
       if (mounted) setState(() { _posts = posts; _loading = false; });
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  Future<void> _goLive() async {
+    final titleCtrl = TextEditingController(text: 'Live Stream');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: kCardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Start a live stream',
+            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('Give your stream a title. Fans on your page will see a "Live Now" banner.',
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: titleCtrl,
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: 'e.g. Q&A with my fans',
+              hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
+              filled: true, fillColor: kDarker,
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: kBorder)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: kPrimary, width: 2)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red, foregroundColor: Colors.white, elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+            ),
+            child: Text('Go Live', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    // Show security disclaimer to creator before going live
+    final disclaimerAccepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kCardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.15), shape: BoxShape.circle),
+            child: const Icon(Icons.lock_rounded, color: kPrimary, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text('Stream guidelines', style: GoogleFonts.dmSans(
+              color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16))),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _buildDisclaimerRow(Icons.lock_outline_rounded, 'End-to-end encrypted',
+              'Your stream is private and encrypted. Tipping Jar cannot view or record your session.',
+              kPrimary),
+          const SizedBox(height: 14),
+          _buildDisclaimerRow(Icons.block_rounded, 'No explicit content',
+              'Sharing explicit content is strictly prohibited and may result in immediate account suspension.',
+              Colors.redAccent),
+          const SizedBox(height: 14),
+          _buildDisclaimerRow(Icons.gavel_rounded, 'Terms of use',
+              'By going live you confirm compliance with Tipping Jar\'s Terms of Use and Community Standards.',
+              kMuted),
+        ]),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, foregroundColor: Colors.white, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: Text('I understand, go live',
+                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (disclaimerAccepted != true) return;
+
+    setState(() => _liveLoading = true);
+    try {
+      final auth = context.read<AuthProvider>();
+      final data = await auth.api.startLiveStream(titleCtrl.text.trim());
+      final roomName = data['room_name'] as String;
+      // Creator display name for Jitsi (no prejoin name prompt)
+      final creatorName = Uri.encodeComponent(auth.user?.username ?? 'Host');
+      // Register the Jitsi iframe as a platform view
+      _jitsiViewCounter++;
+      final viewId = 'jitsi-host-$_jitsiViewCounter';
+      ui_web.platformViewRegistry.registerViewFactory(viewId, (_) {
+        final iframe = html.IFrameElement()
+          ..src = 'https://meet.tippingjar.co.za/$roomName'
+              '#config.prejoinPageEnabled=false'
+              '&userInfo.displayName=$creatorName'
+              '&config.toolbarButtons=["microphone","camera","desktop","fullscreen","fodeviceselection","hangup","tileview"]'
+          ..style.border = 'none'
+          ..style.width = '100%'
+          ..style.height = '100%'
+          ..allow = 'camera; microphone; fullscreen; display-capture; autoplay';
+        return iframe;
+      });
+      if (mounted) setState(() {
+        _isLive = true;
+        _liveRoomName = roomName;
+        _liveLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _liveLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to start stream: $e'),
+          backgroundColor: Colors.redAccent,
+        ));
+      }
+    }
+  }
+
+  Future<void> _endStream() async {
+    setState(() => _liveLoading = true);
+    try {
+      await context.read<AuthProvider>().api.endLiveStream();
+      if (mounted) setState(() {
+        _isLive = false;
+        _liveRoomName = null;
+        _liveLoading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _liveLoading = false);
     }
   }
 
@@ -2530,7 +2750,17 @@ class _ContentPageState extends State<_ContentPage> {
                         ),
                       ),
                     ]),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
+
+                    // ── Live stream card ──────────────────────────────────
+                    _LiveStreamCard(
+                      isLive: _isLive,
+                      loading: _liveLoading,
+                      roomName: _liveRoomName,
+                      onGoLive: _goLive,
+                      onEnd: _endStream,
+                    ),
+                    const SizedBox(height: 24),
 
                     if (_posts.isEmpty)
                       _emptyState()
@@ -2579,6 +2809,22 @@ class _ContentPageState extends State<_ContentPage> {
     ),
   );
 
+  Widget _buildDisclaimerRow(IconData icon, String title, String body, Color color) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        width: 28, height: 28,
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+        child: Icon(icon, color: color, size: 14),
+      ),
+      const SizedBox(width: 10),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+        const SizedBox(height: 2),
+        Text(body, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.4)),
+      ])),
+    ]);
+  }
+
   Future<void> _confirmDelete(BuildContext context, CreatorPostModel post) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -2625,6 +2871,129 @@ class _ContentPageState extends State<_ContentPage> {
         post: post,
         onSaved: _load,
       ),
+    );
+  }
+}
+
+// ─── Live stream card ─────────────────────────────────────────────────────────
+class _LiveStreamCard extends StatelessWidget {
+  final bool isLive;
+  final bool loading;
+  final String? roomName;
+  final VoidCallback onGoLive;
+  final VoidCallback onEnd;
+
+  const _LiveStreamCard({
+    required this.isLive,
+    required this.loading,
+    required this.roomName,
+    required this.onGoLive,
+    required this.onEnd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: kCardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isLive ? Colors.red.withValues(alpha: 0.5) : kBorder),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+          child: Row(children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: isLive
+                    ? Colors.red.withValues(alpha: 0.15)
+                    : kPrimary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isLive ? Icons.videocam_rounded : Icons.videocam_off_rounded,
+                color: isLive ? Colors.red : kPrimary, size: 20,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Text('Live Stream',
+                    style: GoogleFonts.dmSans(
+                        color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                if (isLive) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(36),
+                    ),
+                    child: Text('● LIVE',
+                        style: GoogleFonts.dmSans(
+                            color: Colors.white, fontWeight: FontWeight.w800, fontSize: 10)),
+                  ),
+                ],
+              ]),
+              const SizedBox(height: 2),
+              Text(
+                isLive
+                    ? 'Your fans can join from your public page'
+                    : 'Go live with Jitsi Meet. Fans can join from your page.',
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
+              ),
+            ])),
+            const SizedBox(width: 12),
+            if (loading)
+              const SizedBox(
+                width: 24, height: 24,
+                child: CircularProgressIndicator(color: kPrimary, strokeWidth: 2),
+              )
+            else if (isLive)
+              ElevatedButton.icon(
+                onPressed: onEnd,
+                icon: const Icon(Icons.stop_rounded, size: 16),
+                label: Text('End stream',
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red, foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                ),
+              )
+            else
+              ElevatedButton.icon(
+                onPressed: onGoLive,
+                icon: const Icon(Icons.videocam_rounded, size: 16),
+                label: Text('Go Live',
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red, foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                ),
+              ),
+          ]),
+        ),
+
+        // Jitsi iframe when live
+        if (isLive && roomName != null) ...[
+          Container(height: 1, color: kBorder),
+          SizedBox(
+            height: 520,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              ),
+              child: HtmlElementView(
+                viewType: 'jitsi-host-${_ContentPageState._jitsiViewCounter}',
+              ),
+            ),
+          ),
+        ],
+      ]),
     );
   }
 }
