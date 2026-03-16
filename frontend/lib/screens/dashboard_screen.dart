@@ -1,3 +1,4 @@
+import 'dart:async';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'dart:math' as math;
@@ -26,6 +27,7 @@ import '../models/pledge_model.dart';
 import '../models/tier_model.dart';
 import '../models/tip_model.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/app_logo.dart';
 import 'referral_tab.dart';
@@ -2533,6 +2535,7 @@ class _ContentPageState extends State<_ContentPage> {
   List<CreatorPostModel> _posts = [];
   bool _loading = true;
   String? _error;
+  String? _creatorSlug;
 
   // Live stream state
   bool _isLive = false;
@@ -2549,8 +2552,16 @@ class _ContentPageState extends State<_ContentPage> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final posts = await context.read<AuthProvider>().api.getMyPosts();
-      if (mounted) setState(() { _posts = posts; _loading = false; });
+      final api = context.read<AuthProvider>().api;
+      final results = await Future.wait([
+        api.getMyPosts(),
+        api.getMyCreatorProfile(),
+      ]);
+      if (mounted) setState(() {
+        _posts = results[0] as List<CreatorPostModel>;
+        _creatorSlug = (results[1] as CreatorProfileModel).slug;
+        _loading = false;
+      });
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
@@ -2678,6 +2689,13 @@ class _ContentPageState extends State<_ContentPage> {
           ..src = 'https://meet.tippingjar.co.za/$roomName'
               '#config.prejoinConfig.enabled=false'
               '&config.prejoinPageEnabled=false'
+              '&config.hideConferenceSubject=true'
+              '&config.hideConferenceTimer=true'
+              '&config.remoteVideoMenu.disableKick=true'
+              '&config.disableModeratorIndicator=true'
+              '&interfaceConfig.SHOW_JITSI_WATERMARK=false'
+              '&interfaceConfig.SHOW_WATERMARK_FOR_GUESTS=false'
+              '&interfaceConfig.SHOW_BRAND_WATERMARK=false'
               '&userInfo.displayName=$creatorName'
               '&config.toolbarButtons=["microphone","camera","desktop","fullscreen","fodeviceselection","hangup","tileview"]'
           ..style.border = 'none'
@@ -2759,6 +2777,7 @@ class _ContentPageState extends State<_ContentPage> {
                       isLive: _isLive,
                       loading: _liveLoading,
                       roomName: _liveRoomName,
+                      creatorSlug: _creatorSlug,
                       onGoLive: _goLive,
                       onEnd: _endStream,
                     ),
@@ -2878,10 +2897,11 @@ class _ContentPageState extends State<_ContentPage> {
 }
 
 // ─── Live stream card ─────────────────────────────────────────────────────────
-class _LiveStreamCard extends StatelessWidget {
+class _LiveStreamCard extends StatefulWidget {
   final bool isLive;
   final bool loading;
   final String? roomName;
+  final String? creatorSlug;
   final VoidCallback onGoLive;
   final VoidCallback onEnd;
 
@@ -2889,17 +2909,87 @@ class _LiveStreamCard extends StatelessWidget {
     required this.isLive,
     required this.loading,
     required this.roomName,
+    required this.creatorSlug,
     required this.onGoLive,
     required this.onEnd,
   });
 
   @override
+  State<_LiveStreamCard> createState() => _LiveStreamCardState();
+}
+
+class _LiveStreamCardState extends State<_LiveStreamCard> {
+  final List<Map<String, dynamic>> _comments = [];
+  int _lastCommentId = 0;
+  final _commentCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
+  Timer? _commentPollTimer;
+
+  @override
+  void didUpdateWidget(_LiveStreamCard old) {
+    super.didUpdateWidget(old);
+    if (widget.isLive && !old.isLive) _startCommentPoll();
+    if (!widget.isLive && old.isLive) {
+      _commentPollTimer?.cancel();
+      setState(() { _comments.clear(); _lastCommentId = 0; });
+    }
+  }
+
+  @override
+  void dispose() {
+    _commentPollTimer?.cancel();
+    _commentCtrl.dispose();
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _startCommentPoll() {
+    _commentPollTimer?.cancel();
+    _commentPollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _pollComments());
+    _pollComments();
+  }
+
+  Future<void> _pollComments() async {
+    final slug = widget.creatorSlug;
+    if (slug == null || !mounted) return;
+    try {
+      final fresh = await ApiService().getLiveComments(slug, since: _lastCommentId);
+      if (fresh.isEmpty || !mounted) return;
+      setState(() {
+        _comments.addAll(fresh);
+        _lastCommentId = fresh.last['id'] as int;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollCtrl.hasClients) {
+          _scrollCtrl.animateTo(
+            _scrollCtrl.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _sendComment() async {
+    final msg = _commentCtrl.text.trim();
+    if (msg.isEmpty || widget.creatorSlug == null) return;
+    final auth = context.read<AuthProvider>();
+    final name = auth.user?.username ?? 'Creator';
+    _commentCtrl.clear();
+    try {
+      await ApiService().postLiveComment(widget.creatorSlug!, name, msg);
+    } catch (_) {}
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final wide = MediaQuery.of(context).size.width > 900;
     return Container(
       decoration: BoxDecoration(
         color: kCardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isLive ? Colors.red.withValues(alpha: 0.5) : kBorder),
+        border: Border.all(color: widget.isLive ? Colors.red.withValues(alpha: 0.5) : kBorder),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
@@ -2908,14 +2998,14 @@ class _LiveStreamCard extends StatelessWidget {
             Container(
               width: 40, height: 40,
               decoration: BoxDecoration(
-                color: isLive
+                color: widget.isLive
                     ? Colors.red.withValues(alpha: 0.15)
                     : kPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
-                isLive ? Icons.videocam_rounded : Icons.videocam_off_rounded,
-                color: isLive ? Colors.red : kPrimary, size: 20,
+                widget.isLive ? Icons.videocam_rounded : Icons.videocam_off_rounded,
+                color: widget.isLive ? Colors.red : kPrimary, size: 20,
               ),
             ),
             const SizedBox(width: 14),
@@ -2924,7 +3014,7 @@ class _LiveStreamCard extends StatelessWidget {
                 Text('Live Stream',
                     style: GoogleFonts.dmSans(
                         color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-                if (isLive) ...[
+                if (widget.isLive) ...[
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -2940,21 +3030,21 @@ class _LiveStreamCard extends StatelessWidget {
               ]),
               const SizedBox(height: 2),
               Text(
-                isLive
+                widget.isLive
                     ? 'Your fans can join from your public page'
                     : 'Go live with Jitsi Meet. Fans can join from your page.',
                 style: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
               ),
             ])),
             const SizedBox(width: 12),
-            if (loading)
+            if (widget.loading)
               const SizedBox(
                 width: 24, height: 24,
                 child: CircularProgressIndicator(color: kPrimary, strokeWidth: 2),
               )
-            else if (isLive)
+            else if (widget.isLive)
               ElevatedButton.icon(
-                onPressed: onEnd,
+                onPressed: widget.onEnd,
                 icon: const Icon(Icons.stop_rounded, size: 16),
                 label: Text('End stream',
                     style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
@@ -2966,7 +3056,7 @@ class _LiveStreamCard extends StatelessWidget {
               )
             else
               ElevatedButton.icon(
-                onPressed: onGoLive,
+                onPressed: widget.onGoLive,
                 icon: const Icon(Icons.videocam_rounded, size: 16),
                 label: Text('Go Live',
                     style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
@@ -2979,24 +3069,132 @@ class _LiveStreamCard extends StatelessWidget {
           ]),
         ),
 
-        // Jitsi iframe when live
-        if (isLive && roomName != null) ...[
+        // Jitsi iframe + comment panel when live
+        if (widget.isLive && widget.roomName != null) ...[
           Container(height: 1, color: kBorder),
           SizedBox(
             height: 520,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
-              ),
-              child: HtmlElementView(
-                viewType: 'jitsi-host-${_ContentPageState._jitsiViewCounter}',
-              ),
-            ),
+            child: wide
+                ? Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    Expanded(
+                      flex: 3,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16)),
+                        child: HtmlElementView(
+                          viewType: 'jitsi-host-${_ContentPageState._jitsiViewCounter}',
+                        ),
+                      ),
+                    ),
+                    Container(width: 1, color: kBorder),
+                    SizedBox(width: 300, child: _commentPanel()),
+                  ])
+                : Column(children: [
+                    SizedBox(
+                      height: 300,
+                      child: ClipRRect(
+                        child: HtmlElementView(
+                          viewType: 'jitsi-host-${_ContentPageState._jitsiViewCounter}',
+                        ),
+                      ),
+                    ),
+                    Container(height: 1, color: kBorder),
+                    Expanded(child: _commentPanel()),
+                  ]),
           ),
         ],
       ]),
     );
+  }
+
+  Widget _commentPanel() {
+    return Column(children: [
+      // Header
+      Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+        child: Row(children: [
+          const Icon(Icons.chat_bubble_outline_rounded, color: kMuted, size: 14),
+          const SizedBox(width: 6),
+          Text('Fan Messages', style: GoogleFonts.dmSans(
+              color: kMuted, fontWeight: FontWeight.w600, fontSize: 12)),
+          const Spacer(),
+          if (_comments.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
+              child: Text('${_comments.length}', style: GoogleFonts.dmSans(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w700)),
+            ),
+        ]),
+      ),
+      Container(height: 1, color: kBorder),
+      // Comment feed
+      Expanded(
+        child: _comments.isEmpty
+            ? Center(child: Text('No messages yet', style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)))
+            : ListView.builder(
+                controller: _scrollCtrl,
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                itemCount: _comments.length,
+                itemBuilder: (_, i) {
+                  final c = _comments[i];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Container(
+                        width: 26, height: 26,
+                        decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.15), shape: BoxShape.circle),
+                        child: Center(child: Text(
+                          (c['username'] as String).isNotEmpty
+                              ? (c['username'] as String)[0].toUpperCase() : '?',
+                          style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11),
+                        )),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(c['username'] as String,
+                            style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11)),
+                        Text(c['message'] as String,
+                            style: GoogleFonts.dmSans(color: Colors.white70, fontSize: 12, height: 1.4)),
+                      ])),
+                    ]),
+                  );
+                },
+              ),
+      ),
+      // Message input (creator can reply)
+      Container(height: 1, color: kBorder),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+        child: Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _commentCtrl,
+              style: GoogleFonts.dmSans(fontSize: 12, color: Colors.white),
+              onSubmitted: (_) => _sendComment(),
+              decoration: InputDecoration(
+                hintText: 'Reply to your fans...',
+                hintStyle: GoogleFonts.dmSans(fontSize: 12, color: kMuted),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                isDense: true,
+                filled: true, fillColor: kDarker,
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kPrimary, width: 1.5)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: _sendComment,
+            child: Container(
+              width: 34, height: 34,
+              decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.send_rounded, color: Colors.white, size: 16),
+            ),
+          ),
+        ]),
+      ),
+    ]);
   }
 }
 

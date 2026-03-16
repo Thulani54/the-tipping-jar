@@ -1606,7 +1606,7 @@ class _LiveStreamBannerState extends State<_LiveStreamBanner> {
     final displayName = Uri.encodeComponent('"$username"');
     _iframeCount++;
     final viewId = 'jitsi-fan-$_iframeCount';
-    // Observer-only: no audio/video, disable prejoin
+    // Observer-only: no audio/video, disable prejoin, hide logo + room name
     final src = 'https://meet.tippingjar.co.za/$roomName'
         '#config.prejoinConfig.enabled=false'
         '&config.prejoinPageEnabled=false'
@@ -1615,6 +1615,14 @@ class _LiveStreamBannerState extends State<_LiveStreamBanner> {
         '&config.startSilent=true'
         '&config.disableAudioLevels=true'
         '&config.enableNoisyMicDetection=false'
+        '&config.disableTileView=true'
+        '&config.hideConferenceSubject=true'
+        '&config.hideConferenceTimer=true'
+        '&config.remoteVideoMenu.disableKick=true'
+        '&config.disableModeratorIndicator=true'
+        '&interfaceConfig.SHOW_JITSI_WATERMARK=false'
+        '&interfaceConfig.SHOW_WATERMARK_FOR_GUESTS=false'
+        '&interfaceConfig.SHOW_BRAND_WATERMARK=false'
         '&config.toolbarButtons=["fullscreen","tileview","hangup"]'
         '&userInfo.displayName=$displayName';
     ui_web.platformViewRegistry.registerViewFactory(viewId, (_) {
