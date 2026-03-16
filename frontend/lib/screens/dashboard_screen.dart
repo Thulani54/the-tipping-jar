@@ -2667,15 +2667,17 @@ class _ContentPageState extends State<_ContentPage> {
       final auth = context.read<AuthProvider>();
       final data = await auth.api.startLiveStream(titleCtrl.text.trim());
       final roomName = data['room_name'] as String;
-      // Creator display name for Jitsi (no prejoin name prompt)
-      final creatorName = Uri.encodeComponent(auth.user?.username ?? 'Host');
+      // Jitsi URL parser JSON.parses every value — strings must be JSON-quoted
+      final creatorUsername = auth.user?.username ?? 'Host';
+      final creatorName = Uri.encodeComponent('"$creatorUsername"');
       // Register the Jitsi iframe as a platform view
       _jitsiViewCounter++;
       final viewId = 'jitsi-host-$_jitsiViewCounter';
       ui_web.platformViewRegistry.registerViewFactory(viewId, (_) {
         final iframe = html.IFrameElement()
           ..src = 'https://meet.tippingjar.co.za/$roomName'
-              '#config.prejoinPageEnabled=false'
+              '#config.prejoinConfig.enabled=false'
+              '&config.prejoinPageEnabled=false'
               '&userInfo.displayName=$creatorName'
               '&config.toolbarButtons=["microphone","camera","desktop","fullscreen","fodeviceselection","hangup","tileview"]'
           ..style.border = 'none'

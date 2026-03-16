@@ -1601,12 +1601,15 @@ class _LiveStreamBannerState extends State<_LiveStreamBanner> {
     if (accepted != true || !mounted) return;
 
     final auth = context.read<AuthProvider>();
-    final displayName = Uri.encodeComponent(auth.user?.username ?? 'Guest');
+    // Jitsi URL parser JSON.parses every value — strings must be JSON-quoted
+    final username = auth.user?.username ?? 'Guest';
+    final displayName = Uri.encodeComponent('"$username"');
     _iframeCount++;
     final viewId = 'jitsi-fan-$_iframeCount';
-    // Observer-only: no audio/video, no prejoin prompt
+    // Observer-only: no audio/video, disable prejoin
     final src = 'https://meet.tippingjar.co.za/$roomName'
-        '#config.prejoinPageEnabled=false'
+        '#config.prejoinConfig.enabled=false'
+        '&config.prejoinPageEnabled=false'
         '&config.startWithAudioMuted=true'
         '&config.startWithVideoMuted=true'
         '&config.startSilent=true'
