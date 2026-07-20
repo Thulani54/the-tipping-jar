@@ -43,6 +43,21 @@ struct Tip {
 
 const TIP_COLUMNS: &str = "id, creator_id, creator_name, tipper_name, tipper_email, amount, message, status, reference, platform_fee, service_fee, creator_net, created_at";
 
+#[derive(sqlx::FromRow, Serialize)]
+struct Pledge {
+    id: Uuid,
+    creator_id: Uuid,
+    tier_id: Option<Uuid>,
+    fan_name: String,
+    fan_email: String,
+    amount: Decimal,
+    status: String,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+const PLEDGE_COLUMNS: &str =
+    "id, creator_id, tier_id, fan_name, fan_email, amount, status, created_at";
+
 // ── Shapes returned by the services we call ─────────────────────────────────
 
 #[derive(Deserialize)]
@@ -197,6 +212,119 @@ async fn tips_for_creator(
     Ok(Json(rows))
 }
 
+// ── Pledges, stats, fan history ─────────────────────────────────────────────
+
+#[derive(Deserialize)]
+struct PledgeReq {
+    creator_slug: Option<String>,
+    creator_id: Option<Uuid>,
+    amount: f64,
+    fan_name: Option<String>,
+    fan_email: Option<String>,
+    tier_id: Option<Uuid>,
+}
+
+async fn resolve_creator_for_pledge(
+    st: &AppState,
+    req: &PledgeReq,
+) -> Result<CreatorResp, AppError> {
+    let url = if let Some(slug) = req.creator_slug.as_deref().filter(|s| !s.is_empty()) {
+        format!("{}/creators/{}", st.creators_url, slug)
+    } else if let Some(id) = req.creator_id {
+        format!("{}/internal/creators/{}", st.creators_url, id)
+    } else {
+        return Err(AppError::BadRequest(
+            "provide creator_slug or creator_id".into(),
+        ));
+    };
+    let resp = st.http.get(&url).send().await?;
+    if resp.status().as_u16() == 404 {
+        return Err(AppError::NotFound("creator not found".into()));
+    }
+    if !resp.status().is_success() {
+        return Err(AppError::Upstream("creators service error".into()));
+    }
+    Ok(resp.json().await?)
+}
+
+async fn create_pledge(
+    State(st): State<AppState>,
+    Json(req): Json<PledgeReq>,
+) -> Result<Json<Pledge>, AppError> {
+    if req.amount <= 0.0 {
+        return Err(AppError::BadRequest("amount must be positive".into()));
+    }
+    let creator = resolve_creator_for_pledge(&st, &req).await?;
+    let amount = Decimal::try_from(req.amount)
+        .map(|d| d.round_dp(2))
+        .map_err(|_| AppError::BadRequest("invalid amount".into()))?;
+    let row: Pledge = sqlx::query_as(&format!(
+        "INSERT INTO pledges (id, creator_id, tier_id, fan_name, fan_email, amount)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING {PLEDGE_COLUMNS}"
+    ))
+    .bind(Uuid::new_v4())
+    .bind(creator.id)
+    .bind(req.tier_id)
+    .bind(req.fan_name.unwrap_or_else(|| "Anonymous".into()))
+    .bind(req.fan_email.unwrap_or_default())
+    .bind(amount)
+    .fetch_one(&st.pool)
+    .await?;
+    Ok(Json(row))
+}
+
+async fn pledges_for_creator(
+    State(st): State<AppState>,
+    Path(creator_id): Path<Uuid>,
+) -> Result<Json<Vec<Pledge>>, AppError> {
+    let rows: Vec<Pledge> = sqlx::query_as(&format!(
+        "SELECT {PLEDGE_COLUMNS} FROM pledges WHERE creator_id = $1 ORDER BY created_at DESC LIMIT 200"
+    ))
+    .bind(creator_id)
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+/// Aggregate tip stats for a creator dashboard.
+async fn creator_stats(
+    State(st): State<AppState>,
+    Path(creator_id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let row: (Option<Decimal>, i64, i64, Option<Decimal>, Option<Decimal>) = sqlx::query_as(
+        "SELECT COALESCE(SUM(amount),0), COUNT(*), \
+         COUNT(DISTINCT NULLIF(lower(tipper_email),'')), \
+         COALESCE(SUM(creator_net),0), \
+         COALESCE(SUM(amount) FILTER (WHERE date_trunc('month',created_at)=date_trunc('month',now())),0) \
+         FROM tips WHERE creator_id = $1 AND status = 'completed'",
+    )
+    .bind(creator_id)
+    .fetch_one(&st.pool)
+    .await?;
+    Ok(Json(json!({
+        "creator_id": creator_id,
+        "total_amount": row.0.unwrap_or_default().to_string(),
+        "tip_count": row.1,
+        "supporter_count": row.2,
+        "creator_net_total": row.3.unwrap_or_default().to_string(),
+        "this_month_amount": row.4.unwrap_or_default().to_string(),
+    })))
+}
+
+/// Tips sent by a fan (by email) — for the fan dashboard.
+async fn tips_for_fan(
+    State(st): State<AppState>,
+    Path(email): Path<String>,
+) -> Result<Json<Vec<Tip>>, AppError> {
+    let rows: Vec<Tip> = sqlx::query_as(&format!(
+        "SELECT {TIP_COLUMNS} FROM tips WHERE lower(tipper_email) = lower($1) ORDER BY created_at DESC LIMIT 200"
+    ))
+    .bind(email)
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
 // ── Bootstrap ───────────────────────────────────────────────────────────────
 
 async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
@@ -220,6 +348,23 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
     sqlx::query("CREATE INDEX IF NOT EXISTS idx_tips_creator ON tips (creator_id)")
+        .execute(pool)
+        .await?;
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS pledges (
+            id         UUID PRIMARY KEY,
+            creator_id UUID NOT NULL,
+            tier_id    UUID,
+            fan_name   TEXT NOT NULL DEFAULT 'Anonymous',
+            fan_email  TEXT NOT NULL DEFAULT '',
+            amount     NUMERIC(10,2) NOT NULL,
+            status     TEXT NOT NULL DEFAULT 'active',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )",
+    )
+    .execute(pool)
+    .await?;
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_pledges_creator ON pledges (creator_id)")
         .execute(pool)
         .await?;
     Ok(())
@@ -263,7 +408,11 @@ async fn main() {
     let app = Router::new()
         .route("/health", get(health))
         .route("/tips", post(create_tip).get(list_tips))
+        .route("/tips/pledges", post(create_pledge))
+        .route("/tips/pledges/creator/:creator_id", get(pledges_for_creator))
         .route("/tips/creator/:creator_id", get(tips_for_creator))
+        .route("/tips/creator/:creator_id/stats", get(creator_stats))
+        .route("/tips/fan/:email", get(tips_for_fan))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 

@@ -40,6 +40,36 @@ struct Creator {
 const CREATOR_COLUMNS: &str =
     "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, created_at";
 
+#[derive(sqlx::FromRow, Serialize)]
+struct SupportTier {
+    id: Uuid,
+    creator_id: Uuid,
+    name: String,
+    price: Decimal,
+    description: String,
+    perks: Vec<String>,
+    is_active: bool,
+    sort_order: i32,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+const TIER_COLUMNS: &str =
+    "id, creator_id, name, price, description, perks, is_active, sort_order, created_at";
+
+#[derive(sqlx::FromRow, Serialize)]
+struct Jar {
+    id: Uuid,
+    creator_id: Uuid,
+    name: String,
+    slug: String,
+    description: String,
+    goal: Option<Decimal>,
+    is_active: bool,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+const JAR_COLUMNS: &str = "id, creator_id, name, slug, description, goal, is_active, created_at";
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 fn slugify(input: &str) -> String {
@@ -197,6 +227,167 @@ async fn get_by_id(
     Ok(Json(row))
 }
 
+// ── Tiers, jars, my-profile ─────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+struct CreateTierReq {
+    name: String,
+    price: f64,
+    description: Option<String>,
+    perks: Option<Vec<String>>,
+    sort_order: Option<i32>,
+}
+
+#[derive(Deserialize)]
+struct CreateJarReq {
+    name: String,
+    description: Option<String>,
+    goal: Option<f64>,
+}
+
+/// (creator_id, owner_user_id) for a slug, or 404.
+async fn creator_ids_by_slug(st: &AppState, slug: &str) -> Result<(Uuid, Uuid), AppError> {
+    sqlx::query_as("SELECT id, user_id FROM creator_profiles WHERE slug = $1")
+        .bind(slug)
+        .fetch_optional(&st.pool)
+        .await?
+        .ok_or_else(|| AppError::NotFound("creator not found".into()))
+}
+
+async fn list_tiers(
+    State(st): State<AppState>,
+    Path(slug): Path<String>,
+) -> Result<Json<Vec<SupportTier>>, AppError> {
+    let (creator_id, _) = creator_ids_by_slug(&st, &slug).await?;
+    let rows: Vec<SupportTier> = sqlx::query_as(&format!(
+        "SELECT {TIER_COLUMNS} FROM support_tiers WHERE creator_id = $1 AND is_active = TRUE ORDER BY sort_order, price"
+    ))
+    .bind(creator_id)
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+async fn create_tier(
+    State(st): State<AppState>,
+    Path(slug): Path<String>,
+    headers: HeaderMap,
+    Json(req): Json<CreateTierReq>,
+) -> Result<Json<SupportTier>, AppError> {
+    let user_id = verify_caller(&st, &bearer(&headers)?).await?;
+    let (creator_id, owner) = creator_ids_by_slug(&st, &slug).await?;
+    if owner != user_id {
+        return Err(AppError::Unauthorized("not your creator profile".into()));
+    }
+    if req.name.trim().is_empty() {
+        return Err(AppError::BadRequest("name is required".into()));
+    }
+    let price = Decimal::from_f64_retain(req.price)
+        .map(|d| d.round_dp(2))
+        .ok_or_else(|| AppError::BadRequest("invalid price".into()))?;
+    let perks = req.perks.unwrap_or_default();
+    let row: SupportTier = sqlx::query_as(&format!(
+        "INSERT INTO support_tiers (id, creator_id, name, price, description, perks, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING {TIER_COLUMNS}"
+    ))
+    .bind(Uuid::new_v4())
+    .bind(creator_id)
+    .bind(req.name.trim())
+    .bind(price)
+    .bind(req.description.unwrap_or_default())
+    .bind(&perks)
+    .bind(req.sort_order.unwrap_or(0))
+    .fetch_one(&st.pool)
+    .await?;
+    Ok(Json(row))
+}
+
+async fn list_jars(
+    State(st): State<AppState>,
+    Path(slug): Path<String>,
+) -> Result<Json<Vec<Jar>>, AppError> {
+    let (creator_id, _) = creator_ids_by_slug(&st, &slug).await?;
+    let rows: Vec<Jar> = sqlx::query_as(&format!(
+        "SELECT {JAR_COLUMNS} FROM jars WHERE creator_id = $1 AND is_active = TRUE ORDER BY created_at DESC"
+    ))
+    .bind(creator_id)
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+async fn get_jar(
+    State(st): State<AppState>,
+    Path((slug, jar_slug)): Path<(String, String)>,
+) -> Result<Json<Jar>, AppError> {
+    let (creator_id, _) = creator_ids_by_slug(&st, &slug).await?;
+    let row: Jar = sqlx::query_as(&format!(
+        "SELECT {JAR_COLUMNS} FROM jars WHERE creator_id = $1 AND slug = $2"
+    ))
+    .bind(creator_id)
+    .bind(jar_slug)
+    .fetch_optional(&st.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("jar not found".into()))?;
+    Ok(Json(row))
+}
+
+async fn create_jar(
+    State(st): State<AppState>,
+    Path(slug): Path<String>,
+    headers: HeaderMap,
+    Json(req): Json<CreateJarReq>,
+) -> Result<Json<Jar>, AppError> {
+    let user_id = verify_caller(&st, &bearer(&headers)?).await?;
+    let (creator_id, owner) = creator_ids_by_slug(&st, &slug).await?;
+    if owner != user_id {
+        return Err(AppError::Unauthorized("not your creator profile".into()));
+    }
+    if req.name.trim().is_empty() {
+        return Err(AppError::BadRequest("name is required".into()));
+    }
+    let jar_slug = slugify(&req.name);
+    let goal = req
+        .goal
+        .and_then(Decimal::from_f64_retain)
+        .map(|d| d.round_dp(2));
+    let row: Jar = sqlx::query_as(&format!(
+        "INSERT INTO jars (id, creator_id, name, slug, description, goal)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING {JAR_COLUMNS}"
+    ))
+    .bind(Uuid::new_v4())
+    .bind(creator_id)
+    .bind(req.name.trim())
+    .bind(&jar_slug)
+    .bind(req.description.unwrap_or_default())
+    .bind(goal)
+    .fetch_one(&st.pool)
+    .await
+    .map_err(|e| match &e {
+        sqlx::Error::Database(db) if db.code().as_deref() == Some("23505") => {
+            AppError::Conflict("a jar with that name already exists".into())
+        }
+        _ => e.into(),
+    })?;
+    Ok(Json(row))
+}
+
+/// The caller's own creator profile (by user id from the token).
+async fn get_me(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Creator>, AppError> {
+    let user_id = verify_caller(&st, &bearer(&headers)?).await?;
+    let row: Creator = sqlx::query_as(&format!(
+        "SELECT {CREATOR_COLUMNS} FROM creator_profiles WHERE user_id = $1"
+    ))
+    .bind(user_id)
+    .fetch_optional(&st.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("no creator profile for this user".into()))?;
+    Ok(Json(row))
+}
+
 // ── Bootstrap ───────────────────────────────────────────────────────────────
 
 async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
@@ -212,6 +403,36 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
             is_active    BOOLEAN NOT NULL DEFAULT TRUE,
             kyc_status   TEXT NOT NULL DEFAULT 'not_started',
             created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+        )",
+    )
+    .execute(pool)
+    .await?;
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS support_tiers (
+            id          UUID PRIMARY KEY,
+            creator_id  UUID NOT NULL,
+            name        TEXT NOT NULL,
+            price       NUMERIC(10,2) NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            perks       TEXT[] NOT NULL DEFAULT '{}',
+            is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+            sort_order  INT NOT NULL DEFAULT 0,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+        )",
+    )
+    .execute(pool)
+    .await?;
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS jars (
+            id          UUID PRIMARY KEY,
+            creator_id  UUID NOT NULL,
+            name        TEXT NOT NULL,
+            slug        TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            goal        NUMERIC(10,2),
+            is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+            UNIQUE (creator_id, slug)
         )",
     )
     .execute(pool)
@@ -256,7 +477,11 @@ async fn main() {
     let app = Router::new()
         .route("/health", get(health))
         .route("/creators", post(create_creator).get(list_creators))
+        .route("/creators/me", get(get_me))
         .route("/creators/:slug", get(get_by_slug))
+        .route("/creators/:slug/tiers", get(list_tiers).post(create_tier))
+        .route("/creators/:slug/jars", get(list_jars).post(create_jar))
+        .route("/creators/:slug/jars/:jar_slug", get(get_jar))
         .route("/internal/creators/:id", get(get_by_id))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);

@@ -70,6 +70,13 @@ impl UserRow {
 const USER_COLUMNS: &str =
     "id, email, username, role, phone_number, two_fa_enabled, is_minor, referral_code_used, password_hash, created_at";
 
+#[derive(sqlx::FromRow)]
+struct OtpRow {
+    id: Uuid,
+    code: String,
+    expires_at: chrono::DateTime<chrono::Utc>,
+}
+
 // ── Password hashing (Argon2id) ─────────────────────────────────────────────
 
 fn hash_password(pw: &str) -> Result<String, AppError> {
@@ -140,6 +147,16 @@ struct VerifyResp {
     user_id: String,
     email: String,
     role: String,
+}
+
+#[derive(Deserialize)]
+struct VerifyOtpReq {
+    code: String,
+}
+
+#[derive(Deserialize)]
+struct TwoFaReq {
+    enabled: bool,
 }
 
 // ── Handlers ────────────────────────────────────────────────────────────────
@@ -284,6 +301,82 @@ async fn get_user(
     Ok(Json(row.to_out()))
 }
 
+// ── OTP / two-factor ────────────────────────────────────────────────────────
+
+fn user_from_bearer(st: &AppState, headers: &HeaderMap) -> Result<Uuid, AppError> {
+    let token = bearer(headers)?;
+    let claims = jwt::decode_jwt(&token, &st.jwt_secret)?;
+    Uuid::parse_str(&claims.sub).map_err(|_| AppError::Unauthorized("malformed subject".into()))
+}
+
+/// Generate and "send" a one-time code. The code is logged server-side (until a
+/// real email/SMS provider is wired) and is NEVER returned in the response.
+async fn request_otp(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let user_id = user_from_bearer(&st, &headers)?;
+    sqlx::query("UPDATE otps SET is_used = TRUE WHERE user_id = $1 AND is_used = FALSE")
+        .bind(user_id)
+        .execute(&st.pool)
+        .await?;
+    let code = format!(
+        "{:06}",
+        (u128::from_be_bytes(*Uuid::new_v4().as_bytes()) % 1_000_000) as u32
+    );
+    let expires_at = chrono::Utc::now() + chrono::Duration::minutes(10);
+    sqlx::query("INSERT INTO otps (id, user_id, code, method, expires_at) VALUES ($1, $2, $3, 'email', $4)")
+        .bind(Uuid::new_v4())
+        .bind(user_id)
+        .bind(&code)
+        .bind(expires_at)
+        .execute(&st.pool)
+        .await?;
+    tracing::info!("OTP for user {user_id}: {code}");
+    Ok(Json(json!({ "sent": true, "method": "email" })))
+}
+
+async fn verify_otp(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<VerifyOtpReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let user_id = user_from_bearer(&st, &headers)?;
+    let otp: OtpRow = sqlx::query_as(
+        "SELECT id, code, expires_at FROM otps WHERE user_id = $1 AND is_used = FALSE ORDER BY created_at DESC LIMIT 1",
+    )
+    .bind(user_id)
+    .fetch_optional(&st.pool)
+    .await?
+    .ok_or_else(|| AppError::Unauthorized("no active code — request a new one".into()))?;
+
+    if otp.code != req.code.trim() || otp.expires_at <= chrono::Utc::now() {
+        return Err(AppError::Unauthorized("invalid or expired code".into()));
+    }
+    sqlx::query("UPDATE otps SET is_used = TRUE WHERE id = $1")
+        .bind(otp.id)
+        .execute(&st.pool)
+        .await?;
+    Ok(Json(json!({ "verified": true })))
+}
+
+async fn set_2fa(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<TwoFaReq>,
+) -> Result<Json<UserOut>, AppError> {
+    let user_id = user_from_bearer(&st, &headers)?;
+    let row: UserRow = sqlx::query_as(&format!(
+        "UPDATE users SET two_fa_enabled = $1 WHERE id = $2 RETURNING {USER_COLUMNS}"
+    ))
+    .bind(req.enabled)
+    .bind(user_id)
+    .fetch_optional(&st.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("user not found".into()))?;
+    Ok(Json(row.to_out()))
+}
+
 // ── Bootstrap ───────────────────────────────────────────────────────────────
 
 async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
@@ -299,6 +392,19 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
             is_minor           BOOLEAN NOT NULL DEFAULT FALSE,
             referral_code_used TEXT NOT NULL DEFAULT '',
             created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+        )",
+    )
+    .execute(pool)
+    .await?;
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS otps (
+            id         UUID PRIMARY KEY,
+            user_id    UUID NOT NULL,
+            code       TEXT NOT NULL,
+            method     TEXT NOT NULL DEFAULT 'email',
+            is_used    BOOLEAN NOT NULL DEFAULT FALSE,
+            expires_at TIMESTAMPTZ NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )",
     )
     .execute(pool)
@@ -349,6 +455,9 @@ async fn main() {
         .route("/auth/register", post(register))
         .route("/auth/login", post(login))
         .route("/auth/me", get(me))
+        .route("/auth/request-otp", post(request_otp))
+        .route("/auth/verify-otp", post(verify_otp))
+        .route("/auth/2fa", post(set_2fa))
         .route("/internal/verify-token", post(verify_token))
         .route("/internal/users/:id", get(get_user))
         .layer(tower_http::cors::CorsLayer::permissive())

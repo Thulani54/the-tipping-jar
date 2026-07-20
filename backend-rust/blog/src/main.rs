@@ -1,6 +1,7 @@
 //! Blog microservice — owns blog posts (ports the Django `blog` app).
 
 use axum::extract::{Path, State};
+use axum::http::{header::AUTHORIZATION, HeaderMap};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::{env, AppError};
@@ -13,6 +14,36 @@ use uuid::Uuid;
 #[derive(Clone)]
 struct AppState {
     pool: PgPool,
+    http: reqwest::Client,
+    accounts_url: String,
+}
+
+fn bearer(headers: &HeaderMap) -> Result<String, AppError> {
+    let raw = headers
+        .get(AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| AppError::Unauthorized("missing Authorization header".into()))?;
+    raw.strip_prefix("Bearer ")
+        .map(|t| t.to_string())
+        .ok_or_else(|| AppError::Unauthorized("expected 'Bearer <token>'".into()))
+}
+
+/// Require the caller's token to belong to an admin (verified via accounts).
+async fn require_admin(st: &AppState, token: &str) -> Result<(), AppError> {
+    let resp = st
+        .http
+        .post(format!("{}/internal/verify-token", st.accounts_url))
+        .json(&json!({ "token": token }))
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        return Err(AppError::Unauthorized("token rejected by accounts".into()));
+    }
+    let body: serde_json::Value = resp.json().await?;
+    if body.get("role").and_then(|r| r.as_str()) != Some("admin") {
+        return Err(AppError::Unauthorized("admin access required".into()));
+    }
+    Ok(())
 }
 
 #[derive(sqlx::FromRow, Serialize)]
@@ -71,8 +102,10 @@ async fn health() -> Json<serde_json::Value> {
 
 async fn create_post(
     State(st): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<CreateReq>,
 ) -> Result<Json<Post>, AppError> {
+    require_admin(&st, &bearer(&headers)?).await?;
     if req.title.trim().is_empty() {
         return Err(AppError::BadRequest("title is required".into()));
     }
@@ -183,7 +216,11 @@ async fn main() {
         .route("/posts", post(create_post).get(list_posts))
         .route("/posts/:slug", get(get_post))
         .layer(tower_http::cors::CorsLayer::permissive())
-        .with_state(AppState { pool });
+        .with_state(AppState {
+            pool,
+            http: reqwest::Client::new(),
+            accounts_url: env("ACCOUNTS_URL", "http://localhost:8081"),
+        });
 
     let port = env("PORT", "8085");
     let addr = format!("0.0.0.0:{port}");

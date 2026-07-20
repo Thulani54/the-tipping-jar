@@ -179,6 +179,21 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     )
     .execute(pool)
     .await?;
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS partner_applications (
+            id         UUID PRIMARY KEY,
+            name       TEXT NOT NULL,
+            email      TEXT NOT NULL DEFAULT '',
+            company    TEXT NOT NULL DEFAULT '',
+            website    TEXT NOT NULL DEFAULT '',
+            app_type   TEXT NOT NULL DEFAULT 'partner',
+            message    TEXT NOT NULL DEFAULT '',
+            status     TEXT NOT NULL DEFAULT 'pending',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )",
+    )
+    .execute(pool)
+    .await?;
     Ok(())
 }
 
@@ -193,6 +208,68 @@ async fn connect_with_retry(db_url: &str) -> PgPool {
         }
     }
     panic!("could not connect to database after 30 attempts");
+}
+
+// ── Partner applications ────────────────────────────────────────────────────
+
+#[derive(sqlx::FromRow, Serialize)]
+struct PartnerApplication {
+    id: Uuid,
+    name: String,
+    email: String,
+    company: String,
+    website: String,
+    app_type: String,
+    message: String,
+    status: String,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+const PARTNER_COLUMNS: &str =
+    "id, name, email, company, website, app_type, message, status, created_at";
+
+#[derive(Deserialize)]
+struct PartnerReq {
+    name: String,
+    email: String,
+    company: Option<String>,
+    website: Option<String>,
+    app_type: Option<String>,
+    message: Option<String>,
+}
+
+async fn create_partner(
+    State(st): State<AppState>,
+    Json(req): Json<PartnerReq>,
+) -> Result<Json<PartnerApplication>, AppError> {
+    if req.name.trim().is_empty() {
+        return Err(AppError::BadRequest("name is required".into()));
+    }
+    let row: PartnerApplication = sqlx::query_as(&format!(
+        "INSERT INTO partner_applications (id, name, email, company, website, app_type, message)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING {PARTNER_COLUMNS}"
+    ))
+    .bind(Uuid::new_v4())
+    .bind(req.name.trim())
+    .bind(req.email.trim().to_lowercase())
+    .bind(req.company.unwrap_or_default())
+    .bind(req.website.unwrap_or_default())
+    .bind(req.app_type.unwrap_or_else(|| "partner".into()))
+    .bind(req.message.unwrap_or_default())
+    .fetch_one(&st.pool)
+    .await?;
+    Ok(Json(row))
+}
+
+async fn list_partners(
+    State(st): State<AppState>,
+) -> Result<Json<Vec<PartnerApplication>>, AppError> {
+    let rows: Vec<PartnerApplication> = sqlx::query_as(&format!(
+        "SELECT {PARTNER_COLUMNS} FROM partner_applications ORDER BY created_at DESC LIMIT 200"
+    ))
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
 }
 
 #[tokio::main]
@@ -215,6 +292,7 @@ async fn main() {
         .route("/contact", post(create_contact).get(list_contacts))
         .route("/disputes", post(create_dispute).get(list_disputes))
         .route("/disputes/:token", get(track_dispute))
+        .route("/partner-apply", post(create_partner).get(list_partners))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(AppState { pool });
 
