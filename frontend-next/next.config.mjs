@@ -11,12 +11,7 @@ const securityHeaders = [
   // (Next needs its inline hydration scripts), plus force HTTPS.
   {
     key: "Content-Security-Policy",
-    value:
-      "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; upgrade-insecure-requests",
-  },
-  {
-    key: "Strict-Transport-Security",
-    value: "max-age=31536000; includeSubDomains",
+    value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
   },
 ];
 
