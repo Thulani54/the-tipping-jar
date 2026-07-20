@@ -78,6 +78,7 @@ services:
     command: ["blog"]
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/blog_db
+      ACCOUNTS_URL: http://accounts:8081
       PORT: "8085"
     ports:
       - "127.0.0.1:8085:8085"
