@@ -9,6 +9,7 @@ services:
       context: .
       args:
         NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-https://api.tippingjar.co.za/api/v2}
+        PREVIEW_HTTP: ${PREVIEW_HTTP:-0}
     image: tipping-jar-web:latest
     restart: unless-stopped
     environment:

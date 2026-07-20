@@ -12,6 +12,10 @@ COPY . .
 # NEXT_PUBLIC_* vars are inlined at build time — pass the API base in here.
 ARG NEXT_PUBLIC_API_BASE=https://api.tippingjar.co.za/api/v2
 ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
+# Set to 1 ONLY for the temporary plain-HTTP IP preview (relaxes HSTS + CSP
+# upgrade-insecure-requests). Unset/0 for real HTTPS builds.
+ARG PREVIEW_HTTP=0
+ENV PREVIEW_HTTP=$PREVIEW_HTTP
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
