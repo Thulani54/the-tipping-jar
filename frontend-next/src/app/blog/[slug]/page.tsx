@@ -1,6 +1,34 @@
 import Link from "next/link";
+import sanitizeHtml from "sanitize-html";
 import { api } from "@/lib/api";
 import type { BlogPost } from "@/types";
+
+// Blog content is HTML authored in a rich-text editor. It is rendered via
+// dangerouslySetInnerHTML, so it MUST be sanitized against XSS first — an
+// allowlist of formatting tags/attributes only, no scripts, no event handlers,
+// and only http/https/mailto URLs.
+const SANITIZE_OPTS: sanitizeHtml.IOptions = {
+  allowedTags: [
+    "h1", "h2", "h3", "h4", "p", "br", "hr", "strong", "b", "em", "i", "u",
+    "a", "ul", "ol", "li", "blockquote", "code", "pre", "img", "span",
+  ],
+  allowedAttributes: {
+    a: ["href", "title", "target", "rel"],
+    img: ["src", "alt", "title"],
+    span: [],
+  },
+  allowedSchemes: ["http", "https", "mailto"],
+  allowedSchemesByTag: { img: ["http", "https"] },
+  transformTags: {
+    // Force safe, no-referrer external links.
+    a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer nofollow" }),
+  },
+  disallowedTagsMode: "discard",
+};
+
+function cleanHtml(html: string): string {
+  return sanitizeHtml(html ?? "", SANITIZE_OPTS);
+}
 
 const CAT_COLORS: Record<string, string> = {
   product: "#818CF8",
@@ -107,7 +135,7 @@ export default async function BlogDetailPage({
         <div className="container-content py-14">
           <div
             className="prose-blog mx-auto max-w-3xl"
-            dangerouslySetInnerHTML={{ __html: post.content || "" }}
+            dangerouslySetInnerHTML={{ __html: cleanHtml(post.content) }}
           />
         </div>
       </div>
