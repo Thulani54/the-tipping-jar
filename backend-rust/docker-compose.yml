@@ -1,0 +1,146 @@
+name: tipping-jar-rust
+
+# Every service is the same image (built once), run with a different `command`.
+# All published ports bind to 127.0.0.1 only — the public edge is nginx (443),
+# which reverse-proxies /api/v2/<service>/ to these loopback ports.
+
+x-svc: &svc
+  build: .
+  image: tipping-jar-rust:latest
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    expose:
+      - "5432"
+
+  accounts:
+    <<: *svc
+    command: ["accounts"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/accounts_db
+      JWT_SECRET: ${JWT_SECRET:-super-secret-dev-key-change-me}
+      PORT: "8081"
+    ports:
+      - "127.0.0.1:8081:8081"
+
+  creators:
+    <<: *svc
+    command: ["creators"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/creators_db
+      ACCOUNTS_URL: http://accounts:8081
+      PORT: "8082"
+    ports:
+      - "127.0.0.1:8082:8082"
+
+  payments:
+    <<: *svc
+    command: ["payments"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/payments_db
+      PLATFORM_FEE_PERCENT: "3.0"
+      SERVICE_FEE_PERCENT: "3.0"
+      PORT: "8083"
+    ports:
+      - "127.0.0.1:8083:8083"
+
+  tips:
+    <<: *svc
+    command: ["tips"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/tips_db
+      CREATORS_URL: http://creators:8082
+      PAYMENTS_URL: http://payments:8083
+      PORT: "8084"
+    ports:
+      - "127.0.0.1:8084:8084"
+
+  blog:
+    <<: *svc
+    command: ["blog"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/blog_db
+      PORT: "8085"
+    ports:
+      - "127.0.0.1:8085:8085"
+
+  careers:
+    <<: *svc
+    command: ["careers"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/careers_db
+      PORT: "8086"
+    ports:
+      - "127.0.0.1:8086:8086"
+
+  enterprise:
+    <<: *svc
+    command: ["enterprise"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/enterprise_db
+      ACCOUNTS_URL: http://accounts:8081
+      PORT: "8087"
+    ports:
+      - "127.0.0.1:8087:8087"
+
+  support:
+    <<: *svc
+    command: ["support"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/support_db
+      PORT: "8088"
+    ports:
+      - "127.0.0.1:8088:8088"
+
+  referrals:
+    <<: *svc
+    command: ["referrals"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/referrals_db
+      ACCOUNTS_URL: http://accounts:8081
+      PORT: "8089"
+    ports:
+      - "127.0.0.1:8089:8089"
+
+  platform:
+    <<: *svc
+    command: ["platform"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/platform_db
+      ACCOUNTS_URL: http://accounts:8081
+      PORT: "8090"
+    ports:
+      - "127.0.0.1:8090:8090"
+
+  admin_portal:
+    <<: *svc
+    command: ["admin_portal"]
+    environment:
+      CREATORS_URL: http://creators:8082
+      TIPS_URL: http://tips:8084
+      SUPPORT_URL: http://support:8088
+      PAYMENTS_URL: http://payments:8083
+      PORT: "8091"
+    ports:
+      - "127.0.0.1:8091:8091"
+
+volumes:
+  pgdata:

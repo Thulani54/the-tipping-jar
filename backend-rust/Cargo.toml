@@ -1,0 +1,44 @@
+[workspace]
+resolver = "2"
+members = [
+    "common",
+    "accounts",
+    "creators",
+    "payments",
+    "tips",
+    "blog",
+    "careers",
+    "enterprise",
+    "support",
+    "referrals",
+    "platform",
+    "admin_portal",
+]
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+axum = "0.7"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.8", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "macros",
+    "postgres",
+    "uuid",
+    "chrono",
+    "rust_decimal",
+] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+rust_decimal = { version = "1", features = ["serde"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+jsonwebtoken = "9"
+argon2 = "0.5"
+sha2 = "0.10"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+common = { path = "common" }
+
+[profile.release]
+opt-level = 2
