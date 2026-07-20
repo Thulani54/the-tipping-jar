@@ -19,7 +19,7 @@ import type {
 } from "@/types";
 
 const BASE =
-  process.env.NEXT_PUBLIC_API_BASE ?? "https://api.siyangoma.co.za/api/v2";
+  process.env.NEXT_PUBLIC_API_BASE ?? "https://api.tippingjar.co.za/api/v2";
 
 export class ApiError extends Error {
   status: number;

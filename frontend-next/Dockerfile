@@ -10,7 +10,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # NEXT_PUBLIC_* vars are inlined at build time — pass the API base in here.
-ARG NEXT_PUBLIC_API_BASE=https://api.siyangoma.co.za/api/v2
+ARG NEXT_PUBLIC_API_BASE=https://api.tippingjar.co.za/api/v2
 ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build

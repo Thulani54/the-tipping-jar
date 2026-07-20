@@ -8,7 +8,7 @@ services:
     build:
       context: .
       args:
-        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-https://api.siyangoma.co.za/api/v2}
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-https://api.tippingjar.co.za/api/v2}
     image: tipping-jar-web:latest
     restart: unless-stopped
     environment:
