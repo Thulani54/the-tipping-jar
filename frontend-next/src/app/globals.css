@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --dark: #0a0f0d;
+  --darker: #060a08;
+  --primary: #004423;
+  --teal: #0097b2;
+  --muted: #7a9088;
+  --border: #1e2e26;
+  --card: #111a16;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--darker);
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .container-content {
+    @apply mx-auto w-full max-w-content px-6;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-brand-gradient px-6 py-3 font-semibold text-white transition hover:opacity-90;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center rounded-full border border-border px-6 py-3 font-semibold text-white transition hover:border-teal;
+  }
+  .card {
+    @apply rounded-3xl border border-border bg-card p-6;
+  }
+  .heading-xl {
+    @apply text-4xl font-extrabold tracking-tight md:text-5xl;
+    line-height: 1.1;
+  }
+  .body-muted {
+    @apply text-[15px] leading-relaxed text-muted;
+  }
+}

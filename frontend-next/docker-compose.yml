@@ -1,0 +1,18 @@
+name: tipping-jar-web
+
+# The Next.js frontend, bound to localhost so nginx (443) can reverse-proxy a
+# hostname to it. Build-time API base points at the Rust stack behind nginx.
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-https://api.siyangoma.co.za/api/v2}
+    image: tipping-jar-web:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
