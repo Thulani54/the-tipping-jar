@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { CreatorCard } from "@/components/CreatorCard";
-import type { Creator } from "@/types";
+import type { Creator, Tip } from "@/types";
 
 type Tab = "home" | "activity" | "settings";
 
@@ -30,10 +30,11 @@ function greeting(): string {
 }
 
 export default function FanDashboardPage() {
-  const { user, isAuthenticated, initialized, logout } = useAuth();
+  const { user, token, isAuthenticated, initialized, logout } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("home");
   const [creators, setCreators] = useState<Creator[]>([]);
+  const [myTips, setMyTips] = useState<Tip[]>([]);
 
   useEffect(() => {
     if (initialized && !isAuthenticated) router.push("/login");
@@ -45,7 +46,13 @@ export default function FanDashboardPage() {
       .listCreators()
       .then((c) => setCreators(c.slice(0, 8)))
       .catch(() => setCreators([]));
-  }, [isAuthenticated]);
+    if (user?.email) {
+      api
+        .tipsForFan(user.email)
+        .then(setMyTips)
+        .catch(() => setMyTips([]));
+    }
+  }, [isAuthenticated, user?.email]);
 
   if (!initialized || !isAuthenticated) {
     return (
@@ -56,6 +63,8 @@ export default function FanDashboardPage() {
   }
 
   const name = user?.username || "there";
+  const totalGiven = myTips.reduce((s, t) => s + parseFloat(t.amount || "0"), 0);
+  const creatorsSupported = new Set(myTips.map((t) => t.creator_id)).size;
 
   return (
     <div className="container-content py-10">
@@ -85,9 +94,19 @@ export default function FanDashboardPage() {
       </div>
 
       <div className="mt-8">
-        {tab === "home" && <HomeTab name={name} creators={creators} />}
-        {tab === "activity" && <ActivityTab />}
-        {tab === "settings" && <SettingsTab twoFa={user?.two_fa_enabled ?? true} onLogout={logout} />}
+        {tab === "home" && (
+          <HomeTab
+            name={name}
+            creators={creators}
+            tipsCount={myTips.length}
+            totalGiven={totalGiven}
+            creatorsSupported={creatorsSupported}
+          />
+        )}
+        {tab === "activity" && <ActivityTab tips={myTips} />}
+        {tab === "settings" && (
+          <SettingsTab twoFa={user?.two_fa_enabled ?? false} token={token} onLogout={logout} />
+        )}
       </div>
     </div>
   );
@@ -104,7 +123,19 @@ function StatCard({ label, value, icon }: { label: string; value: string; icon: 
 }
 
 // ─── Home ──────────────────────────────────────────────────────────────────────
-function HomeTab({ name, creators }: { name: string; creators: Creator[] }) {
+function HomeTab({
+  name,
+  creators,
+  tipsCount,
+  totalGiven,
+  creatorsSupported,
+}: {
+  name: string;
+  creators: Creator[];
+  tipsCount: number;
+  totalGiven: number;
+  creatorsSupported: number;
+}) {
   return (
     <div className="space-y-10">
       <div className="card bg-brand-gradient !border-transparent">
@@ -120,12 +151,10 @@ function HomeTab({ name, creators }: { name: string; creators: Creator[] }) {
         </Link>
       </div>
 
-      {/* Stats — no fan-scoped stats endpoint yet */}
-      {/* TODO(api): fan stats (tips sent count, total given, creators supported) */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Tips sent" value="0" icon="💚" />
-        <StatCard label="Total given" value="R0" icon="💸" />
-        <StatCard label="Creators supported" value="0" icon="👥" />
+        <StatCard label="Tips sent" value={String(tipsCount)} icon="💚" />
+        <StatCard label="Total given" value={`R${totalGiven.toFixed(2)}`} icon="💸" />
+        <StatCard label="Creators supported" value={String(creatorsSupported)} icon="👥" />
       </div>
 
       <div>
@@ -150,22 +179,38 @@ function HomeTab({ name, creators }: { name: string; creators: Creator[] }) {
 }
 
 // ─── Activity ───────────────────────────────────────────────────────────────────
-function ActivityTab() {
+function ActivityTab({ tips }: { tips: Tip[] }) {
   return (
     <div className="max-w-3xl space-y-10">
       <div>
         <h3 className="mb-4 text-base font-bold text-white">Your tips</h3>
-        {/* TODO(api): fan-scoped "sent tips" history endpoint */}
-        <div className="card grid place-items-center py-12 text-center">
-          <div className="text-3xl">💚</div>
-          <p className="mt-3 font-semibold text-white">No tips sent yet</p>
-          <p className="body-muted mt-1 max-w-sm">
-            Find a creator you love and send your first tip!
-          </p>
-          <Link href="/creators" className="btn-primary mt-5 !px-5 !py-2.5 text-sm">
-            Browse creators
-          </Link>
-        </div>
+        {tips.length === 0 ? (
+          <div className="card grid place-items-center py-12 text-center">
+            <div className="text-3xl">💚</div>
+            <p className="mt-3 font-semibold text-white">No tips sent yet</p>
+            <p className="body-muted mt-1 max-w-sm">
+              Find a creator you love and send your first tip!
+            </p>
+            <Link href="/creators" className="btn-primary mt-5 !px-5 !py-2.5 text-sm">
+              Browse creators
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {tips.map((t) => (
+              <div key={t.id} className="card flex items-center justify-between !py-4">
+                <div className="min-w-0">
+                  <p className="font-semibold text-white">{t.creator_name}</p>
+                  {t.message && <p className="body-muted truncate text-sm">{t.message}</p>}
+                  <p className="mt-1 text-xs text-muted">
+                    {new Date(t.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className="whitespace-nowrap font-bold text-teal">R{t.amount}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div>
@@ -184,7 +229,31 @@ function ActivityTab() {
 }
 
 // ─── Settings ───────────────────────────────────────────────────────────────────
-function SettingsTab({ twoFa, onLogout }: { twoFa: boolean; onLogout: () => void }) {
+function SettingsTab({
+  twoFa,
+  token,
+  onLogout,
+}: {
+  twoFa: boolean;
+  token: string | null;
+  onLogout: () => void;
+}) {
+  const [enabled, setEnabled] = useState(twoFa);
+  const [saving, setSaving] = useState(false);
+
+  async function toggle() {
+    if (!token || saving) return;
+    setSaving(true);
+    try {
+      await api.set2fa(token, !enabled);
+      setEnabled(!enabled);
+    } catch {
+      // keep previous state on failure
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="max-w-2xl space-y-6">
       <div className="card">
@@ -192,17 +261,18 @@ function SettingsTab({ twoFa, onLogout }: { twoFa: boolean; onLogout: () => void
           <div>
             <p className="font-semibold text-white">Two-factor authentication</p>
             <p className="body-muted mt-1">
-              {twoFa ? "Verification code sent on each login." : "2FA is off."}
+              {enabled ? "Verification code sent on each login." : "2FA is off."}
             </p>
           </div>
-          {/* TODO(api): endpoint to toggle 2FA for the current user */}
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              twoFa ? "bg-teal/10 text-teal" : "bg-border text-muted"
+          <button
+            onClick={toggle}
+            disabled={saving}
+            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+              enabled ? "bg-teal/10 text-teal hover:bg-teal/20" : "bg-border text-muted hover:text-white"
             }`}
           >
-            {twoFa ? "On" : "Off"}
-          </span>
+            {saving ? "…" : enabled ? "On · turn off" : "Off · turn on"}
+          </button>
         </div>
       </div>
 

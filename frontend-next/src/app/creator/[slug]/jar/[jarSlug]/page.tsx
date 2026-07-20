@@ -39,7 +39,29 @@ export default function JarPage({
   params: Promise<{ slug: string; jarSlug: string }>;
 }) {
   const { slug, jarSlug } = use(params);
-  const jar = makePlaceholderJar(jarSlug);
+  const [jar, setJar] = useState<Jar>(() => makePlaceholderJar(jarSlug));
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .getJar(slug, jarSlug)
+      .then((j) => {
+        if (!alive) return;
+        setJar({
+          name: j.name,
+          description:
+            j.description ||
+            "Help this campaign reach its goal. Every tip supports the creator.",
+          goal: j.goal ? parseFloat(j.goal) : null,
+          totalRaised: 0,
+          tipCount: 0,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [slug, jarSlug]);
 
   const progress =
     jar.goal && jar.goal > 0

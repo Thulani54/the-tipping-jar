@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
-import type { Tip, ReferralCode } from "@/types";
+import type { Tip, ReferralCode, Creator, CreatorStats } from "@/types";
 
 type Tab = "overview" | "tips" | "referrals" | "studio";
 
@@ -40,6 +40,8 @@ export default function DashboardPage() {
 
   const [tips, setTips] = useState<Tip[]>([]);
   const [referral, setReferral] = useState<ReferralCode | null>(null);
+  const [myCreator, setMyCreator] = useState<Creator | null>(null);
+  const [stats, setStats] = useState<CreatorStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,16 +53,20 @@ export default function DashboardPage() {
     let alive = true;
     (async () => {
       setLoading(true);
-      // TODO(api): creator dashboard stats endpoint (total earned, this month,
-      // pending payout) and a creator-scoped "my tips" list. listTips() is the
-      // global feed and is used here only as placeholder recent activity.
-      const [t, r] = await Promise.all([
-        api.listTips().catch(() => [] as Tip[]),
+      // Resolve the caller's creator profile, then its real stats + tips.
+      const mine = token ? await api.myCreatorProfile(token).catch(() => null) : null;
+      const [t, r, s] = await Promise.all([
+        mine
+          ? api.tipsForCreator(mine.id).catch(() => [] as Tip[])
+          : api.listTips().catch(() => [] as Tip[]),
         token ? api.myReferralCode(token).catch(() => null) : Promise.resolve(null),
+        mine ? api.creatorStats(mine.id).catch(() => null) : Promise.resolve(null),
       ]);
       if (!alive) return;
-      setTips(t.slice(0, 20));
+      setMyCreator(mine);
+      setTips(t.slice(0, 50));
       setReferral(r);
+      setStats(s);
       setLoading(false);
     })();
     return () => {
@@ -110,7 +116,14 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-8">
-        {tab === "overview" && <OverviewTab tips={tips} loading={loading} />}
+        {tab === "overview" && (
+          <OverviewTab
+            tips={tips}
+            loading={loading}
+            stats={stats}
+            slug={myCreator?.slug ?? null}
+          />
+        )}
         {tab === "tips" && <TipsTab tips={tips} loading={loading} />}
         {tab === "referrals" && <ReferralsTab referral={referral} />}
         {tab === "studio" && <StudioTab />}
@@ -145,16 +158,27 @@ function StatCard({
   );
 }
 
-function OverviewTab({ tips, loading }: { tips: Tip[]; loading: boolean }) {
+function OverviewTab({
+  tips,
+  loading,
+  stats,
+  slug,
+}: {
+  tips: Tip[];
+  loading: boolean;
+  stats: CreatorStats | null;
+  slug: string | null;
+}) {
+  const netEarned = stats ? Number(stats.creator_net_total) || 0 : 0;
+  const thisMonth = stats ? Number(stats.this_month_amount) || 0 : 0;
+  const shareUrl = slug ? `https://tippingjar.co.za/creator/${slug}` : null;
   return (
     <div className="space-y-8">
-      {/* Stat cards — placeholders, no creator-scoped stats endpoint yet */}
-      {/* TODO(api): creator dashboard stats endpoint */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total earned" value="R0.00" icon="💰" accent="#004423" />
-        <StatCard label="This month" value="R0.00" icon="📅" accent="#2563EB" />
-        <StatCard label="Pending payout" value="R0.00" icon="⏳" accent="#FBBF24" />
-        <StatCard label="Total tips" value="0" icon="💚" accent="#F472B6" />
+        <StatCard label="Net earned" value={`R${money(netEarned)}`} icon="💰" accent="#004423" />
+        <StatCard label="This month" value={`R${money(thisMonth)}`} icon="📅" accent="#2563EB" />
+        <StatCard label="Supporters" value={String(stats?.supporter_count ?? 0)} icon="👥" accent="#FBBF24" />
+        <StatCard label="Total tips" value={String(stats?.tip_count ?? 0)} icon="💚" accent="#F472B6" />
       </div>
 
       {/* Share tip link */}
@@ -163,13 +187,24 @@ function OverviewTab({ tips, loading }: { tips: Tip[]; loading: boolean }) {
         <p className="mt-1 text-sm text-white/80">
           Drop your link in your bio, streams and posts so fans can support you.
         </p>
-        {/* TODO(api): resolve the current creator's slug (no "my profile by token" endpoint) */}
-        <Link
-          href="/creators"
-          className="mt-5 inline-flex rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-primary transition hover:opacity-90"
-        >
-          View creator pages →
-        </Link>
+        {shareUrl && slug ? (
+          <>
+            <p className="mt-3 break-all font-mono text-sm text-white/90">{shareUrl}</p>
+            <Link
+              href={`/creator/${slug}`}
+              className="mt-4 inline-flex rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-primary transition hover:opacity-90"
+            >
+              View your page →
+            </Link>
+          </>
+        ) : (
+          <Link
+            href="/onboarding"
+            className="mt-5 inline-flex rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-primary transition hover:opacity-90"
+          >
+            Set up your creator page →
+          </Link>
+        )}
       </div>
 
       {/* Recent tips */}

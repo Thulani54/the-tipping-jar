@@ -5,11 +5,15 @@ import type {
   AuthResponse,
   BlogPost,
   Creator,
+  CreatorStats,
   Dispute,
   Enterprise,
   FeeQuote,
+  Jar,
   Job,
+  Pledge,
   ReferralCode,
+  SupportTier,
   Tip,
   User,
 } from "@/types";
@@ -124,4 +128,61 @@ export const api = {
 
   // ── admin ─────────────────────────────────────────────────────────
   dashboard: () => request<unknown>("/admin/dashboard"),
+
+  // ── creators: tiers, jars, my-profile ─────────────────────────────
+  getTiers: (slug: string) =>
+    request<SupportTier[]>(`/creators/creators/${slug}/tiers`),
+  createTier: (
+    token: string,
+    slug: string,
+    body: { name: string; price: number; description?: string; perks?: string[]; sort_order?: number },
+  ) => request<SupportTier>(`/creators/creators/${slug}/tiers`, { method: "POST", body, token }),
+  getJars: (slug: string) => request<Jar[]>(`/creators/creators/${slug}/jars`),
+  getJar: (slug: string, jarSlug: string) =>
+    request<Jar>(`/creators/creators/${slug}/jars/${jarSlug}`),
+  createJar: (token: string, slug: string, body: { name: string; description?: string; goal?: number }) =>
+    request<Jar>(`/creators/creators/${slug}/jars`, { method: "POST", body, token }),
+  myCreatorProfile: (token: string) =>
+    request<Creator>("/creators/creators/me", { token }),
+
+  // ── tips: pledges, stats, fan history ─────────────────────────────
+  createPledge: (body: {
+    creator_slug?: string;
+    creator_id?: string;
+    amount: number;
+    fan_name?: string;
+    fan_email?: string;
+    tier_id?: string;
+  }) => request<Pledge>("/tips/tips/pledges", { method: "POST", body }),
+  pledgesForCreator: (creatorId: string) =>
+    request<Pledge[]>(`/tips/tips/pledges/creator/${creatorId}`),
+  creatorStats: (creatorId: string) =>
+    request<CreatorStats>(`/tips/tips/creator/${creatorId}/stats`),
+  tipsForFan: (email: string) =>
+    request<Tip[]>(`/tips/tips/fan/${encodeURIComponent(email)}`),
+
+  // ── accounts: OTP / 2FA ───────────────────────────────────────────
+  requestOtp: (token: string) =>
+    request<{ sent: boolean; method: string }>("/accounts/auth/request-otp", {
+      method: "POST",
+      token,
+    }),
+  verifyOtp: (token: string, code: string) =>
+    request<{ verified: boolean }>("/accounts/auth/verify-otp", {
+      method: "POST",
+      body: { code },
+      token,
+    }),
+  set2fa: (token: string, enabled: boolean) =>
+    request<User>("/accounts/auth/2fa", { method: "POST", body: { enabled }, token }),
+
+  // ── support: partner applications ─────────────────────────────────
+  partnerApply: (body: {
+    name: string;
+    email: string;
+    company?: string;
+    website?: string;
+    app_type?: string;
+    message?: string;
+  }) => request<unknown>("/support/partner-apply", { method: "POST", body }),
 };

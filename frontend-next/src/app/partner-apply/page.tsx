@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { api } from "@/lib/api";
 
 type Step = 0 | 1 | 2 | 3; // Company, Contact, Documents, Success
 
@@ -52,12 +53,27 @@ export default function PartnerApplyPage() {
       return;
     }
     setSubmitting(true);
-    // TODO(api): partner/platform application endpoint
-    //   (name, website, description, intended_use, company_name_legal,
-    //    company_registration_number, vat_number, contact_name/email/phone)
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitting(false);
-    setStep(2);
+    try {
+      await api.partnerApply({
+        name: contactName.trim(),
+        email: contactEmail.trim(),
+        company: (legalName || name).trim(),
+        website: website.trim(),
+        app_type: "partner",
+        message:
+          `Platform: ${name}\n` +
+          `What it does: ${description}\n` +
+          `Intended use: ${use}\n` +
+          (regNum ? `CIPC: ${regNum}\n` : "") +
+          (vat ? `VAT: ${vat}\n` : "") +
+          (contactPhone ? `Phone: ${contactPhone}` : ""),
+      });
+      setStep(2);
+    } catch {
+      setError("Couldn't submit your application. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (step === 3) return <SuccessView />;

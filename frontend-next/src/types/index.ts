@@ -117,3 +117,46 @@ export interface Dispute {
   token: string;
   created_at: string;
 }
+
+export interface SupportTier {
+  id: string;
+  creator_id: string;
+  name: string;
+  price: string;
+  description: string;
+  perks: string[];
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface Jar {
+  id: string;
+  creator_id: string;
+  name: string;
+  slug: string;
+  description: string;
+  goal: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Pledge {
+  id: string;
+  creator_id: string;
+  tier_id: string | null;
+  fan_name: string;
+  fan_email: string;
+  amount: string;
+  status: string;
+  created_at: string;
+}
+
+export interface CreatorStats {
+  creator_id: string;
+  total_amount: string;
+  tip_count: number;
+  supporter_count: number;
+  creator_net_total: string;
+  this_month_amount: string;
+}

@@ -69,6 +69,8 @@ export default function SubscribePage({
   const { slug } = use(params);
 
   const [creator, setCreator] = useState<Creator | null>(null);
+  const [tiers, setTiers] = useState<Tier[]>(PLACEHOLDER_TIERS);
+  const [tiersReal, setTiersReal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [active, setActive] = useState<Tier | null>(null);
@@ -80,6 +82,25 @@ export default function SubscribePage({
       .then((c) => alive && setCreator(c))
       .catch(() => alive && setNotFound(true))
       .finally(() => alive && setLoading(false));
+    // Real support tiers if the creator has set any; otherwise keep the
+    // example tiers so the page still communicates the model.
+    api
+      .getTiers(slug)
+      .then((rows) => {
+        if (!alive || rows.length === 0) return;
+        setTiers(
+          rows.map((t, i) => ({
+            id: t.id,
+            name: t.name,
+            price: parseFloat(t.price),
+            description: t.description,
+            perks: t.perks,
+            featured: i === 1,
+          })),
+        );
+        setTiersReal(true);
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -147,7 +168,7 @@ export default function SubscribePage({
 
       {/* Tiers */}
       <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-3">
-        {PLACEHOLDER_TIERS.map((tier) => (
+        {tiers.map((tier) => (
           <div
             key={tier.id}
             className={`card flex flex-col ${
@@ -207,7 +228,9 @@ export default function SubscribePage({
       {active && (
         <PledgeModal
           tier={active}
+          creatorSlug={creator.slug}
           creatorName={creator.display_name}
+          tierIsReal={tiersReal}
           onClose={() => setActive(null)}
         />
       )}
@@ -217,27 +240,44 @@ export default function SubscribePage({
 
 function PledgeModal({
   tier,
+  creatorSlug,
   creatorName,
+  tierIsReal,
   onClose,
 }: {
   tier: Tier;
+  creatorSlug: string;
   creatorName: string;
+  tierIsReal: boolean;
   onClose: () => void;
 }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function submit() {
+  async function submit() {
     if (!email.trim()) {
       setError("Email is required to set up your pledge.");
       return;
     }
-    // TODO(api): tiers/subscribe endpoint not yet in /api/v2 — this only
-    // simulates a successful pledge. Replace with api.createPledge(...).
     setError(null);
-    setDone(true);
+    setSubmitting(true);
+    try {
+      await api.createPledge({
+        creator_slug: creatorSlug,
+        amount: tier.price,
+        fan_name: name.trim() || undefined,
+        fan_email: email.trim(),
+        tier_id: tierIsReal ? tier.id : undefined,
+      });
+      setDone(true);
+    } catch {
+      setError("Couldn't set up your pledge. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -300,8 +340,12 @@ function PledgeModal({
               <button onClick={onClose} className="btn-ghost flex-1">
                 Cancel
               </button>
-              <button onClick={submit} className="btn-primary flex-1">
-                Subscribe
+              <button
+                onClick={submit}
+                disabled={submitting}
+                className="btn-primary flex-1 disabled:opacity-50"
+              >
+                {submitting ? "Setting up…" : "Subscribe"}
               </button>
             </div>
           </>
