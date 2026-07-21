@@ -1,38 +1,40 @@
 import type { Config } from "tailwindcss";
 
-// Palette adopted from the mycareerhand design system — a light, premium look:
-// navy primary, mint + gold accents, white surfaces on a soft canvas.
+// "The Jar Fills" — deep navy ink, fresh money-green, coin gold, porcelain.
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        navy: "#142A47", // deep navy
-        primary: "#1E3A5F", // navy — main brand
-        mint: "#72DA69", // bright mint (gradients / fills)
-        gold: "#F0A73C", // gold accent
-        teal: "#2F9E44", // readable green accent (links, pills) on light
+        navy: "#0A1728", // deepest — dark sections
+        primary: "#0F2439", // navy — brand fills / buttons
+        ink: "#0F2439", // text + structure
+        teal: "#12A25C", // fresh money-green accent (links, pills) — legacy alias
+        green: "#12A25C", // same accent, semantic name used by new components
+        mint: "#57CE8B", // bright fill (the jar's support)
+        gold: "#E0A536", // coin gold
         blue: "#2563EB",
-        ink: "#0A0A0F", // near-black text
-        muted: "#5B6472", // slate secondary text
-        border: "#E5E7EB", // light hairline
+        muted: "#5A6B7B", // slate secondary text
+        border: "#E2E7E3", // hairline (faint cool)
         card: "#FFFFFF", // white surface
         dark: "#FFFFFF", // remapped: section surface
-        darker: "#F7F7F9", // remapped: page canvas
+        darker: "#EFF2F0", // remapped: porcelain canvas
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
+        sans: ["var(--font-body)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       backgroundImage: {
-        // Flat navy — no visible gradient (kept as a class so existing
-        // bg-brand-gradient usages render as a solid brand fill).
-        "brand-gradient": "linear-gradient(#1E3A5F, #1E3A5F)",
+        // Flat navy — kept as a class so bg-brand-gradient renders solid.
+        "brand-gradient": "linear-gradient(#0F2439, #0F2439)",
       },
       boxShadow: {
-        soft: "0 10px 30px -14px rgba(20, 42, 71, 0.22)",
+        soft: "0 14px 40px -22px rgba(15, 36, 57, 0.28)",
+        lift: "0 24px 60px -28px rgba(15, 36, 57, 0.38)",
       },
       maxWidth: {
-        content: "1200px",
+        content: "1180px",
       },
     },
   },

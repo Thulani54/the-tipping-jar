@@ -3,14 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --canvas: #f7f7f9;
+  --canvas: #eff2f0;
   --surface: #ffffff;
-  --navy: #1e3a5f;
-  --mint: #72da69;
-  --gold: #f0a73c;
-  --ink: #0a0a0f;
-  --muted: #5b6472;
-  --line: #e5e7eb;
+  --navy: #0f2439;
+  --mint: #57ce8b;
+  --green: #12a25c;
+  --gold: #e0a536;
+  --ink: #0f2439;
+  --muted: #5a6b7b;
+  --line: #e2e7e3;
 }
 
 html {
@@ -20,34 +21,65 @@ html {
 body {
   background-color: var(--canvas);
   color: var(--ink);
+  font-feature-settings: "ss01", "cv01";
   -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--mint);
+  color: var(--navy);
+}
+
+:where(a, button, input, textarea, select):focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 @layer components {
   .container-content {
     @apply mx-auto w-full max-w-content px-6;
   }
+
+  /* Structural mono label — encodes a real category, not decoration. */
+  .eyebrow {
+    @apply font-mono text-xs font-normal uppercase tracking-[0.22em] text-green;
+  }
+
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-full bg-brand-gradient px-6 py-3 font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:opacity-95;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-white shadow-soft transition duration-200 hover:-translate-y-0.5 hover:shadow-lift;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-full border border-primary/25 bg-white px-6 py-3 font-semibold text-primary transition hover:border-primary hover:bg-primary/[0.04];
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 bg-white px-6 py-3 font-semibold text-ink transition duration-200 hover:border-ink/35 hover:bg-ink/[0.03];
   }
   .card {
-    @apply rounded-3xl border border-border bg-white p-6 shadow-soft;
+    @apply rounded-[20px] border border-border bg-white p-6 shadow-soft;
   }
   .heading-xl {
-    @apply text-4xl font-extrabold tracking-tight text-ink md:text-5xl;
-    line-height: 1.1;
+    @apply font-display text-[2.6rem] font-extrabold leading-[1.02] tracking-[-0.02em] text-ink md:text-6xl;
   }
   .body-muted {
     @apply text-[15px] leading-relaxed text-muted;
   }
+
+  /* Tip slip — the receipt motif. Perforated top edge + mono voice. */
+  .slip {
+    @apply relative rounded-xl border border-border bg-white p-4 shadow-soft;
+  }
+  .slip::before {
+    content: "";
+    position: absolute;
+    inset: 0 10px auto 10px;
+    top: -1px;
+    height: 6px;
+    background-image: radial-gradient(circle at 5px 6px, transparent 4px, var(--surface) 4px);
+    background-size: 12px 6px;
+    background-repeat: repeat-x;
+  }
 }
 
-/* On colored / gradient surfaces, keep text white regardless of the ink
-   default applied elsewhere (navy→mint CTA cards, avatar marks, the logo, …).
-   `~=` matches the exact class token, so tints like bg-primary/15 are excluded. */
+/* On colored / gradient (now solid navy) surfaces, keep text white — except
+   solid-white children (a white button inside a navy CTA keeps its dark label). */
 @layer utilities {
   [class*="bg-brand-gradient"],
   [class~="bg-primary"],
@@ -55,12 +87,58 @@ body {
   [class~="bg-teal"] {
     color: #fff;
   }
-  /* Force white on descendant text, but NOT on solid-white surfaces
-     (e.g. a white button/chip inside a navy CTA keeps its dark label). */
   [class*="bg-brand-gradient"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]),
   [class~="bg-primary"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]),
   [class~="bg-navy"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]),
   [class~="bg-teal"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]) {
     color: #fff !important;
+  }
+}
+
+/* ── Signature motion: the jar fills, coins settle, slips arrive ─────────── */
+.jar-liquid {
+  transform: translateY(var(--empty, 26%));
+  animation: jarRise 1.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes jarRise {
+  from {
+    transform: translateY(102%);
+  }
+}
+.jar-coin {
+  animation: coinDrop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes coinDrop {
+  from {
+    transform: translateY(-26px);
+    opacity: 0;
+  }
+}
+.slip-in {
+  animation: slipIn 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes slipIn {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+}
+.rise-in {
+  animation: riseIn 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes riseIn {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
 }
