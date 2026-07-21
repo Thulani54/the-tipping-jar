@@ -5,10 +5,10 @@ export function JarMeter({
   raised = "R2,340",
   goal = "R3,000",
   pct = 78,
-  label = "of this month's goal",
+  label,
 }: {
   raised?: string;
-  goal?: string;
+  goal?: string; // empty string → no goal (show "raised so far")
   pct?: number;
   label?: string;
 }) {
@@ -52,10 +52,12 @@ export function JarMeter({
       <div className="mt-5 text-center">
         <p className="font-display text-3xl font-extrabold tracking-tight text-ink">
           {raised}
-          <span className="ml-1 text-lg font-semibold text-muted">/ {goal}</span>
+          {goal && (
+            <span className="ml-1 text-lg font-semibold text-muted">/ {goal}</span>
+          )}
         </p>
         <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
-          {pct}% {label}
+          {goal ? `${pct}% ${label ?? "of goal"}` : (label ?? "raised so far")}
         </p>
       </div>
     </div>
