@@ -1158,7 +1158,7 @@ the header value. Reject any requests where they don't match.`}
           ))}
         </div>
 
-        <div className="mt-12 rounded-3xl border border-teal/25 bg-gradient-to-br from-teal/[0.08] to-primary/[0.06] p-10 text-center">
+        <div className="mt-12 rounded-3xl border border-teal/25 bg-primary/[0.04] p-10 text-center">
           <h3 className="text-2xl font-extrabold tracking-tight text-ink">Ready to apply?</h3>
           <p className="body-muted mt-2.5">
             Complete a short multi-step form with your business details.

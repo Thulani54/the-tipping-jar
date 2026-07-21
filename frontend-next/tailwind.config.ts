@@ -24,7 +24,9 @@ const config: Config = {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
       backgroundImage: {
-        "brand-gradient": "linear-gradient(135deg, #1E3A5F 0%, #2E5A8C 45%, #72DA69 100%)",
+        // Flat navy — no visible gradient (kept as a class so existing
+        // bg-brand-gradient usages render as a solid brand fill).
+        "brand-gradient": "linear-gradient(#1E3A5F, #1E3A5F)",
       },
       boxShadow: {
         soft: "0 10px 30px -14px rgba(20, 42, 71, 0.22)",

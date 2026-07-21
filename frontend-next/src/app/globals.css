@@ -55,10 +55,12 @@ body {
   [class~="bg-teal"] {
     color: #fff;
   }
-  [class*="bg-brand-gradient"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label),
-  [class~="bg-primary"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong),
-  [class~="bg-navy"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong),
-  [class~="bg-teal"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong) {
+  /* Force white on descendant text, but NOT on solid-white surfaces
+     (e.g. a white button/chip inside a navy CTA keeps its dark label). */
+  [class*="bg-brand-gradient"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]),
+  [class~="bg-primary"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]),
+  [class~="bg-navy"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]),
+  [class~="bg-teal"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]) {
     color: #fff !important;
   }
 }
