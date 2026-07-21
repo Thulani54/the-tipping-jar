@@ -10,6 +10,7 @@
 //!   key. `pay.paycloud.checkout` returns `pay_url` to redirect the payer to.
 
 use axum::extract::{Path, State};
+use axum::http::{header::AUTHORIZATION, HeaderMap};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use base64::Engine as _;
@@ -35,6 +36,8 @@ struct PayCloud {
     currency: String,
     // base64-encoded PKCS#8 private key body (no PEM header). None → disabled.
     private_key_b64: Option<String>,
+    // base64 X.509/SPKI gateway public key, used to verify notify + responses.
+    gateway_public_key_b64: Option<String>,
     http: reqwest::Client,
 }
 
@@ -72,6 +75,56 @@ impl PayCloud {
             .try_sign(prestr.as_bytes())
             .map_err(|e| AppError::Internal(format!("sign failed: {e}")))?;
         Ok(B64.encode(sig.to_bytes()))
+    }
+
+    /// Verify a signed payload (e.g. the notify webhook) with the gateway public
+    /// key. Returns false when no key is configured or the signature is
+    /// missing/invalid — callers MUST treat false as "reject" (fail closed).
+    fn verify(&self, payload: &serde_json::Map<String, Value>) -> bool {
+        use rsa::pkcs1v15::{Signature, VerifyingKey};
+        use rsa::pkcs8::DecodePublicKey;
+        use rsa::signature::Verifier;
+        use rsa::RsaPublicKey;
+        use sha2::Sha256;
+
+        let Some(pub_b64) = self.gateway_public_key_b64.as_ref() else {
+            return false;
+        };
+        let sign = match payload.get("sign").and_then(|s| s.as_str()) {
+            Some(s) if !s.is_empty() => s,
+            _ => return false,
+        };
+        let prestr = payload
+            .iter()
+            .filter_map(|(k, v)| {
+                let s = value_to_sign_str(v);
+                if s.is_empty() || k == "sign" {
+                    None
+                } else {
+                    Some((k.clone(), s))
+                }
+            })
+            .collect::<BTreeMap<_, _>>()
+            .iter()
+            .map(|(k, v)| format!("{k}={v}"))
+            .collect::<Vec<_>>()
+            .join("&");
+
+        let Ok(der) = B64.decode(pub_b64.trim()) else {
+            return false;
+        };
+        let Ok(pk) = RsaPublicKey::from_public_key_der(&der) else {
+            return false;
+        };
+        let Ok(sig_bytes) = B64.decode(sign) else {
+            return false;
+        };
+        let Ok(sig) = Signature::try_from(sig_bytes.as_slice()) else {
+            return false;
+        };
+        VerifyingKey::<Sha256>::new(pk)
+            .verify(prestr.as_bytes(), &sig)
+            .is_ok()
     }
 
     /// Build common params + biz fields, sign, POST to the gateway, and return
@@ -158,6 +211,85 @@ struct AppState {
     public_base_url: String,
     // Frontend base the payer is redirected back to (…/payment/callback).
     web_base_url: String,
+    http: reqwest::Client,
+    accounts_url: String,
+    creators_url: String,
+}
+
+// ── Auth (delegated to the accounts + creators services) ────────────────────
+
+fn bearer(headers: &HeaderMap) -> Result<String, AppError> {
+    let raw = headers
+        .get(AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| AppError::Unauthorized("missing Authorization header".into()))?;
+    raw.strip_prefix("Bearer ")
+        .map(|t| t.to_string())
+        .ok_or_else(|| AppError::Unauthorized("expected 'Bearer <token>'".into()))
+}
+
+/// Verify a JWT via the accounts service, returning (user_id, role).
+async fn verify_token(st: &AppState, token: &str) -> Result<(String, String), AppError> {
+    let resp = st
+        .http
+        .post(format!("{}/internal/verify-token", st.accounts_url))
+        .json(&json!({ "token": token }))
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        return Err(AppError::Unauthorized("invalid token".into()));
+    }
+    let b: Value = resp.json().await?;
+    let uid = b
+        .get("user_id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError::Internal("accounts returned no user id".into()))?
+        .to_string();
+    let role = b
+        .get("role")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    Ok((uid, role))
+}
+
+/// The caller's own creator-profile id (via creators `/creators/me`), or None.
+async fn my_creator_id(st: &AppState, token: &str) -> Result<Option<Uuid>, AppError> {
+    let resp = st
+        .http
+        .get(format!("{}/creators/me", st.creators_url))
+        .bearer_auth(token)
+        .send()
+        .await?;
+    if resp.status().as_u16() == 404 {
+        return Ok(None);
+    }
+    if !resp.status().is_success() {
+        return Err(AppError::Unauthorized("token rejected".into()));
+    }
+    let b: Value = resp.json().await?;
+    let id = b
+        .get("id")
+        .and_then(|v| v.as_str())
+        .and_then(|s| Uuid::parse_str(s).ok());
+    Ok(id)
+}
+
+/// Require that the caller owns `creator_id` (or is an admin).
+async fn require_creator_owner(
+    st: &AppState,
+    headers: &HeaderMap,
+    creator_id: Uuid,
+) -> Result<(), AppError> {
+    let token = bearer(headers)?;
+    let (_uid, role) = verify_token(st, &token).await?;
+    if role == "admin" {
+        return Ok(());
+    }
+    match my_creator_id(st, &token).await? {
+        Some(mine) if mine == creator_id => Ok(()),
+        _ => Err(AppError::Unauthorized("not your creator account".into())),
+    }
 }
 
 #[derive(sqlx::FromRow, Serialize)]
@@ -255,7 +387,6 @@ struct RefundReq {
 
 #[derive(Deserialize)]
 struct PayoutReq {
-    creator_id: Uuid,
     amount: Option<f64>,
 }
 
@@ -332,6 +463,19 @@ async fn checkout(
             "PayCloud is not configured (need PAYCLOUD_PRIVATE_KEY and PAYCLOUD_MERCHANT_NO)".into(),
         ));
     }
+    // The payer may be anonymous, but the payee creator must exist.
+    let cr = st
+        .http
+        .get(format!(
+            "{}/internal/creators/{}",
+            st.creators_url, req.creator_id
+        ))
+        .send()
+        .await?;
+    if !cr.status().is_success() {
+        return Err(AppError::BadRequest("creator not found".into()));
+    }
+
     let amount = parse_amount(req.amount)?;
     let f = calc_fees(amount, st.platform_pct, st.service_pct);
     let merchant_order_no = format!("tj{}", Uuid::new_v4().simple());
@@ -340,10 +484,13 @@ async fn checkout(
         .filter(|d| !d.trim().is_empty())
         .unwrap_or_else(|| "Tipping Jar tip".into());
     let notify_url = format!("{}/payments/notify", st.public_base_url.trim_end_matches('/'));
+    // Only honour a client return_url that points at our own frontend
+    // (open-redirect guard); otherwise use the default callback.
+    let default_return = format!("{}/payment/callback", st.web_base_url.trim_end_matches('/'));
     let return_url = req
         .return_url
-        .filter(|u| !u.trim().is_empty())
-        .unwrap_or_else(|| format!("{}/payment/callback", st.web_base_url.trim_end_matches('/')));
+        .filter(|u| u.starts_with(&st.web_base_url))
+        .unwrap_or(default_return);
 
     // Persist a pending transaction first so the notify webhook can match it.
     let row: Transaction = sqlx::query_as(&format!(
@@ -410,51 +557,101 @@ async fn checkout(
 /// configured; PayCloud also requires this endpoint to reply "SUCCESS".)
 async fn notify(
     State(st): State<AppState>,
-    Json(payload): Json<Value>,
+    Json(payload): Json<serde_json::Map<String, Value>>,
 ) -> Result<String, AppError> {
-    tracing::info!("PayCloud notify: {payload}");
     let merchant_order_no = payload
         .get("merchant_order_no")
         .and_then(|v| v.as_str())
         .or_else(|| payload.get("out_trade_no").and_then(|v| v.as_str()))
-        .unwrap_or("");
+        .unwrap_or("")
+        .to_string();
     let trans_no = payload
         .get("trans_no")
         .and_then(|v| v.as_str())
-        .unwrap_or("");
+        .unwrap_or("")
+        .to_string();
     let status = payload
         .get("trans_status")
         .or_else(|| payload.get("status"))
         .and_then(|v| v.as_str())
-        .unwrap_or("");
+        .unwrap_or("")
+        .to_string();
+    // Whitelisted (non-PII) logging.
+    tracing::info!("PayCloud notify: merchant_order_no={merchant_order_no} trans_no={trans_no} status={status}");
 
-    if !merchant_order_no.is_empty() {
-        let new_status = if status.eq_ignore_ascii_case("SUCCESS")
-            || status.eq_ignore_ascii_case("PAID")
-            || status.eq_ignore_ascii_case("COMPLETED")
-            || status.is_empty()
-        {
-            "completed"
-        } else {
-            "failed"
-        };
-        sqlx::query(
-            "UPDATE transactions SET status = $1, trans_no = COALESCE(NULLIF($2,''), trans_no) WHERE merchant_order_no = $3",
-        )
-        .bind(new_status)
-        .bind(trans_no)
-        .bind(merchant_order_no)
-        .execute(&st.pool)
-        .await?;
+    // 1) Verify the gateway signature — fail CLOSED (no key / bad sig → reject,
+    //    never complete an unverified payment).
+    if !st.paycloud.verify(&payload) {
+        tracing::warn!("PayCloud notify signature check failed for {merchant_order_no}");
+        return Err(AppError::Unauthorized("invalid notify signature".into()));
     }
-    // PayCloud expects a plain "SUCCESS" acknowledgement.
+    if merchant_order_no.is_empty() {
+        return Err(AppError::BadRequest("missing merchant_order_no".into()));
+    }
+
+    // 2) Load the transaction; only act while it is still pending.
+    let txn: Transaction = sqlx::query_as(&format!(
+        "SELECT {TXN_COLUMNS} FROM transactions WHERE merchant_order_no = $1"
+    ))
+    .bind(&merchant_order_no)
+    .fetch_optional(&st.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("unknown merchant_order_no".into()))?;
+    if txn.status != "pending" {
+        // Idempotent: already settled — acknowledge without re-writing.
+        return Ok("SUCCESS".into());
+    }
+
+    // 3) The paid amount must match what we recorded.
+    if let Some(paid) = payload
+        .get("order_amount")
+        .and_then(|v| v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse().ok())))
+    {
+        let paid_dec = Decimal::from_f64(paid).map(|d| d.round_dp(2)).unwrap_or_default();
+        if paid_dec != txn.amount {
+            tracing::warn!(
+                "PayCloud notify amount mismatch for {merchant_order_no}: {paid_dec} != {}",
+                txn.amount
+            );
+            return Err(AppError::BadRequest("amount mismatch".into()));
+        }
+    }
+
+    // 4) Fail-closed status mapping; only known success values complete.
+    let success = status.eq_ignore_ascii_case("SUCCESS")
+        || status.eq_ignore_ascii_case("PAID")
+        || status.eq_ignore_ascii_case("COMPLETED");
+    let new_status = if success { "completed" } else { "failed" };
+
+    // 5) Only ever transition pending → terminal.
+    sqlx::query(
+        "UPDATE transactions SET status = $1, trans_no = COALESCE(NULLIF($2,''), trans_no) \
+         WHERE merchant_order_no = $3 AND status = 'pending'",
+    )
+    .bind(new_status)
+    .bind(&trans_no)
+    .bind(&merchant_order_no)
+    .execute(&st.pool)
+    .await?;
+
     Ok("SUCCESS".into())
 }
 
 async fn order_query(
     State(st): State<AppState>,
+    headers: HeaderMap,
     Path(merchant_order_no): Path<String>,
 ) -> Result<Json<Value>, AppError> {
+    // Must own the underlying transaction (or be admin).
+    let txn: Transaction = sqlx::query_as(&format!(
+        "SELECT {TXN_COLUMNS} FROM transactions WHERE merchant_order_no = $1"
+    ))
+    .bind(&merchant_order_no)
+    .fetch_optional(&st.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("transaction not found".into()))?;
+    require_creator_owner(&st, &headers, txn.creator_id).await?;
+
     if !st.paycloud.enabled() {
         return Err(AppError::Internal("PayCloud not configured".into()));
     }
@@ -473,8 +670,15 @@ async fn order_query(
 
 async fn refund(
     State(st): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<RefundReq>,
 ) -> Result<Json<Value>, AppError> {
+    // Refunds move money — admin only.
+    let token = bearer(&headers)?;
+    let (_uid, role) = verify_token(&st, &token).await?;
+    if role != "admin" {
+        return Err(AppError::Unauthorized("admin access required to refund".into()));
+    }
     if !st.paycloud.enabled() {
         return Err(AppError::Internal("PayCloud not configured".into()));
     }
@@ -512,8 +716,10 @@ async fn get_transaction(
 
 async fn creator_balance(
     State(st): State<AppState>,
+    headers: HeaderMap,
     Path(creator_id): Path<Uuid>,
 ) -> Result<Json<Value>, AppError> {
+    require_creator_owner(&st, &headers, creator_id).await?;
     let net: (Option<Decimal>, i64) = sqlx::query_as(
         "SELECT COALESCE(SUM(creator_net),0), COUNT(*) FROM transactions WHERE creator_id = $1 AND status = 'completed'",
     )
@@ -540,8 +746,10 @@ async fn creator_balance(
 /// Creators view their own transactions.
 async fn creator_transactions(
     State(st): State<AppState>,
+    headers: HeaderMap,
     Path(creator_id): Path<Uuid>,
 ) -> Result<Json<Vec<Transaction>>, AppError> {
+    require_creator_owner(&st, &headers, creator_id).await?;
     let rows: Vec<Transaction> = sqlx::query_as(&format!(
         "SELECT {TXN_COLUMNS} FROM transactions WHERE creator_id = $1 ORDER BY created_at DESC LIMIT 200"
     ))
@@ -556,18 +764,25 @@ async fn creator_transactions(
 /// profit-sharing once creator receiver details are configured.
 async fn request_payout(
     State(st): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<PayoutReq>,
 ) -> Result<Json<Payout>, AppError> {
+    // The creator is the authenticated caller — never trust a body-supplied id.
+    let token = bearer(&headers)?;
+    let creator_id = my_creator_id(&st, &token)
+        .await?
+        .ok_or_else(|| AppError::Unauthorized("no creator profile for caller".into()))?;
+
     let net: (Option<Decimal>,) = sqlx::query_as(
         "SELECT COALESCE(SUM(creator_net),0) FROM transactions WHERE creator_id = $1 AND status = 'completed'",
     )
-    .bind(req.creator_id)
+    .bind(creator_id)
     .fetch_one(&st.pool)
     .await?;
     let paid: (Option<Decimal>,) = sqlx::query_as(
         "SELECT COALESCE(SUM(amount),0) FROM payouts WHERE creator_id = $1 AND status <> 'failed'",
     )
-    .bind(req.creator_id)
+    .bind(creator_id)
     .fetch_one(&st.pool)
     .await?;
     let available = net.0.unwrap_or_default() - paid.0.unwrap_or_default();
@@ -590,7 +805,7 @@ async fn request_payout(
          VALUES ($1,$2,$3,'pending',$4) RETURNING {PAYOUT_COLUMNS}"
     ))
     .bind(Uuid::new_v4())
-    .bind(req.creator_id)
+    .bind(creator_id)
     .bind(amount)
     .bind(&reference)
     .fetch_one(&st.pool)
@@ -600,8 +815,10 @@ async fn request_payout(
 
 async fn creator_payouts(
     State(st): State<AppState>,
+    headers: HeaderMap,
     Path(creator_id): Path<Uuid>,
 ) -> Result<Json<Vec<Payout>>, AppError> {
+    require_creator_owner(&st, &headers, creator_id).await?;
     let rows: Vec<Payout> = sqlx::query_as(&format!(
         "SELECT {PAYOUT_COLUMNS} FROM payouts WHERE creator_id = $1 ORDER BY created_at DESC LIMIT 200"
     ))
@@ -706,6 +923,7 @@ async fn main() {
     init_db(&pool).await.expect("failed to initialise schema");
 
     let private_key = env("PAYCLOUD_PRIVATE_KEY", "");
+    let gateway_public_key = env("PAYCLOUD_GATEWAY_PUBLIC_KEY", "");
     let paycloud = PayCloud {
         app_id: env("PAYCLOUD_APP_ID", "wzd89ec0d57dbd8170"),
         gateway_url: env("PAYCLOUD_GATEWAY_URL", "https://addpay-op.wangtest.cn"),
@@ -715,6 +933,11 @@ async fn main() {
             None
         } else {
             Some(private_key)
+        },
+        gateway_public_key_b64: if gateway_public_key.trim().is_empty() {
+            None
+        } else {
+            Some(gateway_public_key)
         },
         http: reqwest::Client::new(),
     };
@@ -732,6 +955,9 @@ async fn main() {
         paycloud,
         public_base_url: env("PUBLIC_BASE_URL", "http://localhost:8083"),
         web_base_url: env("WEB_BASE_URL", "http://localhost:3000"),
+        http: reqwest::Client::new(),
+        accounts_url: env("ACCOUNTS_URL", "http://localhost:8081"),
+        creators_url: env("CREATORS_URL", "http://localhost:8082"),
     };
 
     let app = Router::new()
