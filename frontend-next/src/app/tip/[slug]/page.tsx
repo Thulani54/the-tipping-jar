@@ -130,6 +130,32 @@ export default function TipPage({
     }
   }
 
+  // Real PayCloud hosted checkout — redirects the payer to PayCloud's page.
+  async function payWithCard() {
+    if (amount < 1 || !creator) {
+      setError("Enter an amount (R1 minimum).");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await api.checkout({
+        creator_id: creator.id,
+        amount,
+        description: `Tip for ${creator.display_name}`,
+        return_url: `${window.location.origin}/payment/callback`,
+      });
+      window.location.href = res.pay_url;
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? `Card payment unavailable: ${e.message}`
+          : "Card payment is not available right now.",
+      );
+      setSubmitting(false);
+    }
+  }
+
   function reset() {
     setSuccess(null);
     setAmount(20);
@@ -366,8 +392,18 @@ export default function TipPage({
               : `Send R${amount.toFixed(2)} tip →`}
         </button>
 
+        {/* Real card payment via PayCloud hosted checkout */}
+        <button
+          type="button"
+          onClick={payWithCard}
+          disabled={submitting || amount < 1}
+          className="btn-ghost mt-3 w-full text-base disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          💳 Pay R{amount.toFixed(2)} with card
+        </button>
+
         <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted">
-          🔒 Secure payments via Paystack
+          🔒 Secure card payments via PayCloud
         </p>
       </div>
     </section>

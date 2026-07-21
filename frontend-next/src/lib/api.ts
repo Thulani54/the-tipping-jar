@@ -83,9 +83,9 @@ export const api = {
     body: { display_name: string; tagline?: string; category?: string; tip_goal?: number },
   ) => request<Creator>("/creators/creators", { method: "POST", body, token }),
 
-  // ── payments ──────────────────────────────────────────────────────
+  // ── payments (service routes are prefixed /payments, so double up) ─
   quote: (amount: number) =>
-    request<FeeQuote>("/payments/quote", { method: "POST", body: { amount } }),
+    request<FeeQuote>("/payments/payments/quote", { method: "POST", body: { amount } }),
 
   // ── tips ──────────────────────────────────────────────────────────
   listTips: () => request<Tip[]>("/tips/tips"),
@@ -196,13 +196,13 @@ export const api = {
     amount: number;
     description?: string;
     return_url?: string;
-  }) => request<CheckoutResult>("/payments/checkout", { method: "POST", body }),
+  }) => request<CheckoutResult>("/payments/payments/checkout", { method: "POST", body }),
   creatorTransactions: (token: string, creatorId: string) =>
-    request<Transaction[]>(`/payments/creator/${creatorId}/transactions`, { token }),
+    request<Transaction[]>(`/payments/payments/creator/${creatorId}/transactions`, { token }),
   creatorBalance: (token: string, creatorId: string) =>
-    request<Balance>(`/payments/creator/${creatorId}/balance`, { token }),
+    request<Balance>(`/payments/payments/creator/${creatorId}/balance`, { token }),
   requestPayout: (token: string, body: { amount?: number }) =>
-    request<Payout>("/payments/payout", { method: "POST", body, token }),
+    request<Payout>("/payments/payments/payout", { method: "POST", body, token }),
   creatorPayouts: (token: string, creatorId: string) =>
-    request<Payout[]>(`/payments/creator/${creatorId}/payouts`, { token }),
+    request<Payout[]>(`/payments/payments/creator/${creatorId}/payouts`, { token }),
 };
