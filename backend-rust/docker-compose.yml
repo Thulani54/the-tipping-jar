@@ -58,6 +58,14 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/payments_db
       PLATFORM_FEE_PERCENT: "3.0"
       SERVICE_FEE_PERCENT: "3.0"
+      # PayCloud (AddPay) — values come from the VPS-side .env
+      PAYCLOUD_APP_ID: ${PAYCLOUD_APP_ID:-wzd89ec0d57dbd8170}
+      PAYCLOUD_MERCHANT_NO: ${PAYCLOUD_MERCHANT_NO:-}
+      PAYCLOUD_GATEWAY_URL: ${PAYCLOUD_GATEWAY_URL:-https://addpay-op.wangtest.cn}
+      PAYCLOUD_CURRENCY: ${PAYCLOUD_CURRENCY:-ZAR}
+      PAYCLOUD_PRIVATE_KEY: ${PAYCLOUD_PRIVATE_KEY:-}
+      PUBLIC_BASE_URL: ${PAYMENTS_PUBLIC_BASE_URL:-http://154.66.199.174:9001/api/v2}
+      WEB_BASE_URL: ${PAYMENTS_WEB_BASE_URL:-http://154.66.199.174:9001}
       PORT: "8083"
     ports:
       - "127.0.0.1:8083:8083"
