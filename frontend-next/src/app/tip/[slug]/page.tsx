@@ -143,7 +143,10 @@ export default function TipPage({
         creator_id: creator.id,
         amount,
         description: `Tip for ${creator.display_name}`,
-        return_url: `${window.location.origin}/payment/callback`,
+        return_url: `${window.location.origin}/payment/callback?creator_slug=${creator.slug}`,
+        tipper_name: name.trim() || undefined,
+        tipper_email: email.trim() || undefined,
+        message: message.trim() || undefined,
       });
       window.location.href = res.pay_url;
     } catch (e) {

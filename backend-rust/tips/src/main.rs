@@ -325,6 +325,66 @@ async fn tips_for_fan(
     Ok(Json(rows))
 }
 
+// ── Internal: record a completed tip (called by the payments service) ───────
+
+#[derive(Deserialize)]
+struct RecordReq {
+    creator_id: Uuid,
+    creator_name: Option<String>,
+    tipper_name: Option<String>,
+    tipper_email: Option<String>,
+    amount: String,
+    message: Option<String>,
+    reference: String,
+    platform_fee: Option<String>,
+    service_fee: Option<String>,
+    creator_net: Option<String>,
+}
+
+fn dec(s: &Option<String>) -> Decimal {
+    s.as_deref()
+        .and_then(|v| v.parse::<Decimal>().ok())
+        .unwrap_or_default()
+}
+
+async fn record_tip(
+    State(st): State<AppState>,
+    Json(req): Json<RecordReq>,
+) -> Result<Json<Tip>, AppError> {
+    // Idempotent by reference — a webhook can fire more than once.
+    if let Some(existing) = sqlx::query_as::<_, Tip>(&format!(
+        "SELECT {TIP_COLUMNS} FROM tips WHERE reference = $1"
+    ))
+    .bind(&req.reference)
+    .fetch_optional(&st.pool)
+    .await?
+    {
+        return Ok(Json(existing));
+    }
+    let amount = req.amount.parse::<Decimal>().unwrap_or_default().round_dp(2);
+    let row: Tip = sqlx::query_as(&format!(
+        "INSERT INTO tips
+            (id, creator_id, creator_name, tipper_name, tipper_email, amount, message,
+             status, reference, platform_fee, service_fee, creator_net)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'completed',$8,$9,$10,$11)
+         RETURNING {TIP_COLUMNS}"
+    ))
+    .bind(Uuid::new_v4())
+    .bind(req.creator_id)
+    .bind(req.creator_name.unwrap_or_default())
+    .bind(req.tipper_name.unwrap_or_else(|| "Anonymous".into()))
+    .bind(req.tipper_email.unwrap_or_default())
+    .bind(amount)
+    .bind(req.message.unwrap_or_default())
+    .bind(&req.reference)
+    .bind(dec(&req.platform_fee))
+    .bind(dec(&req.service_fee))
+    .bind(dec(&req.creator_net))
+    .fetch_one(&st.pool)
+    .await?;
+    Ok(Json(row))
+}
+
 // ── Bootstrap ───────────────────────────────────────────────────────────────
 
 async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
@@ -413,6 +473,7 @@ async fn main() {
         .route("/tips/creator/:creator_id", get(tips_for_creator))
         .route("/tips/creator/:creator_id/stats", get(creator_stats))
         .route("/tips/fan/:email", get(tips_for_fan))
+        .route("/tips/internal/record", post(record_tip))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 

@@ -214,6 +214,7 @@ struct AppState {
     http: reqwest::Client,
     accounts_url: String,
     creators_url: String,
+    tips_url: String,
 }
 
 // ── Auth (delegated to the accounts + creators services) ────────────────────
@@ -307,10 +308,14 @@ struct Transaction {
     currency: String,
     pay_url: String,
     description: String,
+    creator_name: String,
+    tipper_name: String,
+    tipper_email: String,
+    message: String,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
-const TXN_COLUMNS: &str = "id, reference, creator_id, amount, platform_fee, service_fee, creator_net, status, merchant_order_no, trans_no, currency, pay_url, description, created_at";
+const TXN_COLUMNS: &str = "id, reference, creator_id, amount, platform_fee, service_fee, creator_net, status, merchant_order_no, trans_no, currency, pay_url, description, creator_name, tipper_name, tipper_email, message, created_at";
 
 #[derive(sqlx::FromRow, Serialize)]
 struct Payout {
@@ -376,6 +381,9 @@ struct CheckoutReq {
     amount: f64,
     description: Option<String>,
     return_url: Option<String>,
+    tipper_name: Option<String>,
+    tipper_email: Option<String>,
+    message: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -475,6 +483,12 @@ async fn checkout(
     if !cr.status().is_success() {
         return Err(AppError::BadRequest("creator not found".into()));
     }
+    let creator_json: Value = cr.json().await.unwrap_or_else(|_| json!({}));
+    let creator_name = creator_json
+        .get("display_name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
 
     let amount = parse_amount(req.amount)?;
     let f = calc_fees(amount, st.platform_pct, st.service_pct);
@@ -496,8 +510,8 @@ async fn checkout(
     // Persist a pending transaction first so the notify webhook can match it.
     let row: Transaction = sqlx::query_as(&format!(
         "INSERT INTO transactions
-            (id, reference, creator_id, amount, platform_fee, service_fee, creator_net, status, merchant_order_no, currency, description)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$10)
+            (id, reference, creator_id, amount, platform_fee, service_fee, creator_net, status, merchant_order_no, currency, description, creator_name, tipper_name, tipper_email, message)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$10,$11,$12,$13,$14)
          RETURNING {TXN_COLUMNS}"
     ))
     .bind(Uuid::new_v4())
@@ -510,6 +524,10 @@ async fn checkout(
     .bind(&merchant_order_no)
     .bind(&st.paycloud.currency)
     .bind(&description)
+    .bind(&creator_name)
+    .bind(req.tipper_name.clone().unwrap_or_else(|| "Anonymous".into()))
+    .bind(req.tipper_email.clone().unwrap_or_default())
+    .bind(req.message.clone().unwrap_or_default())
     .fetch_one(&st.pool)
     .await?;
 
@@ -571,14 +589,13 @@ async fn notify(
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
-    let status = payload
+    // PayCloud trans_status is an INTEGER: 2=successful, 1=closed, 3=cancelled,
+    // 0=paying, 9=created. (Accept a string form too, defensively.)
+    let trans_status = payload
         .get("trans_status")
-        .or_else(|| payload.get("status"))
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
+        .and_then(|v| v.as_i64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())));
     // Whitelisted (non-PII) logging.
-    tracing::info!("PayCloud notify: merchant_order_no={merchant_order_no} trans_no={trans_no} status={status}");
+    tracing::info!("PayCloud notify: merchant_order_no={merchant_order_no} trans_no={trans_no} trans_status={trans_status:?}");
 
     // 1) Verify the gateway signature — fail CLOSED (no key / bad sig → reject,
     //    never complete an unverified payment).
@@ -598,8 +615,8 @@ async fn notify(
     .fetch_optional(&st.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("unknown merchant_order_no".into()))?;
-    if txn.status != "pending" {
-        // Idempotent: already settled — acknowledge without re-writing.
+    if txn.status == "completed" {
+        // Idempotent: already completed — acknowledge without re-writing.
         return Ok("SUCCESS".into());
     }
 
@@ -618,16 +635,18 @@ async fn notify(
         }
     }
 
-    // 4) Fail-closed status mapping; only known success values complete.
-    let success = status.eq_ignore_ascii_case("SUCCESS")
-        || status.eq_ignore_ascii_case("PAID")
-        || status.eq_ignore_ascii_case("COMPLETED");
-    let new_status = if success { "completed" } else { "failed" };
+    // 4) Map PayCloud's integer status (fail-closed: only 2 completes;
+    //    0=paying / 9=created / unknown are not terminal — ack and wait).
+    let new_status = match trans_status {
+        Some(2) => "completed",
+        Some(1) | Some(3) => "failed",
+        _ => return Ok("SUCCESS".into()),
+    };
 
-    // 5) Only ever transition pending → terminal.
-    sqlx::query(
+    // 5) Move to terminal, but never overwrite an already-completed txn.
+    let res = sqlx::query(
         "UPDATE transactions SET status = $1, trans_no = COALESCE(NULLIF($2,''), trans_no) \
-         WHERE merchant_order_no = $3 AND status = 'pending'",
+         WHERE merchant_order_no = $3 AND status <> 'completed'",
     )
     .bind(new_status)
     .bind(&trans_no)
@@ -635,7 +654,38 @@ async fn notify(
     .execute(&st.pool)
     .await?;
 
+    // 6) On first completion, record a visible tip in the tips service so it
+    //    shows on the creator's public page + feed.
+    if new_status == "completed" && res.rows_affected() > 0 {
+        record_tip(&st, &txn).await;
+    }
+
     Ok("SUCCESS".into())
+}
+
+/// Best-effort: mirror a completed card payment into the tips feed.
+async fn record_tip(st: &AppState, txn: &Transaction) {
+    let body = json!({
+        "creator_id": txn.creator_id,
+        "creator_name": txn.creator_name,
+        "amount": txn.amount.to_string(),
+        "tipper_name": txn.tipper_name,
+        "tipper_email": txn.tipper_email,
+        "message": txn.message,
+        "reference": txn.reference,
+        "platform_fee": txn.platform_fee.to_string(),
+        "service_fee": txn.service_fee.to_string(),
+        "creator_net": txn.creator_net.to_string(),
+    });
+    if let Err(e) = st
+        .http
+        .post(format!("{}/tips/internal/record", st.tips_url))
+        .json(&body)
+        .send()
+        .await
+    {
+        tracing::warn!("failed to record tip for {}: {e}", txn.reference);
+    }
 }
 
 async fn order_query(
@@ -859,6 +909,10 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
         "currency TEXT NOT NULL DEFAULT 'ZAR'",
         "pay_url TEXT NOT NULL DEFAULT ''",
         "description TEXT NOT NULL DEFAULT ''",
+        "creator_name TEXT NOT NULL DEFAULT ''",
+        "tipper_name TEXT NOT NULL DEFAULT 'Anonymous'",
+        "tipper_email TEXT NOT NULL DEFAULT ''",
+        "message TEXT NOT NULL DEFAULT ''",
     ] {
         sqlx::query(&format!(
             "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS {col}"
@@ -959,6 +1013,7 @@ async fn main() {
         http: reqwest::Client::new(),
         accounts_url: env("ACCOUNTS_URL", "http://localhost:8081"),
         creators_url: env("CREATORS_URL", "http://localhost:8082"),
+        tips_url: env("TIPS_URL", "http://localhost:8084"),
     };
 
     let app = Router::new()

@@ -196,6 +196,9 @@ export const api = {
     amount: number;
     description?: string;
     return_url?: string;
+    tipper_name?: string;
+    tipper_email?: string;
+    message?: string;
   }) => request<CheckoutResult>("/payments/payments/checkout", { method: "POST", body }),
   getPayment: (reference: string) =>
     request<Transaction>(`/payments/payments/${reference}`),
