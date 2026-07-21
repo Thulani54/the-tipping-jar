@@ -96,16 +96,16 @@ export default async function CreatorPage({
   return (
     <section className="pb-24">
       {/* Cover — solid navy with a coin motif */}
-      <div className="relative h-36 w-full overflow-hidden bg-navy md:h-48">
-        <span aria-hidden className="absolute right-[8%] top-6 h-16 w-16 rounded-full bg-mint/20" />
-        <span aria-hidden className="absolute right-[16%] top-16 h-8 w-8 rounded-full bg-gold/60" />
-        <span aria-hidden className="absolute right-[3%] bottom-[-20px] h-24 w-24 rounded-full border border-white/10" />
+      <div className="relative h-44 w-full overflow-hidden bg-navy md:h-56">
+        <span aria-hidden className="absolute left-[10%] top-8 h-10 w-10 rounded-full bg-gold/50" />
+        <span aria-hidden className="absolute right-[10%] top-10 h-16 w-16 rounded-full bg-mint/20" />
+        <span aria-hidden className="absolute right-[18%] top-20 h-7 w-7 rounded-full bg-gold/60" />
       </div>
 
       <div className="container-content">
-        {/* Header — avatar stacked on top, centered */}
-        <div className="-mt-14 flex flex-col items-center text-center md:-mt-16">
-          <div className="grid h-28 w-28 shrink-0 place-items-center rounded-[26px] bg-white text-3xl font-extrabold text-primary shadow-lift ring-1 ring-border">
+        {/* Header — white avatar centred ON the navy header, info stacked below */}
+        <div className="-mt-24 flex flex-col items-center text-center md:-mt-28">
+          <div className="grid h-32 w-32 shrink-0 place-items-center rounded-[28px] bg-white text-4xl font-extrabold text-primary shadow-lift ring-1 ring-border">
             {initials(creator.display_name)}
           </div>
           <h1 className="mt-5 font-display text-3xl font-extrabold tracking-tight text-ink md:text-4xl">

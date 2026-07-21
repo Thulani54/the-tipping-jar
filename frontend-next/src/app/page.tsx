@@ -71,21 +71,21 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          {/* Signature: the filling jar + floating tip slips */}
+          {/* Signature: the filling jar. Slips stack below on mobile, float on sm+ */}
           <div className="relative mx-auto w-full max-w-sm py-4 lg:mx-0 lg:ml-auto">
             <JarMeter raised="R2,340" goal="R3,000" pct={78} />
             <TipSlip
               name="Sam"
               amount="R50"
               message="Love your work!"
-              className="slip-in absolute -left-6 top-6 w-56 -rotate-3 sm:-left-10"
+              className="slip-in mx-auto mt-6 w-full max-w-xs sm:absolute sm:-left-10 sm:top-6 sm:mt-0 sm:w-56 sm:-rotate-3"
               style={{ animationDelay: "0.55s" }}
             />
             <TipSlip
               name="Thandi"
               amount="R120"
               message="Keep it coming 🙌"
-              className="slip-in absolute -right-4 bottom-2 w-56 rotate-2 sm:-right-8"
+              className="slip-in mx-auto mt-4 w-full max-w-xs sm:absolute sm:-right-8 sm:bottom-2 sm:mt-0 sm:w-56 sm:rotate-2"
               style={{ animationDelay: "0.75s" }}
             />
           </div>
