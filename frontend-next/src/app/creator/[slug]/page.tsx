@@ -106,7 +106,7 @@ export default async function CreatorPage({
         {/* Header */}
         <div className="-mt-14 flex flex-col gap-6 md:-mt-16 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-end gap-5">
-            <div className="grid h-28 w-28 shrink-0 place-items-center rounded-[26px] border-4 border-darker bg-primary text-3xl font-extrabold text-white shadow-soft">
+            <div className="grid h-28 w-28 shrink-0 place-items-center rounded-[26px] bg-white text-3xl font-extrabold text-primary shadow-lift ring-1 ring-border">
               {initials(creator.display_name)}
             </div>
             <div className="pb-1">
