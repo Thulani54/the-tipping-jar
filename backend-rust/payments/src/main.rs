@@ -478,7 +478,8 @@ async fn checkout(
 
     let amount = parse_amount(req.amount)?;
     let f = calc_fees(amount, st.platform_pct, st.service_pct);
-    let merchant_order_no = format!("tj{}", Uuid::new_v4().simple());
+    // PayCloud caps the order number length — keep it short (prefix + 22 hex).
+    let merchant_order_no = format!("tj{}", &Uuid::new_v4().simple().to_string()[..22]);
     let description = req
         .description
         .filter(|d| !d.trim().is_empty())
@@ -682,7 +683,7 @@ async fn refund(
     if !st.paycloud.enabled() {
         return Err(AppError::Internal("PayCloud not configured".into()));
     }
-    let refund_no = format!("rf{}", Uuid::new_v4().simple());
+    let refund_no = format!("rf{}", &Uuid::new_v4().simple().to_string()[..22]);
     let mut biz = vec![
         ("merchant_no", json!(st.paycloud.merchant_no)),
         ("orig_merchant_order_no", json!(req.merchant_order_no)),
