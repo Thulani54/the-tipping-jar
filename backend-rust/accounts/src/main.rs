@@ -182,7 +182,13 @@ async fn register(
         .username
         .filter(|u| !u.trim().is_empty())
         .unwrap_or_else(|| email.split('@').next().unwrap_or("user").to_string());
-    let role = req.role.unwrap_or_else(|| "fan".into());
+    // Only fan/creator may be self-assigned at signup — never admin/enterprise
+    // (those are provisioned out of band). Prevents privilege escalation.
+    let role = match req.role.as_deref() {
+        Some("creator") => "creator",
+        _ => "fan",
+    }
+    .to_string();
     let phone = req.phone_number.unwrap_or_default();
     let referral = req.referral_code.unwrap_or_default();
     let hash = hash_password(&req.password)?;
