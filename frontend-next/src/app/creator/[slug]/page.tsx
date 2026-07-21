@@ -103,29 +103,24 @@ export default async function CreatorPage({
       </div>
 
       <div className="container-content">
-        {/* Header */}
-        <div className="-mt-14 flex flex-col gap-6 md:-mt-16 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex items-end gap-5">
-            <div className="grid h-28 w-28 shrink-0 place-items-center rounded-[26px] bg-white text-3xl font-extrabold text-primary shadow-lift ring-1 ring-border">
-              {initials(creator.display_name)}
-            </div>
-            <div className="pb-1">
-              <h1 className="font-display text-3xl font-extrabold tracking-tight text-ink md:text-4xl">
-                {creator.display_name}
-              </h1>
-              <p className="mt-1 font-mono text-sm text-muted">@{creator.slug}</p>
-              {creator.category && (
-                <span className="mt-3 inline-block rounded-full bg-mint/15 px-3 py-1 text-xs font-semibold text-green">
-                  {creator.category}
-                </span>
-              )}
-            </div>
+        {/* Header — avatar stacked on top, centered */}
+        <div className="-mt-14 flex flex-col items-center text-center md:-mt-16">
+          <div className="grid h-28 w-28 shrink-0 place-items-center rounded-[26px] bg-white text-3xl font-extrabold text-primary shadow-lift ring-1 ring-border">
+            {initials(creator.display_name)}
           </div>
+          <h1 className="mt-5 font-display text-3xl font-extrabold tracking-tight text-ink md:text-4xl">
+            {creator.display_name}
+          </h1>
+          <p className="mt-1 font-mono text-sm text-muted">@{creator.slug}</p>
+          {creator.category && (
+            <span className="mt-3 inline-block rounded-full bg-mint/15 px-3 py-1 text-xs font-semibold text-green">
+              {creator.category}
+            </span>
+          )}
+          {creator.tagline && (
+            <p className="body-muted mx-auto mt-5 max-w-2xl text-lg">{creator.tagline}</p>
+          )}
         </div>
-
-        {creator.tagline && (
-          <p className="body-muted mt-6 max-w-2xl text-lg">{creator.tagline}</p>
-        )}
 
         {/* Two columns: supporters ledger + the jar */}
         <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_360px]">
