@@ -71,7 +71,7 @@ export default function AdminPortalPage() {
       <div className="container-content grid min-h-[60vh] place-items-center text-center">
         <div>
           <div className="text-4xl">🔒</div>
-          <h1 className="mt-4 text-xl font-bold text-white">Admins only</h1>
+          <h1 className="mt-4 text-xl font-bold text-ink">Admins only</h1>
           <p className="body-muted mt-2">You don&apos;t have permission to view this page.</p>
         </div>
       </div>
@@ -82,7 +82,7 @@ export default function AdminPortalPage() {
     <div className="container-content py-10">
       <div>
         <p className="text-sm text-muted">TippingJar</p>
-        <h1 className="text-2xl font-extrabold tracking-tight text-white">Admin Portal</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-ink">Admin Portal</h1>
       </div>
 
       <div className="mt-8 flex gap-2 overflow-x-auto border-b border-border pb-px">
@@ -91,7 +91,7 @@ export default function AdminPortalPage() {
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 whitespace-nowrap rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${
-              tab === t.id ? "border-b-2 border-teal text-white" : "text-muted hover:text-white"
+              tab === t.id ? "border-b-2 border-teal text-ink" : "text-muted hover:text-ink"
             }`}
           >
             <span>{t.icon}</span>
@@ -130,7 +130,7 @@ function StatCard({
       >
         {icon}
       </div>
-      <p className="mt-4 text-2xl font-extrabold tracking-tight text-white">{value}</p>
+      <p className="mt-4 text-2xl font-extrabold tracking-tight text-ink">{value}</p>
       <p className="mt-1 text-xs text-muted">{label}</p>
     </div>
   );
@@ -143,7 +143,7 @@ function OverviewTab({ data, loading, error }: { data: any; loading: boolean; er
     return (
       <div className="card grid place-items-center py-12 text-center">
         <div className="text-3xl">📉</div>
-        <p className="mt-3 font-semibold text-white">Could not load dashboard</p>
+        <p className="mt-3 font-semibold text-ink">Could not load dashboard</p>
         <p className="body-muted mt-1">The admin dashboard service is unavailable.</p>
       </div>
     );
@@ -168,11 +168,11 @@ function OverviewTab({ data, loading, error }: { data: any; loading: boolean; er
       </div>
 
       <div>
-        <h3 className="mb-4 text-base font-bold text-white">Recent tips</h3>
+        <h3 className="mb-4 text-base font-bold text-ink">Recent tips</h3>
         {recentTips.length === 0 ? (
           <div className="card grid place-items-center py-12 text-center">
             <div className="text-3xl">🧾</div>
-            <p className="mt-3 font-semibold text-white">No recent tips</p>
+            <p className="mt-3 font-semibold text-ink">No recent tips</p>
           </div>
         ) : (
           <div className="card overflow-hidden !p-0">
@@ -189,7 +189,7 @@ function OverviewTab({ data, loading, error }: { data: any; loading: boolean; er
                 <tbody>
                   {recentTips.map((t, i) => (
                     <tr key={t.id ?? i} className="border-b border-border/60 last:border-0">
-                      <td className="px-5 py-3 font-medium text-white">
+                      <td className="px-5 py-3 font-medium text-ink">
                         {t.tipper_name || "Anonymous"}
                       </td>
                       <td className="px-5 py-3 text-muted">
@@ -200,7 +200,7 @@ function OverviewTab({ data, loading, error }: { data: any; loading: boolean; er
                           {t.status || "—"}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-right font-bold text-white">
+                      <td className="px-5 py-3 text-right font-bold text-ink">
                         R{money(Number(t.amount) || 0)}
                       </td>
                     </tr>
@@ -227,7 +227,7 @@ function PlaceholderTab({ tab }: { tab: Tab }) {
   return (
     <div className="card grid place-items-center py-16 text-center">
       <div className="text-3xl">🛠️</div>
-      <p className="mt-3 font-semibold capitalize text-white">{tab}</p>
+      <p className="mt-3 font-semibold capitalize text-ink">{tab}</p>
       <p className="body-muted mt-1 max-w-md">{copy[tab]}</p>
       {/* TODO(api): admin management endpoints for the "{tab}" tab (list + mutations) */}
       <p className="mt-3 text-xs text-muted">Management actions coming soon.</p>

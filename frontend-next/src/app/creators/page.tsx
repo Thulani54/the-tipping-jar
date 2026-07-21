@@ -76,7 +76,7 @@ export default async function CreatorsPage() {
         {creators.length === 0 ? (
           <div className="card mt-10 py-16 text-center">
             <div className="text-4xl">🔍</div>
-            <h3 className="mt-4 text-lg font-semibold text-white">
+            <h3 className="mt-4 text-lg font-semibold text-ink">
               No creators yet
             </h3>
             <p className="body-muted mx-auto mt-2 max-w-sm">

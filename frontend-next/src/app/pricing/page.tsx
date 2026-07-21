@@ -142,16 +142,16 @@ export default function PricingPage() {
               }`}
             >
               {t.isPro && (
-                <span className="mb-3 inline-flex w-fit rounded-full bg-teal px-3 py-1 text-xs font-bold text-white">
+                <span className="mb-3 inline-flex w-fit rounded-full bg-teal px-3 py-1 text-xs font-bold text-ink">
                   Most popular
                 </span>
               )}
-              <h2 className="text-xl font-extrabold text-white">{t.name}</h2>
+              <h2 className="text-xl font-extrabold text-ink">{t.name}</h2>
               <p className="mt-1 text-sm text-muted">{t.desc}</p>
               <div className="mt-4 flex items-end gap-1">
                 <span
                   className={`font-extrabold tracking-tight ${
-                    t.isPro ? "text-teal" : "text-white"
+                    t.isPro ? "text-teal" : "text-ink"
                   } ${t.price.length > 4 ? "text-3xl" : "text-4xl"}`}
                 >
                   {t.price}
@@ -160,7 +160,7 @@ export default function PricingPage() {
               </div>
               <ul className="mt-6 space-y-2.5">
                 {t.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-white">
+                  <li key={f} className="flex items-start gap-2 text-sm text-ink">
                     <span className="mt-0.5 text-teal">✓</span>
                     <span>{f}</span>
                   </li>
@@ -193,7 +193,7 @@ export default function PricingPage() {
                     <th
                       key={h}
                       className={`px-3 py-3 text-sm font-bold ${
-                        h === "Pro" ? "text-teal" : "text-white"
+                        h === "Pro" ? "text-teal" : "text-ink"
                       }`}
                     >
                       {h}
@@ -235,7 +235,7 @@ export default function PricingPage() {
                   onClick={() => setOpenFaq(open ? -1 : i)}
                   className="flex w-full items-center justify-between gap-4 p-4 text-left"
                 >
-                  <span className="font-semibold text-white">{q}</span>
+                  <span className="font-semibold text-ink">{q}</span>
                   <span
                     className={`text-muted transition-transform ${open ? "rotate-90" : ""}`}
                   >

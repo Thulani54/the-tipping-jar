@@ -84,7 +84,7 @@ export default function AboutPage() {
                 <div className="grid h-11 w-11 place-items-center rounded-xl bg-teal/10 text-xl">
                   {v.icon}
                 </div>
-                <h3 className="mt-4 font-semibold text-white">{v.title}</h3>
+                <h3 className="mt-4 font-semibold text-ink">{v.title}</h3>
                 <p className="body-muted mt-2 text-sm">{v.body}</p>
               </div>
             ))}
@@ -95,7 +95,7 @@ export default function AboutPage() {
       {/* CTA */}
       <section className="container-content py-20">
         <div className="rounded-3xl bg-brand-gradient p-12 text-center md:p-16">
-          <h2 className="text-3xl font-extrabold tracking-tight text-white">
+          <h2 className="text-3xl font-extrabold tracking-tight text-ink">
             Join us on the mission
           </h2>
           <p className="mx-auto mt-3 max-w-md text-white/85">
@@ -110,7 +110,7 @@ export default function AboutPage() {
             </Link>
             <Link
               href="/careers"
-              className="inline-flex rounded-full border border-white/40 px-8 py-3 font-semibold text-white transition hover:border-white"
+              className="inline-flex rounded-full border border-white/40 px-8 py-3 font-semibold text-ink transition hover:border-white"
             >
               View open roles
             </Link>

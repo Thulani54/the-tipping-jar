@@ -71,7 +71,7 @@ export default function FanDashboardPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm text-muted">{greeting()} 👋</p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-white">{name}</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">{name}</h1>
         </div>
         <Link href="/creators" className="btn-ghost !px-4 !py-2 text-sm">
           Discover creators
@@ -84,7 +84,7 @@ export default function FanDashboardPage() {
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 whitespace-nowrap rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${
-              tab === t.id ? "border-b-2 border-teal text-white" : "text-muted hover:text-white"
+              tab === t.id ? "border-b-2 border-teal text-ink" : "text-muted hover:text-ink"
             }`}
           >
             <span>{t.icon}</span>
@@ -116,7 +116,7 @@ function StatCard({ label, value, icon }: { label: string; value: string; icon: 
   return (
     <div className="card !p-5">
       <div className="text-lg">{icon}</div>
-      <p className="mt-3 text-2xl font-extrabold tracking-tight text-white">{value}</p>
+      <p className="mt-3 text-2xl font-extrabold tracking-tight text-ink">{value}</p>
       <p className="mt-1 text-xs text-muted">{label}</p>
     </div>
   );
@@ -139,7 +139,7 @@ function HomeTab({
   return (
     <div className="space-y-10">
       <div className="card bg-brand-gradient !border-transparent">
-        <h2 className="text-2xl font-extrabold tracking-tight text-white">
+        <h2 className="text-2xl font-extrabold tracking-tight text-ink">
           {greeting()}, {name} 👋
         </h2>
         <p className="mt-2 text-sm text-white/85">Ready to support your favourite creators?</p>
@@ -159,7 +159,7 @@ function HomeTab({
 
       <div>
         <div className="mb-5 flex items-end justify-between">
-          <h3 className="text-base font-bold text-white">Discover creators</h3>
+          <h3 className="text-base font-bold text-ink">Discover creators</h3>
           <Link href="/creators" className="text-sm text-teal hover:underline">
             See all →
           </Link>
@@ -183,11 +183,11 @@ function ActivityTab({ tips }: { tips: Tip[] }) {
   return (
     <div className="max-w-3xl space-y-10">
       <div>
-        <h3 className="mb-4 text-base font-bold text-white">Your tips</h3>
+        <h3 className="mb-4 text-base font-bold text-ink">Your tips</h3>
         {tips.length === 0 ? (
           <div className="card grid place-items-center py-12 text-center">
             <div className="text-3xl">💚</div>
-            <p className="mt-3 font-semibold text-white">No tips sent yet</p>
+            <p className="mt-3 font-semibold text-ink">No tips sent yet</p>
             <p className="body-muted mt-1 max-w-sm">
               Find a creator you love and send your first tip!
             </p>
@@ -200,7 +200,7 @@ function ActivityTab({ tips }: { tips: Tip[] }) {
             {tips.map((t) => (
               <div key={t.id} className="card flex items-center justify-between !py-4">
                 <div className="min-w-0">
-                  <p className="font-semibold text-white">{t.creator_name}</p>
+                  <p className="font-semibold text-ink">{t.creator_name}</p>
                   {t.message && <p className="body-muted truncate text-sm">{t.message}</p>}
                   <p className="mt-1 text-xs text-muted">
                     {new Date(t.created_at).toLocaleDateString()}
@@ -214,11 +214,11 @@ function ActivityTab({ tips }: { tips: Tip[] }) {
       </div>
 
       <div>
-        <h3 className="mb-4 text-base font-bold text-white">My pledges</h3>
+        <h3 className="mb-4 text-base font-bold text-ink">My pledges</h3>
         {/* TODO(api): fan pledges (recurring monthly support) endpoint */}
         <div className="card grid place-items-center py-12 text-center">
           <div className="text-3xl">🔁</div>
-          <p className="mt-3 font-semibold text-white">No active pledges</p>
+          <p className="mt-3 font-semibold text-ink">No active pledges</p>
           <p className="body-muted mt-1 max-w-sm">
             Set up recurring monthly support for the creators you follow.
           </p>
@@ -259,7 +259,7 @@ function SettingsTab({
       <div className="card">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="font-semibold text-white">Two-factor authentication</p>
+            <p className="font-semibold text-ink">Two-factor authentication</p>
             <p className="body-muted mt-1">
               {enabled ? "Verification code sent on each login." : "2FA is off."}
             </p>
@@ -268,7 +268,7 @@ function SettingsTab({
             onClick={toggle}
             disabled={saving}
             className={`rounded-full px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
-              enabled ? "bg-teal/10 text-teal hover:bg-teal/20" : "bg-border text-muted hover:text-white"
+              enabled ? "bg-teal/10 text-teal hover:bg-teal/20" : "bg-border text-muted hover:text-ink"
             }`}
           >
             {saving ? "…" : enabled ? "On · turn off" : "Off · turn on"}
@@ -277,11 +277,11 @@ function SettingsTab({
       </div>
 
       <div className="card">
-        <p className="font-semibold text-white">Account</p>
+        <p className="font-semibold text-ink">Account</p>
         <div className="mt-3 divide-y divide-border/60">
           <Link
             href="/creators"
-            className="flex items-center justify-between py-3 text-sm text-white hover:text-teal"
+            className="flex items-center justify-between py-3 text-sm text-ink hover:text-teal"
           >
             <span>Browse all creators</span>
             <span className="text-muted">›</span>

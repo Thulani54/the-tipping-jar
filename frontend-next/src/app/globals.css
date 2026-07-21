@@ -3,13 +3,14 @@
 @tailwind utilities;
 
 :root {
-  --dark: #0a0f0d;
-  --darker: #060a08;
-  --primary: #004423;
-  --teal: #0097b2;
-  --muted: #7a9088;
-  --border: #1e2e26;
-  --card: #111a16;
+  --canvas: #f7f7f9;
+  --surface: #ffffff;
+  --navy: #1e3a5f;
+  --mint: #72da69;
+  --gold: #f0a73c;
+  --ink: #0a0a0f;
+  --muted: #5b6472;
+  --line: #e5e7eb;
 }
 
 html {
@@ -17,8 +18,8 @@ html {
 }
 
 body {
-  background-color: var(--darker);
-  color: #fff;
+  background-color: var(--canvas);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -27,19 +28,37 @@ body {
     @apply mx-auto w-full max-w-content px-6;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-full bg-brand-gradient px-6 py-3 font-semibold text-white transition hover:opacity-90;
+    @apply inline-flex items-center justify-center rounded-full bg-brand-gradient px-6 py-3 font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:opacity-95;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-full border border-border px-6 py-3 font-semibold text-white transition hover:border-teal;
+    @apply inline-flex items-center justify-center rounded-full border border-primary/25 bg-white px-6 py-3 font-semibold text-primary transition hover:border-primary hover:bg-primary/[0.04];
   }
   .card {
-    @apply rounded-3xl border border-border bg-card p-6;
+    @apply rounded-3xl border border-border bg-white p-6 shadow-soft;
   }
   .heading-xl {
-    @apply text-4xl font-extrabold tracking-tight md:text-5xl;
+    @apply text-4xl font-extrabold tracking-tight text-ink md:text-5xl;
     line-height: 1.1;
   }
   .body-muted {
     @apply text-[15px] leading-relaxed text-muted;
+  }
+}
+
+/* On colored / gradient surfaces, keep text white regardless of the ink
+   default applied elsewhere (navy→mint CTA cards, avatar marks, the logo, …).
+   `~=` matches the exact class token, so tints like bg-primary/15 are excluded. */
+@layer utilities {
+  [class*="bg-brand-gradient"],
+  [class~="bg-primary"],
+  [class~="bg-navy"],
+  [class~="bg-teal"] {
+    color: #fff;
+  }
+  [class*="bg-brand-gradient"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label),
+  [class~="bg-primary"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong),
+  [class~="bg-navy"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong),
+  [class~="bg-teal"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong) {
+    color: #fff !important;
   }
 }

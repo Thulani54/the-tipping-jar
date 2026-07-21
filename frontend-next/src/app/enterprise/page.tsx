@@ -85,7 +85,7 @@ export default function EnterprisePage() {
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/15 text-lg">
                 {f.icon}
               </div>
-              <h3 className="mt-4 font-semibold text-white">{f.title}</h3>
+              <h3 className="mt-4 font-semibold text-ink">{f.title}</h3>
               <p className="body-muted mt-2 text-sm">{f.body}</p>
             </div>
           ))}

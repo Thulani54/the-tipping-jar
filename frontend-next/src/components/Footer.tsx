@@ -52,11 +52,11 @@ export function Footer() {
         </div>
         {COLS.map((c) => (
           <div key={c.title}>
-            <h4 className="mb-3 text-sm font-semibold text-white">{c.title}</h4>
+            <h4 className="mb-3 text-sm font-semibold text-ink">{c.title}</h4>
             <ul className="space-y-2">
               {c.links.map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="text-sm text-muted hover:text-white">
+                  <Link href={l.href} className="text-sm text-muted hover:text-ink">
                     {l.label}
                   </Link>
                 </li>

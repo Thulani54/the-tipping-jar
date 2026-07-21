@@ -753,7 +753,7 @@ function EndpointRow({ ep }: { ep: Endpoint }) {
         >
           {ep.method}
         </span>
-        <span className="font-mono text-xs text-white">{ep.path}</span>
+        <span className="font-mono text-xs text-ink">{ep.path}</span>
         {ep.auth && (
           <span className="rounded border border-teal/30 bg-teal/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-teal">
             Auth
@@ -863,7 +863,7 @@ export default function DevelopersPage() {
                 </span>
                 <span className="font-mono text-xs font-bold text-muted">{step}</span>
               </div>
-              <h3 className="mt-3 font-semibold text-white">{title}</h3>
+              <h3 className="mt-3 font-semibold text-ink">{title}</h3>
               <p className="mt-1.5 text-xs leading-relaxed text-muted">{desc}</p>
             </div>
           ))}
@@ -876,7 +876,7 @@ export default function DevelopersPage() {
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-teal/10 text-sm">
                 🔒
               </span>
-              <h3 className="font-semibold text-white">API Keys</h3>
+              <h3 className="font-semibold text-ink">API Keys</h3>
             </div>
             <p className="body-muted mt-2.5 text-sm">
               Sign in to generate and manage your API keys.
@@ -945,7 +945,7 @@ export default function DevelopersPage() {
               <div className="mb-3 flex items-center gap-3 rounded-xl border border-teal/15 bg-teal/[0.05] p-4">
                 <span className="text-lg">{g.icon}</span>
                 <div>
-                  <h3 className="font-semibold text-white">{g.title}</h3>
+                  <h3 className="font-semibold text-ink">{g.title}</h3>
                   <p className="text-xs text-muted">{g.desc}</p>
                 </div>
               </div>
@@ -980,7 +980,7 @@ export default function DevelopersPage() {
                     {code}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-white">{title}</p>
+                    <p className="text-sm font-semibold text-ink">{title}</p>
                     <p className="text-xs text-muted">{desc}</p>
                   </div>
                 </div>
@@ -1003,7 +1003,7 @@ export default function DevelopersPage() {
             <div key={tier} className="card">
               <span className="text-xl">{icon}</span>
               <p className="mt-3 text-2xl font-extrabold tracking-tight text-teal">{limit}</p>
-              <p className="mt-1 font-semibold text-white">{tier}</p>
+              <p className="mt-1 font-semibold text-ink">{tier}</p>
               <p className="text-xs text-muted">{scope}</p>
             </div>
           ))}
@@ -1072,7 +1072,7 @@ the header value. Reject any requests where they don't match.`}
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {SDKS.map(([name, install, version, lang]) => (
             <div key={name} className="card text-left">
-              <p className="font-semibold text-white">{name}</p>
+              <p className="font-semibold text-ink">{name}</p>
               <p className="mt-1 text-xs text-muted">{lang}</p>
               <p className="mt-2 font-mono text-[10px] text-teal">{install}</p>
               <p className="mt-1 font-mono text-[10px] text-muted">{version}</p>
@@ -1099,7 +1099,7 @@ the header value. Reject any requests where they don't match.`}
           <div className="card mt-8">
             <div className="flex items-center gap-2">
               <span>🔑</span>
-              <h3 className="font-semibold text-white">Key format</h3>
+              <h3 className="font-semibold text-ink">Key format</h3>
             </div>
             <div className="mt-3 rounded-lg bg-darker px-3.5 py-2.5">
               <code className="font-mono text-sm text-teal">
@@ -1112,7 +1112,7 @@ the header value. Reject any requests where they don't match.`}
             </p>
           </div>
 
-          <h3 className="mt-8 text-lg font-bold text-white">Endpoints</h3>
+          <h3 className="mt-8 text-lg font-bold text-ink">Endpoints</h3>
           <div className="mt-3 space-y-2.5">
             {PLATFORM_ENDPOINTS.map(([method, path, desc]) => (
               <div
@@ -1126,7 +1126,7 @@ the header value. Reject any requests where they don't match.`}
                 >
                   {method}
                 </span>
-                <span className="font-mono text-xs text-white">{path}</span>
+                <span className="font-mono text-xs text-ink">{path}</span>
                 <span className="ml-auto text-xs text-muted">{desc}</span>
               </div>
             ))}
@@ -1152,14 +1152,14 @@ the header value. Reject any requests where they don't match.`}
           {REQUIREMENTS.map(([icon, title, body]) => (
             <div key={title} className="card">
               <span className="text-xl">{icon}</span>
-              <h3 className="mt-3 font-semibold text-white">{title}</h3>
+              <h3 className="mt-3 font-semibold text-ink">{title}</h3>
               <p className="mt-1.5 text-xs leading-relaxed text-muted">{body}</p>
             </div>
           ))}
         </div>
 
         <div className="mt-12 rounded-3xl border border-teal/25 bg-gradient-to-br from-teal/[0.08] to-primary/[0.06] p-10 text-center">
-          <h3 className="text-2xl font-extrabold tracking-tight text-white">Ready to apply?</h3>
+          <h3 className="text-2xl font-extrabold tracking-tight text-ink">Ready to apply?</h3>
           <p className="body-muted mt-2.5">
             Complete a short multi-step form with your business details.
           </p>
@@ -1175,7 +1175,7 @@ the header value. Reject any requests where they don't match.`}
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-white/15 text-2xl">
             🧩
           </div>
-          <h2 className="heading-xl mt-5 text-white">Start building today</h2>
+          <h2 className="heading-xl mt-5 text-ink">Start building today</h2>
           <p className="mt-3 text-white/70">
             Free sandbox · No credit card · ZAR currency ready
           </p>
@@ -1186,7 +1186,7 @@ the header value. Reject any requests where they don't match.`}
             >
               Get your API key
             </Link>
-            <button className="inline-flex rounded-full border border-white/30 px-8 py-3 font-semibold text-white transition hover:border-white">
+            <button className="inline-flex rounded-full border border-white/30 px-8 py-3 font-semibold text-ink transition hover:border-white">
               View on GitHub
             </button>
           </div>

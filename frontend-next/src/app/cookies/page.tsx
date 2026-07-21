@@ -47,7 +47,7 @@ export default function CookiesPage() {
         <div className="mx-auto max-w-3xl">
           {SECTIONS.map(([heading, body]) => (
             <div key={heading} className="mb-10">
-              <h2 className="text-lg font-bold tracking-tight text-white">{heading}</h2>
+              <h2 className="text-lg font-bold tracking-tight text-ink">{heading}</h2>
               <div className="mt-3 h-0.5 w-9 rounded bg-brand-gradient" />
               <div className="mt-4 space-y-4">
                 {body.split("\n\n").map((para, i) => (

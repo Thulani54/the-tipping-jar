@@ -113,16 +113,16 @@ export default function OtpVerifyPage() {
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/15 text-3xl">
             ✉️
           </div>
-          <h1 className="mt-6 text-center text-2xl font-extrabold tracking-tight text-white">
+          <h1 className="mt-6 text-center text-2xl font-extrabold tracking-tight text-ink">
             Check your email
           </h1>
           <p className="body-muted mt-2 text-center">
             We sent a 6-digit code to{" "}
-            <span className="font-semibold text-white">{target}</span>.
+            <span className="font-semibold text-ink">{target}</span>.
           </p>
 
           <div className="mt-8">
-            <label className="mb-3 block text-center text-sm font-semibold text-white">
+            <label className="mb-3 block text-center text-sm font-semibold text-ink">
               Verification code
             </label>
             <div className="flex justify-center gap-2.5">
@@ -139,7 +139,7 @@ export default function OtpVerifyPage() {
                   onChange={(e) => setDigit(i, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(i, e)}
                   onPaste={handlePaste}
-                  className="h-14 w-11 rounded-xl border border-border bg-dark text-center text-2xl font-bold text-white focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30"
+                  className="h-14 w-11 rounded-xl border border-border bg-dark text-center text-2xl font-bold text-ink focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30"
                 />
               ))}
             </div>

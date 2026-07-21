@@ -118,14 +118,14 @@ export default async function BlogPage() {
                     Featured
                   </span>
                 </div>
-                <h2 className="mt-5 text-2xl font-extrabold tracking-tight text-white md:text-3xl">
+                <h2 className="mt-5 text-2xl font-extrabold tracking-tight text-ink md:text-3xl">
                   {featured.title}
                 </h2>
                 <p className="body-muted mt-3 text-[15px] leading-relaxed">{featured.excerpt}</p>
                 <div className="mt-6 border-t border-border pt-4">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted">
                     <Avatar name={featured.author_name} color={catColor(featured.category)} />
-                    <span className="font-semibold text-white">{featured.author_name}</span>
+                    <span className="font-semibold text-ink">{featured.author_name}</span>
                     <span>{formatDate(featured.created_at)}</span>
                     <span>·</span>
                     <span>{featured.read_time}</span>
@@ -157,7 +157,7 @@ export default async function BlogPage() {
                           <Tag label={catLabel(post.category)} color={color} />
                           <span className="text-[11px] text-muted">{post.read_time}</span>
                         </div>
-                        <h3 className="mt-4 text-[15px] font-bold leading-snug text-white">
+                        <h3 className="mt-4 text-[15px] font-bold leading-snug text-ink">
                           {post.title}
                         </h3>
                         <p className="body-muted mt-2 line-clamp-3 text-[13px]">{post.excerpt}</p>

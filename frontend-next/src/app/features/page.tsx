@@ -169,7 +169,7 @@ export default function FeaturesPage() {
                 key={t}
                 onClick={() => setTab(i)}
                 className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                  tab === i ? "bg-brand-gradient text-white" : "text-muted hover:text-white"
+                  tab === i ? "bg-brand-gradient text-ink" : "text-muted hover:text-ink"
                 }`}
               >
                 {t}
@@ -184,7 +184,7 @@ export default function FeaturesPage() {
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-teal/10 text-xl">
                 {f.icon}
               </div>
-              <h3 className="mt-4 font-semibold text-white">{f.title}</h3>
+              <h3 className="mt-4 font-semibold text-ink">{f.title}</h3>
               <p className="body-muted mt-2 text-sm">{f.body}</p>
             </div>
           ))}
@@ -211,7 +211,7 @@ export default function FeaturesPage() {
                   {icon}
                 </span>
                 <div className="text-left">
-                  <p className="text-sm font-semibold text-white">{name}</p>
+                  <p className="text-sm font-semibold text-ink">{name}</p>
                   <p className="text-xs text-muted">{sub}</p>
                 </div>
               </div>
@@ -223,7 +223,7 @@ export default function FeaturesPage() {
       {/* CTA */}
       <section className="container-content py-20">
         <div className="rounded-3xl bg-brand-gradient p-12 text-center md:p-16">
-          <h2 className="heading-xl text-white">Ready to start earning?</h2>
+          <h2 className="heading-xl text-ink">Ready to start earning?</h2>
           <p className="mx-auto mt-4 max-w-md text-white/85">
             Create your free page in under a minute.
           </p>

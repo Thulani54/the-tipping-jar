@@ -24,7 +24,7 @@ export function Nav() {
 
         <div className="hidden items-center gap-7 md:flex">
           {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="text-sm text-muted hover:text-white">
+            <Link key={l.href} href={l.href} className="text-sm text-muted hover:text-ink">
               {l.label}
             </Link>
           ))}
@@ -36,13 +36,13 @@ export function Nav() {
               <Link href={isCreator ? "/dashboard" : "/fan-dashboard"} className="btn-ghost !py-2 !px-4 text-sm">
                 Dashboard
               </Link>
-              <button onClick={logout} className="text-sm text-muted hover:text-white">
+              <button onClick={logout} className="text-sm text-muted hover:text-ink">
                 Log out
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="text-sm text-muted hover:text-white">
+              <Link href="/login" className="text-sm text-muted hover:text-ink">
                 Log in
               </Link>
               <Link href="/register" className="btn-primary !py-2 !px-4 text-sm">
@@ -53,7 +53,7 @@ export function Nav() {
         </div>
 
         <button
-          className="md:hidden text-white"
+          className="md:hidden text-ink"
           onClick={() => setOpen((v) => !v)}
           aria-label="Toggle menu"
         >

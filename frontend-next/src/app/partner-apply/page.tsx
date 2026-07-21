@@ -85,7 +85,7 @@ export default function PartnerApplyPage() {
 
         {step === 0 && (
           <section className="mt-10">
-            <h1 className="text-2xl font-extrabold tracking-tight text-white">Company details</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-ink">Company details</h1>
             <p className="body-muted mt-2">
               Tell us about your business and how you plan to use the Platform API.
             </p>
@@ -125,7 +125,7 @@ export default function PartnerApplyPage() {
 
         {step === 1 && (
           <section className="mt-10">
-            <h1 className="text-2xl font-extrabold tracking-tight text-white">Primary contact</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-ink">Primary contact</h1>
             <p className="body-muted mt-2">Who should we contact regarding your application?</p>
             <div className="mt-8 space-y-4">
               <Field label="Full name *" value={contactName} onChange={setContactName} />
@@ -164,7 +164,7 @@ export default function PartnerApplyPage() {
 
         {step === 2 && (
           <section className="mt-10">
-            <h1 className="text-2xl font-extrabold tracking-tight text-white">
+            <h1 className="text-2xl font-extrabold tracking-tight text-ink">
               Supporting documents
             </h1>
             <p className="body-muted mt-2">
@@ -208,7 +208,7 @@ function StepIndicator({ current }: { current: number }) {
             <div
               className={`grid h-7 w-7 place-items-center rounded-full border text-xs font-bold ${
                 i < current
-                  ? "border-teal bg-teal text-white"
+                  ? "border-teal bg-teal text-ink"
                   : i === current
                     ? "border-teal bg-teal/15 text-teal"
                     : "border-border bg-card text-muted"
@@ -221,7 +221,7 @@ function StepIndicator({ current }: { current: number }) {
             )}
           </div>
           <span
-            className={`mt-2 text-xs ${i === current ? "font-semibold text-white" : "text-muted"}`}
+            className={`mt-2 text-xs ${i === current ? "font-semibold text-ink" : "text-muted"}`}
           >
             {label}
           </span>
@@ -245,7 +245,7 @@ function Field({
   type?: string;
 }) {
   const cls =
-    "w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-white placeholder:text-muted focus:border-teal focus:outline-none";
+    "w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none";
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
@@ -280,7 +280,7 @@ function DocRow({
     >
       <span className="text-lg">{filename ? "✅" : "📎"}</span>
       <div className="min-w-0 flex-1">
-        <p className={`text-sm ${filename ? "text-white" : "text-muted"}`}>{label}</p>
+        <p className={`text-sm ${filename ? "text-ink" : "text-muted"}`}>{label}</p>
         {filename && <p className="truncate text-xs text-teal">{filename}</p>}
       </div>
       <label className="cursor-pointer rounded-lg border border-border px-3.5 py-2 text-xs font-semibold text-teal hover:border-teal">
@@ -303,7 +303,7 @@ function SuccessView() {
         <div className="mx-auto grid h-20 w-20 place-items-center rounded-full border border-teal/40 bg-primary/10 text-4xl">
           ✓
         </div>
-        <h1 className="mt-7 text-2xl font-extrabold tracking-tight text-white">
+        <h1 className="mt-7 text-2xl font-extrabold tracking-tight text-ink">
           Application submitted!
         </h1>
         <p className="body-muted mt-3">

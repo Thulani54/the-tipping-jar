@@ -58,7 +58,7 @@ const AUDIENCE_GENDERS = [
 const GOALS = ["R500", "R2,000", "R5,000", "R10,000"];
 
 const inputClass =
-  "w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-white placeholder:text-muted focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30";
+  "w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -242,7 +242,7 @@ export default function OnboardingPage() {
                       className={`flex flex-col items-center justify-center gap-3 rounded-2xl border px-4 py-8 text-center transition ${
                         active
                           ? "border-teal bg-primary/15 text-teal"
-                          : "border-border bg-card text-white hover:border-teal/50"
+                          : "border-border bg-card text-ink hover:border-teal/50"
                       }`}
                     >
                       <span className="text-3xl" aria-hidden>
@@ -263,7 +263,7 @@ export default function OnboardingPage() {
             >
               <div className="space-y-6">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-white">
+                  <label className="mb-2 block text-sm font-semibold text-ink">
                     Your tagline
                   </label>
                   <input
@@ -276,7 +276,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-white">
+                  <label className="mb-1 block text-sm font-semibold text-ink">
                     Short bio (optional)
                   </label>
                   <p className="mb-2 text-xs text-muted">Visible on your public tip page.</p>
@@ -291,7 +291,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-white">
+                  <label className="mb-1 block text-sm font-semibold text-ink">
                     Monthly tip goal (optional)
                   </label>
                   <p className="mb-3 text-xs text-muted">
@@ -327,7 +327,7 @@ export default function OnboardingPage() {
                     <div>
                       <p className="text-xs text-muted">Your tip page preview</p>
                       <p
-                        className={`text-sm font-semibold ${tagline ? "text-white" : "text-muted"}`}
+                        className={`text-sm font-semibold ${tagline ? "text-ink" : "text-muted"}`}
                       >
                         {tagline || "Your tagline will appear here…"}
                       </p>
@@ -346,7 +346,7 @@ export default function OnboardingPage() {
               type="button"
               onClick={back}
               disabled={saving}
-              className="text-sm font-medium text-muted hover:text-white disabled:opacity-50"
+              className="text-sm font-medium text-muted hover:text-ink disabled:opacity-50"
             >
               Back
             </button>
@@ -382,7 +382,7 @@ function StepShell({
 }) {
   return (
     <div>
-      <h1 className="text-2xl font-extrabold tracking-tight text-white md:text-3xl">
+      <h1 className="text-2xl font-extrabold tracking-tight text-ink md:text-3xl">
         {title}
       </h1>
       <p className="body-muted mt-2">{subtitle}</p>
@@ -407,7 +407,7 @@ function OptionButton({
       className={`flex items-center gap-3 rounded-xl border px-4 py-3.5 text-left transition ${
         active
           ? "border-teal bg-primary/15 text-teal"
-          : "border-border bg-card text-white hover:border-teal/50"
+          : "border-border bg-card text-ink hover:border-teal/50"
       }`}
     >
       {children}
@@ -445,7 +445,7 @@ function RowOption({
         {icon}
       </span>
       <span className="flex-1">
-        <span className="block text-sm font-bold text-white">{title}</span>
+        <span className="block text-sm font-bold text-ink">{title}</span>
         <span className="block text-xs text-muted">{sub}</span>
       </span>
       {active && <span className="text-teal">✓</span>}

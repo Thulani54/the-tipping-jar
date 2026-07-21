@@ -101,7 +101,7 @@ export default async function CreatorPage({
       <div className="container-content">
         {/* Header */}
         <div className="-mt-14 flex flex-col items-start gap-5 sm:flex-row sm:items-end">
-          <div className="grid h-28 w-28 place-items-center rounded-3xl border-4 border-darker bg-primary text-3xl font-extrabold text-white">
+          <div className="grid h-28 w-28 place-items-center rounded-3xl border-4 border-darker bg-primary text-3xl font-extrabold text-ink">
             {initials(creator.display_name)}
           </div>
           <div className="pb-1">
@@ -167,7 +167,7 @@ export default async function CreatorPage({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate font-semibold text-white">
+                      <span className="truncate font-semibold text-ink">
                         {maskName(tip.tipper_name)}
                       </span>
                       <span className="text-xs text-muted">

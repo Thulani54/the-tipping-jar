@@ -135,20 +135,20 @@ export default function SubscribePage({
     <section className="container-content py-16">
       {/* Breadcrumb */}
       <nav className="flex flex-wrap items-center gap-2 text-sm text-muted">
-        <Link href="/" className="hover:text-white">
+        <Link href="/" className="hover:text-ink">
           TippingJar
         </Link>
         <span>›</span>
-        <Link href={`/creator/${creator.slug}`} className="hover:text-white">
+        <Link href={`/creator/${creator.slug}`} className="hover:text-ink">
           {creator.slug}
         </Link>
         <span>›</span>
-        <span className="text-white">Subscribe</span>
+        <span className="text-ink">Subscribe</span>
       </nav>
 
       {/* Header */}
       <div className="mt-10 flex flex-col items-center text-center">
-        <div className="grid h-20 w-20 place-items-center rounded-full bg-primary text-3xl font-extrabold text-white">
+        <div className="grid h-20 w-20 place-items-center rounded-full bg-primary text-3xl font-extrabold text-ink">
           {initials(creator.display_name)}
         </div>
         <h1 className="mt-4 text-3xl font-extrabold tracking-tight">
@@ -156,7 +156,7 @@ export default function SubscribePage({
         </h1>
         <p className="mt-1 text-muted">@{creator.slug}</p>
         <div className="mt-6 max-w-md rounded-2xl border border-border bg-card px-8 py-5">
-          <p className="text-lg font-bold text-white">
+          <p className="text-lg font-bold text-ink">
             Choose a monthly support level
           </p>
           <p className="body-muted mt-1">
@@ -180,12 +180,12 @@ export default function SubscribePage({
                 Monthly
               </span>
               {tier.featured && (
-                <span className="rounded-full bg-brand-gradient px-3 py-1 text-xs font-semibold text-white">
+                <span className="rounded-full bg-brand-gradient px-3 py-1 text-xs font-semibold text-ink">
                   Popular
                 </span>
               )}
             </div>
-            <h3 className="mt-4 text-xl font-extrabold text-white">
+            <h3 className="mt-4 text-xl font-extrabold text-ink">
               {tier.name}
             </h3>
             <div className="mt-2 flex items-end gap-1">
@@ -218,7 +218,7 @@ export default function SubscribePage({
       <div className="mt-12 text-center">
         <Link
           href={`/creator/${creator.slug}`}
-          className="text-sm text-muted underline hover:text-white"
+          className="text-sm text-muted underline hover:text-ink"
         >
           ← Back to {creator.display_name}&apos;s page
         </Link>
@@ -294,7 +294,7 @@ function PledgeModal({
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-teal/12 text-3xl">
               ✓
             </div>
-            <h3 className="mt-4 text-xl font-extrabold text-white">
+            <h3 className="mt-4 text-xl font-extrabold text-ink">
               You&apos;re in!
             </h3>
             <p className="body-muted mx-auto mt-2 max-w-xs">
@@ -307,13 +307,13 @@ function PledgeModal({
           </div>
         ) : (
           <>
-            <h3 className="text-xl font-extrabold text-white">
+            <h3 className="text-xl font-extrabold text-ink">
               Subscribe to {tier.name}
             </h3>
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-darker p-3">
               <span className="text-2xl">⭐</span>
               <div>
-                <p className="font-semibold text-white">{tier.name}</p>
+                <p className="font-semibold text-ink">{tier.name}</p>
                 <p className="text-sm text-teal">R{tier.price}/month</p>
               </div>
             </div>
@@ -321,14 +321,14 @@ function PledgeModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name (optional)"
-              className="mt-4 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-white placeholder:text-muted focus:border-teal focus:outline-none"
+              className="mt-4 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-ink placeholder:text-muted focus:border-teal focus:outline-none"
             />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com *"
-              className="mt-3 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-white placeholder:text-muted focus:border-teal focus:outline-none"
+              className="mt-3 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-ink placeholder:text-muted focus:border-teal focus:outline-none"
             />
             {error && (
               <p className="mt-3 text-sm text-red-400">{error}</p>

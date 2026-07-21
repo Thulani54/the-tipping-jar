@@ -99,7 +99,7 @@ export default function DashboardPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm text-muted">{greeting()} 👋</p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-white">{name}</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">{name}</h1>
         </div>
         <Link href="/creators" className="btn-ghost !px-4 !py-2 text-sm">
           Explore creators
@@ -114,8 +114,8 @@ export default function DashboardPage() {
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 whitespace-nowrap rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${
               tab === t.id
-                ? "border-b-2 border-teal text-white"
-                : "text-muted hover:text-white"
+                ? "border-b-2 border-teal text-ink"
+                : "text-muted hover:text-ink"
             }`}
           >
             <span>{t.icon}</span>
@@ -164,7 +164,7 @@ function StatCard({
       >
         {icon}
       </div>
-      <p className="mt-4 text-2xl font-extrabold tracking-tight text-white">{value}</p>
+      <p className="mt-4 text-2xl font-extrabold tracking-tight text-ink">{value}</p>
       <p className="mt-1 text-xs text-muted">{label}</p>
     </div>
   );
@@ -195,7 +195,7 @@ function OverviewTab({
 
       {/* Share tip link */}
       <div className="card bg-brand-gradient !border-transparent">
-        <h3 className="text-lg font-semibold text-white">Share your tip link</h3>
+        <h3 className="text-lg font-semibold text-ink">Share your tip link</h3>
         <p className="mt-1 text-sm text-white/80">
           Drop your link in your bio, streams and posts so fans can support you.
         </p>
@@ -228,13 +228,13 @@ function OverviewTab({
 function RecentTips({ tips, loading }: { tips: Tip[]; loading: boolean }) {
   return (
     <div>
-      <h3 className="mb-4 text-base font-bold text-white">Recent tips</h3>
+      <h3 className="mb-4 text-base font-bold text-ink">Recent tips</h3>
       {loading ? (
         <p className="body-muted">Loading…</p>
       ) : tips.length === 0 ? (
         <div className="card grid place-items-center py-12 text-center">
           <div className="text-3xl">💸</div>
-          <p className="mt-3 font-semibold text-white">No tips yet</p>
+          <p className="mt-3 font-semibold text-ink">No tips yet</p>
           <p className="body-muted mt-1 max-w-sm">
             Share your tip link to start receiving support from your fans.
           </p>
@@ -254,7 +254,7 @@ function RecentTips({ tips, loading }: { tips: Tip[]; loading: boolean }) {
               <tbody>
                 {tips.map((t) => (
                   <tr key={t.id} className="border-b border-border/60 last:border-0">
-                    <td className="px-5 py-3 font-medium text-white">
+                    <td className="px-5 py-3 font-medium text-ink">
                       {t.tipper_name || "Anonymous"}
                     </td>
                     <td className="max-w-[220px] truncate px-5 py-3 text-muted">
@@ -265,7 +265,7 @@ function RecentTips({ tips, loading }: { tips: Tip[]; loading: boolean }) {
                         {t.status || "—"}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-right font-bold text-white">
+                    <td className="px-5 py-3 text-right font-bold text-ink">
                       R{money(Number(t.amount) || 0)}
                     </td>
                   </tr>
@@ -285,7 +285,7 @@ function TipsTab({ tips, loading }: { tips: Tip[]; loading: boolean }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-base font-bold text-white">All tips</h3>
+        <h3 className="text-base font-bold text-ink">All tips</h3>
         <span className="text-sm text-muted">Total: R{money(total)}</span>
       </div>
       {/* TODO(api): creator-scoped tips endpoint + date filters (Today / This week / This month) */}
@@ -317,7 +317,7 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
   return (
     <div className="max-w-3xl space-y-8">
       <div>
-        <h2 className="text-xl font-extrabold tracking-tight text-white">Referrals</h2>
+        <h2 className="text-xl font-extrabold tracking-tight text-ink">Referrals</h2>
         <p className="body-muted mt-1">
           Earn {(rate * 100).toFixed(1)}% of tips from every creator you refer — for 6 months.
         </p>
@@ -329,13 +329,13 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
           🎁 Your referral code
         </p>
         <div className="mt-3 flex items-center gap-3">
-          <span className="font-mono text-3xl font-bold tracking-[0.3em] text-white">
+          <span className="font-mono text-3xl font-bold tracking-[0.3em] text-ink">
             {code || "—"}
           </span>
           {code && (
             <button
               onClick={() => copy(code, "code")}
-              className="rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/25"
+              className="rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-white/25"
             >
               {copied === "code" ? "Copied!" : "Copy"}
             </button>
@@ -346,7 +346,7 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={() => copy(shareUrl, "link")}
-              className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white hover:bg-white/25"
+              className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-ink hover:bg-white/25"
             >
               {copied === "link" ? "Link copied!" : "🔗 Copy link"}
             </button>
@@ -356,7 +356,7 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
               )}`}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white hover:bg-white/25"
+              className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-ink hover:bg-white/25"
             >
               💬 WhatsApp
             </a>
@@ -366,7 +366,7 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
               )}`}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white hover:bg-white/25"
+              className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-ink hover:bg-white/25"
             >
               𝕏 Twitter / X
             </a>
@@ -383,16 +383,16 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
       </div>
 
       <div>
-        <h3 className="mb-3 text-base font-bold text-white">Your referrals</h3>
+        <h3 className="mb-3 text-base font-bold text-ink">Your referrals</h3>
         <div className="card grid place-items-center py-12 text-center">
           <div className="text-3xl">👥</div>
-          <p className="mt-3 font-semibold text-white">No referrals yet</p>
+          <p className="mt-3 font-semibold text-ink">No referrals yet</p>
           <p className="body-muted mt-1">Share your code above to start earning commission.</p>
         </div>
       </div>
 
       <div>
-        <h3 className="mb-4 text-base font-bold text-white">How it works</h3>
+        <h3 className="mb-4 text-base font-bold text-ink">How it works</h3>
         <div className="space-y-4">
           {steps.map(([title, body], i) => (
             <div key={title} className="flex gap-4">
@@ -400,7 +400,7 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
                 {i + 1}
               </div>
               <div>
-                <p className="font-semibold text-white">{title}</p>
+                <p className="font-semibold text-ink">{title}</p>
                 <p className="body-muted">{body}</p>
               </div>
             </div>
@@ -468,7 +468,7 @@ function TransactionsTab({
     return (
       <div className="card grid place-items-center py-12 text-center">
         <div className="text-3xl">🧾</div>
-        <p className="mt-3 font-semibold text-white">Create a creator profile</p>
+        <p className="mt-3 font-semibold text-ink">Create a creator profile</p>
         <p className="body-muted mt-1">Set up your page to start receiving tips and see transactions.</p>
         <Link href="/onboarding" className="btn-primary mt-5 !px-5 !py-2.5 text-sm">
           Set up profile
@@ -490,7 +490,7 @@ function TransactionsTab({
 
       <div className="card flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="font-semibold text-white">Payouts</p>
+          <p className="font-semibold text-ink">Payouts</p>
           <p className="body-muted">Withdraw your available balance to your bank account.</p>
         </div>
         <button
@@ -504,11 +504,11 @@ function TransactionsTab({
       {msg && <p className="text-sm text-teal">{msg}</p>}
 
       <div>
-        <h3 className="mb-4 text-base font-bold text-white">Transactions</h3>
+        <h3 className="mb-4 text-base font-bold text-ink">Transactions</h3>
         {txns.length === 0 ? (
           <div className="card grid place-items-center py-12 text-center">
             <div className="text-3xl">🧾</div>
-            <p className="mt-3 font-semibold text-white">No transactions yet</p>
+            <p className="mt-3 font-semibold text-ink">No transactions yet</p>
             <p className="body-muted mt-1">Tips and card payments will show up here.</p>
           </div>
         ) : (
@@ -546,10 +546,10 @@ function TransactionsTab({
                           {t.status}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-right text-white">
+                      <td className="px-5 py-3 text-right text-ink">
                         {t.currency} {t.amount}
                       </td>
-                      <td className="px-5 py-3 text-right font-bold text-white">R{t.creator_net}</td>
+                      <td className="px-5 py-3 text-right font-bold text-ink">R{t.creator_net}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -561,7 +561,7 @@ function TransactionsTab({
 
       {payouts.length > 0 && (
         <div>
-          <h3 className="mb-4 text-base font-bold text-white">Payout history</h3>
+          <h3 className="mb-4 text-base font-bold text-ink">Payout history</h3>
           <div className="space-y-2">
             {payouts.map((p) => (
               <div key={p.id} className="card flex flex-wrap items-center justify-between gap-3 !py-3">
@@ -572,7 +572,7 @@ function TransactionsTab({
                 <span className="rounded-full bg-border px-2.5 py-1 text-xs text-muted">
                   {p.status}
                 </span>
-                <span className="font-bold text-white">R{p.amount}</span>
+                <span className="font-bold text-ink">R{p.amount}</span>
               </div>
             ))}
           </div>
@@ -587,7 +587,7 @@ function StudioTab() {
   return (
     <div className="max-w-3xl space-y-6">
       <div>
-        <h2 className="text-xl font-extrabold tracking-tight text-white">Creator Studio</h2>
+        <h2 className="text-xl font-extrabold tracking-tight text-ink">Creator Studio</h2>
         <p className="body-muted mt-1">
           Design share-ready promo graphics for your tip page — square, portrait, story and
           landscape sizes, with text, shapes, colours and gradients.
@@ -599,7 +599,7 @@ function StudioTab() {
       {/* TODO(api): none required — studio is client-side; port the canvas editor from studio_tab.dart */}
       <div className="card grid place-items-center py-16 text-center">
         <div className="text-4xl">🎨</div>
-        <p className="mt-4 text-lg font-semibold text-white">Design studio coming to the web</p>
+        <p className="mt-4 text-lg font-semibold text-ink">Design studio coming to the web</p>
         <p className="body-muted mt-2 max-w-md">
           Create branded assets with text, shapes and gradients, then export and save them to
           your gallery. The full editor is being ported.
@@ -610,7 +610,7 @@ function StudioTab() {
         {["Square", "Portrait", "Story", "Landscape"].map((s) => (
           <div key={s} className="card !p-4 text-center">
             <div className="mx-auto mb-3 h-16 w-16 rounded-lg bg-brand-gradient opacity-80" />
-            <p className="text-sm font-semibold text-white">{s}</p>
+            <p className="text-sm font-semibold text-ink">{s}</p>
           </div>
         ))}
       </div>

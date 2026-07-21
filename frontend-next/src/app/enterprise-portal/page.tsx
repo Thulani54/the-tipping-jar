@@ -67,7 +67,7 @@ export default function EnterprisePortalPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm text-muted">Enterprise Portal</p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-white">
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">
             {enterprise?.name || "Your organisation"}
           </h1>
         </div>
@@ -96,7 +96,7 @@ export default function EnterprisePortalPage() {
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={`flex items-center gap-2 whitespace-nowrap rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${
-                  tab === t.id ? "border-b-2 border-teal text-white" : "text-muted hover:text-white"
+                  tab === t.id ? "border-b-2 border-teal text-ink" : "text-muted hover:text-ink"
                 }`}
               >
                 <span>{t.icon}</span>
@@ -131,7 +131,7 @@ function StatCard({
   return (
     <div className={`card !p-5 ${highlight ? "!border-teal/40" : ""}`}>
       <div className="text-lg">{icon}</div>
-      <p className="mt-3 text-2xl font-extrabold tracking-tight text-white">{value}</p>
+      <p className="mt-3 text-2xl font-extrabold tracking-tight text-ink">{value}</p>
       <p className="mt-1 text-xs text-muted">{label}</p>
     </div>
   );
@@ -141,7 +141,7 @@ function NoEnterprise() {
   return (
     <div className="mt-10 card grid place-items-center py-16 text-center">
       <div className="text-4xl">🏢</div>
-      <p className="mt-4 text-lg font-semibold text-white">No enterprise linked to your account</p>
+      <p className="mt-4 text-lg font-semibold text-ink">No enterprise linked to your account</p>
       <p className="body-muted mt-2 max-w-md">
         Apply to run tipping at scale for your platform. Your account will be reviewed before
         portal access is granted.
@@ -159,7 +159,7 @@ function OverviewTab({ enterprise }: { enterprise: Enterprise }) {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-extrabold tracking-tight text-white">Overview</h2>
+        <h2 className="text-xl font-extrabold tracking-tight text-ink">Overview</h2>
         <p className="body-muted mt-1">{enterprise.name}</p>
       </div>
       {/* TODO(api): enterprise stats (creator count, tips, earned, distributed) */}
@@ -172,10 +172,10 @@ function OverviewTab({ enterprise }: { enterprise: Enterprise }) {
       </div>
 
       <div>
-        <h3 className="mb-4 text-base font-bold text-white">Earnings per creator</h3>
+        <h3 className="mb-4 text-base font-bold text-ink">Earnings per creator</h3>
         <div className="card grid place-items-center py-12 text-center">
           <div className="text-3xl">📊</div>
-          <p className="mt-3 font-semibold text-white">No earnings data yet</p>
+          <p className="mt-3 font-semibold text-ink">No earnings data yet</p>
           <p className="body-muted mt-1">Add creators to start tracking earnings.</p>
         </div>
       </div>
@@ -187,21 +187,21 @@ function OverviewTab({ enterprise }: { enterprise: Enterprise }) {
 function CreatorsTab() {
   return (
     <div className="max-w-3xl space-y-6">
-      <h2 className="text-xl font-extrabold tracking-tight text-white">Managed creators</h2>
+      <h2 className="text-xl font-extrabold tracking-tight text-ink">Managed creators</h2>
 
       {/* TODO(api): enterprise members endpoints (list / add by slug / remove) */}
       <div className="card">
-        <p className="font-semibold text-white">Add a creator</p>
+        <p className="font-semibold text-ink">Add a creator</p>
         <div className="mt-3 flex flex-wrap gap-3">
           <input
             type="text"
             placeholder="creator-slug"
-            className="min-w-0 flex-1 rounded-lg border border-border bg-dark px-4 py-2.5 text-sm text-white placeholder:text-muted focus:border-teal focus:outline-none"
+            className="min-w-0 flex-1 rounded-lg border border-border bg-dark px-4 py-2.5 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none"
           />
           <button
             type="button"
             disabled
-            className="cursor-not-allowed rounded-lg bg-primary/40 px-5 py-2.5 text-sm font-semibold text-white"
+            className="cursor-not-allowed rounded-lg bg-primary/40 px-5 py-2.5 text-sm font-semibold text-ink"
           >
             Add
           </button>
@@ -210,7 +210,7 @@ function CreatorsTab() {
 
       <div className="card grid place-items-center py-12 text-center">
         <div className="text-3xl">👥</div>
-        <p className="mt-3 font-semibold text-white">No creators yet</p>
+        <p className="mt-3 font-semibold text-ink">No creators yet</p>
         <p className="body-muted mt-1">Add a creator above to manage them under your enterprise.</p>
       </div>
     </div>
@@ -221,11 +221,11 @@ function CreatorsTab() {
 function DistributionsTab() {
   return (
     <div className="max-w-3xl space-y-6">
-      <h2 className="text-xl font-extrabold tracking-tight text-white">Distributions</h2>
+      <h2 className="text-xl font-extrabold tracking-tight text-ink">Distributions</h2>
       {/* TODO(api): distributions endpoints (list history / create payout run) */}
       <div className="card grid place-items-center py-16 text-center">
         <div className="text-3xl">💰</div>
-        <p className="mt-3 font-semibold text-white">No distributions yet</p>
+        <p className="mt-3 font-semibold text-ink">No distributions yet</p>
         <p className="body-muted mt-1 max-w-sm">
           Distribute pooled tips to your managed creators. History will appear here.
         </p>
@@ -247,13 +247,13 @@ function SettingsTab({ enterprise }: { enterprise: Enterprise }) {
   ];
   return (
     <div className="max-w-2xl space-y-6">
-      <h2 className="text-xl font-extrabold tracking-tight text-white">Settings</h2>
+      <h2 className="text-xl font-extrabold tracking-tight text-ink">Settings</h2>
       <div className="card !p-0">
         <dl className="divide-y divide-border/60">
           {rows.map(([label, value]) => (
             <div key={label} className="flex items-start justify-between gap-4 px-5 py-3.5">
               <dt className="text-sm text-muted">{label}</dt>
-              <dd className="text-right text-sm font-medium text-white">{value}</dd>
+              <dd className="text-right text-sm font-medium text-ink">{value}</dd>
             </div>
           ))}
         </dl>

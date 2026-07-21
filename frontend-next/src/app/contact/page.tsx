@@ -59,7 +59,7 @@ const FAQS: [string, string][] = [
 ];
 
 const inputClass =
-  "w-full rounded-xl border border-border bg-dark px-4 py-3 text-sm text-white placeholder:text-muted focus:border-teal focus:outline-none";
+  "w-full rounded-xl border border-border bg-dark px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none";
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -70,7 +70,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
       className="w-full rounded-xl border border-border bg-card p-4 text-left transition hover:border-teal/40"
     >
       <div className="flex items-center justify-between gap-4">
-        <span className="text-sm font-semibold text-white">{q}</span>
+        <span className="text-sm font-semibold text-ink">{q}</span>
         <span className="text-lg leading-none text-teal">{open ? "–" : "+"}</span>
       </div>
       {open && <p className="body-muted mt-3 text-[13px]">{a}</p>}
@@ -137,7 +137,7 @@ export default function ContactPage() {
                 <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-brand-gradient text-2xl">
                   ✓
                 </div>
-                <h2 className="mt-6 text-2xl font-extrabold text-white">Message sent!</h2>
+                <h2 className="mt-6 text-2xl font-extrabold text-ink">Message sent!</h2>
                 <p className="body-muted mx-auto mt-3 max-w-sm">
                   Thanks for reaching out. We&apos;ve sent a confirmation to {email} and will get
                   back to you within 1–2 business days.
@@ -155,7 +155,7 @@ export default function ContactPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} noValidate>
-                <h2 className="text-2xl font-extrabold tracking-tight text-white">
+                <h2 className="text-2xl font-extrabold tracking-tight text-ink">
                   Send us a message
                 </h2>
                 <p className="body-muted mt-1 text-[13px]">All fields required.</p>
@@ -221,7 +221,7 @@ export default function ContactPage() {
 
           {/* Contact cards */}
           <div className="lg:col-span-2">
-            <h3 className="text-lg font-bold text-white">Other ways to reach us</h3>
+            <h3 className="text-lg font-bold text-ink">Other ways to reach us</h3>
             <div className="mt-5 space-y-3">
               {CONTACT_CARDS.map((c) => (
                 <div key={c.title} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
@@ -232,7 +232,7 @@ export default function ContactPage() {
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
                       {c.title}
                     </p>
-                    <p className="text-[13px] font-semibold text-white">{c.value}</p>
+                    <p className="text-[13px] font-semibold text-ink">{c.value}</p>
                     <p className="text-[11px] text-muted">{c.sub}</p>
                   </div>
                 </div>
@@ -241,7 +241,7 @@ export default function ContactPage() {
             <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-dark p-4">
               <span className="text-base">🕐</span>
               <div>
-                <p className="text-[13px] font-semibold text-white">Support hours</p>
+                <p className="text-[13px] font-semibold text-ink">Support hours</p>
                 <p className="text-xs text-muted">Mon–Fri, 08:00–17:00 SAST</p>
               </div>
             </div>
@@ -256,7 +256,7 @@ export default function ContactPage() {
             {STATS.map((s) => (
               <div key={s.label} className="card">
                 <div className="text-xl">{s.icon}</div>
-                <p className="mt-3 text-base font-extrabold text-white">{s.label}</p>
+                <p className="mt-3 text-base font-extrabold text-ink">{s.label}</p>
                 <p className="text-xs text-muted">{s.desc}</p>
               </div>
             ))}
@@ -266,7 +266,7 @@ export default function ContactPage() {
 
       {/* FAQ */}
       <section className="container-content py-16">
-        <h2 className="text-2xl font-extrabold tracking-tight text-white md:text-3xl">
+        <h2 className="text-2xl font-extrabold tracking-tight text-ink md:text-3xl">
           Frequently asked questions
         </h2>
         <div className="mx-auto mt-7 max-w-3xl space-y-2">

@@ -72,15 +72,15 @@ export default function JarPage({
     <section className="container-content py-12">
       {/* Breadcrumb */}
       <nav className="flex flex-wrap items-center gap-2 text-sm text-muted">
-        <Link href="/" className="hover:text-white">
+        <Link href="/" className="hover:text-ink">
           TippingJar
         </Link>
         <span>›</span>
-        <Link href={`/creator/${slug}`} className="hover:text-white">
+        <Link href={`/creator/${slug}`} className="hover:text-ink">
           {slug}
         </Link>
         <span>›</span>
-        <span className="text-white">{jar.name}</span>
+        <span className="text-ink">{jar.name}</span>
       </nav>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[4fr_5fr]">
@@ -123,7 +123,7 @@ export default function JarPage({
 
           <Link
             href={`/creator/${slug}`}
-            className="mt-7 inline-block text-sm text-muted underline hover:text-white"
+            className="mt-7 inline-block text-sm text-muted underline hover:text-ink"
           >
             ← Back to creator page
           </Link>
@@ -139,7 +139,7 @@ export default function JarPage({
 function StatPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-border bg-card px-4 py-3">
-      <div className="text-lg font-extrabold text-white">{value}</div>
+      <div className="text-lg font-extrabold text-ink">{value}</div>
       <div className="text-xs text-muted">{label}</div>
     </div>
   );
@@ -259,7 +259,7 @@ function JarTipForm({
       </p>
 
       {/* Presets */}
-      <p className="mt-6 text-sm font-semibold text-white">Choose amount</p>
+      <p className="mt-6 text-sm font-semibold text-ink">Choose amount</p>
       <div className="mt-3 grid grid-cols-3 gap-3">
         {PRESETS.map((v) => {
           const active = custom === "" && amount === v;
@@ -274,7 +274,7 @@ function JarTipForm({
               className={`rounded-full border px-4 py-3 text-sm font-bold transition ${
                 active
                   ? "border-teal bg-teal/10 text-teal"
-                  : "border-border bg-darker text-white hover:border-teal/50"
+                  : "border-border bg-darker text-ink hover:border-teal/50"
               }`}
             >
               R{v}
@@ -291,7 +291,7 @@ function JarTipForm({
           value={custom}
           onChange={(e) => onCustom(e.target.value)}
           placeholder="Or enter a custom amount"
-          className="w-full bg-transparent py-3 pl-2 text-white placeholder:text-muted focus:outline-none"
+          className="w-full bg-transparent py-3 pl-2 text-ink placeholder:text-muted focus:outline-none"
         />
       </div>
 
@@ -315,7 +315,7 @@ function JarTipForm({
               </span>
               <span>- R{quote ? fee(quote.service_fee) : "…"}</span>
             </div>
-            <div className="mt-2 flex justify-between border-t border-border pt-2 font-bold text-white">
+            <div className="mt-2 flex justify-between border-t border-border pt-2 font-bold text-ink">
               <span>Creator receives</span>
               <span>R{quote ? fee(quote.creator_net) : amount.toFixed(2)}</span>
             </div>
@@ -328,21 +328,21 @@ function JarTipForm({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Your name (optional)"
-        className="mt-5 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-white placeholder:text-muted focus:border-teal focus:outline-none"
+        className="mt-5 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-ink placeholder:text-muted focus:border-teal focus:outline-none"
       />
       <input
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Email (for receipt, optional)"
-        className="mt-3 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-white placeholder:text-muted focus:border-teal focus:outline-none"
+        className="mt-3 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-ink placeholder:text-muted focus:border-teal focus:outline-none"
       />
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value.slice(0, 280))}
         rows={3}
         placeholder="Say something nice…"
-        className="mt-3 w-full resize-none rounded-2xl border border-border bg-darker px-4 py-3 text-white placeholder:text-muted focus:border-teal focus:outline-none"
+        className="mt-3 w-full resize-none rounded-2xl border border-border bg-darker px-4 py-3 text-ink placeholder:text-muted focus:border-teal focus:outline-none"
       />
 
       {error && (

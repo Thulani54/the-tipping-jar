@@ -61,7 +61,7 @@ export default function LoginPage() {
               <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/20 text-sm text-teal">
                 ✓
               </span>
-              <span className="font-medium text-white">{b}</span>
+              <span className="font-medium text-ink">{b}</span>
             </li>
           ))}
         </ul>
@@ -70,7 +70,7 @@ export default function LoginPage() {
       {/* Form card */}
       <div className="mx-auto w-full max-w-md">
         <div className="card">
-          <h2 className="text-2xl font-extrabold tracking-tight text-white">
+          <h2 className="text-2xl font-extrabold tracking-tight text-ink">
             Sign in to your account
           </h2>
           <p className="body-muted mt-2">
@@ -82,7 +82,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-white">
+              <label className="mb-2 block text-sm font-semibold text-ink">
                 Email address
               </label>
               <input
@@ -91,17 +91,17 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 autoComplete="email"
-                className="w-full rounded-xl border border-border bg-dark px-4 py-3 text-sm text-white placeholder:text-muted focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30"
+                className="w-full rounded-xl border border-border bg-dark px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30"
               />
             </div>
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <label className="block text-sm font-semibold text-white">Password</label>
+                <label className="block text-sm font-semibold text-ink">Password</label>
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  className="text-xs text-muted hover:text-white"
+                  className="text-xs text-muted hover:text-ink"
                 >
                   {showPassword ? "Hide" : "Show"}
                 </button>
@@ -112,7 +112,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="current-password"
-                className="w-full rounded-xl border border-border bg-dark px-4 py-3 text-sm text-white placeholder:text-muted focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30"
+                className="w-full rounded-xl border border-border bg-dark px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30"
               />
               <div className="mt-2 text-right">
                 <span className="text-xs font-medium text-teal">Forgot password?</span>

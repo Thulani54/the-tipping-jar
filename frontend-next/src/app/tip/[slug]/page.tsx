@@ -211,7 +211,7 @@ export default function TipPage({
               <p className="text-xs uppercase tracking-wide text-muted">
                 Reference
               </p>
-              <p className="mt-1 font-mono text-sm text-white">
+              <p className="mt-1 font-mono text-sm text-ink">
                 {success.reference}
               </p>
             </div>
@@ -221,7 +221,7 @@ export default function TipPage({
           </button>
           <Link
             href={`/creator/${creator.slug}`}
-            className="mt-3 inline-block text-sm text-muted hover:text-white"
+            className="mt-3 inline-block text-sm text-muted hover:text-ink"
           >
             Back to {creator.display_name}&apos;s page
           </Link>
@@ -241,23 +241,23 @@ export default function TipPage({
       <div className="card">
         {/* Header row */}
         <div className="flex items-center gap-3 border-b border-border pb-5">
-          <div className="grid h-12 w-12 place-items-center rounded-full bg-primary text-lg font-bold text-white">
+          <div className="grid h-12 w-12 place-items-center rounded-full bg-primary text-lg font-bold text-ink">
             {initials(creator.display_name)}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs text-muted">Supporting</p>
-            <p className="truncate text-lg font-bold text-white">
+            <p className="truncate text-lg font-bold text-ink">
               {creator.display_name}
             </p>
           </div>
-          <span className="rounded-full bg-brand-gradient px-4 py-2 text-lg font-extrabold text-white">
+          <span className="rounded-full bg-brand-gradient px-4 py-2 text-lg font-extrabold text-ink">
             R{Math.round(amount) || 0}
           </span>
         </div>
 
         {/* Amount presets */}
         <div className="mt-6">
-          <p className="text-sm font-semibold text-white">Choose amount</p>
+          <p className="text-sm font-semibold text-ink">Choose amount</p>
           <div className="mt-3 grid grid-cols-3 gap-3">
             {PRESETS.map((v) => {
               const active = custom === "" && amount === v;
@@ -269,7 +269,7 @@ export default function TipPage({
                   className={`rounded-full border px-4 py-3 text-sm font-bold transition ${
                     active
                       ? "border-teal bg-teal/10 text-teal"
-                      : "border-border bg-darker text-white hover:border-teal/50"
+                      : "border-border bg-darker text-ink hover:border-teal/50"
                   }`}
                 >
                   R{v}
@@ -287,7 +287,7 @@ export default function TipPage({
                 value={custom}
                 onChange={(e) => onCustom(e.target.value)}
                 placeholder="Or enter a custom amount"
-                className="w-full bg-transparent py-3 pl-2 text-white placeholder:text-muted focus:outline-none"
+                className="w-full bg-transparent py-3 pl-2 text-ink placeholder:text-muted focus:outline-none"
               />
             </div>
           </div>
@@ -315,7 +315,7 @@ export default function TipPage({
                 </span>
                 <span>- R{quote ? fee(quote.service_fee) : "…"}</span>
               </div>
-              <div className="mt-2 flex justify-between border-t border-border pt-2 font-bold text-white">
+              <div className="mt-2 flex justify-between border-t border-border pt-2 font-bold text-ink">
                 <span>Creator receives</span>
                 <span>
                   {quoting && !quote
@@ -329,20 +329,20 @@ export default function TipPage({
 
         {/* Name */}
         <div className="mt-6">
-          <label className="text-sm font-semibold text-white">
+          <label className="text-sm font-semibold text-ink">
             Your name (optional)
           </label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Anonymous"
-            className="mt-2 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-white placeholder:text-muted focus:border-teal focus:outline-none"
+            className="mt-2 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-ink placeholder:text-muted focus:border-teal focus:outline-none"
           />
         </div>
 
         {/* Email */}
         <div className="mt-4">
-          <label className="text-sm font-semibold text-white">
+          <label className="text-sm font-semibold text-ink">
             Email (for receipt)
           </label>
           <input
@@ -350,13 +350,13 @@ export default function TipPage({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com (optional)"
-            className="mt-2 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-white placeholder:text-muted focus:border-teal focus:outline-none"
+            className="mt-2 w-full rounded-2xl border border-border bg-darker px-4 py-3 text-ink placeholder:text-muted focus:border-teal focus:outline-none"
           />
         </div>
 
         {/* Message */}
         <div className="mt-4">
-          <label className="text-sm font-semibold text-white">
+          <label className="text-sm font-semibold text-ink">
             Message (optional)
           </label>
           <textarea
@@ -364,7 +364,7 @@ export default function TipPage({
             onChange={(e) => setMessage(e.target.value.slice(0, 280))}
             rows={3}
             placeholder="Say something nice… 👋"
-            className="mt-2 w-full resize-none rounded-2xl border border-border bg-darker px-4 py-3 text-white placeholder:text-muted focus:border-teal focus:outline-none"
+            className="mt-2 w-full resize-none rounded-2xl border border-border bg-darker px-4 py-3 text-ink placeholder:text-muted focus:border-teal focus:outline-none"
           />
           <p className="mt-1 text-right text-xs text-muted">
             {message.length}/280

@@ -159,11 +159,11 @@ export default function ChangelogPage() {
                     <span className="font-mono text-xs text-muted">{r.version}</span>
                     <span className="ml-auto text-xs text-muted">{r.date}</span>
                   </div>
-                  <h2 className="mt-3 text-lg font-bold text-white">{r.title}</h2>
+                  <h2 className="mt-3 text-lg font-bold text-ink">{r.title}</h2>
                   <p className="body-muted mt-2 text-sm">{r.summary}</p>
                   <ul className="mt-4 space-y-1.5">
                     {r.items.map((item) => (
-                      <li key={item} className="flex items-start gap-2 text-sm text-white">
+                      <li key={item} className="flex items-start gap-2 text-sm text-ink">
                         <span className={`mt-0.5 ${c.text}`}>›</span>
                         <span>{item}</span>
                       </li>

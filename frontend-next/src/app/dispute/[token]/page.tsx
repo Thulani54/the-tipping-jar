@@ -66,7 +66,7 @@ export default async function DisputeTrackingPage({
       <div className="container-content grid min-h-[60vh] place-items-center text-center">
         <div>
           <div className="text-4xl">🔎</div>
-          <h1 className="mt-4 text-2xl font-bold text-white">Dispute not found</h1>
+          <h1 className="mt-4 text-2xl font-bold text-ink">Dispute not found</h1>
           <p className="body-muted mx-auto mt-2 max-w-sm">
             Please check your tracking link — it may be incorrect or expired.
           </p>
@@ -91,7 +91,7 @@ export default async function DisputeTrackingPage({
   return (
     <div className="container-content flex justify-center py-14">
       <div className="w-full max-w-2xl">
-        <Link href="/contact" className="text-sm text-muted hover:text-white">
+        <Link href="/contact" className="text-sm text-muted hover:text-ink">
           ‹ Support
         </Link>
 
@@ -101,7 +101,7 @@ export default async function DisputeTrackingPage({
               {/* Dispute type exposes token; reference is not in the shape */}
               {dispute.token}
             </p>
-            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-white">
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">
               Dispute details
             </h1>
           </div>
@@ -120,7 +120,7 @@ export default async function DisputeTrackingPage({
                     <div
                       className={`grid h-6 w-6 place-items-center rounded-full border-2 text-[10px] ${
                         done
-                          ? "border-primary bg-primary text-white"
+                          ? "border-primary bg-primary text-ink"
                           : current
                             ? "border-primary bg-primary/15 text-teal"
                             : "border-muted/30 bg-card text-transparent"
@@ -135,7 +135,7 @@ export default async function DisputeTrackingPage({
                   <div className={`pb-6 ${i === STEPS.length - 1 ? "pb-0" : ""}`}>
                     <p
                       className={`text-sm font-semibold ${
-                        done || current ? "text-white" : "text-muted"
+                        done || current ? "text-ink" : "text-muted"
                       }`}
                     >
                       {title}
@@ -155,7 +155,7 @@ export default async function DisputeTrackingPage({
             {details.map(([label, value]) => (
               <div key={label} className="flex gap-4">
                 <dt className="w-32 shrink-0 text-sm text-muted">{label}</dt>
-                <dd className="text-sm text-white">{value}</dd>
+                <dd className="text-sm text-ink">{value}</dd>
               </div>
             ))}
           </dl>
@@ -164,7 +164,7 @@ export default async function DisputeTrackingPage({
         {/* Description */}
         <div className="card mt-4">
           <p className="text-xs font-bold uppercase tracking-widest text-muted">Description</p>
-          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-white">
+          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink">
             {dispute.description}
           </p>
         </div>

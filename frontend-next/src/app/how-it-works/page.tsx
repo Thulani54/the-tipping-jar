@@ -133,7 +133,7 @@ export default function HowItWorksPage() {
                 key={t}
                 onClick={() => setTab(i)}
                 className={`rounded-full px-6 py-2 text-sm font-semibold transition ${
-                  tab === i ? "bg-brand-gradient text-white" : "text-muted hover:text-white"
+                  tab === i ? "bg-brand-gradient text-ink" : "text-muted hover:text-ink"
                 }`}
               >
                 {t}
@@ -153,7 +153,7 @@ export default function HowItWorksPage() {
                   0{i + 1}
                 </span>
               </div>
-              <h3 className="mt-5 font-semibold text-white">{s.title}</h3>
+              <h3 className="mt-5 font-semibold text-ink">{s.title}</h3>
               <p className="body-muted mt-2 text-sm">{s.body}</p>
             </div>
           ))}
@@ -179,7 +179,7 @@ export default function HowItWorksPage() {
                   </span>
                   {i < TIMELINE.length - 1 && <span className="w-0.5 flex-1 bg-border" />}
                 </div>
-                <p className="pb-6 pt-1.5 font-medium text-white">{label}</p>
+                <p className="pb-6 pt-1.5 font-medium text-ink">{label}</p>
               </div>
             ))}
           </div>
@@ -201,7 +201,7 @@ export default function HowItWorksPage() {
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-teal/10 text-base">
                 {icon}
               </span>
-              <span className="text-sm font-semibold text-white">{label}</span>
+              <span className="text-sm font-semibold text-ink">{label}</span>
             </div>
           ))}
         </div>
@@ -230,7 +230,7 @@ export default function HowItWorksPage() {
                     onClick={() => setOpenFaq(open ? -1 : i)}
                     className="flex w-full items-center justify-between gap-4 p-4 text-left"
                   >
-                    <span className="font-semibold text-white">{q}</span>
+                    <span className="font-semibold text-ink">{q}</span>
                     <span
                       className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}
                     >
@@ -248,7 +248,7 @@ export default function HowItWorksPage() {
       {/* CTA */}
       <section className="container-content py-20">
         <div className="rounded-3xl bg-brand-gradient p-12 text-center md:p-16">
-          <h2 className="heading-xl text-white">Ready to start?</h2>
+          <h2 className="heading-xl text-ink">Ready to start?</h2>
           <p className="mx-auto mt-4 max-w-md text-white/85">
             Set up your jar in 60 seconds — no credit card needed.
           </p>
@@ -261,7 +261,7 @@ export default function HowItWorksPage() {
             </Link>
             <Link
               href="/creators"
-              className="inline-flex rounded-full border border-white/40 px-8 py-3 font-semibold text-white transition hover:border-white"
+              className="inline-flex rounded-full border border-white/40 px-8 py-3 font-semibold text-ink transition hover:border-white"
             >
               Browse creators
             </Link>

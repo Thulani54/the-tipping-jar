@@ -66,7 +66,7 @@ export default async function LandingPage() {
           {FEATURES.map((f) => (
             <div key={f.title} className="card">
               <div className="text-3xl">{f.icon}</div>
-              <h3 className="mt-4 text-lg font-semibold text-white">{f.title}</h3>
+              <h3 className="mt-4 text-lg font-semibold text-ink">{f.title}</h3>
               <p className="body-muted mt-2">{f.body}</p>
             </div>
           ))}

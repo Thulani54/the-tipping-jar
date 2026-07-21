@@ -69,7 +69,7 @@ export default function DisputePage() {
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-yellow-400/15 text-3xl">
               📋
             </div>
-            <h1 className="mt-6 text-2xl font-extrabold tracking-tight text-white">
+            <h1 className="mt-6 text-2xl font-extrabold tracking-tight text-ink">
               Dispute filed successfully
             </h1>
             <p className="body-muted mt-2">
@@ -101,7 +101,7 @@ export default function DisputePage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                   Tracking token
                 </p>
-                <p className="mt-1 break-all font-mono text-sm text-white">{result.token}</p>
+                <p className="mt-1 break-all font-mono text-sm text-ink">{result.token}</p>
               </div>
             </div>
 
@@ -141,19 +141,19 @@ export default function DisputePage() {
             <span className="text-teal">tippingjar.co.za/dispute/&#123;your-token&#125;</span>.
           </div>
 
-          <h2 className="text-base font-bold text-white">Your details</h2>
+          <h2 className="text-base font-bold text-ink">Your details</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full name" value={name} onChange={setName} />
             <Field label="Email address" value={email} onChange={setEmail} type="email" />
           </div>
 
-          <h2 className="pt-2 text-base font-bold text-white">Dispute details</h2>
+          <h2 className="pt-2 text-base font-bold text-ink">Dispute details</h2>
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium text-muted">Reason</span>
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-white focus:border-teal focus:outline-none"
+              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-ink focus:border-teal focus:outline-none"
             >
               {REASONS.map(([val, lbl]) => (
                 <option key={val} value={val} className="bg-card">
@@ -177,7 +177,7 @@ export default function DisputePage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={6}
-              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-white placeholder:text-muted focus:border-teal focus:outline-none"
+              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none"
             />
           </label>
 
@@ -218,7 +218,7 @@ function Field({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-white placeholder:text-muted focus:border-teal focus:outline-none"
+        className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none"
       />
     </label>
   );

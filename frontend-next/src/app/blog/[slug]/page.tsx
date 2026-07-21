@@ -77,7 +77,7 @@ export default async function BlogDetailPage({
     return (
       <section className="container-content py-32">
         <div className="mx-auto max-w-md text-center">
-          <h1 className="text-2xl font-bold text-white">Post not found</h1>
+          <h1 className="text-2xl font-bold text-ink">Post not found</h1>
           <p className="body-muted mt-3">
             The post you&apos;re looking for doesn&apos;t exist or has been removed.
           </p>
@@ -97,7 +97,7 @@ export default async function BlogDetailPage({
       <header className="border-b border-border bg-darker">
         <div className="container-content py-16">
           <div className="mx-auto max-w-3xl">
-            <Link href="/blog" className="text-sm text-muted transition hover:text-white">
+            <Link href="/blog" className="text-sm text-muted transition hover:text-ink">
               ← All posts
             </Link>
             <div className="mt-7">
@@ -108,7 +108,7 @@ export default async function BlogDetailPage({
                 {catLabel(post.category)}
               </span>
             </div>
-            <h1 className="mt-5 text-3xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
+            <h1 className="mt-5 text-3xl font-extrabold leading-tight tracking-tight text-ink md:text-5xl">
               {post.title}
             </h1>
             {post.excerpt && (
@@ -121,7 +121,7 @@ export default async function BlogDetailPage({
               >
                 {post.author_name ? post.author_name.charAt(0).toUpperCase() : "T"}
               </span>
-              <span className="text-sm font-semibold text-white">{post.author_name}</span>
+              <span className="text-sm font-semibold text-ink">{post.author_name}</span>
               <span>{formatDate(post.created_at)}</span>
               <span>·</span>
               <span>{post.read_time}</span>

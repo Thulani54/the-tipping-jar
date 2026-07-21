@@ -68,7 +68,7 @@ const STRENGTH = [
 ];
 
 function inputClass(extra = "") {
-  return `w-full rounded-xl border border-border bg-dark px-4 py-3 text-sm text-white placeholder:text-muted focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30 ${extra}`;
+  return `w-full rounded-xl border border-border bg-dark px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30 ${extra}`;
 }
 
 export default function RegisterPage() {
@@ -145,7 +145,7 @@ export default function RegisterPage() {
                 {icon}
               </span>
               <div>
-                <p className="font-semibold text-white">{title}</p>
+                <p className="font-semibold text-ink">{title}</p>
                 <p className="body-muted mt-0.5">{body}</p>
               </div>
             </li>
@@ -156,7 +156,7 @@ export default function RegisterPage() {
       {/* Form card */}
       <div className="mx-auto w-full max-w-lg">
         <div className="card">
-          <h2 className="text-2xl font-extrabold tracking-tight text-white">
+          <h2 className="text-2xl font-extrabold tracking-tight text-ink">
             Create your account
           </h2>
           <p className="body-muted mt-2">
@@ -167,7 +167,7 @@ export default function RegisterPage() {
           </p>
 
           {/* Role toggle */}
-          <p className="mt-7 text-sm font-semibold text-white">I am a…</p>
+          <p className="mt-7 text-sm font-semibold text-ink">I am a…</p>
           <div className="mt-3 grid grid-cols-3 gap-2.5">
             {ROLES.map((r) => {
               const active = role === r.value;
@@ -193,7 +193,7 @@ export default function RegisterPage() {
             {/* Names (visual only) */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-white">First name</label>
+                <label className="mb-2 block text-sm font-semibold text-ink">First name</label>
                 <input
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
@@ -202,7 +202,7 @@ export default function RegisterPage() {
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-semibold text-white">Last name</label>
+                <label className="mb-2 block text-sm font-semibold text-ink">Last name</label>
                 <input
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
@@ -213,7 +213,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-white">Username</label>
+              <label className="mb-2 block text-sm font-semibold text-ink">Username</label>
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -224,7 +224,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-white">Email address</label>
+              <label className="mb-2 block text-sm font-semibold text-ink">Email address</label>
               <input
                 type="email"
                 value={email}
@@ -237,11 +237,11 @@ export default function RegisterPage() {
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <label className="block text-sm font-semibold text-white">Password</label>
+                <label className="block text-sm font-semibold text-ink">Password</label>
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  className="text-xs text-muted hover:text-white"
+                  className="text-xs text-muted hover:text-ink"
                 >
                   {showPassword ? "Hide" : "Show"}
                 </button>
@@ -275,7 +275,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-white">Confirm password</label>
+              <label className="mb-2 block text-sm font-semibold text-ink">Confirm password</label>
               <input
                 type={showPassword ? "text" : "password"}
                 value={confirm}
@@ -287,7 +287,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-white">
+              <label className="mb-2 block text-sm font-semibold text-ink">
                 Phone number (optional)
               </label>
               <input
@@ -302,7 +302,7 @@ export default function RegisterPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-white">Gender (optional)</label>
+                <label className="mb-2 block text-sm font-semibold text-ink">Gender (optional)</label>
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
@@ -316,7 +316,7 @@ export default function RegisterPage() {
                 </select>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-semibold text-white">
+                <label className="mb-2 block text-sm font-semibold text-ink">
                   Date of birth (optional)
                 </label>
                 <input
@@ -330,7 +330,7 @@ export default function RegisterPage() {
 
             {/* Referral code (submitted) */}
             <div>
-              <label className="mb-2 block text-sm font-semibold text-white">
+              <label className="mb-2 block text-sm font-semibold text-ink">
                 Referral code (optional)
               </label>
               <input

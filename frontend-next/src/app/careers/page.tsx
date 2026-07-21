@@ -75,7 +75,7 @@ export default async function CareersPage() {
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal/10 text-lg">
                 {p.icon}
               </div>
-              <h3 className="mt-3 text-sm font-bold text-white">{p.title}</h3>
+              <h3 className="mt-3 text-sm font-bold text-ink">{p.title}</h3>
               <p className="body-muted mt-1.5 text-[13px]">{p.body}</p>
             </div>
           ))}
@@ -90,7 +90,7 @@ export default async function CareersPage() {
             {jobs.length === 0 ? (
               <div className="card text-center">
                 <div className="text-3xl">💼</div>
-                <h3 className="mt-3 text-base font-bold text-white">No open roles right now</h3>
+                <h3 className="mt-3 text-base font-bold text-ink">No open roles right now</h3>
                 <p className="body-muted mt-2 text-[13px]">
                   Check back soon — we&apos;re always growing.
                 </p>
@@ -114,7 +114,7 @@ export default async function CareersPage() {
                               className="h-2 w-2 shrink-0 rounded-full"
                               style={{ backgroundColor: color }}
                             />
-                            <span className="flex-1 text-sm font-semibold text-white">
+                            <span className="flex-1 text-sm font-semibold text-ink">
                               {job.title}
                             </span>
                             <span className="hidden text-xs text-muted sm:inline">
