@@ -157,5 +157,25 @@ services:
     ports:
       - "127.0.0.1:8091:8091"
 
+  # Nightly daily-tips report. Not a long-lived service — it's behind the
+  # "cron" profile so `docker compose up` never starts it. The host crontab
+  # runs it once at 00:00 SAST via `docker compose --profile cron run --rm report`.
+  report:
+    build: ./report
+    image: tipping-jar-report:latest
+    profiles: ["cron"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      SMTP_HOST: ${SMTP_HOST:-mail.tippingjar.co.za}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-accounts@tippingjar.co.za}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-Tipping Jar <accounts@tippingjar.co.za>}
+
 volumes:
   pgdata:
