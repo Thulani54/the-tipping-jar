@@ -3,7 +3,9 @@
 
 import type {
   AuthResponse,
+  Balance,
   BlogPost,
+  CheckoutResult,
   Creator,
   CreatorStats,
   Dispute,
@@ -11,10 +13,12 @@ import type {
   FeeQuote,
   Jar,
   Job,
+  Payout,
   Pledge,
   ReferralCode,
   SupportTier,
   Tip,
+  Transaction,
   User,
 } from "@/types";
 
@@ -185,4 +189,20 @@ export const api = {
     app_type?: string;
     message?: string;
   }) => request<unknown>("/support/partner-apply", { method: "POST", body }),
+
+  // ── payments: PayCloud checkout, transactions, payouts ────────────
+  checkout: (body: {
+    creator_id: string;
+    amount: number;
+    description?: string;
+    return_url?: string;
+  }) => request<CheckoutResult>("/payments/checkout", { method: "POST", body }),
+  creatorTransactions: (token: string, creatorId: string) =>
+    request<Transaction[]>(`/payments/creator/${creatorId}/transactions`, { token }),
+  creatorBalance: (token: string, creatorId: string) =>
+    request<Balance>(`/payments/creator/${creatorId}/balance`, { token }),
+  requestPayout: (token: string, body: { amount?: number }) =>
+    request<Payout>("/payments/payout", { method: "POST", body, token }),
+  creatorPayouts: (token: string, creatorId: string) =>
+    request<Payout[]>(`/payments/creator/${creatorId}/payouts`, { token }),
 };

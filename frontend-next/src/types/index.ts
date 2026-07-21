@@ -160,3 +160,46 @@ export interface CreatorStats {
   creator_net_total: string;
   this_month_amount: string;
 }
+
+export interface Transaction {
+  id: string;
+  reference: string;
+  creator_id: string;
+  amount: string;
+  platform_fee: string;
+  service_fee: string;
+  creator_net: string;
+  status: string;
+  merchant_order_no: string;
+  trans_no: string;
+  currency: string;
+  pay_url: string;
+  description: string;
+  created_at: string;
+}
+
+export interface Payout {
+  id: string;
+  creator_id: string;
+  amount: string;
+  status: string;
+  reference: string;
+  created_at: string;
+}
+
+export interface Balance {
+  creator_id: string;
+  net_balance: string;
+  withdrawn: string;
+  available: string;
+  transaction_count: number;
+}
+
+export interface CheckoutResult {
+  pay_url: string;
+  merchant_order_no: string;
+  reference: string;
+  amount: string;
+  creator_net: string;
+  status: string;
+}

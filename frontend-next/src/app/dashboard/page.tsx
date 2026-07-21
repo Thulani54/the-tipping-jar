@@ -7,18 +7,27 @@
 // studio_tab.dart). Many creator-scoped stats have no API endpoint yet, so they
 // render as placeholders with TODO(api) markers.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
-import type { Tip, ReferralCode, Creator, CreatorStats } from "@/types";
+import type {
+  Tip,
+  ReferralCode,
+  Creator,
+  CreatorStats,
+  Transaction,
+  Payout,
+  Balance,
+} from "@/types";
 
-type Tab = "overview" | "tips" | "referrals" | "studio";
+type Tab = "overview" | "tips" | "transactions" | "referrals" | "studio";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "overview", label: "Overview", icon: "🏠" },
   { id: "tips", label: "Tips", icon: "💸" },
+  { id: "transactions", label: "Transactions", icon: "🧾" },
   { id: "referrals", label: "Referrals", icon: "🤝" },
   { id: "studio", label: "Studio", icon: "🎨" },
 ];
@@ -125,6 +134,9 @@ export default function DashboardPage() {
           />
         )}
         {tab === "tips" && <TipsTab tips={tips} loading={loading} />}
+        {tab === "transactions" && (
+          <TransactionsTab token={token} creatorId={myCreator?.id ?? null} />
+        )}
         {tab === "referrals" && <ReferralsTab referral={referral} />}
         {tab === "studio" && <StudioTab />}
       </div>
@@ -395,6 +407,177 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Transactions & payouts ─────────────────────────────────────────────────
+function TransactionsTab({
+  token,
+  creatorId,
+}: {
+  token: string | null;
+  creatorId: string | null;
+}) {
+  const [txns, setTxns] = useState<Transaction[]>([]);
+  const [balance, setBalance] = useState<Balance | null>(null);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    if (!token || !creatorId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    Promise.all([
+      api.creatorTransactions(token, creatorId).catch(() => [] as Transaction[]),
+      api.creatorBalance(token, creatorId).catch(() => null),
+      api.creatorPayouts(token, creatorId).catch(() => [] as Payout[]),
+    ])
+      .then(([t, b, p]) => {
+        setTxns(t);
+        setBalance(b);
+        setPayouts(p);
+      })
+      .finally(() => setLoading(false));
+  }, [token, creatorId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function payout() {
+    if (!token || busy) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const po = await api.requestPayout(token, {});
+      setMsg(`Payout requested: R${po.amount} (${po.status}).`);
+      load();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Payout failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!creatorId) {
+    return (
+      <div className="card grid place-items-center py-12 text-center">
+        <div className="text-3xl">🧾</div>
+        <p className="mt-3 font-semibold text-white">Create a creator profile</p>
+        <p className="body-muted mt-1">Set up your page to start receiving tips and see transactions.</p>
+        <Link href="/onboarding" className="btn-primary mt-5 !px-5 !py-2.5 text-sm">
+          Set up profile
+        </Link>
+      </div>
+    );
+  }
+  if (loading) return <p className="body-muted">Loading…</p>;
+
+  const available = Number(balance?.available ?? "0");
+
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard label="Net earned" value={`R${balance?.net_balance ?? "0.00"}`} icon="💰" accent="#004423" />
+        <StatCard label="Withdrawn" value={`R${balance?.withdrawn ?? "0.00"}`} icon="🏦" accent="#2563EB" />
+        <StatCard label="Available" value={`R${balance?.available ?? "0.00"}`} icon="✅" accent="#0097B2" />
+      </div>
+
+      <div className="card flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="font-semibold text-white">Payouts</p>
+          <p className="body-muted">Withdraw your available balance to your bank account.</p>
+        </div>
+        <button
+          onClick={payout}
+          disabled={busy || available <= 0}
+          className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? "Requesting…" : `Request payout · R${available.toFixed(2)}`}
+        </button>
+      </div>
+      {msg && <p className="text-sm text-teal">{msg}</p>}
+
+      <div>
+        <h3 className="mb-4 text-base font-bold text-white">Transactions</h3>
+        {txns.length === 0 ? (
+          <div className="card grid place-items-center py-12 text-center">
+            <div className="text-3xl">🧾</div>
+            <p className="mt-3 font-semibold text-white">No transactions yet</p>
+            <p className="body-muted mt-1">Tips and card payments will show up here.</p>
+          </div>
+        ) : (
+          <div className="card overflow-hidden !p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead className="border-b border-border text-xs uppercase tracking-wide text-muted">
+                  <tr>
+                    <th className="px-5 py-3 font-semibold">Reference</th>
+                    <th className="px-5 py-3 font-semibold">Date</th>
+                    <th className="px-5 py-3 font-semibold">Status</th>
+                    <th className="px-5 py-3 text-right font-semibold">Amount</th>
+                    <th className="px-5 py-3 text-right font-semibold">You get</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {txns.map((t) => (
+                    <tr key={t.id} className="border-b border-border/60 last:border-0">
+                      <td className="px-5 py-3 font-mono text-xs text-muted">
+                        {t.reference.slice(0, 18)}…
+                      </td>
+                      <td className="px-5 py-3 text-muted">
+                        {new Date(t.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            t.status === "completed"
+                              ? "bg-teal/10 text-teal"
+                              : t.status === "pending"
+                                ? "bg-yellow-500/10 text-yellow-300"
+                                : "bg-red-500/10 text-red-400"
+                          }`}
+                        >
+                          {t.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-right text-white">
+                        {t.currency} {t.amount}
+                      </td>
+                      <td className="px-5 py-3 text-right font-bold text-white">R{t.creator_net}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {payouts.length > 0 && (
+        <div>
+          <h3 className="mb-4 text-base font-bold text-white">Payout history</h3>
+          <div className="space-y-2">
+            {payouts.map((p) => (
+              <div key={p.id} className="card flex flex-wrap items-center justify-between gap-3 !py-3">
+                <span className="font-mono text-xs text-muted">{p.reference}</span>
+                <span className="text-sm text-muted">
+                  {new Date(p.created_at).toLocaleDateString()}
+                </span>
+                <span className="rounded-full bg-border px-2.5 py-1 text-xs text-muted">
+                  {p.status}
+                </span>
+                <span className="font-bold text-white">R{p.amount}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
