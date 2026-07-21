@@ -13,6 +13,7 @@ members = [
     "referrals",
     "platform",
     "admin_portal",
+    "scheduler",
 ]
 
 [workspace.dependencies]

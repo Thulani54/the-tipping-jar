@@ -17,6 +17,7 @@ COPY support ./support
 COPY referrals ./referrals
 COPY platform ./platform
 COPY admin_portal ./admin_portal
+COPY scheduler ./scheduler
 
 RUN cargo build --release --workspace
 
@@ -42,7 +43,8 @@ COPY --from=builder /app/target/release/support      /usr/local/bin/support
 COPY --from=builder /app/target/release/referrals    /usr/local/bin/referrals
 COPY --from=builder /app/target/release/platform     /usr/local/bin/platform
 COPY --from=builder /app/target/release/admin_portal /usr/local/bin/admin_portal
+COPY --from=builder /app/target/release/scheduler    /usr/local/bin/scheduler
 
-EXPOSE 8081 8082 8083 8084 8085 8086 8087 8088 8089 8090 8091
+EXPOSE 8081 8082 8083 8084 8085 8086 8087 8088 8089 8090 8091 8092
 
 CMD ["/bin/sh", "-c", "echo 'set command: to a service name' && exit 1"]
