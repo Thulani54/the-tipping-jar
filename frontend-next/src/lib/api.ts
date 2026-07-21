@@ -197,6 +197,8 @@ export const api = {
     description?: string;
     return_url?: string;
   }) => request<CheckoutResult>("/payments/payments/checkout", { method: "POST", body }),
+  getPayment: (reference: string) =>
+    request<Transaction>(`/payments/payments/${reference}`),
   creatorTransactions: (token: string, creatorId: string) =>
     request<Transaction[]>(`/payments/payments/creator/${creatorId}/transactions`, { token }),
   creatorBalance: (token: string, creatorId: string) =>

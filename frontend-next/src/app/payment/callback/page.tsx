@@ -1,46 +1,77 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { api } from "@/lib/api";
 
 type Status = "loading" | "completed" | "failed" | "pending" | "error";
 
 function CallbackInner() {
   const searchParams = useSearchParams();
-  // Paystack redirects back with ?reference=… (or ?trxref=…).
-  const reference =
-    searchParams.get("reference") ?? searchParams.get("trxref") ?? "";
-  // Allow ?status=completed|failed|pending for testing the various states.
-  const forcedStatus = searchParams.get("status");
   const creatorSlug = searchParams.get("creator_slug");
+  const forcedStatus = searchParams.get("status"); // testing override
+
+  // PayCloud returns our order id under one of several names; also scan any
+  // value that looks like one of our references (tj… / rf…).
+  const reference = useMemo(() => {
+    const known = [
+      "reference",
+      "trxref",
+      "merchant_order_no",
+      "out_trade_no",
+      "orderNo",
+      "order_no",
+      "tn",
+    ];
+    for (const k of known) {
+      const v = searchParams.get(k);
+      if (v) return v;
+    }
+    for (const [, v] of searchParams.entries()) {
+      if (/^(tj|rf)[a-f0-9]{6,}/i.test(v)) return v;
+    }
+    return "";
+  }, [searchParams]);
 
   const [status, setStatus] = useState<Status>("loading");
 
   useEffect(() => {
     let alive = true;
 
-    async function verify() {
-      setStatus("loading");
-      // TODO(api): verify payment reference — no verify endpoint exists in the
-      // /api/v2 client yet. This simulates the verification round-trip and
-      // resolves from the query params. Replace with api.verifyTip(reference).
-      await new Promise((r) => setTimeout(r, 1200));
-      if (!alive) return;
-
-      if (!reference && !forcedStatus) {
-        setStatus("error");
-        return;
-      }
-      if (forcedStatus === "completed") return setStatus("completed");
-      if (forcedStatus === "failed") return setStatus("failed");
-      if (forcedStatus === "pending") return setStatus("pending");
-      // Default: with a reference but no confirmed status, treat as completed
-      // (the placeholder happy path). Real logic would poll the verify endpoint.
-      setStatus(reference ? "completed" : "pending");
+    if (forcedStatus === "completed" || forcedStatus === "failed" || forcedStatus === "pending") {
+      setStatus(forcedStatus as Status);
+      return;
+    }
+    if (!reference) {
+      // We returned from PayCloud but can't identify the order — the payment
+      // most likely went through; the signed webhook confirms it server-side.
+      setStatus("pending");
+      return;
     }
 
-    verify();
+    // Poll our backend for the real transaction status (the webhook flips it
+    // pending → completed shortly after payment).
+    let tries = 0;
+    async function poll() {
+      try {
+        const t = await api.getPayment(reference);
+        if (!alive) return;
+        if (t.status === "completed") return setStatus("completed");
+        if (t.status === "failed") return setStatus("failed");
+      } catch {
+        // not found yet / transient — keep polling
+      }
+      tries += 1;
+      if (tries >= 8) {
+        if (alive) setStatus("pending");
+        return;
+      }
+      window.setTimeout(poll, 2000);
+    }
+    setStatus("loading");
+    poll();
+
     return () => {
       alive = false;
     };
