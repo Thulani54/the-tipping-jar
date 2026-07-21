@@ -1,33 +1,42 @@
 import Link from "next/link";
 import type { Creator } from "@/types";
 
+const initial = (name: string) => (name.trim()[0] || "T").toUpperCase();
+
 export function CreatorCard({ creator }: { creator: Creator }) {
   return (
     <Link
       href={`/creator/${creator.slug}`}
-      className="group card overflow-hidden !p-0 transition duration-200 hover:-translate-y-1 hover:shadow-lift"
+      className="group card flex flex-col transition duration-200 hover:-translate-y-1 hover:shadow-lift"
     >
-      <div className="relative h-24 bg-navy">
-        <span aria-hidden className="absolute right-4 top-4 h-9 w-9 rounded-full bg-mint/25" />
-        <span aria-hidden className="absolute right-10 top-10 h-4 w-4 rounded-full bg-gold/70" />
-      </div>
-      <div className="-mt-8 p-6">
-        <div className="grid h-14 w-14 place-items-center rounded-2xl border-4 border-white bg-primary text-lg font-bold text-white">
-          {creator.display_name.charAt(0).toUpperCase()}
+      <div className="flex items-start gap-3.5">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary text-lg font-extrabold text-white">
+          {initial(creator.display_name)}
         </div>
-        <h3 className="mt-3 font-display text-lg font-bold text-ink group-hover:text-green">
-          {creator.display_name}
-        </h3>
-        <p className="text-sm text-muted">{creator.category || "Creator"}</p>
-        {creator.tagline && (
-          <p className="body-muted mt-3 line-clamp-2">{creator.tagline}</p>
-        )}
-        <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
-          <span className="font-mono text-xs text-muted">@{creator.slug}</span>
-          <span className="rounded-full bg-mint/15 px-3 py-1 text-xs font-semibold text-green">
-            Tip →
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-display text-lg font-bold text-ink group-hover:text-green">
+            {creator.display_name}
+          </h3>
+          <p className="truncate font-mono text-xs text-muted">@{creator.slug}</p>
+        </div>
+        {creator.category && (
+          <span className="shrink-0 rounded-full bg-mint/15 px-2.5 py-1 text-[11px] font-semibold text-green">
+            {creator.category}
           </span>
-        </div>
+        )}
+      </div>
+
+      <p className="body-muted mt-4 line-clamp-2 min-h-[2.6em]">
+        {creator.tagline || `Support ${creator.display_name} on Tipping Jar.`}
+      </p>
+
+      <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+        <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
+          <span aria-hidden>🫙</span> tip jar
+        </span>
+        <span className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white transition group-hover:bg-navy">
+          💚 Tip
+        </span>
       </div>
     </Link>
   );

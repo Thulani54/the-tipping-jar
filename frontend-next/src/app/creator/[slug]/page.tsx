@@ -106,7 +106,7 @@ export default async function CreatorPage({
         {/* Header — white avatar centred ON the navy header, info stacked below.
             relative z-10 so the avatar paints ABOVE the (positioned) cover. */}
         <div className="relative z-10 -mt-24 flex flex-col items-center text-center md:-mt-28">
-          <div className="grid h-32 w-32 shrink-0 place-items-center rounded-[28px] bg-white text-4xl font-extrabold text-primary shadow-lift ring-1 ring-border">
+          <div className="grid h-32 w-32 shrink-0 place-items-center rounded-[36px] bg-white text-4xl font-extrabold text-primary shadow-lift ring-1 ring-border">
             {initials(creator.display_name)}
           </div>
           <h1 className="mt-5 font-display text-3xl font-extrabold tracking-tight text-ink md:text-4xl">
