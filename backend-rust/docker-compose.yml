@@ -169,6 +169,11 @@ services:
       DAILY_REPORT_CRON: ${DAILY_REPORT_CRON:-0 0 22 * * *}
       REPORTS_DIR: /app/reports
       REPORT_EMAIL_ENABLED: ${REPORT_EMAIL_ENABLED:-0}
+      SMTP_HOST: ${SMTP_HOST:-mail.tippingjar.co.za}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-accounts@tippingjar.co.za}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-Tipping Jar <accounts@tippingjar.co.za>}
       PORT: "8092"
     ports:
       - "127.0.0.1:8092:8092"

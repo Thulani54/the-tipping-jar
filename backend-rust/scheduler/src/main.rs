@@ -18,6 +18,9 @@ use axum::{
 use chrono::{DateTime, Duration, NaiveDate, TimeZone, Utc};
 use chrono_tz::Africa::Johannesburg;
 use common::{env, AppError};
+use lettre::message::{header::ContentType, Attachment, Message, MultiPart, SinglePart};
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{SmtpTransport, Transport};
 use printpdf::{
     BuiltinFont, Color, IndirectFontRef, Line, Mm, PdfDocument, PdfLayerReference, Point, Polygon,
     PolygonMode, Rgb, WindingOrder,
@@ -54,6 +57,7 @@ struct Summary {
     date: String,
     creators: usize,
     rendered: usize,
+    emailed: usize,
     gross: String,
 }
 
@@ -98,11 +102,12 @@ async fn main() {
         let pools = job_pools.clone();
         Box::pin(async move {
             tracing::info!("cron fired: daily report");
-            match run_daily_report(&pools, None).await {
+            match run_daily_report(&pools, None, None).await {
                 Ok(s) => tracing::info!(
-                    "daily report complete: {} creator(s), {} pdf(s), {}",
+                    "daily report complete: {} creator(s), {} pdf(s), {} emailed, {}",
                     s.creators,
                     s.rendered,
+                    s.emailed,
                     s.gross
                 ),
                 Err(e) => tracing::error!("daily report failed: {e}"),
@@ -148,6 +153,8 @@ async fn health() -> Json<serde_json::Value> {
 #[derive(Deserialize)]
 struct RunParams {
     date: Option<String>,
+    /// Force every report to one recipient (testing) — `?to=you@example.com`.
+    to: Option<String>,
 }
 
 /// Manual trigger — runs the report now for `?date=YYYY-MM-DD` (defaults to the
@@ -163,17 +170,22 @@ async fn trigger(
         ),
         None => None,
     };
-    let s = run_daily_report(&pools, date).await?;
+    let s = run_daily_report(&pools, date, q.to).await?;
     Ok(Json(json!({
         "date": s.date,
         "creators": s.creators,
         "rendered": s.rendered,
+        "emailed": s.emailed,
         "gross": s.gross,
         "email": if env("REPORT_EMAIL_ENABLED", "0") == "1" { "enabled" } else { "disabled" },
     })))
 }
 
-async fn run_daily_report(pools: &Pools, date_override: Option<NaiveDate>) -> Result<Summary, AppError> {
+async fn run_daily_report(
+    pools: &Pools,
+    date_override: Option<NaiveDate>,
+    to_override: Option<String>,
+) -> Result<Summary, AppError> {
     let report_date = match date_override {
         Some(d) => d,
         None => (Utc::now().with_timezone(&Johannesburg) - Duration::days(1)).date_naive(),
@@ -215,7 +227,7 @@ async fn run_daily_report(pools: &Pools, date_override: Option<NaiveDate>) -> Re
 
     if by_creator.is_empty() {
         tracing::info!("no completed tips for {date_label}; nothing to render");
-        return Ok(Summary { date: date_label, creators: 0, rendered: 0, gross: "R0.00".into() });
+        return Ok(Summary { date: date_label, creators: 0, rendered: 0, emailed: 0, gross: "R0.00".into() });
     }
 
     let ids: Vec<Uuid> = by_creator.keys().cloned().collect();
@@ -256,6 +268,7 @@ async fn run_daily_report(pools: &Pools, date_override: Option<NaiveDate>) -> Re
     let email_enabled = env("REPORT_EMAIL_ENABLED", "0") == "1";
 
     let mut rendered = 0usize;
+    let mut emailed = 0usize;
     let mut grand = Decimal::ZERO;
     for (cid, tips) in &by_creator {
         let name = display
@@ -266,11 +279,9 @@ async fn run_daily_report(pools: &Pools, date_override: Option<NaiveDate>) -> Re
         let gross: Decimal = tips.iter().map(|t| t.amount).sum();
         let net: Decimal = tips.iter().map(|t| t.net).sum();
         grand += gross;
-        let email = user_of
-            .get(cid)
-            .and_then(|u| email_of.get(u))
-            .cloned()
-            .unwrap_or_else(|| "(no email)".into());
+        let email = to_override
+            .clone()
+            .or_else(|| user_of.get(cid).and_then(|u| email_of.get(u)).cloned());
         let safe: String = name
             .chars()
             .map(|c| if c.is_alphanumeric() { c } else { '_' })
@@ -280,10 +291,35 @@ async fn run_daily_report(pools: &Pools, date_override: Option<NaiveDate>) -> Re
         match build_pdf(&name, &date_label, tips, gross, net, &path) {
             Ok(()) => {
                 rendered += 1;
-                if email_enabled {
-                    tracing::info!("rendered {path}; email send for <{email}> not yet wired");
-                } else {
-                    tracing::info!("rendered {path} for {name} <{email}> — email delivery disabled");
+                match (&email, email_enabled) {
+                    (Some(to), true) => {
+                        let pdf_bytes = std::fs::read(&path).unwrap_or_default();
+                        let args = EmailArgs {
+                            to: to.clone(),
+                            display: name.clone(),
+                            date_label: date_label.clone(),
+                            n_tips: tips.len(),
+                            gross: money(gross),
+                            net: money(net),
+                            filename: format!("tipping-jar-report-{report_date}.pdf"),
+                            pdf: pdf_bytes,
+                        };
+                        // lettre's SMTP transport is blocking — keep the runtime free.
+                        let sent = tokio::task::spawn_blocking(move || send_report_email(args))
+                            .await
+                            .unwrap_or_else(|e| Err(format!("join error: {e}")));
+                        match sent {
+                            Ok(()) => {
+                                emailed += 1;
+                                tracing::info!("emailed {to} — {name}, {} tip(s)", tips.len());
+                            }
+                            Err(e) => tracing::error!("email failed for {name} <{to}>: {e}"),
+                        }
+                    }
+                    (Some(to), false) => {
+                        tracing::info!("rendered {path} for {name} <{to}> — email delivery disabled")
+                    }
+                    (None, _) => tracing::warn!("rendered {path} for {name} — no email on file"),
                 }
             }
             Err(e) => tracing::error!("pdf failed for {name}: {e}"),
@@ -294,8 +330,106 @@ async fn run_daily_report(pools: &Pools, date_override: Option<NaiveDate>) -> Re
         date: date_label,
         creators: by_creator.len(),
         rendered,
+        emailed,
         gross: money(grand),
     })
+}
+
+// ── Email delivery (lettre, STARTTLS) ────────────────────────────────────────
+
+struct EmailArgs {
+    to: String,
+    display: String,
+    date_label: String,
+    n_tips: usize,
+    gross: String,
+    net: String,
+    filename: String,
+    pdf: Vec<u8>,
+}
+
+fn send_report_email(a: EmailArgs) -> Result<(), String> {
+    let host = env("SMTP_HOST", "mail.tippingjar.co.za");
+    let port: u16 = env("SMTP_PORT", "587").parse().unwrap_or(587);
+    let user = env("SMTP_USER", "accounts@tippingjar.co.za");
+    let pass = env("SMTP_PASS", "");
+    if pass.is_empty() {
+        return Err("SMTP_PASS is not set".into());
+    }
+    let from = env("SMTP_FROM", "Tipping Jar <accounts@tippingjar.co.za>");
+
+    let text = format!(
+        "Hi {}, you received {} tip(s) totalling {} ({} to you) on {}. The full statement is attached as a PDF.",
+        a.display, a.n_tips, a.gross, a.net, a.date_label
+    );
+    let html = email_html(&a);
+
+    let message = Message::builder()
+        .from(from.parse().map_err(|e| format!("bad SMTP_FROM: {e}"))?)
+        .to(a.to.parse().map_err(|e| format!("bad recipient: {e}"))?)
+        .subject(format!(
+            "Your Tipping Jar report — {} from {} tip(s) · {}",
+            a.net, a.n_tips, a.date_label
+        ))
+        .multipart(
+            MultiPart::mixed()
+                .multipart(
+                    MultiPart::alternative()
+                        .singlepart(SinglePart::plain(text))
+                        .singlepart(SinglePart::html(html)),
+                )
+                .singlepart(
+                    Attachment::new(a.filename).body(
+                        a.pdf,
+                        ContentType::parse("application/pdf").map_err(|e| e.to_string())?,
+                    ),
+                ),
+        )
+        .map_err(|e| format!("build message: {e}"))?;
+
+    let mailer = SmtpTransport::starttls_relay(&host)
+        .map_err(|e| format!("smtp relay: {e}"))?
+        .port(port)
+        .credentials(Credentials::new(user, pass))
+        .build();
+    mailer.send(&message).map_err(|e| format!("smtp send: {e}"))?;
+    Ok(())
+}
+
+fn email_html(a: &EmailArgs) -> String {
+    format!(
+        r#"<div style="font-family:Arial,Helvetica,sans-serif;background:#eff2f0;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e7e3">
+    <div style="background:#0f2439;padding:24px 28px;color:#fff">
+      <div style="font-size:20px;font-weight:800">Tipping Jar</div>
+      <div style="opacity:.8;font-size:14px;margin-top:2px">Daily tips report · {date}</div>
+    </div>
+    <div style="padding:24px 28px;color:#0f2439">
+      <p style="margin:0 0 6px;font-size:16px">Hi {display},</p>
+      <p style="margin:0 0 18px;color:#5a6b7b">You received <b>{n} tip(s)</b> yesterday. The full styled statement is attached as a PDF.</p>
+      <table style="width:100%;border-collapse:separate;border-spacing:12px 0"><tr>
+        <td style="background:#eff2f0;border-radius:12px;padding:14px;width:50%">
+          <div style="font-size:11px;color:#5a6b7b;text-transform:uppercase;letter-spacing:1px">Gross</div>
+          <div style="font-size:22px;font-weight:800;color:#0f2439">{gross}</div>
+        </td>
+        <td style="background:#eff2f0;border-radius:12px;padding:14px;width:50%">
+          <div style="font-size:11px;color:#5a6b7b;text-transform:uppercase;letter-spacing:1px">You receive</div>
+          <div style="font-size:22px;font-weight:800;color:#12a25c">{net}</div>
+        </td>
+      </tr></table>
+      <a href="https://www.tippingjar.co.za/dashboard" style="display:inline-block;margin-top:20px;background:#0f2439;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:600">View your dashboard</a>
+    </div>
+    <div style="padding:16px 28px;color:#8a97a4;font-size:12px;border-top:1px solid #e2e7e3">
+      You're receiving this because you have an active Tipping Jar creator page.
+    </div>
+  </div>
+</div>"#,
+        date = a.date_label,
+        display = a.display,
+        n = a.n_tips,
+        gross = a.gross,
+        net = a.net,
+    )
 }
 
 // ── PDF rendering (printpdf, top-left coordinate helpers) ─────────────────────
