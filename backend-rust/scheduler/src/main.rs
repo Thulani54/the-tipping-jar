@@ -93,6 +93,18 @@ async fn main() {
     };
     tracing::info!("scheduler connected to tips/creators/accounts databases");
 
+    // Once-only ledger for signup-completion reminders.
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS signup_reminders (
+            user_id UUID PRIMARY KEY,
+            email TEXT NOT NULL,
+            sent_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )",
+    )
+    .execute(&pools.accounts)
+    .await
+    .expect("failed to ensure signup_reminders table");
+
     // Schedule the nightly report. Cron is 6-field (sec min hour dom mon dow),
     // evaluated in UTC — 22:00 UTC = 00:00 SAST.
     let cron = env("DAILY_REPORT_CRON", "0 0 22 * * *");
@@ -116,12 +128,34 @@ async fn main() {
     })
     .expect("invalid DAILY_REPORT_CRON");
     sched.add(job).await.expect("failed to add job");
+
+    // Signup-completion reminders: every 30 min, nudge creator accounts that
+    // are >12h old and still have no creator page. One email per user, ever.
+    let rem_cron = env("SIGNUP_REMINDER_CRON", "0 */30 * * * *");
+    let rem_pools = pools.clone();
+    let rem_job = Job::new_async(rem_cron.as_str(), move |_uuid, _lock| {
+        let pools = rem_pools.clone();
+        Box::pin(async move {
+            match run_signup_reminders(&pools).await {
+                Ok((candidates, sent)) => {
+                    if candidates > 0 {
+                        tracing::info!("signup reminders: {sent}/{candidates} sent");
+                    }
+                }
+                Err(e) => tracing::error!("signup reminders failed: {e}"),
+            }
+        })
+    })
+    .expect("invalid SIGNUP_REMINDER_CRON");
+    sched.add(rem_job).await.expect("failed to add reminder job");
+
     sched.start().await.expect("failed to start scheduler");
-    tracing::info!("scheduler started — daily report cron = '{cron}' (UTC)");
+    tracing::info!("scheduler started — daily report '{cron}', signup reminders '{rem_cron}' (UTC)");
 
     let app = Router::new()
         .route("/health", get(health))
         .route("/internal/run-daily-report", post(trigger))
+        .route("/internal/run-signup-reminders", post(trigger_reminders))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(pools);
 
@@ -179,6 +213,188 @@ async fn trigger(
         "gross": s.gross,
         "email": if env("REPORT_EMAIL_ENABLED", "0") == "1" { "enabled" } else { "disabled" },
     })))
+}
+
+/// Manual trigger for the signup-completion reminders.
+async fn trigger_reminders(
+    State(pools): State<Pools>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let (candidates, sent) = run_signup_reminders(&pools).await?;
+    let o = env("COMMS_OVERRIDE_TO", "");
+    let override_val = if o.is_empty() { serde_json::Value::Null } else { json!(o) };
+    Ok(Json(json!({
+        "candidates": candidates,
+        "sent": sent,
+        "override": override_val,
+    })))
+}
+
+/// Find creator accounts older than REMINDER_AFTER_HOURS with no creator page
+/// and no prior reminder, then email the user a nudge and alert the admins.
+/// COMMS_OVERRIDE_TO reroutes every email (user + admin) while testing.
+async fn run_signup_reminders(pools: &Pools) -> Result<(usize, usize), AppError> {
+    let after_hours: i64 = env("REMINDER_AFTER_HOURS", "12").parse().unwrap_or(12);
+    let window_days: i64 = env("REMINDER_WINDOW_DAYS", "14").parse().unwrap_or(14);
+
+    let rows = sqlx::query(
+        "SELECT u.id, u.email, u.username, u.created_at
+         FROM users u
+         WHERE u.role = 'creator'
+           AND u.created_at < now() - ($1 || ' hours')::interval
+           AND u.created_at > now() - ($2 || ' days')::interval
+           AND NOT EXISTS (SELECT 1 FROM signup_reminders r WHERE r.user_id = u.id)
+         ORDER BY u.created_at",
+    )
+    .bind(after_hours.to_string())
+    .bind(window_days.to_string())
+    .fetch_all(&pools.accounts)
+    .await?;
+
+    if rows.is_empty() {
+        return Ok((0, 0));
+    }
+
+    // Drop anyone who does have a creator page.
+    let ids: Vec<Uuid> = rows.iter().filter_map(|r| r.try_get("id").ok()).collect();
+    let with_profile: Vec<Uuid> =
+        sqlx::query("SELECT user_id FROM creator_profiles WHERE user_id = ANY($1)")
+            .bind(&ids)
+            .fetch_all(&pools.creators)
+            .await?
+            .iter()
+            .filter_map(|r| r.try_get("user_id").ok())
+            .collect();
+
+    let override_to = env("COMMS_OVERRIDE_TO", "");
+    let admins: Vec<String> = env("ADMIN_EMAILS", "")
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    let mut candidates = 0usize;
+    let mut sent = 0usize;
+    for r in &rows {
+        let uid: Uuid = r.try_get("id")?;
+        if with_profile.contains(&uid) {
+            continue;
+        }
+        candidates += 1;
+        let email: String = r.try_get("email").unwrap_or_default();
+        let username: String = r.try_get("username").unwrap_or_else(|_| "there".into());
+        let created: DateTime<Utc> = r.try_get("created_at").unwrap_or_else(|_| Utc::now());
+        let signed_up = created
+            .with_timezone(&Johannesburg)
+            .format("%a %d %b %Y, %H:%M")
+            .to_string();
+
+        let user_to = if override_to.is_empty() { email.clone() } else { override_to.clone() };
+        let (subj, text, html) = reminder_email(&username);
+        let send = {
+            let user_to = user_to.clone();
+            tokio::task::spawn_blocking(move || send_html_email(&user_to, &subj, &text, &html))
+                .await
+                .unwrap_or_else(|e| Err(format!("join error: {e}")))
+        };
+        match send {
+            Ok(()) => {
+                sent += 1;
+                tracing::info!("signup reminder for {email} sent to {user_to}");
+                sqlx::query("INSERT INTO signup_reminders (user_id, email) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+                    .bind(uid)
+                    .bind(&email)
+                    .execute(&pools.accounts)
+                    .await?;
+            }
+            Err(e) => {
+                tracing::error!("signup reminder for {email} failed: {e}");
+                continue; // no admin alert, and retry next cycle
+            }
+        }
+
+        // Admin alert (one per admin; all rerouted while COMMS_OVERRIDE_TO is set).
+        let admin_targets: Vec<String> = if override_to.is_empty() {
+            admins.clone()
+        } else {
+            vec![override_to.clone()]
+        };
+        for admin in admin_targets {
+            let (subj, text, html) = admin_alert_email(&email, &username, &signed_up, after_hours);
+            let res = tokio::task::spawn_blocking(move || send_html_email(&admin, &subj, &text, &html))
+                .await
+                .unwrap_or_else(|e| Err(format!("join error: {e}")));
+            if let Err(e) = res {
+                tracing::error!("admin alert for {email} failed: {e}");
+            }
+        }
+    }
+
+    Ok((candidates, sent))
+}
+
+fn reminder_email(username: &str) -> (String, String, String) {
+    let subject = "Your Tipping Jar is almost ready — finish setting up".to_string();
+    let text = format!(
+        "Hi {username}, you signed up for Tipping Jar but haven't created your creator page yet. \
+         It takes about two minutes: https://www.tippingjar.co.za/dashboard"
+    );
+    let html = format!(
+        r#"<div style="font-family:Arial,Helvetica,sans-serif;background:#eff2f0;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e7e3">
+    <div style="background:#0f2439;padding:24px 28px;color:#fff">
+      <div style="font-size:20px;font-weight:800">Tipping Jar</div>
+      <div style="opacity:.8;font-size:14px;margin-top:2px">Your jar is waiting</div>
+    </div>
+    <div style="padding:24px 28px;color:#0f2439">
+      <p style="margin:0 0 6px;font-size:16px">Hi {username},</p>
+      <p style="margin:0 0 14px;color:#5a6b7b">You created your account but haven't set up your creator page yet —
+      that's the link fans use to tip you. It takes about two minutes:</p>
+      <ol style="margin:0 0 18px;padding-left:20px;color:#5a6b7b">
+        <li>Pick your display name and handle</li>
+        <li>Add a one-line tagline</li>
+        <li>Share your link — start receiving tips</li>
+      </ol>
+      <a href="https://www.tippingjar.co.za/dashboard" style="display:inline-block;background:#0f2439;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:600">Finish my page</a>
+    </div>
+    <div style="padding:16px 28px;color:#8a97a4;font-size:12px;border-top:1px solid #e2e7e3">
+      One-time reminder because your Tipping Jar signup is incomplete. If this wasn't you, ignore this email.
+    </div>
+  </div>
+</div>"#
+    );
+    (subject, text, html)
+}
+
+fn admin_alert_email(
+    email: &str,
+    username: &str,
+    signed_up: &str,
+    after_hours: i64,
+) -> (String, String, String) {
+    let subject = format!("[Tipping Jar] Incomplete signup: {email}");
+    let text = format!(
+        "User {username} <{email}> signed up on {signed_up} (SAST) and still has no creator page after {after_hours}h. A one-time reminder was just emailed to them."
+    );
+    let html = format!(
+        r#"<div style="font-family:Arial,Helvetica,sans-serif;background:#eff2f0;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e7e3">
+    <div style="background:#0f2439;padding:20px 28px;color:#fff">
+      <div style="font-size:18px;font-weight:800">Tipping Jar · admin</div>
+      <div style="opacity:.8;font-size:13px;margin-top:2px">Incomplete signup alert</div>
+    </div>
+    <div style="padding:22px 28px;color:#0f2439">
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr><td style="padding:6px 0;color:#5a6b7b;width:130px">User</td><td style="padding:6px 0;font-weight:700">{username}</td></tr>
+        <tr><td style="padding:6px 0;color:#5a6b7b">Email</td><td style="padding:6px 0;font-weight:700">{email}</td></tr>
+        <tr><td style="padding:6px 0;color:#5a6b7b">Signed up</td><td style="padding:6px 0">{signed_up} (SAST)</td></tr>
+        <tr><td style="padding:6px 0;color:#5a6b7b">Status</td><td style="padding:6px 0;color:#e0a536;font-weight:700">No creator page after {after_hours}h</td></tr>
+      </table>
+      <p style="margin:14px 0 0;color:#5a6b7b;font-size:13px">A one-time completion reminder was just emailed to the user.</p>
+    </div>
+  </div>
+</div>"#
+    );
+    (subject, text, html)
 }
 
 async fn run_daily_report(
@@ -348,7 +564,8 @@ struct EmailArgs {
     pdf: Vec<u8>,
 }
 
-fn send_report_email(a: EmailArgs) -> Result<(), String> {
+/// Shared STARTTLS mailer from SMTP_* env.
+fn build_mailer() -> Result<(SmtpTransport, String), String> {
     let host = env("SMTP_HOST", "mail.tippingjar.co.za");
     let port: u16 = env("SMTP_PORT", "587").parse().unwrap_or(587);
     let user = env("SMTP_USER", "accounts@tippingjar.co.za");
@@ -357,7 +574,33 @@ fn send_report_email(a: EmailArgs) -> Result<(), String> {
         return Err("SMTP_PASS is not set".into());
     }
     let from = env("SMTP_FROM", "Tipping Jar <accounts@tippingjar.co.za>");
+    let mailer = SmtpTransport::starttls_relay(&host)
+        .map_err(|e| format!("smtp relay: {e}"))?
+        .port(port)
+        .credentials(Credentials::new(user, pass))
+        .build();
+    Ok((mailer, from))
+}
 
+/// Plain HTML email (no attachment) — signup reminders, admin alerts.
+fn send_html_email(to: &str, subject: &str, text: &str, html: &str) -> Result<(), String> {
+    let (mailer, from) = build_mailer()?;
+    let message = Message::builder()
+        .from(from.parse().map_err(|e| format!("bad SMTP_FROM: {e}"))?)
+        .to(to.parse().map_err(|e| format!("bad recipient: {e}"))?)
+        .subject(subject)
+        .multipart(
+            MultiPart::alternative()
+                .singlepart(SinglePart::plain(text.to_string()))
+                .singlepart(SinglePart::html(html.to_string())),
+        )
+        .map_err(|e| format!("build message: {e}"))?;
+    mailer.send(&message).map_err(|e| format!("smtp send: {e}"))?;
+    Ok(())
+}
+
+fn send_report_email(a: EmailArgs) -> Result<(), String> {
+    let (mailer, from) = build_mailer()?;
     let text = format!(
         "Hi {}, you received {} tip(s) totalling {} ({} to you) on {}. The full statement is attached as a PDF.",
         a.display, a.n_tips, a.gross, a.net, a.date_label
@@ -387,11 +630,6 @@ fn send_report_email(a: EmailArgs) -> Result<(), String> {
         )
         .map_err(|e| format!("build message: {e}"))?;
 
-    let mailer = SmtpTransport::starttls_relay(&host)
-        .map_err(|e| format!("smtp relay: {e}"))?
-        .port(port)
-        .credentials(Credentials::new(user, pass))
-        .build();
     mailer.send(&message).map_err(|e| format!("smtp send: {e}"))?;
     Ok(())
 }

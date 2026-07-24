@@ -169,6 +169,13 @@ services:
       DAILY_REPORT_CRON: ${DAILY_REPORT_CRON:-0 0 22 * * *}
       REPORTS_DIR: /app/reports
       REPORT_EMAIL_ENABLED: ${REPORT_EMAIL_ENABLED:-0}
+      # Signup-completion reminders (one-off nudge after 12h without a page)
+      SIGNUP_REMINDER_CRON: ${SIGNUP_REMINDER_CRON:-0 */30 * * * *}
+      REMINDER_AFTER_HOURS: ${REMINDER_AFTER_HOURS:-12}
+      REMINDER_WINDOW_DAYS: ${REMINDER_WINDOW_DAYS:-14}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-thulanik544@gmail.com,njabulom@badala.co.za}
+      # While set, ALL reminder + admin emails reroute here (testing)
+      COMMS_OVERRIDE_TO: ${COMMS_OVERRIDE_TO:-}
       SMTP_HOST: ${SMTP_HOST:-mail.tippingjar.co.za}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-accounts@tippingjar.co.za}
