@@ -70,8 +70,8 @@ services:
       TIPS_URL: http://tips:8084
       # base for the notify webhook — note the doubled /payments (nginx strips
       # /api/v2/payments/, so the service's /payments/notify sits under it)
-      PUBLIC_BASE_URL: ${PAYMENTS_PUBLIC_BASE_URL:-http://154.66.199.174:9001/api/v2/payments}
-      WEB_BASE_URL: ${PAYMENTS_WEB_BASE_URL:-http://154.66.199.174:9001}
+      PUBLIC_BASE_URL: ${PAYMENTS_PUBLIC_BASE_URL:-https://api.tippingjar.co.za/api/v2/payments}
+      WEB_BASE_URL: ${PAYMENTS_WEB_BASE_URL:-https://www.tippingjar.co.za}
       PORT: "8083"
     ports:
       - "127.0.0.1:8083:8083"
