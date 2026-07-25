@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import type { Creator, FeeQuote, Tip } from "@/types";
+import type { Creator, FeeQuote } from "@/types";
 
 const PRESETS = [10, 20, 50, 100, 200, 500];
 
@@ -30,7 +30,6 @@ export default function TipPage({
   const [quote, setQuote] = useState<FeeQuote | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<Tip | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -74,27 +73,6 @@ export default function TipPage({
     setAmount(Number.isNaN(parsed) ? 0 : parsed);
   }
 
-  async function submit() {
-    if (amount < 1) return setError("Enter an amount (R1 minimum).");
-    if (name.trim() && /[0-9]/.test(name)) return setError("Name can't contain numbers.");
-    setSubmitting(true);
-    setError(null);
-    try {
-      const tip = await api.createTip({
-        creator_slug: slug,
-        amount,
-        tipper_name: name.trim() || "Anonymous",
-        tipper_email: email.trim() || undefined,
-        message: message.trim() || undefined,
-      });
-      setSuccess(tip);
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   async function payWithCard() {
     if (amount < 1 || !creator) return setError("Enter an amount (R1 minimum).");
     setSubmitting(true);
@@ -120,16 +98,6 @@ export default function TipPage({
     }
   }
 
-  function reset() {
-    setSuccess(null);
-    setAmount(20);
-    setCustom("");
-    setName("");
-    setEmail("");
-    setMessage("");
-    setError(null);
-  }
-
   const fee = (v: string | undefined) => {
     const n = parseFloat(v ?? "0");
     return Number.isNaN(n) ? "0.00" : n.toFixed(2);
@@ -150,31 +118,6 @@ export default function TipPage({
         <h1 className="heading-xl mt-6 text-4xl">Creator not found</h1>
         <p className="body-muted mx-auto mt-4 max-w-md">We couldn&apos;t find who you&apos;re trying to tip.</p>
         <Link href="/creators" className="btn-primary mt-8">Explore creators</Link>
-      </section>
-    );
-  }
-
-  // ── Success ─────────────────────────────────────────────────────────
-  if (success) {
-    return (
-      <section className="container-content grid min-h-[70vh] place-items-center py-16">
-        <div className="slip w-full max-w-md !p-8 text-center shadow-lift">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-mint/15 text-3xl">💚</div>
-          <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.2em] text-green">✓ Tip received</p>
-          <h1 className="mt-2 font-display text-3xl font-extrabold text-ink">Thank you!</h1>
-          <p className="body-muted mx-auto mt-2 max-w-xs">
-            You sent R{amount.toFixed(2)} to {creator.display_name}. You just made someone&apos;s day.
-          </p>
-          {success.reference && (
-            <p className="mt-5 border-t border-dashed border-border pt-4 font-mono text-xs text-muted">
-              ref {success.reference}
-            </p>
-          )}
-          <button onClick={reset} className="btn-primary mt-6 w-full">Send another tip</button>
-          <Link href={`/creator/${creator.slug}`} className="mt-3 inline-block text-sm text-muted hover:text-ink">
-            Back to {creator.display_name}
-          </Link>
-        </div>
       </section>
     );
   }
@@ -300,14 +243,6 @@ export default function TipPage({
               className="btn-primary mt-6 w-full text-base disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? "Processing…" : amount < 1 ? "Enter an amount" : `💳 Pay R${amount.toFixed(2)}`}
-            </button>
-            <button
-              type="button"
-              onClick={submit}
-              disabled={submitting || amount < 1}
-              className="btn-ghost mt-3 w-full text-sm disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Send instantly
             </button>
             <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
               🔒 Secured by PayCloud
