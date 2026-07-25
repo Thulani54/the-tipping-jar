@@ -87,11 +87,16 @@ body {
   [class~="bg-teal"] {
     color: #fff;
   }
-  [class*="bg-brand-gradient"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]),
-  [class~="bg-primary"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]),
-  [class~="bg-navy"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]),
-  [class~="bg-teal"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"]) {
+  [class*="bg-brand-gradient"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"], [class~="bg-white"] *, [class~="card"], [class~="card"] *, [class~="slip"], [class~="slip"] *, [class*="!text-"]),
+  [class~="bg-primary"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"], [class~="bg-white"] *, [class~="card"], [class~="card"] *, [class~="slip"], [class~="slip"] *, [class*="!text-"]),
+  [class~="bg-navy"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"], [class~="bg-white"] *, [class~="card"], [class~="card"] *, [class~="slip"], [class~="slip"] *, [class*="!text-"]),
+  [class~="bg-teal"] :is(h1, h2, h3, h4, h5, p, span, a, li, strong, button, label):not([class~="bg-white"], [class~="bg-white"] *, [class~="card"], [class~="card"] *, [class~="slip"], [class~="slip"] *, [class*="!text-"]) {
     color: #fff !important;
+  }
+  /* White cards nested on colored surfaces keep their own palette. */
+  [class~="bg-navy"] :is([class~="card"], [class~="slip"]),
+  [class~="bg-primary"] :is([class~="card"], [class~="slip"]) {
+    color: var(--ink);
   }
 }
 
@@ -132,6 +137,11 @@ body {
     transform: translateY(12px);
     opacity: 0;
   }
+}
+
+/* ── FAQ accordions ─────────────────────────────────────────────────────── */
+details.faq-item summary::-webkit-details-marker {
+  display: none;
 }
 
 /* ── Interactive tip slider ─────────────────────────────────────────────── */

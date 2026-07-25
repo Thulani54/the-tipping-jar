@@ -4,21 +4,44 @@ import { CreatorCard } from "@/components/CreatorCard";
 import { HeroDemo } from "@/components/HeroDemo";
 import { LiveTicker, type TickerItem } from "@/components/LiveTicker";
 import { Reveal } from "@/components/Reveal";
+import {
+  IconBank,
+  IconBolt,
+  IconCoin,
+  IconGlobe,
+  IconJar,
+  IconLink,
+  IconReceipt,
+  IconShield,
+} from "@/components/Icons";
 import type { Creator } from "@/types";
 
 const FLOW = [
-  { n: "01", title: "A fan taps your link", body: "Your page opens — they pick an amount, add a note, and pay by card in seconds." },
-  { n: "02", title: "The jar fills", body: "Every tip drops in and nudges the bar toward your goal, live, for everyone to see." },
-  { n: "03", title: "You get paid out", body: "Support lands in your balance and pays out to your bank. You keep the majority, always." },
+  { n: "01", icon: IconLink, title: "A fan taps your link", body: "Your page opens — they pick an amount, add a note, and pay by card in seconds. No account needed." },
+  { n: "02", icon: IconJar, title: "The jar fills", body: "Every tip drops in and nudges the bar toward your goal, live, for everyone to see." },
+  { n: "03", icon: IconBank, title: "You get paid out", body: "Support lands in your balance and pays out to your South African bank account." },
 ];
 
-const FEATURES = [
-  { icon: "🫙", tint: "bg-mint/15", title: "Goals that fill up", body: "Set a monthly goal and watch the jar rise as fans chip in." },
-  { icon: "🪙", tint: "bg-gold/15", title: "Keep the majority", body: "Low, transparent fees — the bulk of every rand is yours." },
-  { icon: "⚡", tint: "bg-mint/15", title: "Live in minutes", body: "Make a page, share the link, start receiving support today." },
-  { icon: "🔒", tint: "bg-primary/10", title: "Real payouts", body: "Verified, bank-grade payouts straight to your account." },
-  { icon: "🧾", tint: "bg-gold/15", title: "Every tip, tracked", body: "A clean receipt for each supporter, with names and messages." },
-  { icon: "🌍", tint: "bg-primary/10", title: "Made for Africa", body: "Local cards, local currency, local support. Built in South Africa." },
+const FEATURES: {
+  icon: typeof IconJar;
+  title: string;
+  body: string;
+  big?: boolean;
+}[] = [
+  { icon: IconJar, big: true, title: "Goals that fill up", body: "Set a monthly goal and let fans watch the jar rise as they chip in. A visible goal turns one-off thanks into momentum — supporters love pushing it over the line." },
+  { icon: IconCoin, title: "Keep the majority", body: "6% flat when a tip lands. No subscriptions, no hidden charges." },
+  { icon: IconBank, title: "Real payouts", body: "Balance to bank account, on request. ZAR in, ZAR out." },
+  { icon: IconReceipt, title: "Every tip, tracked", body: "A clean receipt per supporter — names, messages, amounts — plus a nightly PDF statement by email." },
+  { icon: IconBolt, title: "Live in minutes", body: "Name your page, share one link, start receiving support today." },
+  { icon: IconShield, title: "Card-safe by design", body: "Payments run through PayCloud's PCI-compliant gateway. Card details never touch our servers." },
+];
+
+const FAQ = [
+  { q: "What does it cost?", a: "6% flat per tip — 3% platform and 3% card & service. There are no monthly fees and no setup cost; you only pay when you get paid." },
+  { q: "How do payouts work?", a: "Tips land in your balance as they're paid. Request a payout from your dashboard and it's transferred to your South African bank account." },
+  { q: "Do fans need an account?", a: "No. Fans open your link, pick an amount and pay by card in under a minute — no signup, no app to install." },
+  { q: "Is it secure?", a: "Payments are processed by PayCloud's PCI-compliant gateway over an encrypted connection. Your fans' card details never touch our servers." },
+  { q: "Who can start a jar?", a: "Any South African creator — musicians, writers, streamers, artists, podcasters. Sign up, name your page and share the link." },
 ];
 
 const SAMPLE_TICKER: TickerItem[] = [
@@ -73,14 +96,21 @@ export default async function LandingPage() {
 
   return (
     <>
-      {/* Hero */}
-      <section className="overflow-hidden border-b border-border">
-        <div className="container-content grid items-center gap-14 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
+      {/* ── Hero — navy stage for the live demo ─────────────────────────── */}
+      <section className="relative overflow-hidden bg-navy">
+        <span aria-hidden className="pointer-events-none absolute -left-10 top-24 h-40 w-40 rounded-full bg-mint/10" />
+        <span aria-hidden className="pointer-events-none absolute left-[46%] top-10 h-8 w-8 rounded-full bg-gold/40" />
+        <span aria-hidden className="pointer-events-none absolute -bottom-16 right-[38%] h-48 w-48 rounded-full bg-mint/10" />
+
+        <div className="container-content relative grid items-center gap-14 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
           <div>
-            <p className="eyebrow rise-in">Fan tipping · South Africa</p>
-            <h1 className="heading-xl mt-5 max-w-xl rise-in" style={{ animationDelay: "0.05s" }}>
+            <p className="eyebrow !text-mint rise-in">Fan tipping · South Africa</p>
+            <h1
+              className="mt-5 max-w-xl font-display text-[2.9rem] font-extrabold leading-[1.02] tracking-[-0.02em] md:text-[4.2rem] rise-in"
+              style={{ animationDelay: "0.05s" }}
+            >
               Support that{" "}
-              <span className="relative whitespace-nowrap text-green">
+              <span className="relative whitespace-nowrap !text-mint">
                 adds up
                 <svg aria-hidden viewBox="0 0 200 12" className="absolute -bottom-1.5 left-0 h-2.5 w-full" preserveAspectRatio="none">
                   <path d="M2 8 Q 60 2 100 6 T 198 5" fill="none" stroke="var(--gold)" strokeWidth="3.5" strokeLinecap="round" />
@@ -88,18 +118,33 @@ export default async function LandingPage() {
               </span>
               .
             </h1>
-            <p className="body-muted mt-6 max-w-lg text-lg rise-in" style={{ animationDelay: "0.1s" }}>
+            <p className="mt-6 max-w-lg text-lg leading-relaxed opacity-80 rise-in" style={{ animationDelay: "0.1s" }}>
               Fans drop a tip, your jar fills, and appreciation becomes steady
               income. Set up in minutes and keep the majority of every rand.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4 rise-in" style={{ animationDelay: "0.15s" }}>
-              <Link href="/register" className="btn-primary text-base">Start your jar →</Link>
-              <Link href="/creators" className="btn-ghost text-base">Explore creators</Link>
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center rounded-full bg-white px-7 py-3.5 text-base font-semibold !text-primary shadow-lift transition duration-200 hover:-translate-y-0.5"
+              >
+                Start your jar →
+              </Link>
+              <Link
+                href="/creators"
+                className="inline-flex items-center justify-center rounded-full border border-white/25 px-7 py-3.5 text-base font-semibold transition duration-200 hover:border-white/60 hover:bg-white/10"
+              >
+                Explore creators
+              </Link>
             </div>
-            <div className="mt-9 flex flex-wrap gap-x-6 gap-y-2 font-mono text-xs uppercase tracking-[0.14em] text-muted rise-in" style={{ animationDelay: "0.2s" }}>
-              <span className="inline-flex items-center gap-1.5"><span className="text-green">◆</span> low fees</span>
-              <span className="inline-flex items-center gap-1.5"><span className="text-green">◆</span> fast payouts</span>
-              <span className="inline-flex items-center gap-1.5"><span className="text-green">◆</span> pay by card</span>
+            <div className="mt-10 flex flex-wrap gap-x-3 gap-y-2 rise-in" style={{ animationDelay: "0.2s" }}>
+              {["6% flat fees", "Payouts to your bank", "Fans pay by card — no signup"].map((f) => (
+                <span
+                  key={f}
+                  className="rounded-full border border-white/15 px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] opacity-80"
+                >
+                  {f}
+                </span>
+              ))}
             </div>
           </div>
 
@@ -109,7 +154,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Live activity */}
+      {/* ── Live activity ───────────────────────────────────────────────── */}
       <section className="border-b border-border bg-white py-4">
         <div className="container-content flex items-center gap-4">
           <span className="hidden shrink-0 font-mono text-[11px] uppercase tracking-[0.18em] text-green sm:inline">
@@ -121,82 +166,151 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Categories band */}
+      {/* ── Fee transparency — the split, shown not told ────────────────── */}
       <section className="border-b border-border bg-white">
-        <div className="container-content flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-8 font-mono text-xs uppercase tracking-[0.2em] text-muted">
-          <span className="text-ink/40">Creators of every kind —</span>
-          {chips.map((c) => (
-            <span key={c}>{c}</span>
-          ))}
+        <div className="container-content py-24">
+          <Reveal className="grid items-center gap-12 lg:grid-cols-[0.95fr_1.05fr]">
+            <div>
+              <p className="eyebrow">Transparent fees</p>
+              <h2 className="heading-xl mt-3 text-4xl md:text-5xl">
+                You keep R94 of every R100
+              </h2>
+              <p className="body-muted mt-5 max-w-md">
+                Two flat fees, taken only when a tip actually lands. No
+                subscriptions, no setup costs, nothing hidden in the fine
+                print — you only ever pay when you get paid.
+              </p>
+              <ul className="mt-7 space-y-3 font-mono text-sm">
+                <li className="flex items-center gap-3">
+                  <span className="h-3 w-3 shrink-0 rounded-full bg-mint" />
+                  <span className="font-semibold text-ink">R94.00</span>
+                  <span className="text-muted">— yours, paid to your bank</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="h-3 w-3 shrink-0 rounded-full bg-primary" />
+                  <span className="font-semibold text-ink">R3.00</span>
+                  <span className="text-muted">— platform fee (3%)</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="h-3 w-3 shrink-0 rounded-full bg-gold" />
+                  <span className="font-semibold text-ink">R3.00</span>
+                  <span className="text-muted">— card &amp; service (3%)</span>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <div className="flex h-24 overflow-hidden rounded-[20px] ring-1 ring-border">
+                <div className="grid place-items-center bg-mint" style={{ width: "94%" }}>
+                  <div className="text-center">
+                    <p className="font-display text-2xl font-extrabold text-navy">R94</p>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-navy/70">creator keeps</p>
+                  </div>
+                </div>
+                <div className="bg-primary" style={{ width: "3%" }} />
+                <div className="bg-gold" style={{ width: "3%" }} />
+              </div>
+              <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
+                a R100 tip, split exactly to scale
+              </p>
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* How a tip flows */}
-      <section className="border-b border-border bg-white">
-        <div className="container-content py-20">
+      {/* ── How a tip flows ─────────────────────────────────────────────── */}
+      <section className="border-b border-border">
+        <div className="container-content py-24">
           <Reveal className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="eyebrow">The flow</p>
               <h2 className="heading-xl mt-3 text-4xl md:text-5xl">From tap to payout</h2>
             </div>
             <p className="body-muted max-w-sm">
-              Three steps, no faff. Here&apos;s exactly what happens when someone
-              wants to back you.
+              Three steps, no faff. Here&apos;s exactly what happens when
+              someone wants to back you.
             </p>
           </Reveal>
-          <ol className="mt-14 grid gap-8 md:grid-cols-3">
-            {FLOW.map((s, i) => (
-              <Reveal as="li" key={s.n} delay={i * 90} className="relative">
-                {i < FLOW.length - 1 && (
-                  <span aria-hidden className="absolute left-12 top-5 hidden h-px w-[calc(100%-2rem)] border-t border-dashed border-border md:block" />
-                )}
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary font-mono text-sm font-bold text-white">
-                  {s.n}
-                </span>
-                <h3 className="mt-5 font-display text-xl font-bold text-ink">{s.title}</h3>
-                <p className="body-muted mt-2">{s.body}</p>
-              </Reveal>
-            ))}
+          <ol className="mt-14 grid gap-6 md:grid-cols-3">
+            {FLOW.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <Reveal as="li" key={s.n} delay={i * 90}>
+                  <div className="card relative h-full !p-7">
+                    <span className="absolute right-6 top-6 font-mono text-xs font-bold text-muted/60">{s.n}</span>
+                    <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white">
+                      <Icon />
+                    </span>
+                    <h3 className="mt-6 font-display text-xl font-bold text-ink">{s.title}</h3>
+                    <p className="body-muted mt-2">{s.body}</p>
+                  </div>
+                </Reveal>
+              );
+            })}
           </ol>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="container-content py-20">
-        <Reveal className="max-w-2xl">
-          <p className="eyebrow">Why Tipping Jar</p>
-          <h2 className="heading-xl mt-3 text-4xl md:text-5xl">
-            Built for the moment someone says thanks
-          </h2>
-        </Reveal>
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f, i) => (
-            <Reveal key={f.title} delay={(i % 3) * 80}>
-              <div className="card h-full transition duration-200 hover:-translate-y-1 hover:shadow-lift">
-                <div className={`grid h-12 w-12 place-items-center rounded-2xl text-2xl ${f.tint}`}>
-                  {f.icon}
-                </div>
-                <h3 className="mt-5 font-display text-lg font-bold text-ink">{f.title}</h3>
-                <p className="body-muted mt-2">{f.body}</p>
-              </div>
-            </Reveal>
-          ))}
+      {/* ── Features — bento grid, one hero card ────────────────────────── */}
+      <section className="border-b border-border bg-white">
+        <div className="container-content py-24">
+          <Reveal className="max-w-2xl">
+            <p className="eyebrow">Why Tipping Jar</p>
+            <h2 className="heading-xl mt-3 text-4xl md:text-5xl">
+              Built for the moment someone says thanks
+            </h2>
+          </Reveal>
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {FEATURES.map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <Reveal key={f.title} delay={(i % 3) * 80} className={f.big ? "md:col-span-2" : ""}>
+                  <div className="card h-full !bg-darker !shadow-none ring-1 ring-border transition duration-200 hover:-translate-y-1 hover:!shadow-lift">
+                    <div className="flex h-full flex-col">
+                      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-green ring-1 ring-border">
+                        <Icon />
+                      </span>
+                      <h3 className="mt-5 font-display text-lg font-bold text-ink">{f.title}</h3>
+                      <p className="body-muted mt-2 max-w-lg">{f.body}</p>
+                      {f.big && (
+                        <div className="mt-auto pt-6">
+                          <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
+                            <span>this month</span>
+                            <span>R2,340 / R3,000</span>
+                          </div>
+                          <div className="mt-2 h-3 overflow-hidden rounded-full bg-white ring-1 ring-border">
+                            <div className="h-full rounded-full bg-mint" style={{ width: "78%" }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* Featured creators */}
+      {/* ── Featured creators ───────────────────────────────────────────── */}
       {creators.length > 0 && (
-        <section className="border-t border-border bg-white">
-          <div className="container-content py-20">
-            <Reveal className="flex items-end justify-between">
+        <section className="border-b border-border">
+          <div className="container-content py-24">
+            <Reveal className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="eyebrow">On the platform</p>
                 <h2 className="heading-xl mt-3 text-4xl md:text-5xl">Creators filling their jars</h2>
               </div>
-              <Link href="/creators" className="hidden text-sm font-semibold text-green hover:underline sm:block">
+              <Link href="/creators" className="text-sm font-semibold text-green hover:underline">
                 View all →
               </Link>
             </Reveal>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {chips.map((c) => (
+                <span key={c} className="rounded-full border border-border bg-white px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
+                  {c}
+                </span>
+              ))}
+            </div>
             <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {creators.map((c, i) => (
                 <Reveal key={c.id} delay={(i % 3) * 80}>
@@ -208,24 +322,87 @@ export default async function LandingPage() {
         </section>
       )}
 
-      {/* CTA */}
-      <section className="container-content py-20">
-        <Reveal>
-          <div className="relative overflow-hidden rounded-[28px] bg-navy px-8 py-16 text-center md:px-16">
-            <span aria-hidden className="pointer-events-none absolute left-8 top-8 h-8 w-8 rounded-full bg-gold/50" />
-            <span aria-hidden className="pointer-events-none absolute right-12 top-12 h-14 w-14 rounded-full bg-mint/20" />
-            <span aria-hidden className="pointer-events-none absolute bottom-10 right-24 h-6 w-6 rounded-full bg-gold/60" />
-            <p className="eyebrow !text-mint">Your jar is waiting</p>
-            <h2 className="heading-xl mt-4 text-white">Start collecting support today</h2>
-            <p className="mx-auto mt-4 max-w-lg text-white/75">
-              Set up your page, share one link, and let the tips add up.
+      {/* ── FAQ ─────────────────────────────────────────────────────────── */}
+      <section className="border-b border-border bg-white">
+        <div className="container-content grid gap-12 py-24 lg:grid-cols-[0.8fr_1.2fr]">
+          <Reveal>
+            <p className="eyebrow">Questions</p>
+            <h2 className="heading-xl mt-3 text-4xl md:text-5xl">Fair to ask</h2>
+            <p className="body-muted mt-5 max-w-sm">
+              The short version of everything creators ask us before starting a
+              jar. Anything else —{" "}
+              <Link href="/contact" className="font-semibold text-green hover:underline">
+                talk to us
+              </Link>
+              .
             </p>
-            <Link
-              href="/register"
-              className="mt-9 inline-flex rounded-full bg-white px-8 py-3.5 font-semibold !text-primary shadow-lift transition hover:-translate-y-0.5 hover:bg-white/90"
-            >
-              Create your jar
-            </Link>
+          </Reveal>
+          <Reveal delay={90}>
+            <div className="card !p-2 md:!p-4">
+              {FAQ.map((f) => (
+                <details key={f.q} className="faq-item group border-b border-border px-4 py-5 last:border-0">
+                  <summary className="flex cursor-pointer items-center justify-between gap-4 font-display text-base font-bold text-ink md:text-lg">
+                    {f.q}
+                    <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-border font-mono text-base text-muted transition group-open:rotate-45 group-open:border-green group-open:text-green">
+                      +
+                    </span>
+                  </summary>
+                  <p className="body-muted mt-3 max-w-2xl">{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── CTA ─────────────────────────────────────────────────────────── */}
+      <section className="container-content py-24">
+        <Reveal>
+          <div className="relative overflow-hidden rounded-[28px] bg-navy px-8 py-14 md:px-16">
+            <span aria-hidden className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-mint/10" />
+            <span aria-hidden className="pointer-events-none absolute bottom-8 right-[30%] h-6 w-6 rounded-full bg-gold/50" />
+            <div className="grid items-center gap-10 md:grid-cols-[1.2fr_0.8fr]">
+              <div>
+                <p className="eyebrow !text-mint">Your jar is waiting</p>
+                <h2 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-[-0.02em] md:text-5xl">
+                  Start collecting support today
+                </h2>
+                <p className="mt-4 max-w-lg opacity-75">
+                  Set up your page, share one link, and let the tips add up. Live
+                  in minutes — free to start.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-4">
+                  <Link
+                    href="/register"
+                    className="inline-flex rounded-full bg-white px-8 py-3.5 font-semibold !text-primary shadow-lift transition hover:-translate-y-0.5"
+                  >
+                    Create your jar
+                  </Link>
+                  <Link
+                    href="/how-it-works"
+                    className="inline-flex rounded-full border border-white/25 px-8 py-3.5 font-semibold transition hover:border-white/60 hover:bg-white/10"
+                  >
+                    How it works
+                  </Link>
+                </div>
+              </div>
+              <svg viewBox="0 0 220 300" className="mx-auto hidden h-56 w-auto md:block" aria-hidden>
+                <defs>
+                  <clipPath id="ctaJar">
+                    <rect x="28" y="74" width="164" height="200" rx="32" />
+                  </clipPath>
+                </defs>
+                <g clipPath="url(#ctaJar)">
+                  <rect x="28" y="150" width="164" height="124" fill="var(--mint)" opacity="0.9" />
+                  <ellipse cx="82" cy="256" rx="23" ry="8.5" fill="var(--gold)" />
+                  <ellipse cx="130" cy="262" rx="25" ry="9" fill="#eebe5c" />
+                  <ellipse cx="106" cy="249" rx="21" ry="8" fill="var(--gold)" />
+                </g>
+                <rect x="28" y="74" width="164" height="200" rx="32" fill="none" stroke="#ffffff" strokeOpacity="0.3" strokeWidth="2.5" />
+                <rect x="54" y="56" width="112" height="26" rx="9" fill="none" stroke="#ffffff" strokeOpacity="0.3" strokeWidth="2.5" />
+                <rect x="62" y="45" width="96" height="16" rx="7" fill="var(--gold)" />
+              </svg>
+            </div>
           </div>
         </Reveal>
       </section>

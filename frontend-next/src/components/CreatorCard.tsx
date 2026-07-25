@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IconJar } from "./Icons";
 import type { Creator } from "@/types";
 
 const initial = (name: string) => (name.trim()[0] || "T").toUpperCase();
@@ -32,10 +33,10 @@ export function CreatorCard({ creator }: { creator: Creator }) {
 
       <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
         <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
-          <span aria-hidden>🫙</span> tip jar
+          <IconJar className="h-4 w-4" /> tip jar
         </span>
         <span className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white transition group-hover:bg-navy">
-          💚 Tip
+          Tip →
         </span>
       </div>
     </Link>
