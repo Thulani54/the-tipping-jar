@@ -98,6 +98,14 @@ export default async function LandingPage() {
     <>
       {/* ── Hero — navy stage for the live demo ─────────────────────────── */}
       <section className="relative overflow-hidden bg-navy">
+        {/* A creator at work, dimmed into the navy stage (CC0 photo) */}
+        <img
+          src="/hero-creator.jpg"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[70%_center] opacity-30"
+        />
+        <span aria-hidden className="pointer-events-none absolute inset-0 bg-navy/20" />
         <span aria-hidden className="pointer-events-none absolute -left-10 top-24 h-40 w-40 rounded-full bg-mint/10" />
         <span aria-hidden className="pointer-events-none absolute left-[46%] top-10 h-8 w-8 rounded-full bg-gold/40" />
         <span aria-hidden className="pointer-events-none absolute -bottom-16 right-[38%] h-48 w-48 rounded-full bg-mint/10" />
