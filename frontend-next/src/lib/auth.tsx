@@ -13,7 +13,7 @@ interface AuthState {
   isCreator: boolean;
   isEnterprise: boolean;
   isAdmin: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (body: {
     email: string;
     password: string;
@@ -64,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await api.login(email, password);
         persist(res.token, res.user);
+        return res.user;
       } finally {
         setLoading(false);
       }
