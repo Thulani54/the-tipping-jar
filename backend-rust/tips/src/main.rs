@@ -6,6 +6,7 @@
 //! then it persists a tip row with the fee snapshot returned by payments.
 
 use axum::extract::{Path, State};
+use axum::http::HeaderMap;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::{env, AppError};
@@ -197,6 +198,49 @@ async fn list_tips(State(st): State<AppState>) -> Result<Json<Vec<Tip>>, AppErro
     .fetch_all(&st.pool)
     .await?;
     Ok(Json(rows))
+}
+
+/// Internal (admin portal): latest tips across every status. Key-guarded.
+async fn list_tips_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<Tip>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows: Vec<Tip> = sqlx::query_as(&format!(
+        "SELECT {TIP_COLUMNS} FROM tips ORDER BY created_at DESC LIMIT 150"
+    ))
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+/// Internal (admin portal): completed-tip volume per day, last 30 days (SAST).
+async fn daily_stats_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<serde_json::Value>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows: Vec<(chrono::NaiveDate, i64, Decimal, Decimal)> = sqlx::query_as(
+        "SELECT (created_at AT TIME ZONE 'Africa/Johannesburg')::date AS day,
+                count(*), COALESCE(SUM(amount),0), COALESCE(SUM(creator_net),0)
+         FROM tips
+         WHERE status = 'completed' AND created_at > now() - interval '30 days'
+         GROUP BY day ORDER BY day",
+    )
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(
+        rows.into_iter()
+            .map(|(day, count, gross, net)| {
+                serde_json::json!({
+                    "day": day.to_string(),
+                    "count": count,
+                    "gross": gross.to_string(),
+                    "net": net.to_string(),
+                })
+            })
+            .collect(),
+    ))
 }
 
 async fn tips_for_creator(
@@ -474,6 +518,8 @@ async fn main() {
         .route("/tips/creator/:creator_id/stats", get(creator_stats))
         .route("/tips/fan/:email", get(tips_for_fan))
         .route("/tips/internal/record", post(record_tip))
+        .route("/internal/tips/recent", get(list_tips_internal))
+        .route("/internal/tips/stats/daily", get(daily_stats_internal))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 

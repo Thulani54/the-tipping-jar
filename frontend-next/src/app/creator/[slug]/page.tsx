@@ -95,20 +95,39 @@ export default async function CreatorPage({
 
   return (
     <section className="pb-24">
-      {/* Cover — solid navy with a coin motif */}
+      {/* Cover — the creator's cover image, or solid navy with a coin motif */}
       <div className="relative h-44 w-full overflow-hidden bg-navy md:h-56">
-        <span aria-hidden className="absolute left-[10%] top-8 h-10 w-10 rounded-full bg-gold/50" />
-        <span aria-hidden className="absolute right-[10%] top-10 h-16 w-16 rounded-full bg-mint/20" />
-        <span aria-hidden className="absolute right-[18%] top-20 h-7 w-7 rounded-full bg-gold/60" />
+        {creator.cover_url ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={creator.cover_url} alt="" className="h-full w-full object-cover" />
+            <span aria-hidden className="absolute inset-0 bg-navy/30" />
+          </>
+        ) : (
+          <>
+            <span aria-hidden className="absolute left-[10%] top-8 h-10 w-10 rounded-full bg-gold/50" />
+            <span aria-hidden className="absolute right-[10%] top-10 h-16 w-16 rounded-full bg-mint/20" />
+            <span aria-hidden className="absolute right-[18%] top-20 h-7 w-7 rounded-full bg-gold/60" />
+          </>
+        )}
       </div>
 
       <div className="container-content">
         {/* Header — white avatar centred ON the navy header, info stacked below.
             relative z-10 so the avatar paints ABOVE the (positioned) cover. */}
         <div className="relative z-10 -mt-24 flex flex-col items-center text-center md:-mt-28">
-          <div className="grid h-32 w-32 shrink-0 place-items-center rounded-[36px] bg-white text-4xl font-extrabold text-primary shadow-lift ring-1 ring-border">
-            {initials(creator.display_name)}
-          </div>
+          {creator.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={creator.avatar_url}
+              alt={creator.display_name}
+              className="h-32 w-32 shrink-0 rounded-[36px] object-cover shadow-lift ring-4 ring-white"
+            />
+          ) : (
+            <div className="grid h-32 w-32 shrink-0 place-items-center rounded-[36px] bg-white text-4xl font-extrabold text-primary shadow-lift ring-1 ring-border">
+              {initials(creator.display_name)}
+            </div>
+          )}
           <h1 className="mt-5 font-display text-3xl font-extrabold tracking-tight text-ink md:text-4xl">
             {creator.display_name}
           </h1>

@@ -75,3 +75,14 @@ impl From<jsonwebtoken::errors::Error> for AppError {
 pub fn env(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_string())
 }
+
+/// Guard for service-to-service ("internal") endpoints that are reachable
+/// through the public nginx prefix: the caller must present the shared
+/// `x-internal-key` header matching the INTERNAL_KEY env var.
+pub fn require_internal_key(headers: &axum::http::HeaderMap) -> Result<(), AppError> {
+    let expected = env("INTERNAL_KEY", "tj-internal-dev-key");
+    match headers.get("x-internal-key").and_then(|v| v.to_str().ok()) {
+        Some(k) if k == expected => Ok(()),
+        _ => Err(AppError::Unauthorized("internal endpoint".into())),
+    }
+}

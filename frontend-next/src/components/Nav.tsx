@@ -14,7 +14,7 @@ const LINKS = [
 ];
 
 export function Nav() {
-  const { isAuthenticated, isCreator, logout } = useAuth();
+  const { isAuthenticated, isCreator, isAdmin, logout } = useAuth();
   const [open, setOpen] = useState(false);
 
   return (
@@ -33,8 +33,11 @@ export function Nav() {
         <div className="hidden items-center gap-3 md:flex">
           {isAuthenticated ? (
             <>
-              <Link href={isCreator ? "/dashboard" : "/fan-dashboard"} className="btn-ghost !py-2 !px-4 text-sm">
-                Dashboard
+              <Link
+                href={isAdmin ? "/admin-portal" : isCreator ? "/dashboard" : "/fan-dashboard"}
+                className="btn-ghost !py-2 !px-4 text-sm"
+              >
+                {isAdmin ? "Admin" : "Dashboard"}
               </Link>
               <button onClick={logout} className="text-sm text-muted hover:text-ink">
                 Log out

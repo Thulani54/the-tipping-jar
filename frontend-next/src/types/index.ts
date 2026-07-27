@@ -27,6 +27,8 @@ export interface Creator {
   tip_goal: string | null;
   is_active: boolean;
   kyc_status: string;
+  avatar_url: string;
+  cover_url: string;
   created_at: string;
 }
 
@@ -161,6 +163,59 @@ export interface CreatorStats {
   this_month_amount: string;
 }
 
+// ── Admin portal ─────────────────────────────────────────────────────
+export interface AdminDashboard {
+  totals: {
+    users: number;
+    creators: number;
+    creators_active: number;
+    tips: number;
+    tips_completed: number;
+    gross_volume: string;
+    creator_net: string;
+    transactions: number;
+    payouts_pending: number;
+    payouts_pending_amount: string;
+    contacts: number;
+    disputes: number;
+  };
+  recent_tips: Tip[];
+  recent_transactions: Transaction[];
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  username: string;
+  role: string;
+  phone_number: string;
+  two_fa_enabled: boolean;
+  is_minor: boolean;
+  referral_code_used: string;
+  created_at: string;
+}
+
+export interface AdminCreator {
+  id: string;
+  user_id: string;
+  display_name: string;
+  slug: string;
+  tagline: string;
+  category: string;
+  tip_goal: string | null;
+  is_active: boolean;
+  kyc_status: string;
+  has_avatar: boolean;
+  has_cover: boolean;
+  created_at: string;
+}
+
+export interface AdminTickets {
+  contacts: { id: string; name?: string; email?: string; subject?: string; message?: string; created_at?: string }[];
+  disputes: { id: string; email?: string; reason?: string; status?: string; tracking_token?: string; created_at?: string }[];
+  partners: { id: string; company?: string; email?: string; created_at?: string }[];
+}
+
 export interface StudioDesign {
   id: string;
   creator_id: string;
@@ -185,6 +240,10 @@ export interface Transaction {
   currency: string;
   pay_url: string;
   description: string;
+  creator_name: string;
+  tipper_name: string;
+  tipper_email: string;
+  message: string;
   created_at: string;
 }
 

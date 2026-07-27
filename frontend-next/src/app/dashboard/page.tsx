@@ -191,7 +191,7 @@ export default function DashboardPage() {
               <TransactionsTab token={token} creatorId={myCreator?.id ?? null} />
             )}
             {tab === "referrals" && <ReferralsTab referral={referral} />}
-            {tab === "studio" && <StudioTab token={token} />}
+            {tab === "studio" && <StudioTab token={token} slug={myCreator?.slug ?? null} />}
           </div>
         </main>
       </div>
@@ -814,6 +814,6 @@ function TransactionsTab({ token, creatorId }: { token: string | null; creatorId
 }
 
 // ─── Studio ──────────────────────────────────────────────────────────────────
-function StudioTab({ token }: { token: string | null }) {
-  return <StudioEditor token={token} />;
+function StudioTab({ token, slug }: { token: string | null; slug: string | null }) {
+  return <StudioEditor token={token} slug={slug} />;
 }

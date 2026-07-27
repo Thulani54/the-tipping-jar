@@ -32,8 +32,15 @@ export default function LoginPage() {
       return;
     }
     try {
-      await login(email.trim(), password);
-      router.push("/dashboard");
+      const user = await login(email.trim(), password);
+      // Route by role: admins to the portal, everyone else to their dashboard.
+      router.push(
+        user?.role === "admin"
+          ? "/admin-portal"
+          : user?.role === "enterprise"
+            ? "/enterprise-portal"
+            : "/dashboard",
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed. Try again.");
     }

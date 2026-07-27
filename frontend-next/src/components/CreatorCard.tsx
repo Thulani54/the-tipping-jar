@@ -11,9 +11,18 @@ export function CreatorCard({ creator }: { creator: Creator }) {
       className="group glass-card flex flex-col p-6"
     >
       <div className="flex items-start gap-3.5">
-        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-green text-lg font-extrabold text-white shadow-lift transition-transform duration-300 group-hover:scale-105">
-          {initial(creator.display_name)}
-        </div>
+        {creator.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={creator.avatar_url}
+            alt={creator.display_name}
+            className="h-14 w-14 shrink-0 rounded-2xl object-cover shadow-lift ring-1 ring-border transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-green text-lg font-extrabold text-white shadow-lift transition-transform duration-300 group-hover:scale-105">
+            {initial(creator.display_name)}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-display text-lg font-bold text-ink group-hover:text-green">
             {creator.display_name}

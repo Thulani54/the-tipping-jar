@@ -2,6 +2,10 @@
 // /api/v2/<service>/. Each service has its own path prefix.
 
 import type {
+  AdminCreator,
+  AdminDashboard,
+  AdminTickets,
+  AdminUser,
   AuthResponse,
   Balance,
   BlogPost,
@@ -87,6 +91,11 @@ export const api = {
   // ── payments (service routes are prefixed /payments, so double up) ─
   quote: (amount: number) =>
     request<FeeQuote>("/payments/payments/quote", { method: "POST", body: { amount } }),
+  reconcilePayment: (reference: string) =>
+    request<{ status: string; gateway_status?: number }>(
+      `/payments/payments/reconcile/${reference}`,
+      { method: "POST" },
+    ),
 
   // ── tips ──────────────────────────────────────────────────────────
   listTips: () => request<Tip[]>("/tips/tips"),
@@ -134,6 +143,74 @@ export const api = {
   // ── admin ─────────────────────────────────────────────────────────
   dashboard: () => request<unknown>("/admin/dashboard"),
 
+  // ── admin portal (admin JWT required) ─────────────────────────────
+  adminDashboard: (token: string) =>
+    request<AdminDashboard>("/admin/dashboard", { token }),
+  adminUsers: (token: string) => request<AdminUser[]>("/admin/users", { token }),
+  adminCreators: (token: string) =>
+    request<AdminCreator[]>("/admin/creators", { token }),
+  adminSetCreatorActive: (token: string, id: string, is_active: boolean) =>
+    request<{ id: string; is_active: boolean }>(`/admin/creators/${id}/active`, {
+      method: "POST",
+      body: { is_active },
+      token,
+    }),
+  adminTips: (token: string) => request<Tip[]>("/admin/tips", { token }),
+  adminTransactions: (token: string) =>
+    request<Transaction[]>("/admin/transactions", { token }),
+  adminPayouts: (token: string) => request<Payout[]>("/admin/payouts", { token }),
+  adminSetPayoutStatus: (token: string, id: string, status: string) =>
+    request<Payout>(`/admin/payouts/${id}/status`, {
+      method: "POST",
+      body: { status },
+      token,
+    }),
+  adminTickets: (token: string) =>
+    request<AdminTickets>("/admin/tickets", { token }),
+  adminSetUserRole: (token: string, id: string, role: string) =>
+    request<{ id: string; role: string }>(`/admin/users/${id}/role`, {
+      method: "POST",
+      body: { role },
+      token,
+    }),
+  adminDeleteUser: (token: string, id: string) =>
+    request<{ deleted: string }>(`/admin/users/${id}`, { method: "DELETE", token }),
+  adminSetCreatorKyc: (token: string, id: string, status: string) =>
+    request<{ id: string; kyc_status: string }>(`/admin/creators/${id}/kyc`, {
+      method: "POST",
+      body: { status },
+      token,
+    }),
+  adminDeleteCreator: (token: string, id: string) =>
+    request<{ deleted: string }>(`/admin/creators/${id}`, { method: "DELETE", token }),
+  adminDailyStats: (token: string) =>
+    request<{ day: string; count: number; gross: string; net: string }[]>(
+      "/admin/analytics/daily",
+      { token },
+    ),
+  adminSetDisputeStatus: (token: string, id: string, status: string) =>
+    request<{ id: string; status: string }>(`/admin/disputes/${id}/status`, {
+      method: "POST",
+      body: { status },
+      token,
+    }),
+  adminRunDailyReport: (token: string, date?: string) =>
+    request<{ date: string; creators: number; rendered: number; emailed: number }>(
+      `/admin/ops/daily-report${date ? `?date=${date}` : ""}`,
+      { method: "POST", token },
+    ),
+  adminRunReminders: (token: string) =>
+    request<{ candidates: number; sent: number }>("/admin/ops/signup-reminders", {
+      method: "POST",
+      token,
+    }),
+  adminRefund: (token: string, merchant_order_no: string, description?: string) =>
+    request<unknown>("/payments/payments/refund", {
+      method: "POST",
+      body: { merchant_order_no, description },
+      token,
+    }),
+
   // ── creators: tiers, jars, my-profile ─────────────────────────────
   getTiers: (slug: string) =>
     request<SupportTier[]>(`/creators/creators/${slug}/tiers`),
@@ -159,6 +236,16 @@ export const api = {
   ) =>
     request<StudioDesign>("/creators/creators/studio/designs", {
       method: "POST",
+      body,
+      token,
+    }),
+  updateDesign: (
+    token: string,
+    id: string,
+    body: { title?: string; kind?: string; canvas: string; thumb?: string },
+  ) =>
+    request<StudioDesign>(`/creators/creators/studio/designs/${id}`, {
+      method: "PUT",
       body,
       token,
     }),

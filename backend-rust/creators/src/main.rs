@@ -34,11 +34,13 @@ struct Creator {
     tip_goal: Option<Decimal>,
     is_active: bool,
     kyc_status: String,
+    avatar_url: String,
+    cover_url: String,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
 const CREATOR_COLUMNS: &str =
-    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, created_at";
+    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, created_at";
 
 #[derive(sqlx::FromRow, Serialize)]
 struct SupportTier {
@@ -388,6 +390,108 @@ async fn get_me(
     Ok(Json(row))
 }
 
+// ── Internal admin endpoints (key-guarded — publicly routable via nginx) ────
+
+/// Every profile (active or not), images reduced to booleans to keep the
+/// payload light (avatar/cover are data URLs).
+async fn list_all_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<serde_json::Value>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows: Vec<Creator> = sqlx::query_as(&format!(
+        "SELECT {CREATOR_COLUMNS} FROM creator_profiles ORDER BY created_at DESC LIMIT 300"
+    ))
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(
+        rows.into_iter()
+            .map(|c| {
+                json!({
+                    "id": c.id, "user_id": c.user_id, "display_name": c.display_name,
+                    "slug": c.slug, "tagline": c.tagline, "category": c.category,
+                    "tip_goal": c.tip_goal, "is_active": c.is_active,
+                    "kyc_status": c.kyc_status, "has_avatar": !c.avatar_url.is_empty(),
+                    "has_cover": !c.cover_url.is_empty(), "created_at": c.created_at,
+                })
+            })
+            .collect(),
+    ))
+}
+
+#[derive(Deserialize)]
+struct SetActiveReq {
+    is_active: bool,
+}
+
+async fn set_active_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<SetActiveReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    let res = sqlx::query("UPDATE creator_profiles SET is_active = $1 WHERE id = $2")
+        .bind(req.is_active)
+        .bind(id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("creator not found".into()));
+    }
+    Ok(Json(json!({ "id": id, "is_active": req.is_active })))
+}
+
+#[derive(Deserialize)]
+struct SetKycReq {
+    status: String,
+}
+
+/// Internal (admin portal): set a creator's KYC status.
+async fn set_kyc_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<SetKycReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    if !matches!(
+        req.status.as_str(),
+        "not_started" | "pending" | "verified" | "rejected"
+    ) {
+        return Err(AppError::BadRequest("invalid kyc status".into()));
+    }
+    let res = sqlx::query("UPDATE creator_profiles SET kyc_status = $1 WHERE id = $2")
+        .bind(&req.status)
+        .bind(id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("creator not found".into()));
+    }
+    Ok(Json(json!({ "id": id, "kyc_status": req.status })))
+}
+
+/// Internal (admin portal): delete a creator profile and everything it owns.
+async fn delete_creator_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    sqlx::query("DELETE FROM studio_designs WHERE creator_id = $1").bind(id).execute(&st.pool).await?;
+    sqlx::query("DELETE FROM support_tiers WHERE creator_id = $1").bind(id).execute(&st.pool).await?;
+    sqlx::query("DELETE FROM jars WHERE creator_id = $1").bind(id).execute(&st.pool).await?;
+    let res = sqlx::query("DELETE FROM creator_profiles WHERE id = $1")
+        .bind(id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("creator not found".into()));
+    }
+    Ok(Json(json!({ "deleted": id })))
+}
+
 // ── Studio designs — the creator's saved promo graphics ─────────────────────
 
 #[derive(sqlx::FromRow, Serialize)]
@@ -444,7 +548,27 @@ async fn save_design(
     Json(req): Json<SaveDesignReq>,
 ) -> Result<Json<StudioDesign>, AppError> {
     let creator_id = my_creator_id(&st, &headers).await?;
-    if req.canvas.len() > 200_000 {
+    let (title, kind, canvas, thumb) = validate_design(req)?;
+    let row: StudioDesign = sqlx::query_as(
+        "INSERT INTO studio_designs (id, creator_id, title, kind, canvas, thumb)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, creator_id, title, kind, canvas, thumb, created_at",
+    )
+    .bind(Uuid::new_v4())
+    .bind(creator_id)
+    .bind(title)
+    .bind(kind)
+    .bind(canvas)
+    .bind(thumb)
+    .fetch_one(&st.pool)
+    .await?;
+    Ok(Json(row))
+}
+
+/// Shared request validation. The canvas cap is generous because designs may
+/// embed compressed images as data URLs.
+fn validate_design(req: SaveDesignReq) -> Result<(String, String, String, String), AppError> {
+    if req.canvas.len() > 2_000_000 {
         return Err(AppError::BadRequest("design is too large".into()));
     }
     let thumb = req.thumb.unwrap_or_default();
@@ -456,20 +580,32 @@ async fn save_design(
         _ => "square".to_string(),
     };
     let title = req.title.unwrap_or_default().chars().take(80).collect::<String>();
-    let row: StudioDesign = sqlx::query_as(
-        "INSERT INTO studio_designs (id, creator_id, title, kind, canvas, thumb)
-         VALUES ($1, $2, $3, $4, $5, $6)
+    Ok((title, kind, req.canvas, thumb))
+}
+
+async fn update_design(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<SaveDesignReq>,
+) -> Result<Json<StudioDesign>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    let (title, kind, canvas, thumb) = validate_design(req)?;
+    let row: Option<StudioDesign> = sqlx::query_as(
+        "UPDATE studio_designs SET title = $1, kind = $2, canvas = $3, thumb = $4
+         WHERE id = $5 AND creator_id = $6
          RETURNING id, creator_id, title, kind, canvas, thumb, created_at",
     )
-    .bind(Uuid::new_v4())
-    .bind(creator_id)
     .bind(title)
     .bind(kind)
-    .bind(req.canvas)
+    .bind(canvas)
     .bind(thumb)
-    .fetch_one(&st.pool)
+    .bind(id)
+    .bind(creator_id)
+    .fetch_optional(&st.pool)
     .await?;
-    Ok(Json(row))
+    row.map(Json)
+        .ok_or_else(|| AppError::NotFound("design not found".into()))
 }
 
 async fn delete_design(
@@ -503,11 +639,20 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
             tip_goal     NUMERIC(10,2),
             is_active    BOOLEAN NOT NULL DEFAULT TRUE,
             kyc_status   TEXT NOT NULL DEFAULT 'not_started',
+            avatar_url   TEXT NOT NULL DEFAULT '',
+            cover_url    TEXT NOT NULL DEFAULT '',
             created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
         )",
     )
     .execute(pool)
     .await?;
+    // Existing databases predate the image columns.
+    sqlx::query("ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT NOT NULL DEFAULT ''")
+        .execute(pool)
+        .await?;
+    sqlx::query("ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS cover_url TEXT NOT NULL DEFAULT ''")
+        .execute(pool)
+        .await?;
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS support_tiers (
             id          UUID PRIMARY KEY,
@@ -593,12 +738,21 @@ async fn main() {
         .route("/creators", post(create_creator).get(list_creators))
         .route("/creators/me", get(get_me))
         .route("/creators/studio/designs", get(list_designs).post(save_design))
-        .route("/creators/studio/designs/:id", axum::routing::delete(delete_design))
+        .route(
+            "/creators/studio/designs/:id",
+            axum::routing::put(update_design).delete(delete_design),
+        )
         .route("/creators/:slug", get(get_by_slug))
         .route("/creators/:slug/tiers", get(list_tiers).post(create_tier))
         .route("/creators/:slug/jars", get(list_jars).post(create_jar))
         .route("/creators/:slug/jars/:jar_slug", get(get_jar))
-        .route("/internal/creators/:id", get(get_by_id))
+        .route("/internal/creators/all", get(list_all_internal))
+        .route(
+            "/internal/creators/:id",
+            get(get_by_id).delete(delete_creator_internal),
+        )
+        .route("/internal/creators/:id/active", post(set_active_internal))
+        .route("/internal/creators/:id/kyc", post(set_kyc_internal))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 

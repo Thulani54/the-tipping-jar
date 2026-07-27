@@ -719,6 +719,89 @@ async fn order_query(
     Ok(Json(data))
 }
 
+/// Public: re-sync a pending transaction with the gateway via order.query.
+/// Safe unauthenticated — it takes no state from the caller; it only copies
+/// PayCloud's own answer (and completes through the same guarded path as the
+/// webhook). Used by the payment-callback page while it polls.
+async fn reconcile(
+    State(st): State<AppState>,
+    Path(merchant_order_no): Path<String>,
+) -> Result<Json<Value>, AppError> {
+    let txn: Transaction = sqlx::query_as(&format!(
+        "SELECT {TXN_COLUMNS} FROM transactions WHERE merchant_order_no = $1"
+    ))
+    .bind(&merchant_order_no)
+    .fetch_optional(&st.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("transaction not found".into()))?;
+
+    if txn.status != "pending" || !st.paycloud.enabled() {
+        return Ok(Json(json!({ "status": txn.status })));
+    }
+
+    let data = st
+        .paycloud
+        .call(
+            "order.query",
+            vec![
+                ("merchant_no", json!(st.paycloud.merchant_no)),
+                ("merchant_order_no", json!(merchant_order_no)),
+            ],
+        )
+        .await?;
+    let ts = data.get("trans_status").and_then(|v| {
+        v.as_i64()
+            .or_else(|| v.as_str().and_then(|s| s.trim().parse().ok()))
+    });
+    let trans_no = data
+        .get("trans_no")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    // Same fail-closed completion rule as the webhook: only 2 completes, and
+    // only when the gateway's amount matches ours.
+    let amount_ok = data
+        .get("order_amount")
+        .and_then(|v| v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse().ok())))
+        .map(|paid| {
+            Decimal::from_f64(paid).map(|d| d.round_dp(2)) == Some(txn.amount)
+        })
+        .unwrap_or(true);
+
+    // 0=paying / 9=created never notify — treat them as expired after an hour
+    // so abandoned checkouts stop showing as "processing".
+    let expired = chrono::Utc::now() - txn.created_at > chrono::Duration::hours(1);
+    let new_status = match ts {
+        Some(2) if amount_ok => "completed",
+        Some(2) => {
+            tracing::warn!("reconcile amount mismatch for {merchant_order_no}");
+            "pending"
+        }
+        Some(1) | Some(3) => "failed",
+        Some(0) | Some(9) if expired => "failed",
+        _ => "pending",
+    };
+
+    if new_status != "pending" {
+        let res = sqlx::query(
+            "UPDATE transactions SET status = $1, trans_no = COALESCE(NULLIF($2,''), trans_no) \
+             WHERE merchant_order_no = $3 AND status <> 'completed'",
+        )
+        .bind(new_status)
+        .bind(&trans_no)
+        .bind(&merchant_order_no)
+        .execute(&st.pool)
+        .await?;
+        if new_status == "completed" && res.rows_affected() > 0 {
+            record_tip(&st, &txn).await;
+        }
+        tracing::info!("reconciled {merchant_order_no}: gateway {ts:?} -> {new_status}");
+    }
+
+    Ok(Json(json!({ "status": new_status, "gateway_status": ts })))
+}
+
 async fn refund(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -879,6 +962,65 @@ async fn creator_payouts(
     Ok(Json(rows))
 }
 
+// ── Internal admin endpoints (key-guarded — publicly routable via nginx) ────
+
+/// Latest transactions across every creator.
+async fn list_txns_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<Transaction>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows: Vec<Transaction> = sqlx::query_as(&format!(
+        "SELECT {TXN_COLUMNS} FROM transactions ORDER BY created_at DESC LIMIT 200"
+    ))
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+/// Latest payouts across every creator.
+async fn list_payouts_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<Payout>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows: Vec<Payout> = sqlx::query_as(&format!(
+        "SELECT {PAYOUT_COLUMNS} FROM payouts ORDER BY created_at DESC LIMIT 200"
+    ))
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+#[derive(Deserialize)]
+struct PayoutStatusReq {
+    status: String,
+}
+
+/// Admin settles or fails a payout request.
+async fn set_payout_status_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<PayoutStatusReq>,
+) -> Result<Json<Payout>, AppError> {
+    common::require_internal_key(&headers)?;
+    if !matches!(req.status.as_str(), "completed" | "failed" | "pending") {
+        return Err(AppError::BadRequest(
+            "status must be completed, failed or pending".into(),
+        ));
+    }
+    let row: Option<Payout> = sqlx::query_as(&format!(
+        "UPDATE payouts SET status = $1 WHERE id = $2 RETURNING {PAYOUT_COLUMNS}"
+    ))
+    .bind(&req.status)
+    .bind(id)
+    .fetch_optional(&st.pool)
+    .await?;
+    row.map(Json)
+        .ok_or_else(|| AppError::NotFound("payout not found".into()))
+}
+
 // ── Bootstrap ───────────────────────────────────────────────────────────────
 
 async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
@@ -1024,6 +1166,7 @@ async fn main() {
         .route("/payments/notify", post(notify))
         .route("/payments/refund", post(refund))
         .route("/payments/order/:merchant_order_no", get(order_query))
+        .route("/payments/reconcile/:merchant_order_no", post(reconcile))
         .route("/payments/payout", post(request_payout))
         .route("/payments/creator/:creator_id/balance", get(creator_balance))
         .route(
@@ -1032,6 +1175,9 @@ async fn main() {
         )
         .route("/payments/creator/:creator_id/payouts", get(creator_payouts))
         .route("/payments/:reference", get(get_transaction))
+        .route("/internal/transactions", get(list_txns_internal))
+        .route("/internal/payouts", get(list_payouts_internal))
+        .route("/internal/payouts/:id/status", post(set_payout_status_internal))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 
