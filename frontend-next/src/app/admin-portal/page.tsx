@@ -31,8 +31,10 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "support", label: "Support", icon: "bi-life-preserver" },
 ];
 
-const money = (v: string | number) =>
-  `R${Number(v || 0).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const money = (v: string | number) => {
+  const n = Number(v) || 0; // -0 and NaN both normalise to 0
+  return `R${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 const when = (iso?: string) => (iso ? new Date(iso).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" }) : "—");
 
 function StatusPill({ status }: { status?: string }) {
