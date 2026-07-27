@@ -91,6 +91,11 @@ export const api = {
   // ── payments (service routes are prefixed /payments, so double up) ─
   quote: (amount: number) =>
     request<FeeQuote>("/payments/payments/quote", { method: "POST", body: { amount } }),
+  reconcilePayment: (reference: string) =>
+    request<{ status: string; gateway_status?: number }>(
+      `/payments/payments/reconcile/${reference}`,
+      { method: "POST" },
+    ),
 
   // ── tips ──────────────────────────────────────────────────────────
   listTips: () => request<Tip[]>("/tips/tips"),

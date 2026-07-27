@@ -50,24 +50,34 @@ function CallbackInner() {
       return;
     }
 
-    // Poll our backend for the real transaction status (the webhook flips it
-    // pending → completed shortly after payment).
+    // Poll by RECONCILING with the gateway: the backend asks PayCloud for the
+    // order's real status and syncs our record (the signed webhook remains the
+    // primary completion path — this covers missed/late notifies and orders
+    // that never notify because the card step was abandoned).
     let tries = 0;
     async function poll() {
       try {
-        const t = await api.getPayment(reference);
+        const r = await api.reconcilePayment(reference);
         if (!alive) return;
-        if (t.status === "completed") return setStatus("completed");
-        if (t.status === "failed") return setStatus("failed");
+        if (r.status === "completed") return setStatus("completed");
+        if (r.status === "failed") return setStatus("failed");
       } catch {
-        // not found yet / transient — keep polling
+        // not found yet / transient — fall back to a plain read
+        try {
+          const t = await api.getPayment(reference);
+          if (!alive) return;
+          if (t.status === "completed") return setStatus("completed");
+          if (t.status === "failed") return setStatus("failed");
+        } catch {
+          /* keep polling */
+        }
       }
       tries += 1;
       if (tries >= 8) {
         if (alive) setStatus("pending");
         return;
       }
-      window.setTimeout(poll, 2000);
+      window.setTimeout(poll, 2500);
     }
     setStatus("loading");
     poll();
