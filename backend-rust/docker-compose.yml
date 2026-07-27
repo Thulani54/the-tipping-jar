@@ -38,6 +38,7 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/accounts_db
       JWT_SECRET: ${JWT_SECRET:-super-secret-dev-key-change-me}
       PORT: "8081"
+      INTERNAL_KEY: ${INTERNAL_KEY:-tj-internal-dev-key}
     ports:
       - "127.0.0.1:8081:8081"
 
@@ -48,6 +49,7 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/creators_db
       ACCOUNTS_URL: http://accounts:8081
       PORT: "8082"
+      INTERNAL_KEY: ${INTERNAL_KEY:-tj-internal-dev-key}
     ports:
       - "127.0.0.1:8082:8082"
 
@@ -73,6 +75,7 @@ services:
       PUBLIC_BASE_URL: ${PAYMENTS_PUBLIC_BASE_URL:-https://api.tippingjar.co.za/api/v2/payments}
       WEB_BASE_URL: ${PAYMENTS_WEB_BASE_URL:-https://www.tippingjar.co.za}
       PORT: "8083"
+      INTERNAL_KEY: ${INTERNAL_KEY:-tj-internal-dev-key}
     ports:
       - "127.0.0.1:8083:8083"
 
@@ -84,6 +87,7 @@ services:
       CREATORS_URL: http://creators:8082
       PAYMENTS_URL: http://payments:8083
       PORT: "8084"
+      INTERNAL_KEY: ${INTERNAL_KEY:-tj-internal-dev-key}
     ports:
       - "127.0.0.1:8084:8084"
 
@@ -149,11 +153,13 @@ services:
     <<: *svc
     command: ["admin_portal"]
     environment:
+      ACCOUNTS_URL: http://accounts:8081
       CREATORS_URL: http://creators:8082
       TIPS_URL: http://tips:8084
       SUPPORT_URL: http://support:8088
       PAYMENTS_URL: http://payments:8083
       PORT: "8091"
+      INTERNAL_KEY: ${INTERNAL_KEY:-tj-internal-dev-key}
     ports:
       - "127.0.0.1:8091:8091"
 

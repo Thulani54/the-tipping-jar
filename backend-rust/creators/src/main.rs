@@ -390,6 +390,58 @@ async fn get_me(
     Ok(Json(row))
 }
 
+// ── Internal admin endpoints (key-guarded — publicly routable via nginx) ────
+
+/// Every profile (active or not), images reduced to booleans to keep the
+/// payload light (avatar/cover are data URLs).
+async fn list_all_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<serde_json::Value>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows: Vec<Creator> = sqlx::query_as(&format!(
+        "SELECT {CREATOR_COLUMNS} FROM creator_profiles ORDER BY created_at DESC LIMIT 300"
+    ))
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(
+        rows.into_iter()
+            .map(|c| {
+                json!({
+                    "id": c.id, "user_id": c.user_id, "display_name": c.display_name,
+                    "slug": c.slug, "tagline": c.tagline, "category": c.category,
+                    "tip_goal": c.tip_goal, "is_active": c.is_active,
+                    "kyc_status": c.kyc_status, "has_avatar": !c.avatar_url.is_empty(),
+                    "has_cover": !c.cover_url.is_empty(), "created_at": c.created_at,
+                })
+            })
+            .collect(),
+    ))
+}
+
+#[derive(Deserialize)]
+struct SetActiveReq {
+    is_active: bool,
+}
+
+async fn set_active_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<SetActiveReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    let res = sqlx::query("UPDATE creator_profiles SET is_active = $1 WHERE id = $2")
+        .bind(req.is_active)
+        .bind(id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("creator not found".into()));
+    }
+    Ok(Json(json!({ "id": id, "is_active": req.is_active })))
+}
+
 // ── Studio designs — the creator's saved promo graphics ─────────────────────
 
 #[derive(sqlx::FromRow, Serialize)]
@@ -644,7 +696,9 @@ async fn main() {
         .route("/creators/:slug/tiers", get(list_tiers).post(create_tier))
         .route("/creators/:slug/jars", get(list_jars).post(create_jar))
         .route("/creators/:slug/jars/:jar_slug", get(get_jar))
+        .route("/internal/creators/all", get(list_all_internal))
         .route("/internal/creators/:id", get(get_by_id))
+        .route("/internal/creators/:id/active", post(set_active_internal))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 

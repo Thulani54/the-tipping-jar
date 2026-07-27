@@ -879,6 +879,65 @@ async fn creator_payouts(
     Ok(Json(rows))
 }
 
+// ── Internal admin endpoints (key-guarded — publicly routable via nginx) ────
+
+/// Latest transactions across every creator.
+async fn list_txns_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<Transaction>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows: Vec<Transaction> = sqlx::query_as(&format!(
+        "SELECT {TXN_COLUMNS} FROM transactions ORDER BY created_at DESC LIMIT 200"
+    ))
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+/// Latest payouts across every creator.
+async fn list_payouts_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<Payout>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows: Vec<Payout> = sqlx::query_as(&format!(
+        "SELECT {PAYOUT_COLUMNS} FROM payouts ORDER BY created_at DESC LIMIT 200"
+    ))
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+#[derive(Deserialize)]
+struct PayoutStatusReq {
+    status: String,
+}
+
+/// Admin settles or fails a payout request.
+async fn set_payout_status_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<PayoutStatusReq>,
+) -> Result<Json<Payout>, AppError> {
+    common::require_internal_key(&headers)?;
+    if !matches!(req.status.as_str(), "completed" | "failed" | "pending") {
+        return Err(AppError::BadRequest(
+            "status must be completed, failed or pending".into(),
+        ));
+    }
+    let row: Option<Payout> = sqlx::query_as(&format!(
+        "UPDATE payouts SET status = $1 WHERE id = $2 RETURNING {PAYOUT_COLUMNS}"
+    ))
+    .bind(&req.status)
+    .bind(id)
+    .fetch_optional(&st.pool)
+    .await?;
+    row.map(Json)
+        .ok_or_else(|| AppError::NotFound("payout not found".into()))
+}
+
 // ── Bootstrap ───────────────────────────────────────────────────────────────
 
 async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
@@ -1032,6 +1091,9 @@ async fn main() {
         )
         .route("/payments/creator/:creator_id/payouts", get(creator_payouts))
         .route("/payments/:reference", get(get_transaction))
+        .route("/internal/transactions", get(list_txns_internal))
+        .route("/internal/payouts", get(list_payouts_internal))
+        .route("/internal/payouts/:id/status", post(set_payout_status_internal))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 

@@ -293,6 +293,20 @@ async fn verify_token(
     }))
 }
 
+/// Internal (admin portal): list latest users. Key-guarded because the nginx
+/// prefix makes /internal/* publicly reachable.
+async fn list_users_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<UserOut>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows: Vec<UserRow> =
+        sqlx::query_as(&format!("SELECT {USER_COLUMNS} FROM users ORDER BY created_at DESC LIMIT 300"))
+            .fetch_all(&st.pool)
+            .await?;
+    Ok(Json(rows.iter().map(|u| u.to_out()).collect()))
+}
+
 /// Internal: fetch a user by id (used by the creators service).
 async fn get_user(
     State(st): State<AppState>,
@@ -465,6 +479,7 @@ async fn main() {
         .route("/auth/verify-otp", post(verify_otp))
         .route("/auth/2fa", post(set_2fa))
         .route("/internal/verify-token", post(verify_token))
+        .route("/internal/users", get(list_users_internal))
         .route("/internal/users/:id", get(get_user))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);

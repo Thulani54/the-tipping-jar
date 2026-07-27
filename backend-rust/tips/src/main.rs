@@ -6,6 +6,7 @@
 //! then it persists a tip row with the fee snapshot returned by payments.
 
 use axum::extract::{Path, State};
+use axum::http::HeaderMap;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::{env, AppError};
@@ -193,6 +194,20 @@ async fn create_tip(
 async fn list_tips(State(st): State<AppState>) -> Result<Json<Vec<Tip>>, AppError> {
     let rows: Vec<Tip> = sqlx::query_as(&format!(
         "SELECT {TIP_COLUMNS} FROM tips WHERE status = 'completed' ORDER BY created_at DESC LIMIT 50"
+    ))
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+/// Internal (admin portal): latest tips across every status. Key-guarded.
+async fn list_tips_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<Tip>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows: Vec<Tip> = sqlx::query_as(&format!(
+        "SELECT {TIP_COLUMNS} FROM tips ORDER BY created_at DESC LIMIT 150"
     ))
     .fetch_all(&st.pool)
     .await?;
@@ -474,6 +489,7 @@ async fn main() {
         .route("/tips/creator/:creator_id/stats", get(creator_stats))
         .route("/tips/fan/:email", get(tips_for_fan))
         .route("/tips/internal/record", post(record_tip))
+        .route("/internal/tips/recent", get(list_tips_internal))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 
