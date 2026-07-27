@@ -147,6 +147,7 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/platform_db
       ACCOUNTS_URL: http://accounts:8081
       PORT: "8090"
+      INTERNAL_KEY: ${INTERNAL_KEY:-tj-internal-dev-key}
     ports:
       - "127.0.0.1:8090:8090"
 
