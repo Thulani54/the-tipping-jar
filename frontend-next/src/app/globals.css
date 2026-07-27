@@ -52,8 +52,21 @@ body {
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 bg-white px-6 py-3 font-semibold text-ink transition duration-200 hover:border-ink/35 hover:bg-ink/[0.03];
   }
+  /* Subtle green glass — site-wide card surface (dashboards opt out via
+     .app-shell below). Minimal green: a hint of tint + a soft green edge. */
   .card {
-    @apply rounded-[20px] border border-border bg-white p-6 shadow-soft;
+    @apply rounded-[20px] p-6;
+    background: linear-gradient(150deg, rgba(255, 255, 255, 0.88) 0%, rgba(87, 206, 139, 0.05) 100%);
+    border: 1px solid rgba(87, 206, 139, 0.16);
+    box-shadow:
+      0 16px 44px -26px rgba(15, 36, 57, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+  /* Dashboard shells keep clean solid cards (excluded from the glass look). */
+  .app-shell .card {
+    background: var(--surface);
+    border-color: var(--line);
+    box-shadow: 0 14px 40px -22px rgba(15, 36, 57, 0.28);
   }
   .heading-xl {
     @apply font-display text-[2.6rem] font-extrabold leading-[1.02] tracking-[-0.02em] text-ink md:text-6xl;
@@ -205,6 +218,251 @@ details.faq-item summary::-webkit-details-marker {
   transform: none;
 }
 
+/* ── Dashboard + Studio motion ──────────────────────────────────────────── */
+.pop-in {
+  animation: popIn 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes popIn {
+  from {
+    transform: scale(0.94);
+    opacity: 0;
+  }
+}
+.panel-in {
+  animation: panelIn 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes panelIn {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+/* Opacity-only fade for canvas elements (safe alongside their own transform). */
+.el-in {
+  animation: elIn 0.32s ease both;
+}
+@keyframes elIn {
+  from {
+    opacity: 0;
+  }
+}
+.stagger > * {
+  animation: riseIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.07s; }
+.stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.stagger > *:nth-child(4) { animation-delay: 0.17s; }
+.stagger > *:nth-child(5) { animation-delay: 0.22s; }
+.stagger > *:nth-child(6) { animation-delay: 0.27s; }
+
+/* Collapsed-sidebar tooltip */
+.nav-tip {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.9);
+  transform-origin: left center;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 60;
+}
+.group:hover > .nav-tip {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+/* Soft dotted texture for premium panels on white */
+.dot-grid {
+  background-image: radial-gradient(rgba(15, 36, 57, 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Studio canvas transparency checkerboard (behind exported art) */
+.checker {
+  background-image:
+    linear-gradient(45deg, #e6eaee 25%, transparent 25%),
+    linear-gradient(-45deg, #e6eaee 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e6eaee 75%),
+    linear-gradient(-45deg, transparent 75%, #e6eaee 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+}
+
+/* Thin custom scrollbar for panels + sidebar */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+
+/* ── Green-glass cards ──────────────────────────────────────────────────── */
+.glass-card {
+  position: relative;
+  isolation: isolate;
+  border-radius: 22px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.82) 0%, rgba(87, 206, 139, 0.06) 100%);
+  backdrop-filter: blur(16px) saturate(1.25);
+  -webkit-backdrop-filter: blur(16px) saturate(1.25);
+  border: 1px solid rgba(87, 206, 139, 0.18);
+  box-shadow:
+    0 20px 50px -28px rgba(15, 36, 57, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.4s ease,
+    border-color 0.4s ease;
+  overflow: hidden;
+}
+.glass-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(18, 162, 92, 0.3);
+  box-shadow:
+    0 30px 60px -28px rgba(18, 162, 92, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+/* moving sheen on hover */
+.glass-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.38) 50%, transparent 68%);
+  transform: translateX(-130%);
+  transition: transform 0.9s cubic-bezier(0.22, 0.61, 0.36, 1);
+  pointer-events: none;
+  z-index: 1;
+}
+.glass-card:hover::after {
+  transform: translateX(130%);
+}
+.glass-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Dark glass — for panels over navy (hero / CTA). */
+.glass-dark {
+  position: relative;
+  border-radius: 22px;
+  background: linear-gradient(150deg, rgba(87, 206, 139, 0.1), rgba(255, 255, 255, 0.05));
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 24px 54px -26px rgba(0, 0, 0, 0.55);
+}
+
+/* Glass icon tile — a frosted chip with a gentle green hint. */
+.glass-tile {
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.95), rgba(87, 206, 139, 0.12));
+  border: 1px solid rgba(87, 206, 139, 0.22);
+  box-shadow: 0 8px 20px -12px rgba(15, 36, 57, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  color: var(--green);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
+}
+.group:hover .glass-tile {
+  transform: translateY(-3px) rotate(-4deg) scale(1.06);
+  box-shadow: 0 14px 26px -12px rgba(18, 162, 92, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* ── Dashboard green-glass sidebar ──────────────────────────────────────── */
+.glass-sidebar {
+  background:
+    radial-gradient(130% 55% at 15% 0%, rgba(87, 206, 139, 0.18), transparent 62%),
+    radial-gradient(120% 50% at 100% 100%, rgba(18, 162, 92, 0.14), transparent 60%),
+    linear-gradient(168deg, #10233c 0%, #0b2c22 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-right: 1px solid rgba(87, 206, 139, 0.16);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05), inset 1px 0 0 rgba(255, 255, 255, 0.04);
+}
+/* active nav pill — frosted green glass with a soft glow */
+.nav-glass {
+  background: linear-gradient(100deg, rgba(87, 206, 139, 0.22), rgba(255, 255, 255, 0.06));
+  box-shadow: 0 10px 26px -12px rgba(87, 206, 139, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* ── Aurora: animated blob background (the "living" illustration layer) ──── */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  opacity: 0.28;
+  will-change: transform;
+  animation: drift 20s ease-in-out infinite;
+}
+@keyframes drift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(34px, -26px) scale(1.1);
+  }
+  66% {
+    transform: translate(-26px, 22px) scale(0.94);
+  }
+}
+
+/* ── Floating decorations: coins, sparkles, slips ───────────────────────── */
+.float-y {
+  animation: floatY 6s ease-in-out infinite;
+}
+@keyframes floatY {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+.spin-slow {
+  animation: spinSlow 16s linear infinite;
+}
+@keyframes spinSlow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.sparkle {
+  animation: sparkle 2.8s ease-in-out infinite;
+}
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+/* grow-in for progress bars */
+.grow-x {
+  animation: growX 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  transform-origin: left center;
+}
+@keyframes growX {
+  from {
+    transform: scaleX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
@@ -213,12 +471,19 @@ details.faq-item summary::-webkit-details-marker {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
   }
-  .ticker-track {
+  .ticker-track,
+  .blob,
+  .float-y,
+  .spin-slow,
+  .sparkle {
     animation: none !important;
   }
   .reveal {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+  .glass-card:hover {
+    transform: none;
   }
 }

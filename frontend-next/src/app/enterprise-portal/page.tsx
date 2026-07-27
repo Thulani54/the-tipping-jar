@@ -63,7 +63,7 @@ export default function EnterprisePortalPage() {
   }
 
   return (
-    <div className="container-content py-10">
+    <div className="app-shell container-content py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm text-muted">Enterprise Portal</p>

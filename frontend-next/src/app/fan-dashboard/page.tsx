@@ -67,7 +67,7 @@ export default function FanDashboardPage() {
   const creatorsSupported = new Set(myTips.map((t) => t.creator_id)).size;
 
   return (
-    <div className="container-content py-10">
+    <div className="app-shell container-content py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm text-muted">{greeting()}</p>

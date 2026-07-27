@@ -4,6 +4,7 @@ import { CreatorCard } from "@/components/CreatorCard";
 import { HeroDemo } from "@/components/HeroDemo";
 import { LiveTicker, type TickerItem } from "@/components/LiveTicker";
 import { Reveal } from "@/components/Reveal";
+import { Aurora } from "@/components/Aurora";
 import {
   IconBank,
   IconBolt,
@@ -106,9 +107,17 @@ export default async function LandingPage() {
           className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[70%_center] opacity-30"
         />
         <span aria-hidden className="pointer-events-none absolute inset-0 bg-navy/20" />
-        <span aria-hidden className="pointer-events-none absolute -left-10 top-24 h-40 w-40 rounded-full bg-mint/10" />
-        <span aria-hidden className="pointer-events-none absolute left-[46%] top-10 h-8 w-8 rounded-full bg-gold/40" />
-        <span aria-hidden className="pointer-events-none absolute -bottom-16 right-[38%] h-48 w-48 rounded-full bg-mint/10" />
+        <span aria-hidden className="blob pointer-events-none absolute -left-10 top-24 h-40 w-40 rounded-full bg-mint/20" />
+        <span aria-hidden className="blob pointer-events-none absolute -bottom-16 right-[38%] h-48 w-48 rounded-full bg-green/20" style={{ animationDelay: "-8s" }} />
+        {/* floating coins + sparkles */}
+        <span aria-hidden className="float-y pointer-events-none absolute left-[46%] top-10 grid h-9 w-9 place-items-center rounded-full bg-gold text-navy shadow-lift">
+          <i className="bi bi-coin text-sm" />
+        </span>
+        <span aria-hidden className="float-y pointer-events-none absolute right-[8%] top-1/3 grid h-7 w-7 place-items-center rounded-full bg-mint text-navy shadow-lift" style={{ animationDelay: "1.4s" }}>
+          <i className="bi bi-suit-heart-fill text-xs" />
+        </span>
+        <span aria-hidden className="sparkle pointer-events-none absolute left-[18%] bottom-16 h-3 w-3 rounded-full bg-gold/80" />
+        <span aria-hidden className="sparkle pointer-events-none absolute right-[30%] top-16 h-2.5 w-2.5 rounded-full bg-mint/80" style={{ animationDelay: "0.9s" }} />
 
         <div className="container-content relative grid items-center gap-14 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
           <div>
@@ -208,7 +217,7 @@ export default async function LandingPage() {
             </div>
             <div>
               <div className="flex h-24 overflow-hidden rounded-[20px] ring-1 ring-border">
-                <div className="grid place-items-center bg-mint" style={{ width: "94%" }}>
+                <div className="grow-x grid place-items-center bg-mint" style={{ width: "94%" }}>
                   <div className="text-center">
                     <p className="font-display text-2xl font-extrabold text-navy">R94</p>
                     <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-navy/70">creator keeps</p>
@@ -226,8 +235,9 @@ export default async function LandingPage() {
       </section>
 
       {/* ── How a tip flows ─────────────────────────────────────────────── */}
-      <section className="border-b border-border">
-        <div className="container-content py-24">
+      <section className="relative overflow-hidden border-b border-border bg-[#f3f9f5]">
+        <Aurora />
+        <div className="container-content relative py-24">
           <Reveal className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="eyebrow">The flow</p>
@@ -243,9 +253,9 @@ export default async function LandingPage() {
               const Icon = s.icon;
               return (
                 <Reveal as="li" key={s.n} delay={i * 90}>
-                  <div className="card relative h-full !p-7">
-                    <span className="absolute right-6 top-6 font-mono text-xs font-bold text-muted/60">{s.n}</span>
-                    <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white">
+                  <div className="glass-card group h-full p-7">
+                    <span className="absolute right-6 top-6 font-mono text-xs font-bold text-green/50">{s.n}</span>
+                    <span className="glass-tile h-12 w-12">
                       <Icon />
                     </span>
                     <h3 className="mt-6 font-display text-xl font-bold text-ink">{s.title}</h3>
@@ -259,8 +269,9 @@ export default async function LandingPage() {
       </section>
 
       {/* ── Features — bento grid, one hero card ────────────────────────── */}
-      <section className="border-b border-border bg-white">
-        <div className="container-content py-24">
+      <section className="relative overflow-hidden border-b border-border bg-white">
+        <Aurora />
+        <div className="container-content relative py-24">
           <Reveal className="max-w-2xl">
             <p className="eyebrow">Why Tipping Jar</p>
             <h2 className="heading-xl mt-3 text-4xl md:text-5xl">
@@ -272,9 +283,9 @@ export default async function LandingPage() {
               const Icon = f.icon;
               return (
                 <Reveal key={f.title} delay={(i % 3) * 80} className={f.big ? "md:col-span-2" : ""}>
-                  <div className="card h-full !bg-darker !shadow-none ring-1 ring-border transition duration-200 hover:-translate-y-1 hover:!shadow-lift">
+                  <div className="glass-card group h-full p-6">
                     <div className="flex h-full flex-col">
-                      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-green ring-1 ring-border">
+                      <span className="glass-tile h-12 w-12">
                         <Icon />
                       </span>
                       <h3 className="mt-5 font-display text-lg font-bold text-ink">{f.title}</h3>
@@ -285,8 +296,8 @@ export default async function LandingPage() {
                             <span>this month</span>
                             <span>R2,340 / R3,000</span>
                           </div>
-                          <div className="mt-2 h-3 overflow-hidden rounded-full bg-white ring-1 ring-border">
-                            <div className="h-full rounded-full bg-mint" style={{ width: "78%" }} />
+                          <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/70 ring-1 ring-border">
+                            <div className="grow-x h-full rounded-full bg-gradient-to-r from-green to-mint" style={{ width: "78%" }} />
                           </div>
                         </div>
                       )}
@@ -301,8 +312,9 @@ export default async function LandingPage() {
 
       {/* ── Featured creators ───────────────────────────────────────────── */}
       {creators.length > 0 && (
-        <section className="border-b border-border">
-          <div className="container-content py-24">
+        <section className="relative overflow-hidden border-b border-border bg-[#f3f9f5]">
+          <Aurora />
+          <div className="container-content relative py-24">
             <Reveal className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="eyebrow">On the platform</p>
@@ -331,8 +343,9 @@ export default async function LandingPage() {
       )}
 
       {/* ── FAQ ─────────────────────────────────────────────────────────── */}
-      <section className="border-b border-border bg-white">
-        <div className="container-content grid gap-12 py-24 lg:grid-cols-[0.8fr_1.2fr]">
+      <section className="relative overflow-hidden border-b border-border bg-white">
+        <Aurora />
+        <div className="container-content relative grid gap-12 py-24 lg:grid-cols-[0.8fr_1.2fr]">
           <Reveal>
             <p className="eyebrow">Questions</p>
             <h2 className="heading-xl mt-3 text-4xl md:text-5xl">Fair to ask</h2>
@@ -346,7 +359,7 @@ export default async function LandingPage() {
             </p>
           </Reveal>
           <Reveal delay={90}>
-            <div className="card !p-2 md:!p-4">
+            <div className="glass-card p-2 md:p-4">
               {FAQ.map((f) => (
                 <details key={f.q} className="faq-item group border-b border-border px-4 py-5 last:border-0">
                   <summary className="flex cursor-pointer items-center justify-between gap-4 font-display text-base font-bold text-ink md:text-lg">
@@ -367,8 +380,10 @@ export default async function LandingPage() {
       <section className="container-content py-24">
         <Reveal>
           <div className="relative overflow-hidden rounded-[28px] bg-navy px-8 py-14 md:px-16">
-            <span aria-hidden className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-mint/10" />
-            <span aria-hidden className="pointer-events-none absolute bottom-8 right-[30%] h-6 w-6 rounded-full bg-gold/50" />
+            <span aria-hidden className="float-y pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-mint/10" />
+            <span aria-hidden className="sparkle pointer-events-none absolute bottom-8 right-[30%] h-6 w-6 rounded-full bg-gold/60" />
+            <span aria-hidden className="sparkle pointer-events-none absolute left-10 top-10 h-3 w-3 rounded-full bg-mint/70" style={{ animationDelay: "0.6s" }} />
+            <span aria-hidden className="sparkle pointer-events-none absolute left-[42%] bottom-12 h-2.5 w-2.5 rounded-full bg-gold/70" style={{ animationDelay: "1.2s" }} />
             <div className="grid items-center gap-10 md:grid-cols-[1.2fr_0.8fr]">
               <div>
                 <p className="eyebrow !text-mint">Your jar is waiting</p>
@@ -394,19 +409,23 @@ export default async function LandingPage() {
                   </Link>
                 </div>
               </div>
-              <svg viewBox="0 0 220 300" className="mx-auto hidden h-56 w-auto md:block" aria-hidden>
+              <svg viewBox="0 0 220 300" className="float-y mx-auto hidden h-56 w-auto md:block" aria-hidden>
                 <defs>
                   <clipPath id="ctaJar">
                     <rect x="28" y="74" width="164" height="200" rx="32" />
                   </clipPath>
                 </defs>
                 <g clipPath="url(#ctaJar)">
-                  <rect x="28" y="150" width="164" height="124" fill="var(--mint)" opacity="0.9" />
-                  <ellipse cx="82" cy="256" rx="23" ry="8.5" fill="var(--gold)" />
-                  <ellipse cx="130" cy="262" rx="25" ry="9" fill="#eebe5c" />
-                  <ellipse cx="106" cy="249" rx="21" ry="8" fill="var(--gold)" />
+                  <g className="jar-liquid" style={{ ["--empty"]: "18%" } as React.CSSProperties}>
+                    <rect x="28" y="150" width="164" height="130" fill="var(--mint)" opacity="0.92" />
+                    <rect x="28" y="150" width="164" height="5" fill="#3ab877" />
+                  </g>
+                  <ellipse className="jar-coin" style={{ animationDelay: "0.9s" }} cx="82" cy="256" rx="23" ry="8.5" fill="var(--gold)" />
+                  <ellipse className="jar-coin" style={{ animationDelay: "1.1s" }} cx="130" cy="262" rx="25" ry="9" fill="#eebe5c" />
+                  <ellipse className="jar-coin" style={{ animationDelay: "1.3s" }} cx="106" cy="249" rx="21" ry="8" fill="var(--gold)" />
                 </g>
                 <rect x="28" y="74" width="164" height="200" rx="32" fill="none" stroke="#ffffff" strokeOpacity="0.3" strokeWidth="2.5" />
+                <rect x="41" y="96" width="9" height="140" rx="4.5" fill="#ffffff" opacity="0.25" />
                 <rect x="54" y="56" width="112" height="26" rx="9" fill="none" stroke="#ffffff" strokeOpacity="0.3" strokeWidth="2.5" />
                 <rect x="62" y="45" width="96" height="16" rx="7" fill="var(--gold)" />
               </svg>

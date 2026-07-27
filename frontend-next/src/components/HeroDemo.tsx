@@ -39,7 +39,7 @@ export function HeroDemo() {
 
   return (
     <div className="relative mx-auto w-full max-w-sm lg:mx-0 lg:ml-auto">
-      <div className="card !rounded-[26px] !p-6 shadow-lift">
+      <div className="card !rounded-[26px] !border-white/70 !bg-white !bg-none !p-6 shadow-lift">
         <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
           <span>Try a tip</span>
           <span className="inline-flex items-center gap-1 text-green">

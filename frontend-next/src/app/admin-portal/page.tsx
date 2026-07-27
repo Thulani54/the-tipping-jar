@@ -79,7 +79,7 @@ export default function AdminPortalPage() {
   }
 
   return (
-    <div className="container-content py-10">
+    <div className="app-shell container-content py-10">
       <div>
         <p className="text-sm text-muted">TippingJar</p>
         <h1 className="text-2xl font-extrabold tracking-tight text-ink">Admin Portal</h1>
