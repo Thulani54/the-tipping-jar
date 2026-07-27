@@ -162,6 +162,16 @@ export const api = {
       body,
       token,
     }),
+  updateDesign: (
+    token: string,
+    id: string,
+    body: { title?: string; kind?: string; canvas: string; thumb?: string },
+  ) =>
+    request<StudioDesign>(`/creators/creators/studio/designs/${id}`, {
+      method: "PUT",
+      body,
+      token,
+    }),
   deleteDesign: (token: string, id: string) =>
     request<{ deleted: string }>(`/creators/creators/studio/designs/${id}`, {
       method: "DELETE",

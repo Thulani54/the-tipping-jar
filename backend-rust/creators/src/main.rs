@@ -444,7 +444,27 @@ async fn save_design(
     Json(req): Json<SaveDesignReq>,
 ) -> Result<Json<StudioDesign>, AppError> {
     let creator_id = my_creator_id(&st, &headers).await?;
-    if req.canvas.len() > 200_000 {
+    let (title, kind, canvas, thumb) = validate_design(req)?;
+    let row: StudioDesign = sqlx::query_as(
+        "INSERT INTO studio_designs (id, creator_id, title, kind, canvas, thumb)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, creator_id, title, kind, canvas, thumb, created_at",
+    )
+    .bind(Uuid::new_v4())
+    .bind(creator_id)
+    .bind(title)
+    .bind(kind)
+    .bind(canvas)
+    .bind(thumb)
+    .fetch_one(&st.pool)
+    .await?;
+    Ok(Json(row))
+}
+
+/// Shared request validation. The canvas cap is generous because designs may
+/// embed compressed images as data URLs.
+fn validate_design(req: SaveDesignReq) -> Result<(String, String, String, String), AppError> {
+    if req.canvas.len() > 2_000_000 {
         return Err(AppError::BadRequest("design is too large".into()));
     }
     let thumb = req.thumb.unwrap_or_default();
@@ -456,20 +476,32 @@ async fn save_design(
         _ => "square".to_string(),
     };
     let title = req.title.unwrap_or_default().chars().take(80).collect::<String>();
-    let row: StudioDesign = sqlx::query_as(
-        "INSERT INTO studio_designs (id, creator_id, title, kind, canvas, thumb)
-         VALUES ($1, $2, $3, $4, $5, $6)
+    Ok((title, kind, req.canvas, thumb))
+}
+
+async fn update_design(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<SaveDesignReq>,
+) -> Result<Json<StudioDesign>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    let (title, kind, canvas, thumb) = validate_design(req)?;
+    let row: Option<StudioDesign> = sqlx::query_as(
+        "UPDATE studio_designs SET title = $1, kind = $2, canvas = $3, thumb = $4
+         WHERE id = $5 AND creator_id = $6
          RETURNING id, creator_id, title, kind, canvas, thumb, created_at",
     )
-    .bind(Uuid::new_v4())
-    .bind(creator_id)
     .bind(title)
     .bind(kind)
-    .bind(req.canvas)
+    .bind(canvas)
     .bind(thumb)
-    .fetch_one(&st.pool)
+    .bind(id)
+    .bind(creator_id)
+    .fetch_optional(&st.pool)
     .await?;
-    Ok(Json(row))
+    row.map(Json)
+        .ok_or_else(|| AppError::NotFound("design not found".into()))
 }
 
 async fn delete_design(
@@ -593,7 +625,10 @@ async fn main() {
         .route("/creators", post(create_creator).get(list_creators))
         .route("/creators/me", get(get_me))
         .route("/creators/studio/designs", get(list_designs).post(save_design))
-        .route("/creators/studio/designs/:id", axum::routing::delete(delete_design))
+        .route(
+            "/creators/studio/designs/:id",
+            axum::routing::put(update_design).delete(delete_design),
+        )
         .route("/creators/:slug", get(get_by_slug))
         .route("/creators/:slug/tiers", get(list_tiers).post(create_tier))
         .route("/creators/:slug/jars", get(list_jars).post(create_jar))

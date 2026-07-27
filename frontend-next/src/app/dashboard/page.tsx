@@ -139,7 +139,7 @@ export default function DashboardPage() {
           <TransactionsTab token={token} creatorId={myCreator?.id ?? null} />
         )}
         {tab === "referrals" && <ReferralsTab referral={referral} />}
-        {tab === "studio" && <StudioTab token={token} />}
+        {tab === "studio" && <StudioTab token={token} slug={myCreator?.slug ?? null} />}
       </div>
     </div>
   );
@@ -627,8 +627,9 @@ function TransactionsTab({
 }
 
 // ─── Studio (studio_tab.dart) ──────────────────────────────────────────────────
-// Full canvas editor — presets, draggable text/shape elements, PNG export, and
-// a gallery persisted via the Rust creators service (/creators/studio/designs).
-function StudioTab({ token }: { token: string | null }) {
-  return <StudioEditor token={token} />;
+// Full canvas editor — templates, layers, rotation/resize, brand fonts, image
+// upload, tip-link QR, undo/redo, multi-format export, and a gallery persisted
+// via the Rust creators service (/creators/studio/designs).
+function StudioTab({ token, slug }: { token: string | null; slug: string | null }) {
+  return <StudioEditor token={token} slug={slug} />;
 }
