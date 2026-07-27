@@ -162,6 +162,49 @@ export const api = {
     }),
   adminTickets: (token: string) =>
     request<AdminTickets>("/admin/tickets", { token }),
+  adminSetUserRole: (token: string, id: string, role: string) =>
+    request<{ id: string; role: string }>(`/admin/users/${id}/role`, {
+      method: "POST",
+      body: { role },
+      token,
+    }),
+  adminDeleteUser: (token: string, id: string) =>
+    request<{ deleted: string }>(`/admin/users/${id}`, { method: "DELETE", token }),
+  adminSetCreatorKyc: (token: string, id: string, status: string) =>
+    request<{ id: string; kyc_status: string }>(`/admin/creators/${id}/kyc`, {
+      method: "POST",
+      body: { status },
+      token,
+    }),
+  adminDeleteCreator: (token: string, id: string) =>
+    request<{ deleted: string }>(`/admin/creators/${id}`, { method: "DELETE", token }),
+  adminDailyStats: (token: string) =>
+    request<{ day: string; count: number; gross: string; net: string }[]>(
+      "/admin/analytics/daily",
+      { token },
+    ),
+  adminSetDisputeStatus: (token: string, id: string, status: string) =>
+    request<{ id: string; status: string }>(`/admin/disputes/${id}/status`, {
+      method: "POST",
+      body: { status },
+      token,
+    }),
+  adminRunDailyReport: (token: string, date?: string) =>
+    request<{ date: string; creators: number; rendered: number; emailed: number }>(
+      `/admin/ops/daily-report${date ? `?date=${date}` : ""}`,
+      { method: "POST", token },
+    ),
+  adminRunReminders: (token: string) =>
+    request<{ candidates: number; sent: number }>("/admin/ops/signup-reminders", {
+      method: "POST",
+      token,
+    }),
+  adminRefund: (token: string, merchant_order_no: string, description?: string) =>
+    request<unknown>("/payments/payments/refund", {
+      method: "POST",
+      body: { merchant_order_no, description },
+      token,
+    }),
 
   // ── creators: tiers, jars, my-profile ─────────────────────────────
   getTiers: (slug: string) =>

@@ -20,6 +20,7 @@ struct AppState {
     tips_url: String,
     support_url: String,
     payments_url: String,
+    scheduler_url: String,
     internal_key: String,
 }
 
@@ -192,6 +193,126 @@ async fn tickets(State(st): State<AppState>, headers: HeaderMap) -> Result<Json<
     })))
 }
 
+/// Generic proxy for an internal POST/DELETE mutation on another service.
+async fn forward(
+    st: &AppState,
+    method: reqwest::Method,
+    url: String,
+    body: Option<&Value>,
+) -> Result<Json<Value>, AppError> {
+    let mut req = st
+        .http
+        .request(method, &url)
+        .header("x-internal-key", &st.internal_key);
+    if let Some(b) = body {
+        req = req.json(b);
+    }
+    let resp = req.send().await?;
+    if !resp.status().is_success() {
+        return Err(AppError::Upstream(format!("{url}: {}", resp.status())));
+    }
+    Ok(Json(resp.json().await.unwrap_or(json!({ "ok": true }))))
+}
+
+/// Completed-tip volume per day, last 30 days — powers the overview chart.
+async fn analytics_daily(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, AppError> {
+    require_admin(&st, &headers).await?;
+    Ok(Json(Value::Array(
+        fetch_array(&st, format!("{}/internal/tips/stats/daily", st.tips_url), true).await,
+    )))
+}
+
+async fn set_user_role(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, AppError> {
+    require_admin(&st, &headers).await?;
+    forward(&st, reqwest::Method::POST, format!("{}/internal/users/{id}/role", st.accounts_url), Some(&body)).await
+}
+
+async fn delete_user(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<Value>, AppError> {
+    let admin_id = require_admin(&st, &headers).await?;
+    if admin_id == id {
+        return Err(AppError::BadRequest("you cannot delete your own account".into()));
+    }
+    forward(&st, reqwest::Method::DELETE, format!("{}/internal/users/{id}", st.accounts_url), None).await
+}
+
+async fn set_creator_kyc(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, AppError> {
+    require_admin(&st, &headers).await?;
+    forward(&st, reqwest::Method::POST, format!("{}/internal/creators/{id}/kyc", st.creators_url), Some(&body)).await
+}
+
+async fn delete_creator(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<Value>, AppError> {
+    require_admin(&st, &headers).await?;
+    forward(&st, reqwest::Method::DELETE, format!("{}/internal/creators/{id}", st.creators_url), None).await
+}
+
+async fn set_dispute_status(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, AppError> {
+    require_admin(&st, &headers).await?;
+    forward(&st, reqwest::Method::POST, format!("{}/internal/disputes/{id}/status", st.support_url), Some(&body)).await
+}
+
+/// Ops: run the nightly report now (optionally for ?date=YYYY-MM-DD).
+async fn run_daily_report(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    axum::extract::Query(q): axum::extract::Query<Value>,
+) -> Result<Json<Value>, AppError> {
+    require_admin(&st, &headers).await?;
+    let date = q.get("date").and_then(|d| d.as_str()).unwrap_or("");
+    let url = if date.is_empty() {
+        format!("{}/internal/run-daily-report", st.scheduler_url)
+    } else {
+        format!("{}/internal/run-daily-report?date={date}", st.scheduler_url)
+    };
+    let resp = st.http.post(&url).send().await?;
+    if !resp.status().is_success() {
+        return Err(AppError::Upstream(format!("scheduler: {}", resp.status())));
+    }
+    Ok(Json(resp.json().await?))
+}
+
+/// Ops: run the signup-completion reminder sweep now.
+async fn run_signup_reminders(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, AppError> {
+    require_admin(&st, &headers).await?;
+    let resp = st
+        .http
+        .post(format!("{}/internal/run-signup-reminders", st.scheduler_url))
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        return Err(AppError::Upstream(format!("scheduler: {}", resp.status())));
+    }
+    Ok(Json(resp.json().await?))
+}
+
 async fn set_creator_active(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -249,6 +370,7 @@ async fn main() {
         tips_url: env("TIPS_URL", "http://localhost:8084"),
         support_url: env("SUPPORT_URL", "http://localhost:8088"),
         payments_url: env("PAYMENTS_URL", "http://localhost:8083"),
+        scheduler_url: env("SCHEDULER_URL", "http://localhost:8092"),
         internal_key: env("INTERNAL_KEY", "tj-internal-dev-key"),
     };
 
@@ -256,13 +378,21 @@ async fn main() {
         .route("/health", get(health))
         .route("/dashboard", get(dashboard))
         .route("/users", get(users))
+        .route("/users/:id", axum::routing::delete(delete_user))
+        .route("/users/:id/role", post(set_user_role))
         .route("/creators", get(creators))
+        .route("/creators/:id", axum::routing::delete(delete_creator))
         .route("/creators/:id/active", post(set_creator_active))
+        .route("/creators/:id/kyc", post(set_creator_kyc))
         .route("/tips", get(tips))
+        .route("/analytics/daily", get(analytics_daily))
         .route("/transactions", get(transactions))
         .route("/payouts", get(payouts))
         .route("/payouts/:id/status", post(set_payout_status))
         .route("/tickets", get(tickets))
+        .route("/disputes/:id/status", post(set_dispute_status))
+        .route("/ops/daily-report", post(run_daily_report))
+        .route("/ops/signup-reminders", post(run_signup_reminders))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 

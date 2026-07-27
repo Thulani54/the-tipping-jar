@@ -158,6 +158,7 @@ services:
       TIPS_URL: http://tips:8084
       SUPPORT_URL: http://support:8088
       PAYMENTS_URL: http://payments:8083
+      SCHEDULER_URL: http://scheduler:8092
       PORT: "8091"
       INTERNAL_KEY: ${INTERNAL_KEY:-tj-internal-dev-key}
     ports:

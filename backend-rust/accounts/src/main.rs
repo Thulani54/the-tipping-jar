@@ -307,6 +307,50 @@ async fn list_users_internal(
     Ok(Json(rows.iter().map(|u| u.to_out()).collect()))
 }
 
+#[derive(Deserialize)]
+struct SetRoleReq {
+    role: String,
+}
+
+/// Internal (admin portal): change a user's role.
+async fn set_role_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<SetRoleReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    if !matches!(req.role.as_str(), "fan" | "creator" | "admin" | "enterprise") {
+        return Err(AppError::BadRequest("invalid role".into()));
+    }
+    let res = sqlx::query("UPDATE users SET role = $1 WHERE id = $2")
+        .bind(&req.role)
+        .bind(id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("user not found".into()));
+    }
+    Ok(Json(json!({ "id": id, "role": req.role })))
+}
+
+/// Internal (admin portal): delete a user account.
+async fn delete_user_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    let res = sqlx::query("DELETE FROM users WHERE id = $1")
+        .bind(id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("user not found".into()));
+    }
+    Ok(Json(json!({ "deleted": id })))
+}
+
 /// Internal: fetch a user by id (used by the creators service).
 async fn get_user(
     State(st): State<AppState>,
@@ -480,7 +524,11 @@ async fn main() {
         .route("/auth/2fa", post(set_2fa))
         .route("/internal/verify-token", post(verify_token))
         .route("/internal/users", get(list_users_internal))
-        .route("/internal/users/:id", get(get_user))
+        .route(
+            "/internal/users/:id",
+            get(get_user).delete(delete_user_internal),
+        )
+        .route("/internal/users/:id/role", post(set_role_internal))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 

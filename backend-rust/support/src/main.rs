@@ -2,6 +2,7 @@
 //! `support` app). Public submission endpoints; disputes are trackable by token.
 
 use axum::extract::{Path, State};
+use axum::http::HeaderMap;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::{env, AppError};
@@ -272,6 +273,33 @@ async fn list_partners(
     Ok(Json(rows))
 }
 
+#[derive(Deserialize)]
+struct DisputeStatusReq {
+    status: String,
+}
+
+/// Internal (admin portal): move a dispute through its lifecycle.
+async fn set_dispute_status_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<DisputeStatusReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    if !matches!(req.status.as_str(), "open" | "reviewing" | "resolved" | "rejected") {
+        return Err(AppError::BadRequest("invalid dispute status".into()));
+    }
+    let res = sqlx::query("UPDATE disputes SET status = $1 WHERE id = $2")
+        .bind(&req.status)
+        .bind(id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("dispute not found".into()));
+    }
+    Ok(Json(json!({ "id": id, "status": req.status })))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -292,6 +320,7 @@ async fn main() {
         .route("/contact", post(create_contact).get(list_contacts))
         .route("/disputes", post(create_dispute).get(list_disputes))
         .route("/disputes/:token", get(track_dispute))
+        .route("/internal/disputes/:id/status", post(set_dispute_status_internal))
         .route("/partner-apply", post(create_partner).get(list_partners))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(AppState { pool });

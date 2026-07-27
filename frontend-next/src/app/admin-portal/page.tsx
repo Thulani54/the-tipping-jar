@@ -149,6 +149,87 @@ function Table({ head, children }: { head: string[]; children: React.ReactNode }
 
 // ── Overview ─────────────────────────────────────────────────────────────────
 
+function RevenueChart({ token }: { token: string }) {
+  const [days, setDays] = useState<{ day: string; count: number; gross: string }[] | null>(null);
+  useEffect(() => {
+    api.adminDailyStats(token).then(setDays).catch(() => setDays([]));
+  }, [token]);
+  if (!days) return null;
+  // Fill the last 30 days so quiet days render as empty slots.
+  const map = new Map(days.map((d) => [d.day, d]));
+  const series: { day: string; gross: number; count: number }[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const key = d.toISOString().slice(0, 10);
+    const row = map.get(key);
+    series.push({ day: key, gross: Number(row?.gross ?? 0), count: row?.count ?? 0 });
+  }
+  const max = Math.max(...series.map((s) => s.gross), 1);
+  const total = series.reduce((s, d) => s + d.gross, 0);
+  return (
+    <div className="card !p-5">
+      <div className="flex items-baseline justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Tip volume · last 30 days</p>
+        <p className="text-sm font-bold text-ink">{money(total)}</p>
+      </div>
+      <div className="mt-4 flex h-28 items-end gap-[3px]">
+        {series.map((s) => (
+          <div
+            key={s.day}
+            className="group relative flex-1 rounded-t bg-teal/70 transition hover:bg-teal"
+            style={{ height: `${Math.max(3, (s.gross / max) * 100)}%` }}
+            title={`${s.day}: ${money(s.gross)} (${s.count} tip${s.count === 1 ? "" : "s"})`}
+          />
+        ))}
+      </div>
+      <div className="mt-2 flex justify-between font-mono text-[10px] text-muted">
+        <span>{series[0].day.slice(5)}</span>
+        <span>{series[series.length - 1].day.slice(5)}</span>
+      </div>
+    </div>
+  );
+}
+
+function OpsPanel({ token }: { token: string }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  async function run(kind: "report" | "reminders") {
+    setBusy(kind);
+    setNote(null);
+    try {
+      if (kind === "report") {
+        const r = await api.adminRunDailyReport(token);
+        setNote(`Daily report (${r.date}): ${r.rendered} PDF(s) rendered, ${r.emailed} emailed.`);
+      } else {
+        const r = await api.adminRunReminders(token);
+        setNote(`Signup reminders: ${r.sent}/${r.candidates} sent.`);
+      }
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Operation failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+  return (
+    <div className="card !p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Operations</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button onClick={() => run("report")} disabled={!!busy} className="btn-primary !px-4 !py-2 text-xs disabled:opacity-50">
+          {busy === "report" ? "Running…" : <><i className="bi bi-file-earmark-pdf" /> Run daily report</>}
+        </button>
+        <button onClick={() => run("reminders")} disabled={!!busy} className="btn-ghost !px-4 !py-2 text-xs disabled:opacity-50">
+          {busy === "reminders" ? "Running…" : <><i className="bi bi-envelope" /> Run signup reminders</>}
+        </button>
+      </div>
+      {note && <p className="mt-3 text-xs text-teal">{note}</p>}
+      <p className="mt-3 text-[11px] text-muted">
+        The report renders yesterday&apos;s PDFs (and emails them when delivery is enabled). Reminders nudge
+        creator signups older than 12h without a page — once per user, ever.
+      </p>
+    </div>
+  );
+}
+
 function OverviewTab({ token }: { token: string }) {
   const [data, setData] = useState<AdminDashboard | null>(null);
   const [err, setErr] = useState(false);
@@ -169,6 +250,11 @@ function OverviewTab({ token }: { token: string }) {
         <StatCard label={`Creators (${t.creators_active} active)`} value={String(t.creators)} icon="bi-patch-check-fill" accent="#004423" />
         <StatCard label={`Payouts pending (${money(t.payouts_pending_amount)})`} value={String(t.payouts_pending)} icon="bi-bank" accent="#D97706" />
         <StatCard label={`Support (${t.disputes} disputes)`} value={String(t.contacts + t.disputes)} icon="bi-life-preserver" accent="#DC2626" />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <RevenueChart token={token} />
+        <OpsPanel token={token} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -225,6 +311,25 @@ function CreatorsTab({ token }: { token: string }) {
       setBusy(null);
     }
   }
+  async function setKyc(c: AdminCreator, status: string) {
+    setBusy(c.id);
+    try {
+      await api.adminSetCreatorKyc(token, c.id, status);
+      load();
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function remove(c: AdminCreator) {
+    if (!window.confirm(`Delete creator “${c.display_name}” (@${c.slug})? This removes their page, jars, tiers and designs. This cannot be undone.`)) return;
+    setBusy(c.id);
+    try {
+      await api.adminDeleteCreator(token, c.id);
+      load();
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <Table head={["Creator", "Category", "KYC", "Media", "Joined", "Status", ""]}>
@@ -237,7 +342,18 @@ function CreatorsTab({ token }: { token: string }) {
             <span className="ml-2 font-mono text-xs text-muted">@{c.slug}</span>
           </td>
           <td className="px-5 py-3 text-muted">{c.category || "—"}</td>
-          <td className="px-5 py-3 text-muted">{c.kyc_status}</td>
+          <td className="px-5 py-3">
+            <select
+              value={c.kyc_status}
+              disabled={busy === c.id}
+              onChange={(e) => setKyc(c, e.target.value)}
+              className="rounded-lg border border-border bg-white px-2 py-1 text-xs text-ink focus:outline-none"
+            >
+              {["not_started", "pending", "verified", "rejected"].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </td>
           <td className="px-5 py-3 text-muted">
             {c.has_avatar && <i className="bi bi-person-circle text-teal" title="Has avatar" />}{" "}
             {c.has_cover && <i className="bi bi-image text-teal" title="Has cover" />}
@@ -246,17 +362,27 @@ function CreatorsTab({ token }: { token: string }) {
           <td className="px-5 py-3 text-muted">{when(c.created_at)}</td>
           <td className="px-5 py-3"><StatusPill status={c.is_active ? "active" : "inactive"} /></td>
           <td className="px-5 py-3 text-right">
-            <button
-              onClick={() => toggle(c)}
-              disabled={busy === c.id}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
-                c.is_active
-                  ? "border border-red-200 text-red-500 hover:bg-red-50"
-                  : "bg-primary text-white"
-              }`}
-            >
-              {busy === c.id ? "…" : c.is_active ? "Deactivate" : "Activate"}
-            </button>
+            <span className="inline-flex items-center gap-2">
+              <button
+                onClick={() => toggle(c)}
+                disabled={busy === c.id}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+                  c.is_active
+                    ? "border border-yellow-500/40 text-yellow-600 hover:bg-yellow-50"
+                    : "bg-primary text-white"
+                }`}
+              >
+                {busy === c.id ? "…" : c.is_active ? "Deactivate" : "Activate"}
+              </button>
+              <button
+                onClick={() => remove(c)}
+                disabled={busy === c.id}
+                className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                title="Delete creator"
+              >
+                <i className="bi bi-trash" />
+              </button>
+            </span>
           </td>
         </tr>
       ))}
@@ -269,23 +395,86 @@ function CreatorsTab({ token }: { token: string }) {
 function UsersTab({ token }: { token: string }) {
   const [rows, setRows] = useState<AdminUser[] | null>(null);
   const [err, setErr] = useState(false);
-  useEffect(() => {
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const load = useCallback(() => {
     api.adminUsers(token).then(setRows).catch(() => setErr(true));
   }, [token]);
+  useEffect(load, [load]);
   if (err) return <LoadError />;
   if (!rows) return <Loading />;
+
+  const filtered = rows.filter(
+    (u) =>
+      !q ||
+      u.email.toLowerCase().includes(q.toLowerCase()) ||
+      u.username.toLowerCase().includes(q.toLowerCase()),
+  );
+
+  async function setRole(u: AdminUser, role: string) {
+    if (role === "admin" && !window.confirm(`Grant ADMIN to ${u.email}? They get full platform control.`)) { load(); return; }
+    setBusy(u.id);
+    try {
+      await api.adminSetUserRole(token, u.id, role);
+      load();
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function remove(u: AdminUser) {
+    if (!window.confirm(`Delete account ${u.email}? This cannot be undone.`)) return;
+    setBusy(u.id);
+    try {
+      await api.adminDeleteUser(token, u.id);
+      load();
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Delete failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
-    <Table head={["Email", "Username", "Role", "2FA", "Joined"]}>
-      {rows.map((u) => (
-        <tr key={u.id} className="border-b border-border/60 last:border-0">
-          <td className="px-5 py-3 font-medium text-ink">{u.email}</td>
-          <td className="px-5 py-3 text-muted">{u.username}</td>
-          <td className="px-5 py-3"><StatusPill status={u.role} /></td>
-          <td className="px-5 py-3 text-muted">{u.two_fa_enabled ? "on" : "off"}</td>
-          <td className="px-5 py-3 text-muted">{when(u.created_at)}</td>
-        </tr>
-      ))}
-    </Table>
+    <div className="space-y-4">
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Search email or username…"
+        className="w-full max-w-sm rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
+      />
+      <Table head={["Email", "Username", "Role", "2FA", "Joined", ""]}>
+        {filtered.map((u) => (
+          <tr key={u.id} className="border-b border-border/60 last:border-0">
+            <td className="px-5 py-3 font-medium text-ink">{u.email}</td>
+            <td className="px-5 py-3 text-muted">{u.username}</td>
+            <td className="px-5 py-3">
+              <select
+                value={u.role}
+                disabled={busy === u.id}
+                onChange={(e) => setRole(u, e.target.value)}
+                className="rounded-lg border border-border bg-white px-2 py-1 text-xs text-ink focus:outline-none"
+              >
+                {["fan", "creator", "enterprise", "admin"].map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </td>
+            <td className="px-5 py-3 text-muted">{u.two_fa_enabled ? "on" : "off"}</td>
+            <td className="px-5 py-3 text-muted">{when(u.created_at)}</td>
+            <td className="px-5 py-3 text-right">
+              <button
+                onClick={() => remove(u)}
+                disabled={busy === u.id}
+                className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                title="Delete account"
+              >
+                <i className="bi bi-trash" />
+              </button>
+            </td>
+          </tr>
+        ))}
+      </Table>
+    </div>
   );
 }
 
@@ -294,17 +483,22 @@ function UsersTab({ token }: { token: string }) {
 function TipsTab({ token }: { token: string }) {
   const [rows, setRows] = useState<Tip[] | null>(null);
   const [err, setErr] = useState(false);
+  const [status, setStatus] = useState("all");
   useEffect(() => {
     api.adminTips(token).then(setRows).catch(() => setErr(true));
   }, [token]);
   if (err) return <LoadError />;
   if (!rows) return <Loading />;
-  const total = rows.filter((t) => t.status === "completed").reduce((s, t) => s + Number(t.amount || 0), 0);
+  const shown = rows.filter((t) => status === "all" || t.status === status);
+  const total = shown.filter((t) => t.status === "completed").reduce((s, t) => s + Number(t.amount || 0), 0);
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted">{rows.length} tip(s) · completed volume {money(total)}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <FilterChips options={["all", "completed", "pending", "failed"]} value={status} onChange={setStatus} />
+        <p className="text-sm text-muted">{shown.length} tip(s) · completed volume {money(total)}</p>
+      </div>
       <Table head={["From", "Creator", "Message", "Status", "Date", "Amount", "Net"]}>
-        {rows.map((t) => (
+        {shown.map((t) => (
           <tr key={t.id} className="border-b border-border/60 last:border-0">
             <td className="px-5 py-3 font-medium text-ink">{t.tipper_name || "Anonymous"}</td>
             <td className="px-5 py-3 text-muted">{t.creator_name || "—"}</td>
@@ -322,28 +516,99 @@ function TipsTab({ token }: { token: string }) {
 
 // ── Transactions ─────────────────────────────────────────────────────────────
 
+function FilterChips({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((o) => (
+        <button
+          key={o}
+          onClick={() => onChange(o)}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+            value === o ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+          }`}
+        >
+          {o}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function TransactionsTab({ token }: { token: string }) {
   const [rows, setRows] = useState<Transaction[] | null>(null);
   const [err, setErr] = useState(false);
-  useEffect(() => {
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("all");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const load = useCallback(() => {
     api.adminTransactions(token).then(setRows).catch(() => setErr(true));
   }, [token]);
+  useEffect(load, [load]);
   if (err) return <LoadError />;
   if (!rows) return <Loading />;
+
+  const filtered = rows.filter(
+    (t) =>
+      (status === "all" || t.status === status) &&
+      (!q ||
+        t.reference?.toLowerCase().includes(q.toLowerCase()) ||
+        t.creator_name?.toLowerCase().includes(q.toLowerCase()) ||
+        t.tipper_name?.toLowerCase().includes(q.toLowerCase())),
+  );
+
+  async function refund(t: Transaction) {
+    if (!window.confirm(`Refund ${t.currency} ${t.amount} to ${t.tipper_name || "the payer"}? This submits a real PayCloud refund.`)) return;
+    setBusy(t.id);
+    setNote(null);
+    try {
+      await api.adminRefund(token, t.merchant_order_no, `Refund ${t.reference}`);
+      setNote(`Refund submitted for ${t.reference.slice(0, 14)}…`);
+      load();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Refund failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
-    <Table head={["Reference", "Creator", "Tipper", "Status", "Date", "Amount", "Net"]}>
-      {rows.map((t) => (
-        <tr key={t.id} className="border-b border-border/60 last:border-0">
-          <td className="px-5 py-3 font-mono text-xs text-muted">{t.reference?.slice(0, 18)}…</td>
-          <td className="px-5 py-3 text-muted">{t.creator_name || "—"}</td>
-          <td className="px-5 py-3 text-muted">{t.tipper_name || "—"}</td>
-          <td className="px-5 py-3"><StatusPill status={t.status} /></td>
-          <td className="px-5 py-3 text-muted">{when(t.created_at)}</td>
-          <td className="px-5 py-3 text-ink">{t.currency} {t.amount}</td>
-          <td className="px-5 py-3 text-right font-bold text-teal">{money(t.creator_net)}</td>
-        </tr>
-      ))}
-    </Table>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search reference, creator, tipper…"
+          className="w-full max-w-sm rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
+        />
+        <FilterChips options={["all", "completed", "pending", "failed"]} value={status} onChange={setStatus} />
+      </div>
+      {note && <p className="text-sm text-teal">{note}</p>}
+      <Table head={["Reference", "Creator", "Tipper", "Status", "Date", "Amount", "Net", ""]}>
+        {filtered.map((t) => (
+          <tr key={t.id} className="border-b border-border/60 last:border-0">
+            <td className="px-5 py-3 font-mono text-xs text-muted">{t.reference?.slice(0, 18)}…</td>
+            <td className="px-5 py-3 text-muted">{t.creator_name || "—"}</td>
+            <td className="px-5 py-3 text-muted">{t.tipper_name || "—"}</td>
+            <td className="px-5 py-3"><StatusPill status={t.status} /></td>
+            <td className="px-5 py-3 text-muted">{when(t.created_at)}</td>
+            <td className="px-5 py-3 text-ink">{t.currency} {t.amount}</td>
+            <td className="px-5 py-3 text-right font-bold text-teal">{money(t.creator_net)}</td>
+            <td className="px-5 py-3 text-right">
+              {t.status === "completed" && (
+                <button
+                  onClick={() => refund(t)}
+                  disabled={busy === t.id}
+                  className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {busy === t.id ? "…" : "Refund"}
+                </button>
+              )}
+            </td>
+          </tr>
+        ))}
+      </Table>
+    </div>
   );
 }
 
@@ -420,11 +685,23 @@ function PayoutsTab({ token }: { token: string }) {
 function SupportTab({ token }: { token: string }) {
   const [data, setData] = useState<AdminTickets | null>(null);
   const [err, setErr] = useState(false);
-  useEffect(() => {
+  const [busy, setBusy] = useState<string | null>(null);
+  const load = useCallback(() => {
     api.adminTickets(token).then(setData).catch(() => setErr(true));
   }, [token]);
+  useEffect(load, [load]);
   if (err) return <LoadError />;
   if (!data) return <Loading />;
+
+  async function setDispute(id: string, status: string) {
+    setBusy(id);
+    try {
+      await api.adminSetDisputeStatus(token, id, status);
+      load();
+    } finally {
+      setBusy(null);
+    }
+  }
   return (
     <div className="space-y-8">
       <div>
@@ -449,14 +726,35 @@ function SupportTab({ token }: { token: string }) {
         {data.disputes.length === 0 ? (
           <p className="body-muted">No open disputes.</p>
         ) : (
-          <Table head={["Email", "Reason", "Status", "Tracking", "Date"]}>
+          <Table head={["Email", "Reason", "Status", "Date", "Actions"]}>
             {data.disputes.map((d) => (
               <tr key={d.id} className="border-b border-border/60 last:border-0">
                 <td className="px-5 py-3 font-medium text-ink">{d.email || "—"}</td>
                 <td className="max-w-[240px] truncate px-5 py-3 text-muted">{d.reason || "—"}</td>
                 <td className="px-5 py-3"><StatusPill status={d.status} /></td>
-                <td className="px-5 py-3 font-mono text-xs text-muted">{d.tracking_token || "—"}</td>
                 <td className="px-5 py-3 text-muted">{when(d.created_at)}</td>
+                <td className="px-5 py-3 text-right">
+                  {d.status !== "resolved" && d.status !== "rejected" ? (
+                    <span className="inline-flex gap-2">
+                      <button
+                        onClick={() => setDispute(d.id, "resolved")}
+                        disabled={busy === d.id}
+                        className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        Resolve
+                      </button>
+                      <button
+                        onClick={() => setDispute(d.id, "rejected")}
+                        disabled={busy === d.id}
+                        className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        Reject
+                      </button>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted">closed</span>
+                  )}
+                </td>
               </tr>
             ))}
           </Table>

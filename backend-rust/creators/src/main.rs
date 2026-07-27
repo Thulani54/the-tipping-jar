@@ -442,6 +442,56 @@ async fn set_active_internal(
     Ok(Json(json!({ "id": id, "is_active": req.is_active })))
 }
 
+#[derive(Deserialize)]
+struct SetKycReq {
+    status: String,
+}
+
+/// Internal (admin portal): set a creator's KYC status.
+async fn set_kyc_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<SetKycReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    if !matches!(
+        req.status.as_str(),
+        "not_started" | "pending" | "verified" | "rejected"
+    ) {
+        return Err(AppError::BadRequest("invalid kyc status".into()));
+    }
+    let res = sqlx::query("UPDATE creator_profiles SET kyc_status = $1 WHERE id = $2")
+        .bind(&req.status)
+        .bind(id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("creator not found".into()));
+    }
+    Ok(Json(json!({ "id": id, "kyc_status": req.status })))
+}
+
+/// Internal (admin portal): delete a creator profile and everything it owns.
+async fn delete_creator_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    sqlx::query("DELETE FROM studio_designs WHERE creator_id = $1").bind(id).execute(&st.pool).await?;
+    sqlx::query("DELETE FROM support_tiers WHERE creator_id = $1").bind(id).execute(&st.pool).await?;
+    sqlx::query("DELETE FROM jars WHERE creator_id = $1").bind(id).execute(&st.pool).await?;
+    let res = sqlx::query("DELETE FROM creator_profiles WHERE id = $1")
+        .bind(id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("creator not found".into()));
+    }
+    Ok(Json(json!({ "deleted": id })))
+}
+
 // ── Studio designs — the creator's saved promo graphics ─────────────────────
 
 #[derive(sqlx::FromRow, Serialize)]
@@ -697,8 +747,12 @@ async fn main() {
         .route("/creators/:slug/jars", get(list_jars).post(create_jar))
         .route("/creators/:slug/jars/:jar_slug", get(get_jar))
         .route("/internal/creators/all", get(list_all_internal))
-        .route("/internal/creators/:id", get(get_by_id))
+        .route(
+            "/internal/creators/:id",
+            get(get_by_id).delete(delete_creator_internal),
+        )
         .route("/internal/creators/:id/active", post(set_active_internal))
+        .route("/internal/creators/:id/kyc", post(set_kyc_internal))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 
