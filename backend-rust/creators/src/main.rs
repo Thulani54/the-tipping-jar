@@ -34,11 +34,13 @@ struct Creator {
     tip_goal: Option<Decimal>,
     is_active: bool,
     kyc_status: String,
+    avatar_url: String,
+    cover_url: String,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
 const CREATOR_COLUMNS: &str =
-    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, created_at";
+    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, created_at";
 
 #[derive(sqlx::FromRow, Serialize)]
 struct SupportTier {
@@ -535,11 +537,20 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
             tip_goal     NUMERIC(10,2),
             is_active    BOOLEAN NOT NULL DEFAULT TRUE,
             kyc_status   TEXT NOT NULL DEFAULT 'not_started',
+            avatar_url   TEXT NOT NULL DEFAULT '',
+            cover_url    TEXT NOT NULL DEFAULT '',
             created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
         )",
     )
     .execute(pool)
     .await?;
+    // Existing databases predate the image columns.
+    sqlx::query("ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT NOT NULL DEFAULT ''")
+        .execute(pool)
+        .await?;
+    sqlx::query("ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS cover_url TEXT NOT NULL DEFAULT ''")
+        .execute(pool)
+        .await?;
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS support_tiers (
             id          UUID PRIMARY KEY,

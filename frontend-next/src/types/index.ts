@@ -27,6 +27,8 @@ export interface Creator {
   tip_goal: string | null;
   is_active: boolean;
   kyc_status: string;
+  avatar_url: string;
+  cover_url: string;
   created_at: string;
 }
 
