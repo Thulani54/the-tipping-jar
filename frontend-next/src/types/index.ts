@@ -161,6 +161,16 @@ export interface CreatorStats {
   this_month_amount: string;
 }
 
+export interface StudioDesign {
+  id: string;
+  creator_id: string;
+  title: string;
+  kind: string;
+  canvas: string; // JSON blob of the editor's element state
+  thumb: string; // small PNG data-URL preview
+  created_at: string;
+}
+
 export interface Transaction {
   id: string;
   reference: string;

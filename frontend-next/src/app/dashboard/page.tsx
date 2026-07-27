@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
+import { StudioEditor } from "@/components/StudioEditor";
 import type {
   Tip,
   ReferralCode,
@@ -138,7 +139,7 @@ export default function DashboardPage() {
           <TransactionsTab token={token} creatorId={myCreator?.id ?? null} />
         )}
         {tab === "referrals" && <ReferralsTab referral={referral} />}
-        {tab === "studio" && <StudioTab />}
+        {tab === "studio" && <StudioTab token={token} />}
       </div>
     </div>
   );
@@ -280,16 +281,56 @@ function RecentTips({ tips, loading }: { tips: Tip[]; loading: boolean }) {
 }
 
 // ─── Tips ────────────────────────────────────────────────────────────────────
+type TipPeriod = "all" | "today" | "week" | "month";
+const TIP_PERIODS: { id: TipPeriod; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "today", label: "Today" },
+  { id: "week", label: "7 days" },
+  { id: "month", label: "This month" },
+];
+
 function TipsTab({ tips, loading }: { tips: Tip[]; loading: boolean }) {
-  const total = tips.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const [period, setPeriod] = useState<TipPeriod>("all");
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const cutoff =
+    period === "today"
+      ? startOfToday
+      : period === "week"
+        ? new Date(now.getTime() - 7 * 24 * 3600 * 1000)
+        : period === "month"
+          ? new Date(now.getFullYear(), now.getMonth(), 1)
+          : null;
+  const filtered = cutoff
+    ? tips.filter((t) => new Date(t.created_at) >= cutoff)
+    : tips;
+  const total = filtered.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-base font-bold text-ink">All tips</h3>
-        <span className="text-sm text-muted">Total: R{money(total)}</span>
+        <span className="text-sm text-muted">
+          {filtered.length} tip{filtered.length === 1 ? "" : "s"} · Total: R{money(total)}
+        </span>
       </div>
-      {/* TODO(api): creator-scoped tips endpoint + date filters (Today / This week / This month) */}
-      <RecentTips tips={tips} loading={loading} />
+      <div className="flex flex-wrap gap-2">
+        {TIP_PERIODS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setPeriod(p.id)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+              period === p.id
+                ? "bg-primary text-white"
+                : "border border-border text-muted hover:text-ink"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <RecentTips tips={filtered} loading={loading} />
     </div>
   );
 }
@@ -586,37 +627,8 @@ function TransactionsTab({
 }
 
 // ─── Studio (studio_tab.dart) ──────────────────────────────────────────────────
-function StudioTab() {
-  return (
-    <div className="max-w-3xl space-y-6">
-      <div>
-        <h2 className="text-xl font-extrabold tracking-tight text-ink">Creator Studio</h2>
-        <p className="body-muted mt-1">
-          Design share-ready promo graphics for your tip page — square, portrait, story and
-          landscape sizes, with text, shapes, colours and gradients.
-        </p>
-      </div>
-
-      {/* The full canvas editor (drag/resize elements, export PNG, saved gallery)
-          is a rich client-only tool. Rendered here as a feature placeholder. */}
-      {/* TODO(api): none required — studio is client-side; port the canvas editor from studio_tab.dart */}
-      <div className="card grid place-items-center py-16 text-center">
-        <div className="text-4xl text-teal"><i className="bi bi-palette-fill" /></div>
-        <p className="mt-4 text-lg font-semibold text-ink">Design studio coming to the web</p>
-        <p className="body-muted mt-2 max-w-md">
-          Create branded assets with text, shapes and gradients, then export and save them to
-          your gallery. The full editor is being ported.
-        </p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {["Square", "Portrait", "Story", "Landscape"].map((s) => (
-          <div key={s} className="card !p-4 text-center">
-            <div className="mx-auto mb-3 h-16 w-16 rounded-lg bg-brand-gradient opacity-80" />
-            <p className="text-sm font-semibold text-ink">{s}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+// Full canvas editor — presets, draggable text/shape elements, PNG export, and
+// a gallery persisted via the Rust creators service (/creators/studio/designs).
+function StudioTab({ token }: { token: string | null }) {
+  return <StudioEditor token={token} />;
 }

@@ -388,6 +388,107 @@ async fn get_me(
     Ok(Json(row))
 }
 
+// ── Studio designs — the creator's saved promo graphics ─────────────────────
+
+#[derive(sqlx::FromRow, Serialize)]
+struct StudioDesign {
+    id: Uuid,
+    creator_id: Uuid,
+    title: String,
+    kind: String,
+    canvas: String,
+    thumb: String,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Deserialize)]
+struct SaveDesignReq {
+    title: Option<String>,
+    kind: Option<String>,
+    /// JSON blob of the editor's element state (opaque to the server).
+    canvas: String,
+    /// Small PNG data-URL preview.
+    thumb: Option<String>,
+}
+
+/// Resolve the caller's creator id from their bearer token.
+async fn my_creator_id(st: &AppState, headers: &HeaderMap) -> Result<Uuid, AppError> {
+    let user_id = verify_caller(st, &bearer(headers)?).await?;
+    let row: Option<(Uuid,)> =
+        sqlx::query_as("SELECT id FROM creator_profiles WHERE user_id = $1")
+            .bind(user_id)
+            .fetch_optional(&st.pool)
+            .await?;
+    row.map(|r| r.0)
+        .ok_or_else(|| AppError::NotFound("no creator profile for this user".into()))
+}
+
+async fn list_designs(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<StudioDesign>>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    let rows: Vec<StudioDesign> = sqlx::query_as(
+        "SELECT id, creator_id, title, kind, canvas, thumb, created_at
+         FROM studio_designs WHERE creator_id = $1 ORDER BY created_at DESC LIMIT 60",
+    )
+    .bind(creator_id)
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+async fn save_design(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<SaveDesignReq>,
+) -> Result<Json<StudioDesign>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    if req.canvas.len() > 200_000 {
+        return Err(AppError::BadRequest("design is too large".into()));
+    }
+    let thumb = req.thumb.unwrap_or_default();
+    if thumb.len() > 500_000 {
+        return Err(AppError::BadRequest("thumbnail is too large".into()));
+    }
+    let kind = match req.kind.as_deref() {
+        Some(k @ ("square" | "portrait" | "story" | "landscape")) => k.to_string(),
+        _ => "square".to_string(),
+    };
+    let title = req.title.unwrap_or_default().chars().take(80).collect::<String>();
+    let row: StudioDesign = sqlx::query_as(
+        "INSERT INTO studio_designs (id, creator_id, title, kind, canvas, thumb)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, creator_id, title, kind, canvas, thumb, created_at",
+    )
+    .bind(Uuid::new_v4())
+    .bind(creator_id)
+    .bind(title)
+    .bind(kind)
+    .bind(req.canvas)
+    .bind(thumb)
+    .fetch_one(&st.pool)
+    .await?;
+    Ok(Json(row))
+}
+
+async fn delete_design(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    let res = sqlx::query("DELETE FROM studio_designs WHERE id = $1 AND creator_id = $2")
+        .bind(id)
+        .bind(creator_id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("design not found".into()));
+    }
+    Ok(Json(json!({ "deleted": id })))
+}
+
 // ── Bootstrap ───────────────────────────────────────────────────────────────
 
 async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
@@ -437,6 +538,19 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     )
     .execute(pool)
     .await?;
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS studio_designs (
+            id         UUID PRIMARY KEY,
+            creator_id UUID NOT NULL,
+            title      TEXT NOT NULL DEFAULT '',
+            kind       TEXT NOT NULL DEFAULT 'square',
+            canvas     TEXT NOT NULL,
+            thumb      TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )",
+    )
+    .execute(pool)
+    .await?;
     Ok(())
 }
 
@@ -478,6 +592,8 @@ async fn main() {
         .route("/health", get(health))
         .route("/creators", post(create_creator).get(list_creators))
         .route("/creators/me", get(get_me))
+        .route("/creators/studio/designs", get(list_designs).post(save_design))
+        .route("/creators/studio/designs/:id", axum::routing::delete(delete_design))
         .route("/creators/:slug", get(get_by_slug))
         .route("/creators/:slug/tiers", get(list_tiers).post(create_tier))
         .route("/creators/:slug/jars", get(list_jars).post(create_jar))

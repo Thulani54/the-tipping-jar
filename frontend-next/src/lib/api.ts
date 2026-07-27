@@ -16,6 +16,7 @@ import type {
   Payout,
   Pledge,
   ReferralCode,
+  StudioDesign,
   SupportTier,
   Tip,
   Transaction,
@@ -148,6 +149,24 @@ export const api = {
     request<Jar>(`/creators/creators/${slug}/jars`, { method: "POST", body, token }),
   myCreatorProfile: (token: string) =>
     request<Creator>("/creators/creators/me", { token }),
+
+  // ── creators: studio designs (promo graphics gallery) ─────────────
+  myDesigns: (token: string) =>
+    request<StudioDesign[]>("/creators/creators/studio/designs", { token }),
+  saveDesign: (
+    token: string,
+    body: { title?: string; kind?: string; canvas: string; thumb?: string },
+  ) =>
+    request<StudioDesign>("/creators/creators/studio/designs", {
+      method: "POST",
+      body,
+      token,
+    }),
+  deleteDesign: (token: string, id: string) =>
+    request<{ deleted: string }>(`/creators/creators/studio/designs/${id}`, {
+      method: "DELETE",
+      token,
+    }),
 
   // ── tips: pledges, stats, fan history ─────────────────────────────
   createPledge: (body: {
