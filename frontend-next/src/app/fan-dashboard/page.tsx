@@ -17,9 +17,9 @@ import type { Creator, Tip } from "@/types";
 type Tab = "home" | "activity" | "settings";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "home", label: "Home", icon: "🏠" },
-  { id: "activity", label: "Activity", icon: "🕑" },
-  { id: "settings", label: "Settings", icon: "⚙️" },
+  { id: "home", label: "Home", icon: "bi-house-door-fill" },
+  { id: "activity", label: "Activity", icon: "bi-clock-history" },
+  { id: "settings", label: "Settings", icon: "bi-gear-fill" },
 ];
 
 function greeting(): string {
@@ -70,7 +70,7 @@ export default function FanDashboardPage() {
     <div className="container-content py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-muted">{greeting()} 👋</p>
+          <p className="text-sm text-muted">{greeting()}</p>
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">{name}</h1>
         </div>
         <Link href="/creators" className="btn-ghost !px-4 !py-2 text-sm">
@@ -87,7 +87,7 @@ export default function FanDashboardPage() {
               tab === t.id ? "border-b-2 border-teal text-ink" : "text-muted hover:text-ink"
             }`}
           >
-            <span>{t.icon}</span>
+            <span className="flex"><i className={`bi ${t.icon}`} /></span>
             {t.label}
           </button>
         ))}
@@ -115,7 +115,7 @@ export default function FanDashboardPage() {
 function StatCard({ label, value, icon }: { label: string; value: string; icon: string }) {
   return (
     <div className="card !p-5">
-      <div className="text-lg">{icon}</div>
+      <div className="text-lg text-teal"><i className={`bi ${icon}`} /></div>
       <p className="mt-3 text-2xl font-extrabold tracking-tight text-ink">{value}</p>
       <p className="mt-1 text-xs text-muted">{label}</p>
     </div>
@@ -140,7 +140,7 @@ function HomeTab({
     <div className="space-y-10">
       <div className="card bg-brand-gradient !border-transparent">
         <h2 className="text-2xl font-extrabold tracking-tight text-ink">
-          {greeting()}, {name} 👋
+          {greeting()}, {name}
         </h2>
         <p className="mt-2 text-sm text-white/85">Ready to support your favourite creators?</p>
         <Link
@@ -152,9 +152,9 @@ function HomeTab({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Tips sent" value={String(tipsCount)} icon="💚" />
-        <StatCard label="Total given" value={`R${totalGiven.toFixed(2)}`} icon="💸" />
-        <StatCard label="Creators supported" value={String(creatorsSupported)} icon="👥" />
+        <StatCard label="Tips sent" value={String(tipsCount)} icon="bi-heart-fill" />
+        <StatCard label="Total given" value={`R${totalGiven.toFixed(2)}`} icon="bi-cash-stack" />
+        <StatCard label="Creators supported" value={String(creatorsSupported)} icon="bi-people-fill" />
       </div>
 
       <div>
@@ -186,7 +186,7 @@ function ActivityTab({ tips }: { tips: Tip[] }) {
         <h3 className="mb-4 text-base font-bold text-ink">Your tips</h3>
         {tips.length === 0 ? (
           <div className="card grid place-items-center py-12 text-center">
-            <div className="text-3xl">💚</div>
+            <div className="text-3xl text-teal"><i className="bi bi-heart-fill" /></div>
             <p className="mt-3 font-semibold text-ink">No tips sent yet</p>
             <p className="body-muted mt-1 max-w-sm">
               Find a creator you love and send your first tip!
@@ -217,7 +217,7 @@ function ActivityTab({ tips }: { tips: Tip[] }) {
         <h3 className="mb-4 text-base font-bold text-ink">My pledges</h3>
         {/* TODO(api): fan pledges (recurring monthly support) endpoint */}
         <div className="card grid place-items-center py-12 text-center">
-          <div className="text-3xl">🔁</div>
+          <div className="text-3xl text-teal"><i className="bi bi-arrow-repeat" /></div>
           <p className="mt-3 font-semibold text-ink">No active pledges</p>
           <p className="body-muted mt-1 max-w-sm">
             Set up recurring monthly support for the creators you follow.

@@ -89,7 +89,7 @@ function CallbackInner() {
   if (status === "completed") {
     return (
       <Shell>
-        <IconCircle emoji="💚" tone="teal" />
+        <IconCircle icon="bi-heart-fill" tone="teal" />
         <h1 className="mt-6 text-2xl font-extrabold">Payment received!</h1>
         <p className="body-muted mx-auto mt-3 max-w-sm">
           Your tip has been sent. The creator will love it!
@@ -107,7 +107,7 @@ function CallbackInner() {
   if (status === "failed") {
     return (
       <Shell>
-        <IconCircle emoji="⚠️" tone="red" />
+        <IconCircle icon="bi-exclamation-triangle-fill" tone="red" />
         <h1 className="mt-6 text-2xl font-extrabold">
           Payment was not completed
         </h1>
@@ -132,7 +132,7 @@ function CallbackInner() {
   if (status === "pending") {
     return (
       <Shell>
-        <IconCircle emoji="⏳" tone="amber" />
+        <IconCircle icon="bi-hourglass-split" tone="amber" />
         <h1 className="mt-6 text-2xl font-extrabold">
           Payment still processing
         </h1>
@@ -156,7 +156,7 @@ function CallbackInner() {
   // error
   return (
     <Shell>
-      <IconCircle emoji="📡" tone="muted" />
+      <IconCircle icon="bi-wifi-off" tone="muted" />
       <h1 className="mt-6 text-2xl font-extrabold">
         Could not reach the server
       </h1>
@@ -185,23 +185,23 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function IconCircle({
-  emoji,
+  icon,
   tone,
 }: {
-  emoji: string;
+  icon: string;
   tone: "teal" | "red" | "amber" | "muted";
 }) {
   const bg = {
-    teal: "bg-teal/12",
-    red: "bg-red-500/12",
-    amber: "bg-amber-500/12",
-    muted: "bg-card",
+    teal: "bg-teal/12 text-teal",
+    red: "bg-red-500/12 text-red-500",
+    amber: "bg-amber-500/12 text-amber-500",
+    muted: "bg-card text-muted",
   }[tone];
   return (
     <div
       className={`mx-auto grid h-16 w-16 place-items-center rounded-full text-3xl ${bg}`}
     >
-      {emoji}
+      <i className={`bi ${icon}`} />
     </div>
   );
 }

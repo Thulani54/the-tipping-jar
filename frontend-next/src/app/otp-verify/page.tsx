@@ -110,8 +110,8 @@ export default function OtpVerifyPage() {
     <section className="container-content flex min-h-[70vh] items-center justify-center py-16">
       <div className="w-full max-w-md">
         <div className="card">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/15 text-3xl">
-            ✉️
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/15 text-3xl text-teal">
+            <i className="bi bi-envelope-fill" />
           </div>
           <h1 className="mt-6 text-center text-2xl font-extrabold tracking-tight text-ink">
             Check your email
@@ -150,7 +150,7 @@ export default function OtpVerifyPage() {
           )}
           {error && (
             <div className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
-              <span aria-hidden>⚠</span>
+              <span aria-hidden><i className="bi bi-exclamation-triangle-fill" /></span>
               <span>{error}</span>
             </div>
           )}

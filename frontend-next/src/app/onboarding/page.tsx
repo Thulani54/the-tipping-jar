@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 const TOTAL_STEPS = 6;
 
@@ -17,42 +19,42 @@ const PLATFORMS = [
 ];
 
 const NICHES = [
-  { label: "Gaming", icon: "🎮" },
-  { label: "Music", icon: "🎵" },
-  { label: "Art & Design", icon: "🎨" },
-  { label: "Tech", icon: "💻" },
-  { label: "Education", icon: "🎓" },
-  { label: "Fitness", icon: "🏋️" },
-  { label: "Food", icon: "🍽️" },
-  { label: "Photography", icon: "📷" },
-  { label: "Comedy", icon: "😂" },
-  { label: "Travel", icon: "✈️" },
-  { label: "Writing", icon: "📖" },
-  { label: "Other", icon: "•••" },
+  { label: "Gaming", icon: "bi-controller" },
+  { label: "Music", icon: "bi-music-note-beamed" },
+  { label: "Art & Design", icon: "bi-palette-fill" },
+  { label: "Tech", icon: "bi-laptop" },
+  { label: "Education", icon: "bi-mortarboard-fill" },
+  { label: "Fitness", icon: "bi-heart-pulse-fill" },
+  { label: "Food", icon: "bi-egg-fried" },
+  { label: "Photography", icon: "bi-camera-fill" },
+  { label: "Comedy", icon: "bi-emoji-laughing-fill" },
+  { label: "Travel", icon: "bi-airplane-fill" },
+  { label: "Writing", icon: "bi-book-fill" },
+  { label: "Other", icon: "bi-three-dots" },
 ];
 
 const AUDIENCE_SIZES = [
-  { title: "Just starting out", sub: "Under 1,000 followers", icon: "🌱" },
-  { title: "Growing", sub: "1K – 10K followers", icon: "📈" },
-  { title: "Established", sub: "10K – 100K followers", icon: "⭐" },
-  { title: "Large audience", sub: "100K+ followers", icon: "🚀" },
+  { title: "Just starting out", sub: "Under 1,000 followers", icon: "bi-flower1" },
+  { title: "Growing", sub: "1K – 10K followers", icon: "bi-graph-up-arrow" },
+  { title: "Established", sub: "10K – 100K followers", icon: "bi-star-fill" },
+  { title: "Large audience", sub: "100K+ followers", icon: "bi-rocket-takeoff-fill" },
 ];
 
 const AGE_GROUPS = [
-  { title: "Under 13", sub: "Kids — safe, family-friendly content", icon: "🧸" },
-  { title: "13 – 17", sub: "Teens — school-age to late adolescence", icon: "🎒" },
-  { title: "18 – 24", sub: "Young adults — Gen Z", icon: "🎮" },
-  { title: "25 – 34", sub: "Millennials — early career adults", icon: "💼" },
-  { title: "35 – 44", sub: "Mid-life adults", icon: "🏠" },
-  { title: "45+", sub: "Mature audiences", icon: "✨" },
-  { title: "All ages", sub: "My content is for everyone", icon: "🌍" },
+  { title: "Under 13", sub: "Kids — safe, family-friendly content", icon: "bi-balloon-fill" },
+  { title: "13 – 17", sub: "Teens — school-age to late adolescence", icon: "bi-book-half" },
+  { title: "18 – 24", sub: "Young adults — Gen Z", icon: "bi-controller" },
+  { title: "25 – 34", sub: "Millennials — early career adults", icon: "bi-briefcase-fill" },
+  { title: "35 – 44", sub: "Mid-life adults", icon: "bi-house-door-fill" },
+  { title: "45+", sub: "Mature audiences", icon: "bi-stars" },
+  { title: "All ages", sub: "My content is for everyone", icon: "bi-globe-americas" },
 ];
 
 const AUDIENCE_GENDERS = [
-  { label: "Mostly female", icon: "♀" },
-  { label: "Mostly male", icon: "♂" },
-  { label: "Both equally", icon: "⚥" },
-  { label: "Prefer not to say", icon: "•••" },
+  { label: "Mostly female", icon: "bi-gender-female" },
+  { label: "Mostly male", icon: "bi-gender-male" },
+  { label: "Both equally", icon: "bi-gender-ambiguous" },
+  { label: "Prefer not to say", icon: "bi-three-dots" },
 ];
 
 const GOALS = ["R500", "R2,000", "R5,000", "R10,000"];
@@ -62,18 +64,31 @@ const inputClass =
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { user, token, isAuthenticated, initialized } = useAuth();
 
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [niche, setNiche] = useState<string | null>(null);
   const [audienceSize, setAudienceSize] = useState<string | null>(null);
   const [ageGroup, setAgeGroup] = useState<string | null>(null);
   const [audienceGender, setAudienceGender] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState("");
   const [tagline, setTagline] = useState("");
   const [bio, setBio] = useState("");
   const [goal, setGoal] = useState("");
+
+  // Onboarding creates a creator profile, so it requires a signed-in account.
+  useEffect(() => {
+    if (initialized && !isAuthenticated) router.push("/login");
+  }, [initialized, isAuthenticated, router]);
+
+  // Prefill the public creator name from the account username (editable).
+  useEffect(() => {
+    if (user?.username) setDisplayName((n) => n || user.username);
+  }, [user]);
 
   const canProceed = (() => {
     switch (step) {
@@ -88,7 +103,7 @@ export default function OnboardingPage() {
       case 4:
         return audienceGender !== null;
       case 5:
-        return tagline.trim().length > 0;
+        return displayName.trim().length > 0 && tagline.trim().length > 0;
       default:
         return false;
     }
@@ -100,24 +115,61 @@ export default function OnboardingPage() {
     );
   }
 
+  // "R2,000" → 2000; empty / invalid → undefined (no goal).
+  function parseGoal(g: string): number | undefined {
+    const n = parseFloat(g.replace(/[^0-9.]/g, ""));
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  }
+
   async function next() {
+    setError(null);
     if (step < TOTAL_STEPS - 1) {
       setStep((s) => s + 1);
       return;
     }
-    // Final step — persist onboarding data, then head to the dashboard.
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+    // Final step — create the creator profile in the backend, then head to the
+    // dashboard (which resolves the new profile via /creators/creators/me).
+    // The creators service stores display_name, tagline, category and tip_goal;
+    // the richer signals (platforms, audience size/age/gender, bio) have no
+    // columns in the /api/v2 schema yet and are not persisted.
     setSaving(true);
-    // TODO(api): no creator-profile / avatar / user-profile update endpoints are
-    // exposed in the current /api/v2 client, so the collected onboarding data
-    // (platforms, niche, audience_size, age_group, audience_gender, tagline, bio,
-    // goal) cannot be persisted yet. Wire these up when the endpoints land.
-    setTimeout(() => {
+    try {
+      await api.createCreator(token, {
+        display_name: displayName.trim(),
+        tagline: tagline.trim() || undefined,
+        category: niche ?? undefined,
+        tip_goal: parseGoal(goal),
+      });
       router.push("/dashboard");
-    }, 400);
+    } catch (e) {
+      // The user already has a creator profile — send them on to the dashboard.
+      if (e instanceof ApiError && e.status === 409) {
+        router.push("/dashboard");
+        return;
+      }
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : "Could not save your profile. Please check your connection and try again.",
+      );
+      setSaving(false);
+    }
   }
 
   function back() {
     if (step > 0) setStep((s) => s - 1);
+  }
+
+  if (!initialized || !isAuthenticated) {
+    return (
+      <section className="container-content grid min-h-[60vh] place-items-center">
+        <p className="body-muted">Loading…</p>
+      </section>
+    );
   }
 
   return (
@@ -148,7 +200,7 @@ export default function OnboardingPage() {
                   return (
                     <OptionButton key={p} active={active} onClick={() => togglePlatform(p)}>
                       <span className="text-sm font-semibold">{p}</span>
-                      {active && <span className="ml-auto text-teal">✓</span>}
+                      {active && <span className="ml-auto text-teal"><i className="bi bi-check-lg" /></span>}
                     </OptionButton>
                   );
                 })}
@@ -176,7 +228,7 @@ export default function OnboardingPage() {
                       }`}
                     >
                       <span className="text-2xl" aria-hidden>
-                        {n.icon}
+                        <i className={`bi ${n.icon}`} />
                       </span>
                       <span className="text-xs font-semibold">{n.label}</span>
                     </button>
@@ -246,7 +298,7 @@ export default function OnboardingPage() {
                       }`}
                     >
                       <span className="text-3xl" aria-hidden>
-                        {g.icon}
+                        <i className={`bi ${g.icon}`} />
                       </span>
                       <span className="text-sm font-bold">{g.label}</span>
                     </button>
@@ -264,13 +316,29 @@ export default function OnboardingPage() {
               <div className="space-y-6">
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-ink">
+                    Creator name
+                  </label>
+                  <input
+                    value={displayName}
+                    maxLength={60}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Your public creator name"
+                    className={inputClass}
+                  />
+                  <p className="mt-1.5 text-xs text-muted">
+                    Shown on your public tip page and used to create your link.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-ink">
                     Your tagline
                   </label>
                   <input
                     value={tagline}
                     maxLength={80}
                     onChange={(e) => setTagline(e.target.value)}
-                    placeholder={'e.g. "Indie game dev sharing my journey 🎮"'}
+                    placeholder={'e.g. "Indie game dev sharing my journey"'}
                     className={inputClass}
                   />
                 </div>
@@ -321,13 +389,16 @@ export default function OnboardingPage() {
                 {/* Preview */}
                 <div className="rounded-2xl border border-teal/30 bg-card p-5">
                   <div className="flex items-center gap-3.5">
-                    <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-gradient text-lg">
-                      💚
+                    <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-gradient text-lg text-white">
+                      <i className="bi bi-heart-fill" />
                     </span>
                     <div>
                       <p className="text-xs text-muted">Your tip page preview</p>
+                      <p className="text-sm font-bold text-ink">
+                        {displayName || "Your creator name"}
+                      </p>
                       <p
-                        className={`text-sm font-semibold ${tagline ? "text-ink" : "text-muted"}`}
+                        className={`text-xs ${tagline ? "text-muted" : "text-muted/60"}`}
                       >
                         {tagline || "Your tagline will appear here…"}
                       </p>
@@ -338,6 +409,14 @@ export default function OnboardingPage() {
             </StepShell>
           )}
         </div>
+
+        {/* Submit error */}
+        {error && (
+          <div className="mt-6 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500">
+            <i className="bi bi-exclamation-triangle-fill mt-0.5" aria-hidden />
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Footer nav */}
         <div className="mt-10 flex items-center">
@@ -442,13 +521,13 @@ function RowOption({
         }`}
         aria-hidden
       >
-        {icon}
+        <i className={`bi ${icon}`} />
       </span>
       <span className="flex-1">
         <span className="block text-sm font-bold text-ink">{title}</span>
         <span className="block text-xs text-muted">{sub}</span>
       </span>
-      {active && <span className="text-teal">✓</span>}
+      {active && <span className="text-teal"><i className="bi bi-check-lg" /></span>}
     </button>
   );
 }

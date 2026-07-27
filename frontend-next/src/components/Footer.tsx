@@ -68,7 +68,10 @@ export function Footer() {
       <div className="border-t border-border">
         <div className="container-content flex flex-col items-center justify-between gap-2 py-6 text-sm text-muted md:flex-row">
           <span>© {new Date().getFullYear()} Tipping Jar. All rights reserved.</span>
-          <span>Made in South Africa 🇿🇦</span>
+          <span className="inline-flex items-center gap-1.5">
+            <i className="bi bi-geo-alt-fill text-green" />
+            Made in South Africa
+          </span>
         </div>
       </div>
     </footer>

@@ -25,11 +25,11 @@ import type {
 type Tab = "overview" | "tips" | "transactions" | "referrals" | "studio";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "overview", label: "Overview", icon: "🏠" },
-  { id: "tips", label: "Tips", icon: "💸" },
-  { id: "transactions", label: "Transactions", icon: "🧾" },
-  { id: "referrals", label: "Referrals", icon: "🤝" },
-  { id: "studio", label: "Studio", icon: "🎨" },
+  { id: "overview", label: "Overview", icon: "bi-house-door-fill" },
+  { id: "tips", label: "Tips", icon: "bi-cash-stack" },
+  { id: "transactions", label: "Transactions", icon: "bi-receipt" },
+  { id: "referrals", label: "Referrals", icon: "bi-people-fill" },
+  { id: "studio", label: "Studio", icon: "bi-palette-fill" },
 ];
 
 const money = (n: number) =>
@@ -98,7 +98,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-muted">{greeting()} 👋</p>
+          <p className="text-sm text-muted">{greeting()}</p>
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">{name}</h1>
         </div>
         <Link href="/creators" className="btn-ghost !px-4 !py-2 text-sm">
@@ -118,7 +118,7 @@ export default function DashboardPage() {
                 : "text-muted hover:text-ink"
             }`}
           >
-            <span>{t.icon}</span>
+            <span className="flex"><i className={`bi ${t.icon}`} /></span>
             {t.label}
           </button>
         ))}
@@ -162,7 +162,7 @@ function StatCard({
         className="grid h-10 w-10 place-items-center rounded-xl text-lg"
         style={{ backgroundColor: (accent ?? "#004423") + "22" }}
       >
-        {icon}
+        <i className={`bi ${icon}`} style={{ color: accent ?? "#004423" }} />
       </div>
       <p className="mt-4 text-2xl font-extrabold tracking-tight text-ink">{value}</p>
       <p className="mt-1 text-xs text-muted">{label}</p>
@@ -187,10 +187,10 @@ function OverviewTab({
   return (
     <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Net earned" value={`R${money(netEarned)}`} icon="💰" accent="#004423" />
-        <StatCard label="This month" value={`R${money(thisMonth)}`} icon="📅" accent="#2563EB" />
-        <StatCard label="Supporters" value={String(stats?.supporter_count ?? 0)} icon="👥" accent="#FBBF24" />
-        <StatCard label="Total tips" value={String(stats?.tip_count ?? 0)} icon="💚" accent="#F472B6" />
+        <StatCard label="Net earned" value={`R${money(netEarned)}`} icon="bi-cash-coin" accent="#004423" />
+        <StatCard label="This month" value={`R${money(thisMonth)}`} icon="bi-calendar3" accent="#2563EB" />
+        <StatCard label="Supporters" value={String(stats?.supporter_count ?? 0)} icon="bi-people-fill" accent="#FBBF24" />
+        <StatCard label="Total tips" value={String(stats?.tip_count ?? 0)} icon="bi-heart-fill" accent="#F472B6" />
       </div>
 
       {/* Share tip link */}
@@ -233,7 +233,7 @@ function RecentTips({ tips, loading }: { tips: Tip[]; loading: boolean }) {
         <p className="body-muted">Loading…</p>
       ) : tips.length === 0 ? (
         <div className="card grid place-items-center py-12 text-center">
-          <div className="text-3xl">💸</div>
+          <div className="text-3xl text-teal"><i className="bi bi-cash-stack" /></div>
           <p className="mt-3 font-semibold text-ink">No tips yet</p>
           <p className="body-muted mt-1 max-w-sm">
             Share your tip link to start receiving support from your fans.
@@ -325,8 +325,8 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
 
       {/* Referral code card */}
       <div className="card bg-brand-gradient !border-transparent">
-        <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
-          🎁 Your referral code
+        <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-white/70">
+          <i className="bi bi-gift-fill" /> Your referral code
         </p>
         <div className="mt-3 flex items-center gap-3">
           <span className="font-mono text-3xl font-bold tracking-[0.3em] text-ink">
@@ -348,7 +348,7 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
               onClick={() => copy(shareUrl, "link")}
               className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-ink hover:bg-white/25"
             >
-              {copied === "link" ? "Link copied!" : "🔗 Copy link"}
+              {copied === "link" ? "Link copied!" : <><i className="bi bi-link-45deg" /> Copy link</>}
             </button>
             <a
               href={`https://wa.me/?text=${encodeURIComponent(
@@ -358,7 +358,7 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
               rel="noreferrer"
               className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-ink hover:bg-white/25"
             >
-              💬 WhatsApp
+              <i className="bi bi-whatsapp" /> WhatsApp
             </a>
             <a
               href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
@@ -374,18 +374,21 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
         )}
       </div>
 
-      {/* Stats — no referral analytics endpoint yet */}
-      {/* TODO(api): referral stats (total, active) + referred users list + bank details submission */}
+      {/* "Your commission" is the live rate from the referrals service. The
+          referral counts have no endpoint yet — the service stores codes but
+          does not track which signups used them. */}
+      {/* TODO(api): referral counts (total/active) + referred-users list — needs
+          the referrals service to record signups per code. */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total referrals" value="0" icon="👥" />
-        <StatCard label="Active (earning)" value="0" icon="⚡" />
-        <StatCard label="Commission window" value="6 mo" icon="🗓️" />
+        <StatCard label="Total referrals" value="0" icon="bi-people-fill" />
+        <StatCard label="Active (earning)" value="0" icon="bi-lightning-charge-fill" />
+        <StatCard label="Your commission" value={`${(rate * 100).toFixed(1)}%`} icon="bi-percent" />
       </div>
 
       <div>
         <h3 className="mb-3 text-base font-bold text-ink">Your referrals</h3>
         <div className="card grid place-items-center py-12 text-center">
-          <div className="text-3xl">👥</div>
+          <div className="text-3xl text-teal"><i className="bi bi-people-fill" /></div>
           <p className="mt-3 font-semibold text-ink">No referrals yet</p>
           <p className="body-muted mt-1">Share your code above to start earning commission.</p>
         </div>
@@ -467,7 +470,7 @@ function TransactionsTab({
   if (!creatorId) {
     return (
       <div className="card grid place-items-center py-12 text-center">
-        <div className="text-3xl">🧾</div>
+        <div className="text-3xl text-teal"><i className="bi bi-receipt" /></div>
         <p className="mt-3 font-semibold text-ink">Create a creator profile</p>
         <p className="body-muted mt-1">Set up your page to start receiving tips and see transactions.</p>
         <Link href="/onboarding" className="btn-primary mt-5 !px-5 !py-2.5 text-sm">
@@ -483,9 +486,9 @@ function TransactionsTab({
   return (
     <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Net earned" value={`R${balance?.net_balance ?? "0.00"}`} icon="💰" accent="#004423" />
-        <StatCard label="Withdrawn" value={`R${balance?.withdrawn ?? "0.00"}`} icon="🏦" accent="#2563EB" />
-        <StatCard label="Available" value={`R${balance?.available ?? "0.00"}`} icon="✅" accent="#0097B2" />
+        <StatCard label="Net earned" value={`R${balance?.net_balance ?? "0.00"}`} icon="bi-cash-coin" accent="#004423" />
+        <StatCard label="Withdrawn" value={`R${balance?.withdrawn ?? "0.00"}`} icon="bi-bank" accent="#2563EB" />
+        <StatCard label="Available" value={`R${balance?.available ?? "0.00"}`} icon="bi-check-circle-fill" accent="#0097B2" />
       </div>
 
       <div className="card flex flex-wrap items-center justify-between gap-4">
@@ -507,7 +510,7 @@ function TransactionsTab({
         <h3 className="mb-4 text-base font-bold text-ink">Transactions</h3>
         {txns.length === 0 ? (
           <div className="card grid place-items-center py-12 text-center">
-            <div className="text-3xl">🧾</div>
+            <div className="text-3xl text-teal"><i className="bi bi-receipt" /></div>
             <p className="mt-3 font-semibold text-ink">No transactions yet</p>
             <p className="body-muted mt-1">Tips and card payments will show up here.</p>
           </div>
@@ -598,7 +601,7 @@ function StudioTab() {
           is a rich client-only tool. Rendered here as a feature placeholder. */}
       {/* TODO(api): none required — studio is client-side; port the canvas editor from studio_tab.dart */}
       <div className="card grid place-items-center py-16 text-center">
-        <div className="text-4xl">🎨</div>
+        <div className="text-4xl text-teal"><i className="bi bi-palette-fill" /></div>
         <p className="mt-4 text-lg font-semibold text-ink">Design studio coming to the web</p>
         <p className="body-muted mt-2 max-w-md">
           Create branded assets with text, shapes and gradients, then export and save them to

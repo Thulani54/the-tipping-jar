@@ -65,7 +65,7 @@ export default async function DisputeTrackingPage({
     return (
       <div className="container-content grid min-h-[60vh] place-items-center text-center">
         <div>
-          <div className="text-4xl">🔎</div>
+          <div className="text-4xl text-teal"><i className="bi bi-search" /></div>
           <h1 className="mt-4 text-2xl font-bold text-ink">Dispute not found</h1>
           <p className="body-muted mx-auto mt-2 max-w-sm">
             Please check your tracking link — it may be incorrect or expired.
@@ -126,7 +126,7 @@ export default async function DisputeTrackingPage({
                             : "border-muted/30 bg-card text-transparent"
                       }`}
                     >
-                      {done ? "✓" : current ? "●" : ""}
+                      {done ? <i className="bi bi-check-lg" /> : current ? <i className="bi bi-record-circle-fill" /> : ""}
                     </div>
                     {i < STEPS.length - 1 && (
                       <div className={`w-0.5 flex-1 ${i < active ? "bg-primary" : "bg-muted/20"}`} />

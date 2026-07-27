@@ -86,8 +86,8 @@ export default function JarPage({
       <div className="mt-8 grid gap-10 lg:grid-cols-[4fr_5fr]">
         {/* Left — jar info */}
         <div>
-          <div className="grid h-16 w-16 place-items-center rounded-2xl border border-teal/30 bg-teal/12 text-3xl">
-            🫙
+          <div className="grid h-16 w-16 place-items-center rounded-2xl border border-teal/30 bg-teal/12 text-3xl text-teal">
+            <i className="bi bi-piggy-bank-fill" />
           </div>
           <h1 className="mt-5 text-3xl font-extrabold tracking-tight md:text-4xl">
             {jar.name}
@@ -220,10 +220,10 @@ function JarTipForm({
   if (success) {
     return (
       <div className="card text-center">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-teal/12 text-3xl">
-          💚
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-teal/12 text-3xl text-teal">
+          <i className="bi bi-heart-fill" />
         </div>
-        <h2 className="mt-4 text-2xl font-extrabold">Thank you! 🎉</h2>
+        <h2 className="mt-4 text-2xl font-extrabold">Thank you!</h2>
         <p className="body-muted mx-auto mt-2 max-w-xs">
           Your tip was sent to the &ldquo;{jarName}&rdquo; jar.
         </p>

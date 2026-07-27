@@ -106,7 +106,7 @@ const RELEASES: Release[] = [
     version: "v1.0.0",
     date: "Nov 15, 2025",
     badge: "Launch",
-    title: "The Tipping Jar is live 🎉",
+    title: "The Tipping Jar is live",
     summary:
       "The first public release of The Tipping Jar. Creators can set up a tip page in 60 seconds and start receiving fan support powered by Stripe.",
     items: [

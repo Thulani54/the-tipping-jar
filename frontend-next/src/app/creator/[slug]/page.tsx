@@ -59,8 +59,8 @@ export default async function CreatorPage({
   if (!creator) {
     return (
       <section className="container-content py-32 text-center">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white text-3xl shadow-soft">
-          🫙
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white text-3xl text-teal shadow-soft">
+          <i className="bi bi-piggy-bank-fill" />
         </div>
         <h1 className="heading-xl mt-6 text-4xl">Creator not found</h1>
         <p className="body-muted mx-auto mt-4 max-w-md">
@@ -138,7 +138,7 @@ export default async function CreatorPage({
                 />
               </div>
               <Link href={`/tip/${creator.slug}`} className="btn-primary mt-8 w-full text-base">
-                💚 Tip {creator.display_name.split(" ")[0]}
+                <i className="bi bi-heart-fill" /> Tip {creator.display_name.split(" ")[0]}
               </Link>
               <Link
                 href={`/creator/${creator.slug}/subscribe`}
@@ -173,7 +173,7 @@ export default async function CreatorPage({
               </div>
               {recent.length === 0 ? (
                 <div className="px-6 py-14 text-center">
-                  <div className="text-3xl">🙌</div>
+                  <div className="text-3xl text-teal"><i className="bi bi-emoji-smile-fill" /></div>
                   <p className="body-muted mx-auto mt-3 max-w-sm">
                     No tips yet — be the first to fill {creator.display_name}&apos;s jar.
                   </p>

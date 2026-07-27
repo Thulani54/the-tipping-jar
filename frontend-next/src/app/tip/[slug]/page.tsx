@@ -114,7 +114,7 @@ export default function TipPage({
   if (notFound || !creator) {
     return (
       <section className="container-content py-32 text-center">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white text-3xl shadow-soft">🫙</div>
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white text-3xl text-green shadow-soft"><i className="bi bi-piggy-bank-fill" /></div>
         <h1 className="heading-xl mt-6 text-4xl">Creator not found</h1>
         <p className="body-muted mx-auto mt-4 max-w-md">We couldn&apos;t find who you&apos;re trying to tip.</p>
         <Link href="/creators" className="btn-primary mt-8">Explore creators</Link>
@@ -183,7 +183,7 @@ export default function TipPage({
               value={message}
               onChange={(e) => setMessage(e.target.value.slice(0, 280))}
               rows={3}
-              placeholder="Say something nice… 👋"
+              placeholder="Say something nice…"
               className={`${inputCls} mt-3 resize-none`}
             />
             <p className="mt-1 text-right font-mono text-[11px] text-muted">{message.length}/280</p>
@@ -195,7 +195,7 @@ export default function TipPage({
           <div className="slip !p-6 shadow-lift">
             <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
               <span>Tip slip</span>
-              <span className="text-green">● live</span>
+              <span className="inline-flex items-center gap-1 text-green"><i className="bi bi-broadcast" /> live</span>
             </div>
 
             <div className="mt-5 flex items-end justify-between">
@@ -205,7 +205,7 @@ export default function TipPage({
                   R{amount.toFixed(2)}
                 </p>
               </div>
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-mint/15 text-2xl">🫙</span>
+              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-mint/15 text-2xl text-green"><i className="bi bi-piggy-bank-fill" /></span>
             </div>
             <p className="mt-1.5 text-sm text-muted">to {creator.display_name}</p>
 
@@ -242,10 +242,10 @@ export default function TipPage({
               disabled={submitting || amount < 1}
               className="btn-primary mt-6 w-full text-base disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting ? "Processing…" : amount < 1 ? "Enter an amount" : `💳 Pay R${amount.toFixed(2)}`}
+              {submitting ? "Processing…" : amount < 1 ? "Enter an amount" : <><i className="bi bi-credit-card-fill" /> Pay R{amount.toFixed(2)}</>}
             </button>
-            <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-              🔒 Secured by PayCloud
+            <p className="mt-4 inline-flex w-full items-center justify-center gap-1 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+              <i className="bi bi-lock-fill" /> Secured by PayCloud
             </p>
           </div>
         </aside>

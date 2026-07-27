@@ -165,8 +165,8 @@ export default async function LandingPage() {
       {/* ── Live activity ───────────────────────────────────────────────── */}
       <section className="border-b border-border bg-white py-4">
         <div className="container-content flex items-center gap-4">
-          <span className="hidden shrink-0 font-mono text-[11px] uppercase tracking-[0.18em] text-green sm:inline">
-            ● live tips
+          <span className="hidden shrink-0 items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-green sm:inline-flex">
+            <i className="bi bi-broadcast" /> live tips
           </span>
           <div className="min-w-0 flex-1">
             <LiveTicker items={ticker} />

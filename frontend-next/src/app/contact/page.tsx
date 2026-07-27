@@ -14,19 +14,19 @@ const SUBJECTS: [string, string][] = [
 
 const CONTACT_CARDS = [
   {
-    icon: "✉️",
+    icon: "bi-envelope-fill",
     title: "SUPPORT",
     value: "support@tippingjar.co.za",
     sub: "Response within 1–2 business days",
   },
   {
-    icon: "🛡️",
+    icon: "bi-shield-fill-check",
     title: "DISPUTES & BILLING",
     value: "support@tippingjar.co.za",
     sub: "File a formal dispute with reference tracking",
   },
   {
-    icon: "🌐",
+    icon: "bi-globe",
     title: "WEBSITE",
     value: "tippingjar.co.za",
     sub: "South Africa",
@@ -34,9 +34,9 @@ const CONTACT_CARDS = [
 ];
 
 const STATS = [
-  { icon: "⏱️", label: "< 2 business days", desc: "Average response time" },
-  { icon: "✅", label: "98% resolved", desc: "Satisfaction rate" },
-  { icon: "🔒", label: "Encrypted", desc: "All messages secured" },
+  { icon: "bi-stopwatch", label: "< 2 business days", desc: "Average response time" },
+  { icon: "bi-check-circle-fill", label: "98% resolved", desc: "Satisfaction rate" },
+  { icon: "bi-lock-fill", label: "Encrypted", desc: "All messages secured" },
 ];
 
 const FAQS: [string, string][] = [
@@ -135,7 +135,7 @@ export default function ContactPage() {
             {submitted ? (
               <div className="card text-center">
                 <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-brand-gradient text-2xl">
-                  ✓
+                  <i className="bi bi-check-lg" />
                 </div>
                 <h2 className="mt-6 text-2xl font-extrabold text-ink">Message sent!</h2>
                 <p className="body-muted mx-auto mt-3 max-w-sm">
@@ -225,8 +225,8 @@ export default function ContactPage() {
             <div className="mt-5 space-y-3">
               {CONTACT_CARDS.map((c) => (
                 <div key={c.title} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-teal/10 text-lg">
-                    {c.icon}
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-teal/10 text-lg text-teal">
+                    <i className={`bi ${c.icon}`} />
                   </span>
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
@@ -239,7 +239,7 @@ export default function ContactPage() {
               ))}
             </div>
             <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-dark p-4">
-              <span className="text-base">🕐</span>
+              <span className="text-base text-teal"><i className="bi bi-clock" /></span>
               <div>
                 <p className="text-[13px] font-semibold text-ink">Support hours</p>
                 <p className="text-xs text-muted">Mon–Fri, 08:00–17:00 SAST</p>
@@ -255,7 +255,7 @@ export default function ContactPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             {STATS.map((s) => (
               <div key={s.label} className="card">
-                <div className="text-xl">{s.icon}</div>
+                <div className="text-xl text-teal"><i className={`bi ${s.icon}`} /></div>
                 <p className="mt-3 text-base font-extrabold text-ink">{s.label}</p>
                 <p className="text-xs text-muted">{s.desc}</p>
               </div>

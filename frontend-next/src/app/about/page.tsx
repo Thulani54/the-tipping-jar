@@ -7,22 +7,22 @@ export const metadata = {
 
 const VALUES = [
   {
-    icon: "⚡",
+    icon: "bi-lightning-charge-fill",
     title: "Speed",
     body: "Payouts in 1-2 business days. No waiting weeks to access your own money.",
   },
   {
-    icon: "👁️",
+    icon: "bi-eye-fill",
     title: "Transparency",
     body: "A single, honest platform fee. No hidden cuts, no confusing tier gates.",
   },
   {
-    icon: "💚",
+    icon: "bi-heart-fill",
     title: "Creator-first",
     body: "Every product decision starts with: does this help creators earn more?",
   },
   {
-    icon: "🔒",
+    icon: "bi-shield-lock-fill",
     title: "Trust",
     body: "Bank-grade security, Stripe processing, and a team you can actually reach.",
   },
@@ -81,8 +81,8 @@ export default function AboutPage() {
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {VALUES.map((v) => (
               <div key={v.title} className="card">
-                <div className="grid h-11 w-11 place-items-center rounded-xl bg-teal/10 text-xl">
-                  {v.icon}
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-teal/10 text-xl text-teal">
+                  <i className={`bi ${v.icon}`} />
                 </div>
                 <h3 className="mt-4 font-semibold text-ink">{v.title}</h3>
                 <p className="body-muted mt-2 text-sm">{v.body}</p>

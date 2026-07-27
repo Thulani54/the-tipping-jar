@@ -59,7 +59,7 @@ export default function LoginPage() {
           {BENEFITS.map((b) => (
             <li key={b} className="flex items-center gap-3">
               <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/20 text-sm text-teal">
-                ✓
+                <i className="bi bi-check-lg" />
               </span>
               <span className="font-medium text-ink">{b}</span>
             </li>
@@ -121,7 +121,7 @@ export default function LoginPage() {
 
             {error && (
               <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
-                <span aria-hidden>⚠</span>
+                <span aria-hidden><i className="bi bi-exclamation-triangle-fill" /></span>
                 <span>{error}</span>
               </div>
             )}

@@ -16,10 +16,10 @@ import type { Enterprise } from "@/types";
 type Tab = "overview" | "creators" | "distributions" | "settings";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "overview", label: "Overview", icon: "📊" },
-  { id: "creators", label: "Creators", icon: "👥" },
-  { id: "distributions", label: "Distributions", icon: "💰" },
-  { id: "settings", label: "Settings", icon: "⚙️" },
+  { id: "overview", label: "Overview", icon: "bi-bar-chart-fill" },
+  { id: "creators", label: "Creators", icon: "bi-people-fill" },
+  { id: "distributions", label: "Distributions", icon: "bi-cash-coin" },
+  { id: "settings", label: "Settings", icon: "bi-gear-fill" },
 ];
 
 export default function EnterprisePortalPage() {
@@ -99,7 +99,7 @@ export default function EnterprisePortalPage() {
                   tab === t.id ? "border-b-2 border-teal text-ink" : "text-muted hover:text-ink"
                 }`}
               >
-                <span>{t.icon}</span>
+                <span className="flex"><i className={`bi ${t.icon}`} /></span>
                 {t.label}
               </button>
             ))}
@@ -130,7 +130,7 @@ function StatCard({
 }) {
   return (
     <div className={`card !p-5 ${highlight ? "!border-teal/40" : ""}`}>
-      <div className="text-lg">{icon}</div>
+      <div className="text-lg text-teal"><i className={`bi ${icon}`} /></div>
       <p className="mt-3 text-2xl font-extrabold tracking-tight text-ink">{value}</p>
       <p className="mt-1 text-xs text-muted">{label}</p>
     </div>
@@ -140,7 +140,7 @@ function StatCard({
 function NoEnterprise() {
   return (
     <div className="mt-10 card grid place-items-center py-16 text-center">
-      <div className="text-4xl">🏢</div>
+      <div className="text-4xl text-teal"><i className="bi bi-building" /></div>
       <p className="mt-4 text-lg font-semibold text-ink">No enterprise linked to your account</p>
       <p className="body-muted mt-2 max-w-md">
         Apply to run tipping at scale for your platform. Your account will be reviewed before
@@ -164,17 +164,17 @@ function OverviewTab({ enterprise }: { enterprise: Enterprise }) {
       </div>
       {/* TODO(api): enterprise stats (creator count, tips, earned, distributed) */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard label="Managed creators" value="0" icon="👥" />
-        <StatCard label="Total tips received" value="0" icon="💳" />
-        <StatCard label="Total earned" value="R0.00" icon="📈" highlight />
-        <StatCard label="Total distributed" value="R0.00" icon="💰" />
-        <StatCard label="Distributions" value="0" icon="🧾" />
+        <StatCard label="Managed creators" value="0" icon="bi-people-fill" />
+        <StatCard label="Total tips received" value="0" icon="bi-credit-card-fill" />
+        <StatCard label="Total earned" value="R0.00" icon="bi-graph-up-arrow" highlight />
+        <StatCard label="Total distributed" value="R0.00" icon="bi-cash-coin" />
+        <StatCard label="Distributions" value="0" icon="bi-receipt" />
       </div>
 
       <div>
         <h3 className="mb-4 text-base font-bold text-ink">Earnings per creator</h3>
         <div className="card grid place-items-center py-12 text-center">
-          <div className="text-3xl">📊</div>
+          <div className="text-3xl text-teal"><i className="bi bi-bar-chart-fill" /></div>
           <p className="mt-3 font-semibold text-ink">No earnings data yet</p>
           <p className="body-muted mt-1">Add creators to start tracking earnings.</p>
         </div>
@@ -209,7 +209,7 @@ function CreatorsTab() {
       </div>
 
       <div className="card grid place-items-center py-12 text-center">
-        <div className="text-3xl">👥</div>
+        <div className="text-3xl text-teal"><i className="bi bi-people-fill" /></div>
         <p className="mt-3 font-semibold text-ink">No creators yet</p>
         <p className="body-muted mt-1">Add a creator above to manage them under your enterprise.</p>
       </div>
@@ -224,7 +224,7 @@ function DistributionsTab() {
       <h2 className="text-xl font-extrabold tracking-tight text-ink">Distributions</h2>
       {/* TODO(api): distributions endpoints (list history / create payout run) */}
       <div className="card grid place-items-center py-16 text-center">
-        <div className="text-3xl">💰</div>
+        <div className="text-3xl text-teal"><i className="bi bi-cash-coin" /></div>
         <p className="mt-3 font-semibold text-ink">No distributions yet</p>
         <p className="body-muted mt-1 max-w-sm">
           Distribute pooled tips to your managed creators. History will appear here.

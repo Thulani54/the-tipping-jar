@@ -7,12 +7,12 @@ export const metadata = {
 };
 
 const PERKS = [
-  { icon: "🌍", title: "Fully remote", body: "Work from anywhere. We care about results, not where you sit." },
-  { icon: "🏖️", title: "Unlimited PTO", body: "Take the time you need. We trust you." },
-  { icon: "📈", title: "Equity", body: "Every full-time hire gets meaningful equity in TippingJar." },
-  { icon: "🩺", title: "Health cover", body: "Full medical, dental, and vision for you and your family." },
-  { icon: "💻", title: "Hardware stipend", body: "R35,000 to set up your ideal workspace." },
-  { icon: "🎓", title: "Learning budget", body: "R18,000/year for courses, books, and conferences." },
+  { icon: "bi-globe-americas", title: "Fully remote", body: "Work from anywhere. We care about results, not where you sit." },
+  { icon: "bi-umbrella-fill", title: "Unlimited PTO", body: "Take the time you need. We trust you." },
+  { icon: "bi-graph-up-arrow", title: "Equity", body: "Every full-time hire gets meaningful equity in TippingJar." },
+  { icon: "bi-heart-pulse-fill", title: "Health cover", body: "Full medical, dental, and vision for you and your family." },
+  { icon: "bi-laptop", title: "Hardware stipend", body: "R35,000 to set up your ideal workspace." },
+  { icon: "bi-mortarboard-fill", title: "Learning budget", body: "R18,000/year for courses, books, and conferences." },
 ];
 
 const DEPT_COLORS: Record<string, string> = {
@@ -72,8 +72,8 @@ export default async function CareersPage() {
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {PERKS.map((p) => (
             <div key={p.title} className="card">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal/10 text-lg">
-                {p.icon}
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal/10 text-lg text-teal">
+                <i className={`bi ${p.icon}`} />
               </div>
               <h3 className="mt-3 text-sm font-bold text-ink">{p.title}</h3>
               <p className="body-muted mt-1.5 text-[13px]">{p.body}</p>
@@ -89,7 +89,7 @@ export default async function CareersPage() {
           <div className="mx-auto mt-10 max-w-3xl">
             {jobs.length === 0 ? (
               <div className="card text-center">
-                <div className="text-3xl">💼</div>
+                <div className="text-3xl text-teal"><i className="bi bi-briefcase" /></div>
                 <h3 className="mt-3 text-base font-bold text-ink">No open roles right now</h3>
                 <p className="body-muted mt-2 text-[13px]">
                   Check back soon — we&apos;re always growing.

@@ -66,8 +66,8 @@ export default function DisputePage() {
       <div className="container-content flex justify-center py-20">
         <div className="w-full max-w-lg">
           <div className="card !border-yellow-400/30 text-center">
-            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-yellow-400/15 text-3xl">
-              📋
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-yellow-400/15 text-3xl text-yellow-500">
+              <i className="bi bi-clipboard-check" />
             </div>
             <h1 className="mt-6 text-2xl font-extrabold tracking-tight text-ink">
               Dispute filed successfully

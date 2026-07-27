@@ -117,8 +117,8 @@ export default function SubscribePage({
   if (notFound || !creator) {
     return (
       <section className="container-content py-32 text-center">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-card text-3xl">
-          ⭐
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-card text-3xl text-teal">
+          <i className="bi bi-star-fill" />
         </div>
         <h1 className="heading-xl mt-6">Creator not found</h1>
         <p className="body-muted mx-auto mt-4 max-w-md">
@@ -198,7 +198,7 @@ export default function SubscribePage({
             <ul className="mt-5 space-y-2 border-t border-border pt-5">
               {tier.perks.map((perk) => (
                 <li key={perk} className="flex items-start gap-2 text-sm text-white/80">
-                  <span className="text-teal">✓</span>
+                  <span className="text-teal"><i className="bi bi-check-lg" /></span>
                   <span>{perk}</span>
                 </li>
               ))}
@@ -291,8 +291,8 @@ function PledgeModal({
       >
         {done ? (
           <div className="text-center">
-            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-teal/12 text-3xl">
-              ✓
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-teal/12 text-3xl text-teal">
+              <i className="bi bi-check-lg" />
             </div>
             <h3 className="mt-4 text-xl font-extrabold text-ink">
               You&apos;re in!
@@ -311,7 +311,7 @@ function PledgeModal({
               Subscribe to {tier.name}
             </h3>
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-darker p-3">
-              <span className="text-2xl">⭐</span>
+              <span className="text-2xl text-teal"><i className="bi bi-star-fill" /></span>
               <div>
                 <p className="font-semibold text-ink">{tier.name}</p>
                 <p className="text-sm text-teal">R{tier.price}/month</p>

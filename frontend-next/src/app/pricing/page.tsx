@@ -75,13 +75,13 @@ const TIERS: Tier[] = [
 const COMPARE_ROWS: [string, string, string, string][] = [
   ["Platform fee", "5%", "2.5%", "Custom"],
   ["Payouts", "T+2", "T+1", "Custom"],
-  ["Custom domain", "✕", "✓", "✓"],
-  ["Remove branding", "✕", "✓", "✓"],
-  ["Advanced analytics", "✕", "✓", "✓"],
-  ["Priority support", "✕", "✓", "✓"],
-  ["White-label", "✕", "✕", "✓"],
-  ["SSO & SCIM", "✕", "✕", "✓"],
-  ["SLA", "✕", "✕", "✓"],
+  ["Custom domain", "no", "yes", "yes"],
+  ["Remove branding", "no", "yes", "yes"],
+  ["Advanced analytics", "no", "yes", "yes"],
+  ["Priority support", "no", "yes", "yes"],
+  ["White-label", "no", "no", "yes"],
+  ["SSO & SCIM", "no", "no", "yes"],
+  ["SLA", "no", "no", "yes"],
 ];
 
 const FAQS: [string, string][] = [
@@ -108,9 +108,16 @@ const FAQS: [string, string][] = [
 ];
 
 function cellClass(value: string): string {
-  if (value === "✓") return "text-teal font-semibold";
-  if (value === "✕") return "text-muted/40 font-semibold";
+  if (value === "yes") return "text-teal font-semibold";
+  if (value === "no") return "text-muted/40 font-semibold";
   return "text-muted font-semibold";
+}
+
+// Render yes/no sentinels as crisp Bootstrap icons; pass other text through.
+function cellContent(value: string) {
+  if (value === "yes") return <i className="bi bi-check-lg" />;
+  if (value === "no") return <i className="bi bi-x-lg" />;
+  return value;
 }
 
 export default function PricingPage() {
@@ -161,7 +168,7 @@ export default function PricingPage() {
               <ul className="mt-6 space-y-2.5">
                 {t.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm text-ink">
-                    <span className="mt-0.5 text-teal">✓</span>
+                    <span className="mt-0.5 text-teal"><i className="bi bi-check-lg" /></span>
                     <span>{f}</span>
                   </li>
                 ))}
@@ -205,9 +212,9 @@ export default function PricingPage() {
                 {COMPARE_ROWS.map((row, i) => (
                   <tr key={row[0]} className={i % 2 === 0 ? "bg-card/40" : ""}>
                     <td className="px-3 py-3 text-sm font-medium text-muted">{row[0]}</td>
-                    <td className={`px-3 py-3 text-sm ${cellClass(row[1])}`}>{row[1]}</td>
-                    <td className={`px-3 py-3 text-sm ${cellClass(row[2])}`}>{row[2]}</td>
-                    <td className={`px-3 py-3 text-sm ${cellClass(row[3])}`}>{row[3]}</td>
+                    <td className={`px-3 py-3 text-sm ${cellClass(row[1])}`}>{cellContent(row[1])}</td>
+                    <td className={`px-3 py-3 text-sm ${cellClass(row[2])}`}>{cellContent(row[2])}</td>
+                    <td className={`px-3 py-3 text-sm ${cellClass(row[3])}`}>{cellContent(row[3])}</td>
                   </tr>
                 ))}
               </tbody>
@@ -237,9 +244,9 @@ export default function PricingPage() {
                 >
                   <span className="font-semibold text-ink">{q}</span>
                   <span
-                    className={`text-muted transition-transform ${open ? "rotate-90" : ""}`}
+                    className={`flex text-muted transition-transform ${open ? "rotate-90" : ""}`}
                   >
-                    ›
+                    <i className="bi bi-chevron-right" />
                   </span>
                 </button>
                 {open && <p className="body-muted px-4 pb-4 text-sm">{a}</p>}

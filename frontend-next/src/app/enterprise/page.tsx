@@ -13,14 +13,14 @@ export const metadata: Metadata = {
 const LOGOS = ["Streamio", "CreatorHub", "FanBridge", "PodPay", "LiveLink", "ArtPass"];
 
 const FEATURES = [
-  { icon: "🛡️", title: "SOC 2 Type II", body: "Fully audited security controls with annual third-party pen testing." },
-  { icon: "🏢", title: "White-label", body: "Your brand, your domain — TippingJar is invisible to your users." },
-  { icon: "🔌", title: "Enterprise API", body: "High-throughput REST + webhooks with dedicated rate limits." },
-  { icon: "🎧", title: "Dedicated support", body: "24/7 Slack channel with a named account manager and 1-hour SLA." },
-  { icon: "🏦", title: "Custom payouts", body: "Bespoke settlement schedules, multi-currency, and T+1 options." },
-  { icon: "📊", title: "Advanced analytics", body: "Real-time dashboards, cohort analysis, and raw data exports." },
-  { icon: "🔐", title: "SSO & SCIM", body: "SAML 2.0, OIDC, Okta, and Azure AD provisioning out of the box." },
-  { icon: "🎛️", title: "Custom contracts", body: "Volume pricing, MSA, BAA, and data processing agreements." },
+  { icon: "bi-shield-check", title: "SOC 2 Type II", body: "Fully audited security controls with annual third-party pen testing." },
+  { icon: "bi-building", title: "White-label", body: "Your brand, your domain — TippingJar is invisible to your users." },
+  { icon: "bi-plug-fill", title: "Enterprise API", body: "High-throughput REST + webhooks with dedicated rate limits." },
+  { icon: "bi-headset", title: "Dedicated support", body: "24/7 Slack channel with a named account manager and 1-hour SLA." },
+  { icon: "bi-bank", title: "Custom payouts", body: "Bespoke settlement schedules, multi-currency, and T+1 options." },
+  { icon: "bi-bar-chart-fill", title: "Advanced analytics", body: "Real-time dashboards, cohort analysis, and raw data exports." },
+  { icon: "bi-shield-lock-fill", title: "SSO & SCIM", body: "SAML 2.0, OIDC, Okta, and Azure AD provisioning out of the box." },
+  { icon: "bi-sliders", title: "Custom contracts", body: "Volume pricing, MSA, BAA, and data processing agreements." },
 ];
 
 export default function EnterprisePage() {
@@ -82,8 +82,8 @@ export default function EnterprisePage() {
         <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
             <div key={f.title} className="card">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/15 text-lg">
-                {f.icon}
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/15 text-lg text-primary">
+                <i className={`bi ${f.icon}`} />
               </div>
               <h3 className="mt-4 font-semibold text-ink">{f.title}</h3>
               <p className="body-muted mt-2 text-sm">{f.body}</p>
@@ -96,7 +96,7 @@ export default function EnterprisePage() {
       <section className="container-content pb-24">
         <div className="rounded-3xl bg-brand-gradient p-12 text-center md:p-16">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-white/15 text-2xl">
-            🏢
+            <i className="bi bi-building" />
           </div>
           <h2 className="heading-xl mt-6">Ready to talk?</h2>
           <p className="mx-auto mt-4 max-w-lg text-white/85">

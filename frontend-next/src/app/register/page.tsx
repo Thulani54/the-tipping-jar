@@ -8,9 +8,9 @@ import { useAuth } from "@/lib/auth";
 type Role = "fan" | "creator" | "enterprise";
 
 const ROLES: { value: Role; label: string; icon: string }[] = [
-  { value: "fan", label: "Tipper", icon: "🙌" },
-  { value: "creator", label: "Creator", icon: "⭐" },
-  { value: "enterprise", label: "Enterprise", icon: "🏢" },
+  { value: "fan", label: "Tipper", icon: "bi-emoji-smile-fill" },
+  { value: "creator", label: "Creator", icon: "bi-star-fill" },
+  { value: "enterprise", label: "Enterprise", icon: "bi-building" },
 ];
 
 const PANEL: Record<Role, { heading: string; sub: string; perks: [string, string, string][] }> = {
@@ -18,27 +18,27 @@ const PANEL: Record<Role, { heading: string; sub: string; perks: [string, string
     heading: "Support creators you love.",
     sub: "Tip your favourite creators instantly — no account needed.",
     perks: [
-      ["⚡", "Instant tips", "Support your favourite creators in seconds."],
-      ["💸", "Any amount", "Tip R5 or R5 000 — totally up to you."],
-      ["❤️", "Support directly", "Every cent goes straight to the creator."],
+      ["bi-lightning-charge-fill", "Instant tips", "Support your favourite creators in seconds."],
+      ["bi-cash-stack", "Any amount", "Tip R5 or R5 000 — totally up to you."],
+      ["bi-heart-fill", "Support directly", "Every cent goes straight to the creator."],
     ],
   },
   creator: {
     heading: "Start earning from day one.",
     sub: "Join 2,400+ creators already filling their jar every day.",
     perks: [
-      ["🚀", "Live in 60 seconds", "Your tip page is public the moment you save."],
-      ["🏦", "2-day payouts", "Receive money directly to your bank within 2 days."],
-      ["📊", "Real-time analytics", "Watch tips roll in on your dashboard."],
+      ["bi-rocket-takeoff-fill", "Live in 60 seconds", "Your tip page is public the moment you save."],
+      ["bi-bank", "2-day payouts", "Receive money directly to your bank within 2 days."],
+      ["bi-bar-chart-fill", "Real-time analytics", "Watch tips roll in on your dashboard."],
     ],
   },
   enterprise: {
     heading: "Scale tipping for your platform.",
     sub: "White-label tipping for teams, agencies and platforms.",
     perks: [
-      ["🧩", "White-label ready", "Embed tipping directly into your product."],
-      ["🎧", "Dedicated support", "Priority onboarding and a dedicated manager."],
-      ["🤝", "Custom contracts", "Revenue share and SLA terms available."],
+      ["bi-puzzle-fill", "White-label ready", "Embed tipping directly into your product."],
+      ["bi-headset", "Dedicated support", "Priority onboarding and a dedicated manager."],
+      ["bi-people-fill", "Custom contracts", "Revenue share and SLA terms available."],
     ],
   },
 };
@@ -141,8 +141,8 @@ export default function RegisterPage() {
         <ul className="mt-10 space-y-6">
           {panel.perks.map(([icon, title, body]) => (
             <li key={title} className="flex items-start gap-4">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-lg">
-                {icon}
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-lg text-primary">
+                <i className={`bi ${icon}`} />
               </span>
               <div>
                 <p className="font-semibold text-ink">{title}</p>
@@ -182,7 +182,7 @@ export default function RegisterPage() {
                       : "border-border bg-dark text-muted hover:border-teal/50"
                   }`}
                 >
-                  <span aria-hidden>{r.icon}</span>
+                  <span aria-hidden><i className={`bi ${r.icon}`} /></span>
                   {r.label}
                 </button>
               );
@@ -378,7 +378,7 @@ export default function RegisterPage() {
 
             {error && (
               <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
-                <span aria-hidden>⚠</span>
+                <span aria-hidden><i className="bi bi-exclamation-triangle-fill" /></span>
                 <span>{error}</span>
               </div>
             )}

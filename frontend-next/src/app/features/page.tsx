@@ -12,37 +12,37 @@ interface Feature {
 
 const CREATOR_FEATURES: Feature[] = [
   {
-    icon: "🔗",
+    icon: "bi-link-45deg",
     title: "Shareable tip link",
     body: "Your personal URL works everywhere — bio, YouTube, Twitch, email. Zero setup beyond copy & paste.",
     accent: "text-teal",
   },
   {
-    icon: "📊",
+    icon: "bi-bar-chart-fill",
     title: "Live dashboard",
     body: "See every tip the instant it arrives. Filter by date, amount, or tipper. Export your history as CSV.",
     accent: "text-teal",
   },
   {
-    icon: "🎯",
+    icon: "bi-bullseye",
     title: "Monthly goal",
     body: "Set a public tip goal and watch a live progress bar motivate your fans to push you over the line.",
     accent: "text-blue",
   },
   {
-    icon: "🎨",
+    icon: "bi-palette-fill",
     title: "Page customisation",
     body: "Cover image, avatar, tagline, bio — make your page unmistakably yours. Changes go live in seconds.",
     accent: "text-teal",
   },
   {
-    icon: "🏦",
+    icon: "bi-bank",
     title: "Fast payouts",
     body: "Your money arrives in your bank account quickly after each tip. No holding periods — straight to your bank.",
     accent: "text-teal",
   },
   {
-    icon: "🔔",
+    icon: "bi-bell-fill",
     title: "Instant notifications",
     body: "Get an email the moment a fan tips you. Never miss a kind word.",
     accent: "text-blue",
@@ -51,37 +51,37 @@ const CREATOR_FEATURES: Feature[] = [
 
 const FAN_FEATURES: Feature[] = [
   {
-    icon: "🚀",
+    icon: "bi-rocket-takeoff-fill",
     title: "No account required",
     body: "Send a tip in under 30 seconds without registering. We only ask for a card — nothing else.",
     accent: "text-teal",
   },
   {
-    icon: "💬",
+    icon: "bi-chat-heart-fill",
     title: "Personal messages",
     body: "Every tip can include a message up to 500 characters. Say what you've been meaning to tell that creator.",
     accent: "text-teal",
   },
   {
-    icon: "🕘",
+    icon: "bi-clock-history",
     title: "Tip history",
     body: "Create a free fan account to see every tip you've sent and follow your favourite creators.",
     accent: "text-blue",
   },
   {
-    icon: "❤️",
+    icon: "bi-emoji-smile-fill",
     title: "Reaction emojis",
-    body: "Add a reaction alongside your tip — 🔥 for fire content, ❤️ for love, 🎉 for milestones.",
+    body: "Add a reaction alongside your tip — flames for fire content, a heart for love, confetti for milestones.",
     accent: "text-teal",
   },
   {
-    icon: "🧾",
+    icon: "bi-receipt",
     title: "Instant receipts",
     body: "An email receipt lands in your inbox within seconds of every tip.",
     accent: "text-teal",
   },
   {
-    icon: "🌍",
+    icon: "bi-globe-americas",
     title: "South Africa focused",
     body: "Built specifically for South African creators. Accept tips from fans locally and abroad.",
     accent: "text-blue",
@@ -90,37 +90,37 @@ const FAN_FEATURES: Feature[] = [
 
 const PLATFORM_FEATURES: Feature[] = [
   {
-    icon: "🔒",
+    icon: "bi-shield-lock-fill",
     title: "PCI-DSS Level 1",
     body: "All card data is tokenised and encrypted before it leaves your browser. We never touch raw card numbers.",
     accent: "text-teal",
   },
   {
-    icon: "⚡",
+    icon: "bi-lightning-charge-fill",
     title: "Sub-second payments",
     body: "Our payment integration processes tips in under 800 ms on average. No spinners, no waiting.",
     accent: "text-teal",
   },
   {
-    icon: "📱",
+    icon: "bi-phone-fill",
     title: "Responsive everywhere",
     body: "The Tipping Jar works perfectly on desktop, tablet, and mobile. Adapts to any screen size.",
     accent: "text-blue",
   },
   {
-    icon: "🧩",
+    icon: "bi-puzzle-fill",
     title: "REST API",
     body: "Our documented REST API lets you embed tips in your own apps and websites.",
     accent: "text-teal",
   },
   {
-    icon: "🇿🇦",
+    icon: "bi-geo-alt-fill",
     title: "Proudly South African",
     body: "Built and hosted in South Africa, for South African creators. Local support, local understanding.",
     accent: "text-teal",
   },
   {
-    icon: "🎧",
+    icon: "bi-headset",
     title: "Real support",
     body: "Reach a human within 4 hours via email. We are here to help you grow.",
     accent: "text-blue",
@@ -131,11 +131,11 @@ const TABS = ["For creators", "For fans", "Platform"];
 const TAB_FEATURES = [CREATOR_FEATURES, FAN_FEATURES, PLATFORM_FEATURES];
 
 const INTEGRATIONS: [string, string, string][] = [
-  ["▶️", "YouTube", "Link in description"],
-  ["📷", "Instagram", "Bio link"],
-  ["🐦", "Twitter / X", "Pinned tweet"],
-  ["🎮", "Twitch", "Panel link"],
-  ["✉️", "Newsletter", "Footer CTA"],
+  ["bi-youtube", "YouTube", "Link in description"],
+  ["bi-instagram", "Instagram", "Bio link"],
+  ["bi-twitter-x", "Twitter / X", "Pinned tweet"],
+  ["bi-twitch", "Twitch", "Panel link"],
+  ["bi-envelope-fill", "Newsletter", "Footer CTA"],
 ];
 
 export default function FeaturesPage() {
@@ -181,8 +181,8 @@ export default function FeaturesPage() {
         <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
             <div key={f.title} className="card transition hover:border-teal">
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-teal/10 text-xl">
-                {f.icon}
+              <div className={`grid h-11 w-11 place-items-center rounded-xl bg-teal/10 text-xl ${f.accent}`}>
+                <i className={`bi ${f.icon}`} />
               </div>
               <h3 className="mt-4 font-semibold text-ink">{f.title}</h3>
               <p className="body-muted mt-2 text-sm">{f.body}</p>
@@ -207,8 +207,8 @@ export default function FeaturesPage() {
                 key={name}
                 className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
               >
-                <span className="grid h-9 w-9 place-items-center rounded-lg bg-teal/10 text-base">
-                  {icon}
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-teal/10 text-base text-teal">
+                  <i className={`bi ${icon}`} />
                 </span>
                 <div className="text-left">
                   <p className="text-sm font-semibold text-ink">{name}</p>

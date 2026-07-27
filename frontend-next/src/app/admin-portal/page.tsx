@@ -13,13 +13,13 @@ import { api } from "@/lib/api";
 type Tab = "overview" | "users" | "tips" | "creators" | "enterprises" | "blog" | "careers";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "overview", label: "Overview", icon: "📊" },
-  { id: "users", label: "Users", icon: "👤" },
-  { id: "tips", label: "Tips", icon: "🧾" },
-  { id: "creators", label: "Creators", icon: "✅" },
-  { id: "enterprises", label: "Enterprises", icon: "🏢" },
-  { id: "blog", label: "Blog", icon: "📝" },
-  { id: "careers", label: "Careers", icon: "💼" },
+  { id: "overview", label: "Overview", icon: "bi-bar-chart-fill" },
+  { id: "users", label: "Users", icon: "bi-person-fill" },
+  { id: "tips", label: "Tips", icon: "bi-receipt" },
+  { id: "creators", label: "Creators", icon: "bi-patch-check-fill" },
+  { id: "enterprises", label: "Enterprises", icon: "bi-building" },
+  { id: "blog", label: "Blog", icon: "bi-pencil-square" },
+  { id: "careers", label: "Careers", icon: "bi-briefcase-fill" },
 ];
 
 const money = (n: number) =>
@@ -70,7 +70,7 @@ export default function AdminPortalPage() {
     return (
       <div className="container-content grid min-h-[60vh] place-items-center text-center">
         <div>
-          <div className="text-4xl">🔒</div>
+          <div className="text-4xl text-teal"><i className="bi bi-lock-fill" /></div>
           <h1 className="mt-4 text-xl font-bold text-ink">Admins only</h1>
           <p className="body-muted mt-2">You don&apos;t have permission to view this page.</p>
         </div>
@@ -94,7 +94,7 @@ export default function AdminPortalPage() {
               tab === t.id ? "border-b-2 border-teal text-ink" : "text-muted hover:text-ink"
             }`}
           >
-            <span>{t.icon}</span>
+            <span className="flex"><i className={`bi ${t.icon}`} /></span>
             {t.label}
           </button>
         ))}
@@ -128,7 +128,7 @@ function StatCard({
         className="grid h-10 w-10 place-items-center rounded-xl text-lg"
         style={{ backgroundColor: accent + "22" }}
       >
-        {icon}
+        <i className={`bi ${icon}`} style={{ color: accent }} />
       </div>
       <p className="mt-4 text-2xl font-extrabold tracking-tight text-ink">{value}</p>
       <p className="mt-1 text-xs text-muted">{label}</p>
@@ -142,7 +142,7 @@ function OverviewTab({ data, loading, error }: { data: any; loading: boolean; er
   if (error || !data)
     return (
       <div className="card grid place-items-center py-12 text-center">
-        <div className="text-3xl">📉</div>
+        <div className="text-3xl text-teal"><i className="bi bi-graph-down-arrow" /></div>
         <p className="mt-3 font-semibold text-ink">Could not load dashboard</p>
         <p className="body-muted mt-1">The admin dashboard service is unavailable.</p>
       </div>
@@ -160,18 +160,18 @@ function OverviewTab({ data, loading, error }: { data: any; loading: boolean; er
   return (
     <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <StatCard label="Creators" value={`${creators}`} icon="✅" accent="#004423" />
-        <StatCard label="Total tips" value={`${tipsCount}`} icon="🧾" accent="#FBBF24" />
-        <StatCard label="Volume (R)" value={`R ${money(tipsVolume)}`} icon="💰" accent="#34D399" />
-        <StatCard label="Contact messages" value={`${contacts}`} icon="✉️" accent="#0097B2" />
-        <StatCard label="Disputes" value={`${disputes}`} icon="🛡️" accent="#F87171" />
+        <StatCard label="Creators" value={`${creators}`} icon="bi-patch-check-fill" accent="#004423" />
+        <StatCard label="Total tips" value={`${tipsCount}`} icon="bi-receipt" accent="#FBBF24" />
+        <StatCard label="Volume (R)" value={`R ${money(tipsVolume)}`} icon="bi-cash-coin" accent="#34D399" />
+        <StatCard label="Contact messages" value={`${contacts}`} icon="bi-envelope-fill" accent="#0097B2" />
+        <StatCard label="Disputes" value={`${disputes}`} icon="bi-shield-fill-exclamation" accent="#F87171" />
       </div>
 
       <div>
         <h3 className="mb-4 text-base font-bold text-ink">Recent tips</h3>
         {recentTips.length === 0 ? (
           <div className="card grid place-items-center py-12 text-center">
-            <div className="text-3xl">🧾</div>
+            <div className="text-3xl text-teal"><i className="bi bi-receipt" /></div>
             <p className="mt-3 font-semibold text-ink">No recent tips</p>
           </div>
         ) : (
@@ -226,7 +226,7 @@ function PlaceholderTab({ tab }: { tab: Tab }) {
   };
   return (
     <div className="card grid place-items-center py-16 text-center">
-      <div className="text-3xl">🛠️</div>
+      <div className="text-3xl text-teal"><i className="bi bi-tools" /></div>
       <p className="mt-3 font-semibold capitalize text-ink">{tab}</p>
       <p className="body-muted mt-1 max-w-md">{copy[tab]}</p>
       {/* TODO(api): admin management endpoints for the "{tab}" tab (list + mutations) */}

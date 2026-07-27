@@ -17,7 +17,9 @@ export function TipSlip({
     <div className={`slip ${className}`} style={style}>
       <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
         <span>Tip received</span>
-        <span className="text-green">✓ paid</span>
+        <span className="inline-flex items-center gap-1 text-green">
+          <i className="bi bi-check-circle-fill" /> paid
+        </span>
       </div>
       <div className="mt-2.5 flex items-center gap-3">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-navy text-sm font-bold text-white">

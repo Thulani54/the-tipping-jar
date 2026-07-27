@@ -11,22 +11,22 @@ interface Step {
 
 const FAN_STEPS: Step[] = [
   {
-    icon: "🔍",
+    icon: "bi-search",
     title: "Discover creators",
     body: "Browse The Tipping Jar's creator directory. Search by name, category, or trending. Every creator has a public page showing their work, bio, and tip feed.",
   },
   {
-    icon: "🙌",
+    icon: "bi-cash-coin",
     title: "Choose your amount",
     body: "Pick a quick amount (R5 · R10 · R20 · R50) or enter a custom value. No account needed — tip anonymously or leave your name and a message.",
   },
   {
-    icon: "💳",
+    icon: "bi-credit-card-fill",
     title: "Pay securely",
     body: "Enter your card details on our fully encrypted, PCI-DSS compliant checkout. Your payment info is never stored on The Tipping Jar servers.",
   },
   {
-    icon: "✅",
+    icon: "bi-check-circle-fill",
     title: "Tip confirmed!",
     body: "Your tip lands on the creator's page instantly. They'll see your name and message in real time. You'll receive an email receipt automatically.",
   },
@@ -34,22 +34,22 @@ const FAN_STEPS: Step[] = [
 
 const CREATOR_STEPS: Step[] = [
   {
-    icon: "🧑‍🎤",
+    icon: "bi-person-badge-fill",
     title: "Sign up as a creator",
     body: "Register with your email, pick a username, and select the \"Creator\" role. Your profile slug becomes your unique tip link: tippingjar.com/you.",
   },
   {
-    icon: "🎨",
+    icon: "bi-palette-fill",
     title: "Customise your page",
     body: "Upload a cover photo and avatar, write a tagline, and set a monthly tip goal. Your page goes live the moment you save — no approval required.",
   },
   {
-    icon: "🏦",
+    icon: "bi-bank",
     title: "Connect your bank",
     body: "Link your South African bank account in under 2 minutes. The Tipping Jar never holds your money — funds go straight to your bank account.",
   },
   {
-    icon: "🔗",
+    icon: "bi-link-45deg",
     title: "Share your link",
     body: "Post tippingjar.com/you anywhere — your bio, videos, newsletter, or Linktree. Every visit is a potential tip. Watch your jar fill up in real time.",
   },
@@ -64,10 +64,10 @@ const TIMELINE: string[] = [
 ];
 
 const SECURITY_BADGES: [string, string][] = [
-  ["🔒", "PCI-DSS Level 1"],
-  ["✅", "Bank-grade Encryption"],
-  ["🛡️", "TLS in transit"],
-  ["🚫", "Zero card data stored"],
+  ["bi-shield-lock-fill", "PCI-DSS Level 1"],
+  ["bi-check-circle-fill", "Bank-grade Encryption"],
+  ["bi-shield-check", "TLS in transit"],
+  ["bi-slash-circle", "Zero card data stored"],
 ];
 
 const FAQS: [string, string][] = [
@@ -146,8 +146,8 @@ export default function HowItWorksPage() {
           {steps.map((s, i) => (
             <div key={s.title} className="card transition hover:border-teal">
               <div className="flex items-center justify-between">
-                <span className="grid h-12 w-12 place-items-center rounded-xl bg-teal/10 text-2xl">
-                  {s.icon}
+                <span className="grid h-12 w-12 place-items-center rounded-xl bg-teal/10 text-2xl text-teal">
+                  <i className={`bi ${s.icon}`} />
                 </span>
                 <span className="text-3xl font-black text-border">
                   0{i + 1}
@@ -175,7 +175,7 @@ export default function HowItWorksPage() {
               <div key={label} className="flex gap-4">
                 <div className="flex flex-col items-center">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-teal/40 bg-teal/10 text-sm text-teal">
-                    ✓
+                    <i className="bi bi-check-lg" />
                   </span>
                   {i < TIMELINE.length - 1 && <span className="w-0.5 flex-1 bg-border" />}
                 </div>
@@ -198,8 +198,8 @@ export default function HowItWorksPage() {
               key={label}
               className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3.5"
             >
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-teal/10 text-base">
-                {icon}
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-teal/10 text-base text-teal">
+                <i className={`bi ${icon}`} />
               </span>
               <span className="text-sm font-semibold text-ink">{label}</span>
             </div>
@@ -232,9 +232,9 @@ export default function HowItWorksPage() {
                   >
                     <span className="font-semibold text-ink">{q}</span>
                     <span
-                      className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}
+                      className={`flex text-muted transition-transform ${open ? "rotate-180" : ""}`}
                     >
-                      ⌄
+                      <i className="bi bi-chevron-down" />
                     </span>
                   </button>
                   {open && <p className="body-muted px-4 pb-4 text-sm">{a}</p>}

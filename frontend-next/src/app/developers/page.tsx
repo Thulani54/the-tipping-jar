@@ -294,7 +294,7 @@ interface Group {
 
 const GROUPS: Group[] = [
   {
-    icon: "🔒",
+    icon: "bi-shield-lock-fill",
     title: "Authentication",
     desc: "Obtain and refresh JWT access tokens.",
     endpoints: [
@@ -353,7 +353,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    icon: "👤",
+    icon: "bi-person-fill",
     title: "Creators",
     desc: "Manage creator profiles and retrieve public data.",
     endpoints: [
@@ -443,7 +443,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    icon: "🫙",
+    icon: "bi-piggy-bank-fill",
     title: "Jars",
     desc: "Campaign-specific tip jars with optional fundraising goals.",
     endpoints: [
@@ -528,7 +528,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    icon: "🙏",
+    icon: "bi-cash-coin",
     title: "Tips",
     desc: "Initiate tip payments and retrieve tip history.",
     endpoints: [
@@ -608,10 +608,10 @@ const GROUPS: Group[] = [
 ];
 
 const AUTH_STEPS: [string, string, string, string][] = [
-  ["01", "👤", "Register", "Create an account at tippingjar.co.za or via POST /api/users/register/"],
-  ["02", "🔑", "Get Token", "POST credentials to /api/auth/token/ — receive an access + refresh token pair"],
-  ["03", "🗝️", "Authenticate", "Pass the access token in the Authorization: Bearer <token> header on every request"],
-  ["04", "🔄", "Refresh", "Use your refresh token to obtain a new access token before it expires (60 min TTL)"],
+  ["01", "bi-person-plus-fill", "Register", "Create an account at tippingjar.co.za or via POST /api/users/register/"],
+  ["02", "bi-key-fill", "Get Token", "POST credentials to /api/auth/token/ — receive an access + refresh token pair"],
+  ["03", "bi-shield-lock-fill", "Authenticate", "Pass the access token in the Authorization: Bearer <token> header on every request"],
+  ["04", "bi-arrow-repeat", "Refresh", "Use your refresh token to obtain a new access token before it expires (60 min TTL)"],
 ];
 
 const ERRORS: [string, string, string][] = [
@@ -626,11 +626,11 @@ const ERRORS: [string, string, string][] = [
 ];
 
 const RATE_LIMITS: [string, string, string, string][] = [
-  ["🌐", "Unauthenticated", "60 req / min", "Per IP address"],
-  ["👤", "Authenticated", "300 req / min", "Per user token"],
-  ["🙏", "Tip creation", "30 req / hour", "Per IP / user"],
-  ["🔄", "Token refresh", "20 req / hour", "Per user"],
-  ["🧩", "Platform API", "1 000 req / min", "Per platform key"],
+  ["bi-globe", "Unauthenticated", "60 req / min", "Per IP address"],
+  ["bi-person-fill", "Authenticated", "300 req / min", "Per user token"],
+  ["bi-cash-coin", "Tip creation", "30 req / hour", "Per IP / user"],
+  ["bi-arrow-repeat", "Token refresh", "20 req / hour", "Per user"],
+  ["bi-puzzle-fill", "Platform API", "1 000 req / min", "Per platform key"],
 ];
 
 const WEBHOOK_EVENTS: [string, string, string][] = [
@@ -660,10 +660,10 @@ const PLATFORM_ENDPOINTS: [string, string, string][] = [
 ];
 
 const REQUIREMENTS: [string, string, string][] = [
-  ["🏢", "SA-registered business", "Your company must be registered with CIPC (Pty Ltd, CC, or NPC)."],
-  ["📄", "Company documents", "CIPC certificate, VAT letter, director ID, and bank confirmation letter."],
-  ["⏱️", "48 h review", "Our compliance team reviews every application within two business days."],
-  ["🎧", "Dedicated support", "Approved partners receive a dedicated integration engineer contact."],
+  ["bi-building", "SA-registered business", "Your company must be registered with CIPC (Pty Ltd, CC, or NPC)."],
+  ["bi-file-earmark-text-fill", "Company documents", "CIPC certificate, VAT letter, director ID, and bank confirmation letter."],
+  ["bi-stopwatch", "48 h review", "Our compliance team reviews every application within two business days."],
+  ["bi-headset", "Dedicated support", "Approved partners receive a dedicated integration engineer contact."],
 ];
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
@@ -762,7 +762,7 @@ function EndpointRow({ ep }: { ep: Endpoint }) {
         <span className="ml-auto hidden truncate text-xs text-muted sm:block">
           {ep.desc}
         </span>
-        <span className="ml-2 text-muted">{open ? "▲" : "▼"}</span>
+        <span className="ml-2 flex text-muted"><i className={`bi ${open ? "bi-chevron-up" : "bi-chevron-down"}`} /></span>
       </button>
       {open && (
         <div className="border-t border-border p-4">
@@ -819,11 +819,11 @@ export default function DevelopersPage() {
             ZAR, manage creator jars, issue payouts, and react to events with signed webhooks.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a href="#quickstart" className="btn-primary text-sm">
-              ⚡ Quick Start
+            <a href="#quickstart" className="btn-primary gap-2 text-sm">
+              <i className="bi bi-lightning-charge-fill" /> Quick Start
             </a>
-            <a href="#authentication" className="btn-ghost text-sm">
-              🔒 Get API Key
+            <a href="#authentication" className="btn-ghost gap-2 text-sm">
+              <i className="bi bi-key-fill" /> Get API Key
             </a>
           </div>
           <div className="mt-12 flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
@@ -858,8 +858,8 @@ export default function DevelopersPage() {
           {AUTH_STEPS.map(([step, icon, title, desc]) => (
             <div key={step} className="card">
               <div className="flex items-center justify-between">
-                <span className="grid h-9 w-9 place-items-center rounded-lg bg-teal/10 text-base">
-                  {icon}
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-teal/10 text-base text-teal">
+                  <i className={`bi ${icon}`} />
                 </span>
                 <span className="font-mono text-xs font-bold text-muted">{step}</span>
               </div>
@@ -873,8 +873,8 @@ export default function DevelopersPage() {
           {/* API key sign-in panel */}
           <div className="card h-fit">
             <div className="flex items-center gap-2.5">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-teal/10 text-sm">
-                🔒
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-teal/10 text-sm text-teal">
+                <i className="bi bi-shield-lock-fill" />
               </span>
               <h3 className="font-semibold text-ink">API Keys</h3>
             </div>
@@ -882,7 +882,7 @@ export default function DevelopersPage() {
               Sign in to generate and manage your API keys.
             </p>
             <div className="mt-4 flex items-center gap-2.5 rounded-lg border border-border bg-[#0D1A14] px-3.5 py-3">
-              <span>🗝️</span>
+              <span className="text-muted"><i className="bi bi-key-fill" /></span>
               <span className="font-mono text-[11px] text-muted">
                 tj_live_sk_v1_••••••••••••••••••••
               </span>
@@ -1001,7 +1001,7 @@ export default function DevelopersPage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {RATE_LIMITS.map(([icon, tier, limit, scope]) => (
             <div key={tier} className="card">
-              <span className="text-xl">{icon}</span>
+              <span className="text-xl text-teal"><i className={`bi ${icon}`} /></span>
               <p className="mt-3 text-2xl font-extrabold tracking-tight text-teal">{limit}</p>
               <p className="mt-1 font-semibold text-ink">{tier}</p>
               <p className="text-xs text-muted">{scope}</p>
@@ -1098,7 +1098,7 @@ the header value. Reject any requests where they don't match.`}
 
           <div className="card mt-8">
             <div className="flex items-center gap-2">
-              <span>🔑</span>
+              <span className="text-teal"><i className="bi bi-key-fill" /></span>
               <h3 className="font-semibold text-ink">Key format</h3>
             </div>
             <div className="mt-3 rounded-lg bg-darker px-3.5 py-2.5">
@@ -1151,7 +1151,7 @@ the header value. Reject any requests where they don't match.`}
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {REQUIREMENTS.map(([icon, title, body]) => (
             <div key={title} className="card">
-              <span className="text-xl">{icon}</span>
+              <span className="text-xl text-teal"><i className={`bi ${icon}`} /></span>
               <h3 className="mt-3 font-semibold text-ink">{title}</h3>
               <p className="mt-1.5 text-xs leading-relaxed text-muted">{body}</p>
             </div>
@@ -1173,7 +1173,7 @@ the header value. Reject any requests where they don't match.`}
       <section className="container-content pb-20">
         <div className="mx-auto max-w-3xl rounded-3xl bg-brand-gradient p-12 text-center md:p-14">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-white/15 text-2xl">
-            🧩
+            <i className="bi bi-puzzle-fill" />
           </div>
           <h2 className="heading-xl mt-5 text-ink">Start building today</h2>
           <p className="mt-3 text-white/70">

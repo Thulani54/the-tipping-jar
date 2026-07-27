@@ -58,7 +58,7 @@ export default async function CreatorsPage() {
             <div className="mt-1 text-sm text-muted">Tips sent</div>
           </div>
           <div>
-            <div className="text-3xl font-extrabold tracking-tight">🇿🇦</div>
+            <div className="text-3xl font-extrabold tracking-tight text-teal"><i className="bi bi-geo-alt-fill" /></div>
             <div className="mt-1 text-sm text-muted">South Africa</div>
           </div>
         </div>
@@ -75,7 +75,7 @@ export default async function CreatorsPage() {
 
         {creators.length === 0 ? (
           <div className="card mt-10 py-16 text-center">
-            <div className="text-4xl">🔍</div>
+            <div className="text-4xl text-teal"><i className="bi bi-search" /></div>
             <h3 className="mt-4 text-lg font-semibold text-ink">
               No creators yet
             </h3>

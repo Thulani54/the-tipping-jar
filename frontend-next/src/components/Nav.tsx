@@ -53,11 +53,12 @@ export function Nav() {
         </div>
 
         <button
-          className="md:hidden text-ink"
+          className="md:hidden text-xl text-ink"
           onClick={() => setOpen((v) => !v)}
           aria-label="Toggle menu"
+          aria-expanded={open}
         >
-          ☰
+          <i className={open ? "bi bi-x-lg" : "bi bi-list"} />
         </button>
       </nav>
 

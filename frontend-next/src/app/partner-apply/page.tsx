@@ -214,7 +214,7 @@ function StepIndicator({ current }: { current: number }) {
                     : "border-border bg-card text-muted"
               }`}
             >
-              {i < current ? "✓" : i + 1}
+              {i < current ? <i className="bi bi-check-lg" /> : i + 1}
             </div>
             {i < STEP_LABELS.length - 1 && (
               <div className={`h-px flex-1 ${i < current ? "bg-teal" : "bg-border"}`} />
@@ -278,7 +278,7 @@ function DocRow({
         filename ? "border-teal/40" : "border-border"
       }`}
     >
-      <span className="text-lg">{filename ? "✅" : "📎"}</span>
+      <span className="text-lg text-teal"><i className={`bi ${filename ? "bi-check-circle-fill" : "bi-paperclip"}`} /></span>
       <div className="min-w-0 flex-1">
         <p className={`text-sm ${filename ? "text-ink" : "text-muted"}`}>{label}</p>
         {filename && <p className="truncate text-xs text-teal">{filename}</p>}
@@ -300,8 +300,8 @@ function SuccessView() {
   return (
     <div className="container-content flex justify-center py-24">
       <div className="max-w-md text-center">
-        <div className="mx-auto grid h-20 w-20 place-items-center rounded-full border border-teal/40 bg-primary/10 text-4xl">
-          ✓
+        <div className="mx-auto grid h-20 w-20 place-items-center rounded-full border border-teal/40 bg-primary/10 text-4xl text-teal">
+          <i className="bi bi-check-lg" />
         </div>
         <h1 className="mt-7 text-2xl font-extrabold tracking-tight text-ink">
           Application submitted!
