@@ -6,8 +6,10 @@ import type {
   AdminDashboard,
   AdminTickets,
   AdminUser,
+  AuditEntry,
   AuthResponse,
   Balance,
+  Supporter,
   BlogPost,
   CheckoutResult,
   Creator,
@@ -204,6 +206,24 @@ export const api = {
       method: "POST",
       token,
     }),
+  adminSetCreatorFeatured: (token: string, id: string, is_featured: boolean) =>
+    request<{ id: string; is_featured: boolean }>(`/admin/creators/${id}/featured`, {
+      method: "POST",
+      body: { is_featured },
+      token,
+    }),
+  adminBroadcast: (
+    token: string,
+    body: { subject: string; message: string; audience: "creators" | "all" },
+  ) =>
+    request<{ recipients: number; sent: number }>("/admin/broadcast", {
+      method: "POST",
+      body,
+      token,
+    }),
+  adminSystem: (token: string) =>
+    request<{ service: string; ok: boolean }[]>("/admin/system", { token }),
+  adminAudit: (token: string) => request<AuditEntry[]>("/admin/audit", { token }),
   adminRefund: (token: string, merchant_order_no: string, description?: string) =>
     request<unknown>("/payments/payments/refund", {
       method: "POST",
@@ -268,6 +288,14 @@ export const api = {
     request<Pledge[]>(`/tips/tips/pledges/creator/${creatorId}`),
   creatorStats: (creatorId: string) =>
     request<CreatorStats>(`/tips/tips/creator/${creatorId}/stats`),
+  creatorSupporters: (token: string, creatorId: string) =>
+    request<Supporter[]>(`/tips/tips/creator/${creatorId}/supporters`, { token }),
+  thankTip: (token: string, tipId: string, message: string) =>
+    request<Tip>(`/tips/tips/${tipId}/thanks`, {
+      method: "POST",
+      body: { message },
+      token,
+    }),
   tipsForFan: (email: string) =>
     request<Tip[]>(`/tips/tips/fan/${encodeURIComponent(email)}`),
 

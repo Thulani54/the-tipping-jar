@@ -23,6 +23,7 @@ struct AppState {
     http: reqwest::Client,
     creators_url: String,
     payments_url: String,
+    scheduler_url: String,
 }
 
 #[derive(sqlx::FromRow, Serialize)]
@@ -39,10 +40,12 @@ struct Tip {
     platform_fee: Decimal,
     service_fee: Decimal,
     creator_net: Decimal,
+    thanks_message: String,
+    thanked_at: Option<chrono::DateTime<chrono::Utc>>,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
-const TIP_COLUMNS: &str = "id, creator_id, creator_name, tipper_name, tipper_email, amount, message, status, reference, platform_fee, service_fee, creator_net, created_at";
+const TIP_COLUMNS: &str = "id, creator_id, creator_name, tipper_name, tipper_email, amount, message, status, reference, platform_fee, service_fee, creator_net, thanks_message, thanked_at, created_at";
 
 #[derive(sqlx::FromRow, Serialize)]
 struct Pledge {
@@ -198,6 +201,120 @@ async fn list_tips(State(st): State<AppState>) -> Result<Json<Vec<Tip>>, AppErro
     .fetch_all(&st.pool)
     .await?;
     Ok(Json(rows))
+}
+
+/// Resolve the caller's creator id via the creators service (`/creators/me`),
+/// requiring it to match `creator_id`.
+async fn require_owner(
+    st: &AppState,
+    headers: &HeaderMap,
+    creator_id: Uuid,
+) -> Result<(), AppError> {
+    let auth = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| AppError::Unauthorized("missing bearer token".into()))?;
+    let resp = st
+        .http
+        .get(format!("{}/creators/me", st.creators_url))
+        .header(axum::http::header::AUTHORIZATION, auth)
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        return Err(AppError::Unauthorized("no creator profile for this user".into()));
+    }
+    let body: serde_json::Value = resp.json().await?;
+    let mine = body
+        .get("id")
+        .and_then(|v| v.as_str())
+        .and_then(|s| Uuid::parse_str(s).ok())
+        .ok_or_else(|| AppError::Unauthorized("bad creators response".into()))?;
+    if mine != creator_id {
+        return Err(AppError::Unauthorized("not your creator account".into()));
+    }
+    Ok(())
+}
+
+/// The creator's supporters, aggregated across completed tips (owner-only).
+async fn supporters_for_creator(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(creator_id): Path<Uuid>,
+) -> Result<Json<Vec<serde_json::Value>>, AppError> {
+    require_owner(&st, &headers, creator_id).await?;
+    let rows: Vec<(String, String, i64, Decimal, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
+        "SELECT COALESCE(NULLIF(tipper_email,''), tipper_name) AS key,
+                MAX(tipper_name), count(*), COALESCE(SUM(amount),0), MAX(created_at)
+         FROM tips WHERE creator_id = $1 AND status = 'completed'
+         GROUP BY key ORDER BY 4 DESC LIMIT 100",
+    )
+    .bind(creator_id)
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(
+        rows.into_iter()
+            .map(|(key, name, count, total, last)| {
+                let email = if key.contains('@') { key } else { String::new() };
+                serde_json::json!({
+                    "name": name, "email": email, "tip_count": count,
+                    "total": total.to_string(), "last_tip_at": last,
+                })
+            })
+            .collect(),
+    ))
+}
+
+#[derive(Deserialize)]
+struct ThankReq {
+    message: String,
+}
+
+/// Creator thanks a tipper: stores the note on the tip and (when the tipper
+/// left an email) sends it via the scheduler's SMTP.
+async fn thank_tip(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<ThankReq>,
+) -> Result<Json<Tip>, AppError> {
+    let msg = req.message.trim().to_string();
+    if msg.is_empty() || msg.len() > 500 {
+        return Err(AppError::BadRequest("message must be 1–500 characters".into()));
+    }
+    let tip: Tip = sqlx::query_as(&format!("SELECT {TIP_COLUMNS} FROM tips WHERE id = $1"))
+        .bind(id)
+        .fetch_optional(&st.pool)
+        .await?
+        .ok_or_else(|| AppError::NotFound("tip not found".into()))?;
+    require_owner(&st, &headers, tip.creator_id).await?;
+
+    let updated: Tip = sqlx::query_as(&format!(
+        "UPDATE tips SET thanks_message = $1, thanked_at = now() WHERE id = $2 RETURNING {TIP_COLUMNS}"
+    ))
+    .bind(&msg)
+    .bind(id)
+    .fetch_one(&st.pool)
+    .await?;
+
+    if !updated.tipper_email.is_empty() {
+        let body = serde_json::json!({
+            "to": updated.tipper_email,
+            "tipper_name": updated.tipper_name,
+            "creator_name": updated.creator_name,
+            "amount": updated.amount.to_string(),
+            "message": msg,
+        });
+        if let Err(e) = st
+            .http
+            .post(format!("{}/internal/send-thanks", st.scheduler_url))
+            .json(&body)
+            .send()
+            .await
+        {
+            tracing::warn!("thanks email for tip {id} failed to send: {e}");
+        }
+    }
+    Ok(Json(updated))
 }
 
 /// Internal (admin portal): latest tips across every status. Key-guarded.
@@ -454,6 +571,13 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::query("CREATE INDEX IF NOT EXISTS idx_tips_creator ON tips (creator_id)")
         .execute(pool)
         .await?;
+    // Thank-you replies (added later — migrate existing databases).
+    sqlx::query("ALTER TABLE tips ADD COLUMN IF NOT EXISTS thanks_message TEXT NOT NULL DEFAULT ''")
+        .execute(pool)
+        .await?;
+    sqlx::query("ALTER TABLE tips ADD COLUMN IF NOT EXISTS thanked_at TIMESTAMPTZ")
+        .execute(pool)
+        .await?;
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS pledges (
             id         UUID PRIMARY KEY,
@@ -507,6 +631,7 @@ async fn main() {
         http: reqwest::Client::new(),
         creators_url: env("CREATORS_URL", "http://localhost:8082"),
         payments_url: env("PAYMENTS_URL", "http://localhost:8083"),
+        scheduler_url: env("SCHEDULER_URL", "http://localhost:8092"),
     };
 
     let app = Router::new()
@@ -515,6 +640,8 @@ async fn main() {
         .route("/tips/pledges", post(create_pledge))
         .route("/tips/pledges/creator/:creator_id", get(pledges_for_creator))
         .route("/tips/creator/:creator_id", get(tips_for_creator))
+        .route("/tips/creator/:creator_id/supporters", get(supporters_for_creator))
+        .route("/tips/:id/thanks", post(thank_tip))
         .route("/tips/creator/:creator_id/stats", get(creator_stats))
         .route("/tips/fan/:email", get(tips_for_fan))
         .route("/tips/internal/record", post(record_tip))

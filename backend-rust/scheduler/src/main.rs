@@ -156,6 +156,8 @@ async fn main() {
         .route("/health", get(health))
         .route("/internal/run-daily-report", post(trigger))
         .route("/internal/run-signup-reminders", post(trigger_reminders))
+        .route("/internal/send-thanks", post(send_thanks))
+        .route("/internal/broadcast", post(broadcast))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(pools);
 
@@ -227,6 +229,124 @@ async fn trigger_reminders(
         "sent": sent,
         "override": override_val,
     })))
+}
+
+#[derive(Deserialize)]
+struct ThanksReq {
+    to: String,
+    tipper_name: Option<String>,
+    creator_name: String,
+    amount: Option<String>,
+    message: String,
+}
+
+/// Internal: a creator thanked a tipper — email the tipper their note.
+/// Honors COMMS_OVERRIDE_TO while testing.
+async fn send_thanks(Json(req): Json<ThanksReq>) -> Result<Json<serde_json::Value>, AppError> {
+    let override_to = env("COMMS_OVERRIDE_TO", "");
+    let to = if override_to.is_empty() { req.to.clone() } else { override_to };
+    let tipper = req.tipper_name.clone().unwrap_or_else(|| "there".into());
+    let amount = req.amount.clone().unwrap_or_default();
+    let subject = format!("{} says thank you!", req.creator_name);
+    let text = format!(
+        "Hi {tipper}, {} sent you a note about your tip{}: {}",
+        req.creator_name,
+        if amount.is_empty() { String::new() } else { format!(" of R{amount}") },
+        req.message
+    );
+    let html = format!(
+        r#"<div style="font-family:Arial,Helvetica,sans-serif;background:#eff2f0;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e7e3">
+    <div style="background:#0f2439;padding:24px 28px;color:#fff">
+      <div style="font-size:20px;font-weight:800">Tipping Jar</div>
+      <div style="opacity:.8;font-size:14px;margin-top:2px">A note from {creator}</div>
+    </div>
+    <div style="padding:24px 28px;color:#0f2439">
+      <p style="margin:0 0 6px;font-size:16px">Hi {tipper},</p>
+      <p style="margin:0 0 14px;color:#5a6b7b">{creator} wanted to say thanks for your tip{amt}:</p>
+      <blockquote style="margin:0;border-left:4px solid #57ce8b;background:#f4faf6;padding:14px 18px;border-radius:0 12px 12px 0;font-size:16px;color:#0f2439">{msg}</blockquote>
+    </div>
+    <div style="padding:16px 28px;color:#8a97a4;font-size:12px;border-top:1px solid #e2e7e3">
+      Sent via Tipping Jar because you left an email with your tip.
+    </div>
+  </div>
+</div>"#,
+        creator = req.creator_name,
+        tipper = tipper,
+        amt = if amount.is_empty() { String::new() } else { format!(" of R{amount}") },
+        msg = req.message,
+    );
+    let sent = tokio::task::spawn_blocking(move || send_html_email(&to, &subject, &text, &html))
+        .await
+        .unwrap_or_else(|e| Err(format!("join error: {e}")));
+    match sent {
+        Ok(()) => Ok(Json(json!({ "sent": true }))),
+        Err(e) => Err(AppError::Internal(format!("send failed: {e}"))),
+    }
+}
+
+#[derive(Deserialize)]
+struct BroadcastReq {
+    subject: String,
+    message: String,
+    /// "creators" (default) or "all"
+    audience: Option<String>,
+}
+
+/// Internal: broadcast an announcement to creators (or every user).
+/// Honors COMMS_OVERRIDE_TO — while set, one copy goes to the override.
+async fn broadcast(
+    State(pools): State<Pools>,
+    Json(req): Json<BroadcastReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    if req.subject.trim().is_empty() || req.message.trim().is_empty() {
+        return Err(AppError::BadRequest("subject and message are required".into()));
+    }
+    let audience = req.audience.as_deref().unwrap_or("creators");
+    let rows: Vec<(String,)> = if audience == "all" {
+        sqlx::query_as("SELECT email FROM users ORDER BY created_at").fetch_all(&pools.accounts).await?
+    } else {
+        sqlx::query_as("SELECT email FROM users WHERE role IN ('creator','admin') ORDER BY created_at")
+            .fetch_all(&pools.accounts)
+            .await?
+    };
+    let override_to = env("COMMS_OVERRIDE_TO", "");
+    let recipients: Vec<String> = if override_to.is_empty() {
+        rows.into_iter().map(|r| r.0).collect()
+    } else {
+        vec![override_to] // one representative copy while testing
+    };
+
+    let html_body = req.message.replace('\n', "<br/>");
+    let mut sent = 0usize;
+    for to in &recipients {
+        let subject = req.subject.clone();
+        let text = req.message.clone();
+        let html = format!(
+            r#"<div style="font-family:Arial,Helvetica,sans-serif;background:#eff2f0;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e7e3">
+    <div style="background:#0f2439;padding:24px 28px;color:#fff">
+      <div style="font-size:20px;font-weight:800">Tipping Jar</div>
+      <div style="opacity:.8;font-size:14px;margin-top:2px">Announcement</div>
+    </div>
+    <div style="padding:24px 28px;color:#0f2439;font-size:15px;line-height:1.6">{html_body}</div>
+    <div style="padding:16px 28px;color:#8a97a4;font-size:12px;border-top:1px solid #e2e7e3">
+      You're receiving this as a Tipping Jar member.
+    </div>
+  </div>
+</div>"#
+        );
+        let to2 = to.clone();
+        let ok = tokio::task::spawn_blocking(move || send_html_email(&to2, &subject, &text, &html))
+            .await
+            .unwrap_or_else(|e| Err(format!("join error: {e}")));
+        match ok {
+            Ok(()) => sent += 1,
+            Err(e) => tracing::error!("broadcast to {to} failed: {e}"),
+        }
+    }
+    tracing::info!("broadcast '{}' sent to {sent}/{} recipient(s)", req.subject, recipients.len());
+    Ok(Json(json!({ "recipients": recipients.len(), "sent": sent })))
 }
 
 /// Find creator accounts older than REMINDER_AFTER_HOURS with no creator page

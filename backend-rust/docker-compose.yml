@@ -86,6 +86,7 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/tips_db
       CREATORS_URL: http://creators:8082
       PAYMENTS_URL: http://payments:8083
+      SCHEDULER_URL: http://scheduler:8092
       PORT: "8084"
       INTERNAL_KEY: ${INTERNAL_KEY:-tj-internal-dev-key}
     ports:
@@ -159,6 +160,7 @@ services:
       SUPPORT_URL: http://support:8088
       PAYMENTS_URL: http://payments:8083
       SCHEDULER_URL: http://scheduler:8092
+      PLATFORM_URL: http://platform:8090
       PORT: "8091"
       INTERNAL_KEY: ${INTERNAL_KEY:-tj-internal-dev-key}
     ports:

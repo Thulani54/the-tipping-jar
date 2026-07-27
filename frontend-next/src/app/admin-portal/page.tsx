@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import type {
   AdminCreator,
+  AuditEntry,
   AdminDashboard,
   AdminTickets,
   AdminUser,
@@ -19,7 +20,7 @@ import type {
   Transaction,
 } from "@/types";
 
-type Tab = "overview" | "creators" | "users" | "tips" | "transactions" | "payouts" | "support";
+type Tab = "overview" | "creators" | "users" | "tips" | "transactions" | "payouts" | "support" | "comms" | "system";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "overview", label: "Overview", icon: "bi-bar-chart-fill" },
@@ -29,6 +30,8 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "transactions", label: "Transactions", icon: "bi-receipt" },
   { id: "payouts", label: "Payouts", icon: "bi-bank" },
   { id: "support", label: "Support", icon: "bi-life-preserver" },
+  { id: "comms", label: "Comms", icon: "bi-megaphone-fill" },
+  { id: "system", label: "System", icon: "bi-cpu-fill" },
 ];
 
 const money = (v: string | number) => {
@@ -100,6 +103,8 @@ export default function AdminPortalPage() {
         {tab === "transactions" && <TransactionsTab token={token} />}
         {tab === "payouts" && <PayoutsTab token={token} />}
         {tab === "support" && <SupportTab token={token} />}
+        {tab === "comms" && <CommsTab token={token} />}
+        {tab === "system" && <SystemTab token={token} />}
       </div>
     </div>
   );
@@ -311,6 +316,15 @@ function CreatorsTab({ token }: { token: string }) {
       setBusy(null);
     }
   }
+  async function setFeatured(c: AdminCreator) {
+    setBusy(c.id);
+    try {
+      await api.adminSetCreatorFeatured(token, c.id, !c.is_featured);
+      load();
+    } finally {
+      setBusy(null);
+    }
+  }
   async function setKyc(c: AdminCreator, status: string) {
     setBusy(c.id);
     try {
@@ -363,6 +377,16 @@ function CreatorsTab({ token }: { token: string }) {
           <td className="px-5 py-3"><StatusPill status={c.is_active ? "active" : "inactive"} /></td>
           <td className="px-5 py-3 text-right">
             <span className="inline-flex items-center gap-2">
+              <button
+                onClick={() => setFeatured(c)}
+                disabled={busy === c.id}
+                title={c.is_featured ? "Unfeature" : "Feature on the landing page"}
+                className={`rounded-full px-2.5 py-1.5 text-sm transition disabled:opacity-50 ${
+                  c.is_featured ? "text-amber-500" : "text-muted/50 hover:text-amber-500"
+                }`}
+              >
+                <i className={`bi ${c.is_featured ? "bi-star-fill" : "bi-star"}`} />
+              </button>
               <button
                 onClick={() => toggle(c)}
                 disabled={busy === c.id}
@@ -771,6 +795,133 @@ function SupportTab({ token }: { token: string }) {
                 <td className="px-5 py-3 font-medium text-ink">{p.company || "—"}</td>
                 <td className="px-5 py-3 text-muted">{p.email || "—"}</td>
                 <td className="px-5 py-3 text-muted">{when(p.created_at)}</td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+// ── Comms (broadcast) ────────────────────────────────────────────────────────
+
+function CommsTab({ token }: { token: string }) {
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [audience, setAudience] = useState<"creators" | "all">("creators");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  async function send() {
+    if (!subject.trim() || !message.trim()) { setNote("Subject and message are required."); return; }
+    if (!window.confirm(`Send "${subject}" to ${audience === "all" ? "ALL users" : "all creators"}?`)) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const r = await api.adminBroadcast(token, { subject: subject.trim(), message: message.trim(), audience });
+      setNote(`Sent ${r.sent}/${r.recipients} email(s).`);
+      setSubject("");
+      setMessage("");
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Broadcast failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="max-w-2xl space-y-5">
+      <div>
+        <h3 className="text-base font-bold text-ink">Broadcast an announcement</h3>
+        <p className="body-muted mt-1">
+          Emails every {audience === "all" ? "user" : "creator"} from accounts@tippingjar.co.za. While the
+          comms override is active, one preview copy goes to the override inbox instead.
+        </p>
+      </div>
+      <div className="flex gap-2">
+        {(["creators", "all"] as const).map((a) => (
+          <button
+            key={a}
+            onClick={() => setAudience(a)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+              audience === a ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+            }`}
+          >
+            {a === "creators" ? "Creators" : "Everyone"}
+          </button>
+        ))}
+      </div>
+      <input
+        value={subject}
+        onChange={(e) => setSubject(e.target.value)}
+        placeholder="Subject"
+        className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-ink focus:border-primary/40 focus:outline-none"
+      />
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        rows={8}
+        placeholder="Write your announcement… (plain text; line breaks are kept)"
+        className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-ink focus:border-primary/40 focus:outline-none"
+      />
+      <div className="flex items-center gap-3">
+        <button onClick={send} disabled={busy} className="btn-primary !px-6 !py-2.5 text-sm disabled:opacity-50">
+          {busy ? "Sending…" : <><i className="bi bi-send-fill" /> Send broadcast</>}
+        </button>
+        {note && <p className="text-sm text-teal">{note}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── System (fleet health + audit trail) ──────────────────────────────────────
+
+function SystemTab({ token }: { token: string }) {
+  const [health, setHealth] = useState<{ service: string; ok: boolean }[] | null>(null);
+  const [audit, setAudit] = useState<AuditEntry[] | null>(null);
+  useEffect(() => {
+    api.adminSystem(token).then(setHealth).catch(() => setHealth([]));
+    api.adminAudit(token).then(setAudit).catch(() => setAudit([]));
+  }, [token]);
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h3 className="mb-3 text-base font-bold text-ink">Service fleet</h3>
+        {!health ? (
+          <Loading />
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {health.map((h) => (
+              <div key={h.service} className="card flex items-center justify-between !p-4">
+                <span className="font-mono text-sm text-ink">{h.service}</span>
+                <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${h.ok ? "text-teal" : "text-red-500"}`}>
+                  <span className={`h-2 w-2 rounded-full ${h.ok ? "bg-teal" : "bg-red-500"}`} />
+                  {h.ok ? "up" : "down"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 className="mb-3 text-base font-bold text-ink">Admin audit trail</h3>
+        {!audit ? (
+          <Loading />
+        ) : audit.length === 0 ? (
+          <p className="body-muted">No admin actions recorded yet.</p>
+        ) : (
+          <Table head={["When", "Admin", "Action", "Target", "Detail"]}>
+            {audit.map((a) => (
+              <tr key={a.id} className="border-b border-border/60 last:border-0">
+                <td className="whitespace-nowrap px-5 py-3 text-muted">{when(a.created_at)}</td>
+                <td className="px-5 py-3 font-medium text-ink">{a.actor}</td>
+                <td className="px-5 py-3"><span className="rounded-full bg-primary/10 px-2.5 py-1 font-mono text-xs text-primary">{a.action}</span></td>
+                <td className="max-w-[160px] truncate px-5 py-3 font-mono text-xs text-muted">{a.target}</td>
+                <td className="max-w-[200px] truncate px-5 py-3 text-muted">{a.detail || "—"}</td>
               </tr>
             ))}
           </Table>

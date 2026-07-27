@@ -29,6 +29,11 @@ import {
   Gift,
   Link2,
   ArrowUpRight,
+  Trophy,
+  Download,
+  QrCode,
+  Code2,
+  Send,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -36,6 +41,7 @@ import { api } from "@/lib/api";
 import { StudioEditor } from "@/components/StudioEditor";
 import { LiveClock } from "@/components/Clock";
 import type {
+  Supporter,
   Tip,
   ReferralCode,
   Creator,
@@ -45,11 +51,12 @@ import type {
   Balance,
 } from "@/types";
 
-type Tab = "overview" | "tips" | "transactions" | "referrals" | "studio";
+type Tab = "overview" | "tips" | "supporters" | "transactions" | "referrals" | "studio";
 
 const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "tips", label: "Tips", icon: HandCoins },
+  { id: "supporters", label: "Supporters", icon: Trophy },
   { id: "transactions", label: "Transactions", icon: Receipt },
   { id: "referrals", label: "Referrals", icon: Users },
   { id: "studio", label: "Studio", icon: Palette },
@@ -186,7 +193,10 @@ export default function DashboardPage() {
             {tab === "overview" && (
               <OverviewTab tips={tips} loading={loading} stats={stats} slug={myCreator?.slug ?? null} />
             )}
-            {tab === "tips" && <TipsTab tips={tips} loading={loading} />}
+            {tab === "tips" && <TipsTab tips={tips} loading={loading} token={token} />}
+            {tab === "supporters" && (
+              <SupportersTab token={token} creatorId={myCreator?.id ?? null} />
+            )}
             {tab === "transactions" && (
               <TransactionsTab token={token} creatorId={myCreator?.id ?? null} />
             )}
@@ -405,6 +415,41 @@ function EmptyState({ icon: Icon, title, body }: { icon: LucideIcon; title: stri
   );
 }
 
+async function downloadQrPoster(slug: string) {
+  const QRCode = (await import("qrcode")).default;
+  const url = `https://www.tippingjar.co.za/creator/${slug}`;
+  const qr = await QRCode.toDataURL(url, { width: 560, margin: 1, color: { dark: "#0F2439", light: "#FFFFFF" } });
+  const W = 1080, H = 1350;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, "#0F2439"); g.addColorStop(1, "#12A25C");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#FFFFFF"; ctx.textAlign = "center";
+  ctx.font = "800 92px Manrope, system-ui, sans-serif";
+  ctx.fillText("Enjoying my work?", W / 2, 200);
+  ctx.fillStyle = "#57CE8B";
+  ctx.font = "500 48px Manrope, system-ui, sans-serif";
+  ctx.fillText("Scan to drop a tip in my jar", W / 2, 290);
+  // QR card
+  const qs = 620, qx = (W - qs) / 2, qy = 400;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.roundRect(qx - 30, qy - 30, qs + 60, qs + 60, 40);
+  ctx.fill();
+  const img = new Image();
+  await new Promise<void>((res) => { img.onload = () => res(); img.src = qr; });
+  ctx.drawImage(img, qx, qy, qs, qs);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "500 40px 'Space Mono', monospace";
+  ctx.fillText(`tippingjar.co.za/creator/${slug}`, W / 2, qy + qs + 140);
+  const a = document.createElement("a");
+  a.href = c.toDataURL("image/png");
+  a.download = `tip-qr-${slug}.png`;
+  a.click();
+}
+
 function OverviewTab({
   tips,
   loading,
@@ -438,12 +483,31 @@ function OverviewTab({
         {shareUrl && slug ? (
           <>
             <p className="relative mt-3 break-all font-mono text-sm text-white/90">{shareUrl}</p>
-            <Link
-              href={`/creator/${slug}`}
-              className="relative mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-primary transition hover:opacity-90"
-            >
-              View your page <ArrowUpRight className="h-4 w-4" strokeWidth={2.4} />
-            </Link>
+            <div className="relative mt-4 flex flex-wrap gap-2">
+              <Link
+                href={`/creator/${slug}`}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-primary transition hover:opacity-90"
+              >
+                View your page <ArrowUpRight className="h-4 w-4" strokeWidth={2.4} />
+              </Link>
+              <button
+                onClick={() => downloadQrPoster(slug)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-5 py-2.5 text-sm font-medium text-ink transition hover:bg-white/25"
+              >
+                <QrCode className="h-4 w-4" strokeWidth={2.2} /> QR poster
+              </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(
+                    `<iframe src="https://www.tippingjar.co.za/embed/${slug}" width="320" height="440" style="border:0;border-radius:16px" title="Tip me on Tipping Jar"></iframe>`,
+                  );
+                  window.alert("Embed code copied — paste it into your website.");
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-5 py-2.5 text-sm font-medium text-ink transition hover:bg-white/25"
+              >
+                <Code2 className="h-4 w-4" strokeWidth={2.2} /> Embed widget
+              </button>
+            </div>
           </>
         ) : (
           <Link
@@ -460,7 +524,25 @@ function OverviewTab({
   );
 }
 
-function RecentTips({ tips, loading }: { tips: Tip[]; loading: boolean }) {
+function RecentTips({ tips, loading, token }: { tips: Tip[]; loading: boolean; token?: string | null }) {
+  const [thanked, setThanked] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function thank(t: Tip) {
+    if (!token) return;
+    const message = window.prompt(`Send a thank-you note to ${t.tipper_name || "this supporter"}:`, "Thank you so much for the support! 💚");
+    if (!message?.trim()) return;
+    setBusy(t.id);
+    try {
+      await api.thankTip(token, t.id, message.trim());
+      setThanked((prev) => new Set(prev).add(t.id));
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Could not send the thank-you.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <div>
       <h3 className="mb-4 text-base font-medium text-ink">Recent tips</h3>
@@ -478,6 +560,7 @@ function RecentTips({ tips, loading }: { tips: Tip[]; loading: boolean }) {
                   <th className="px-5 py-3 font-medium">Message</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                   <th className="px-5 py-3 text-right font-medium">Amount</th>
+                  {token && <th className="px-5 py-3 text-right font-medium">Thanks</th>}
                 </tr>
               </thead>
               <tbody>
@@ -491,6 +574,23 @@ function RecentTips({ tips, loading }: { tips: Tip[]; loading: boolean }) {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-right font-bold text-ink">R{money(Number(t.amount) || 0)}</td>
+                    {token && (
+                      <td className="px-5 py-3 text-right">
+                        {t.thanked_at || thanked.has(t.id) ? (
+                          <span className="text-xs text-teal">Sent ✓</span>
+                        ) : t.tipper_email ? (
+                          <button
+                            onClick={() => thank(t)}
+                            disabled={busy === t.id}
+                            className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted transition hover:border-teal hover:text-teal disabled:opacity-50"
+                          >
+                            <Send className="h-3 w-3" strokeWidth={2.2} /> Thank
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted/60">no email</span>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -511,7 +611,26 @@ const TIP_PERIODS: { id: TipPeriod; label: string }[] = [
   { id: "month", label: "This month" },
 ];
 
-function TipsTab({ tips, loading }: { tips: Tip[]; loading: boolean }) {
+function exportTipsCsv(tips: Tip[]) {
+  const esc = (v: string) => `"${(v || "").replace(/"/g, '""')}"`;
+  const rows = [
+    "date,tipper,email,message,amount,platform_fee,service_fee,net,status,reference",
+    ...tips.map((t) =>
+      [
+        new Date(t.created_at).toISOString(), esc(t.tipper_name), esc(t.tipper_email),
+        esc(t.message), t.amount, t.platform_fee, t.service_fee, t.creator_net, t.status, t.reference,
+      ].join(","),
+    ),
+  ];
+  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `tipping-jar-tips-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function TipsTab({ tips, loading, token }: { tips: Tip[]; loading: boolean; token?: string | null }) {
   const [period, setPeriod] = useState<TipPeriod>("all");
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -530,8 +649,15 @@ function TipsTab({ tips, loading }: { tips: Tip[]; loading: boolean }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-base font-medium text-ink">All tips</h3>
-        <span className="text-sm text-muted">
+        <span className="inline-flex items-center gap-3 text-sm text-muted">
           {filtered.length} tip{filtered.length === 1 ? "" : "s"} · Total: R{money(total)}
+          <button
+            onClick={() => exportTipsCsv(filtered)}
+            disabled={filtered.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted transition hover:border-teal hover:text-teal disabled:opacity-40"
+          >
+            <Download className="h-3.5 w-3.5" strokeWidth={2.2} /> CSV
+          </button>
         </span>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -547,7 +673,64 @@ function TipsTab({ tips, loading }: { tips: Tip[]; loading: boolean }) {
           </button>
         ))}
       </div>
-      <RecentTips tips={filtered} loading={loading} />
+      <RecentTips tips={filtered} loading={loading} token={token} />
+    </div>
+  );
+}
+
+// ─── Supporters ──────────────────────────────────────────────────────────────
+function SupportersTab({ token, creatorId }: { token: string | null; creatorId: string | null }) {
+  const [rows, setRows] = useState<Supporter[] | null>(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    if (!token || !creatorId) { setRows([]); return; }
+    api.creatorSupporters(token, creatorId).then(setRows).catch(() => setErr(true));
+  }, [token, creatorId]);
+
+  if (err) return <EmptyState icon={Trophy} title="Couldn't load supporters" body="Try refreshing the page." />;
+  if (!rows) return <p className="body-muted">Loading…</p>;
+  if (rows.length === 0)
+    return <EmptyState icon={Trophy} title="No supporters yet" body="When fans tip you, your biggest supporters appear here." />;
+
+  const medals = ["🥇", "🥈", "🥉"];
+  const total = rows.reduce((s, r) => s + Number(r.total || 0), 0);
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-medium tracking-tight text-ink">Your supporters</h2>
+          <p className="body-muted mt-1">{rows.length} supporter{rows.length === 1 ? "" : "s"} · R{money(total)} lifetime</p>
+        </div>
+      </div>
+      <div className="card overflow-hidden !p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <thead className="border-b border-border text-xs uppercase tracking-wide text-muted">
+              <tr>
+                <th className="px-5 py-3 font-medium">#</th>
+                <th className="px-5 py-3 font-medium">Supporter</th>
+                <th className="px-5 py-3 font-medium">Tips</th>
+                <th className="px-5 py-3 font-medium">Last tip</th>
+                <th className="px-5 py-3 text-right font-medium">Lifetime</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={`${r.name}-${i}`} className="border-b border-border/60 last:border-0 hover:bg-ink/[0.02]">
+                  <td className="px-5 py-3 text-lg">{medals[i] ?? <span className="text-xs text-muted">{i + 1}</span>}</td>
+                  <td className="px-5 py-3">
+                    <span className="font-medium text-ink">{r.name || "Anonymous"}</span>
+                    {r.email && <span className="ml-2 text-xs text-muted">{r.email}</span>}
+                  </td>
+                  <td className="px-5 py-3 text-muted">{r.tip_count}</td>
+                  <td className="px-5 py-3 text-muted">{new Date(r.last_tip_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}</td>
+                  <td className="px-5 py-3 text-right font-bold text-teal">R{money(Number(r.total) || 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

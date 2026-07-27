@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 
 // Routes that render as a full-bleed app shell — no marketing top nav / footer.
 // The dashboard supplies its own sidebar navigation.
-const BARE_PREFIXES = ["/dashboard"];
+const BARE_PREFIXES = ["/dashboard", "/embed"];
 
 export function SiteFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

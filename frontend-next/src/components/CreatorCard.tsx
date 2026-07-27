@@ -25,6 +25,9 @@ export function CreatorCard({ creator }: { creator: Creator }) {
         )}
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-display text-lg font-bold text-ink group-hover:text-green">
+            {creator.is_featured && (
+              <span className="mr-1 text-gold" title="Featured creator">★</span>
+            )}
             {creator.display_name}
           </h3>
           <p className="truncate font-mono text-xs text-muted">@{creator.slug}</p>

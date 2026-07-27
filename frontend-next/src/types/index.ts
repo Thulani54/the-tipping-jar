@@ -29,6 +29,7 @@ export interface Creator {
   kyc_status: string;
   avatar_url: string;
   cover_url: string;
+  is_featured: boolean;
   created_at: string;
 }
 
@@ -45,6 +46,8 @@ export interface Tip {
   platform_fee: string;
   service_fee: string;
   creator_net: string;
+  thanks_message: string;
+  thanked_at: string | null;
   created_at: string;
 }
 
@@ -205,6 +208,7 @@ export interface AdminCreator {
   tip_goal: string | null;
   is_active: boolean;
   kyc_status: string;
+  is_featured: boolean;
   has_avatar: boolean;
   has_cover: boolean;
   created_at: string;
@@ -214,6 +218,23 @@ export interface AdminTickets {
   contacts: { id: string; name?: string; email?: string; subject?: string; message?: string; created_at?: string }[];
   disputes: { id: string; email?: string; reason?: string; status?: string; tracking_token?: string; created_at?: string }[];
   partners: { id: string; company?: string; email?: string; created_at?: string }[];
+}
+
+export interface Supporter {
+  name: string;
+  email: string;
+  tip_count: number;
+  total: string;
+  last_tip_at: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  actor: string;
+  action: string;
+  target: string;
+  detail: string;
+  created_at: string;
 }
 
 export interface StudioDesign {

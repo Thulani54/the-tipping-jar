@@ -36,11 +36,12 @@ struct Creator {
     kyc_status: String,
     avatar_url: String,
     cover_url: String,
+    is_featured: bool,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
 const CREATOR_COLUMNS: &str =
-    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, created_at";
+    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, is_featured, created_at";
 
 #[derive(sqlx::FromRow, Serialize)]
 struct SupportTier {
@@ -195,7 +196,7 @@ async fn create_creator(
 
 async fn list_creators(State(st): State<AppState>) -> Result<Json<Vec<Creator>>, AppError> {
     let rows: Vec<Creator> = sqlx::query_as(&format!(
-        "SELECT {CREATOR_COLUMNS} FROM creator_profiles WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 200"
+        "SELECT {CREATOR_COLUMNS} FROM creator_profiles WHERE is_active = TRUE ORDER BY is_featured DESC, created_at DESC LIMIT 200"
     ))
     .fetch_all(&st.pool)
     .await?;
@@ -411,7 +412,7 @@ async fn list_all_internal(
                     "id": c.id, "user_id": c.user_id, "display_name": c.display_name,
                     "slug": c.slug, "tagline": c.tagline, "category": c.category,
                     "tip_goal": c.tip_goal, "is_active": c.is_active,
-                    "kyc_status": c.kyc_status, "has_avatar": !c.avatar_url.is_empty(),
+                    "kyc_status": c.kyc_status, "is_featured": c.is_featured, "has_avatar": !c.avatar_url.is_empty(),
                     "has_cover": !c.cover_url.is_empty(), "created_at": c.created_at,
                 })
             })
@@ -440,6 +441,30 @@ async fn set_active_internal(
         return Err(AppError::NotFound("creator not found".into()));
     }
     Ok(Json(json!({ "id": id, "is_active": req.is_active })))
+}
+
+#[derive(Deserialize)]
+struct SetFeaturedReq {
+    is_featured: bool,
+}
+
+/// Internal (admin portal): pin/unpin a creator on the landing page.
+async fn set_featured_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<SetFeaturedReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    let res = sqlx::query("UPDATE creator_profiles SET is_featured = $1 WHERE id = $2")
+        .bind(req.is_featured)
+        .bind(id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("creator not found".into()));
+    }
+    Ok(Json(json!({ "id": id, "is_featured": req.is_featured })))
 }
 
 #[derive(Deserialize)]
@@ -653,6 +678,9 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::query("ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS cover_url TEXT NOT NULL DEFAULT ''")
         .execute(pool)
         .await?;
+    sqlx::query("ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT FALSE")
+        .execute(pool)
+        .await?;
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS support_tiers (
             id          UUID PRIMARY KEY,
@@ -753,6 +781,7 @@ async fn main() {
         )
         .route("/internal/creators/:id/active", post(set_active_internal))
         .route("/internal/creators/:id/kyc", post(set_kyc_internal))
+        .route("/internal/creators/:id/featured", post(set_featured_internal))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 

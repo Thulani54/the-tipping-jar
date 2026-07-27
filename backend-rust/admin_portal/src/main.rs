@@ -21,6 +21,7 @@ struct AppState {
     support_url: String,
     payments_url: String,
     scheduler_url: String,
+    platform_url: String,
     internal_key: String,
 }
 
@@ -31,7 +32,8 @@ async fn health() -> Json<Value> {
 // ── Auth ────────────────────────────────────────────────────────────────────
 
 /// Verify the caller's bearer token with accounts and require the admin role.
-async fn require_admin(st: &AppState, headers: &HeaderMap) -> Result<String, AppError> {
+/// Returns (user_id, email) for audit trails.
+async fn require_admin(st: &AppState, headers: &HeaderMap) -> Result<(String, String), AppError> {
     let token = headers
         .get(AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
@@ -51,11 +53,22 @@ async fn require_admin(st: &AppState, headers: &HeaderMap) -> Result<String, App
     if role != "admin" {
         return Err(AppError::Unauthorized("admin access required".into()));
     }
-    Ok(body
-        .get("user_id")
-        .and_then(|u| u.as_str())
-        .unwrap_or_default()
-        .to_string())
+    Ok((
+        body.get("user_id").and_then(|u| u.as_str()).unwrap_or_default().to_string(),
+        body.get("email").and_then(|u| u.as_str()).unwrap_or_default().to_string(),
+    ))
+}
+
+/// Fire-and-forget audit record in the platform service.
+async fn audit(st: &AppState, actor: &str, action: &str, target: &str, detail: &str) {
+    let body = json!({ "actor": actor, "action": action, "target": target, "detail": detail });
+    let _ = st
+        .http
+        .post(format!("{}/internal/audit", st.platform_url))
+        .header("x-internal-key", &st.internal_key)
+        .json(&body)
+        .send()
+        .await;
 }
 
 // ── Service fan-out helpers ─────────────────────────────────────────────────
@@ -231,7 +244,8 @@ async fn set_user_role(
     Path(id): Path<String>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, AppError> {
-    require_admin(&st, &headers).await?;
+    let (_, email) = require_admin(&st, &headers).await?;
+    audit(&st, &email, "user.set_role", &id, &body.to_string()).await;
     forward(&st, reqwest::Method::POST, format!("{}/internal/users/{id}/role", st.accounts_url), Some(&body)).await
 }
 
@@ -240,10 +254,11 @@ async fn delete_user(
     headers: HeaderMap,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, AppError> {
-    let admin_id = require_admin(&st, &headers).await?;
+    let (admin_id, admin_email) = require_admin(&st, &headers).await?;
     if admin_id == id {
         return Err(AppError::BadRequest("you cannot delete your own account".into()));
     }
+    audit(&st, &admin_email, "user.delete", &id, "").await;
     forward(&st, reqwest::Method::DELETE, format!("{}/internal/users/{id}", st.accounts_url), None).await
 }
 
@@ -253,7 +268,8 @@ async fn set_creator_kyc(
     Path(id): Path<String>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, AppError> {
-    require_admin(&st, &headers).await?;
+    let (_, email) = require_admin(&st, &headers).await?;
+    audit(&st, &email, "creator.set_kyc", &id, &body.to_string()).await;
     forward(&st, reqwest::Method::POST, format!("{}/internal/creators/{id}/kyc", st.creators_url), Some(&body)).await
 }
 
@@ -262,7 +278,8 @@ async fn delete_creator(
     headers: HeaderMap,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, AppError> {
-    require_admin(&st, &headers).await?;
+    let (_, email) = require_admin(&st, &headers).await?;
+    audit(&st, &email, "creator.delete", &id, "").await;
     forward(&st, reqwest::Method::DELETE, format!("{}/internal/creators/{id}", st.creators_url), None).await
 }
 
@@ -272,7 +289,8 @@ async fn set_dispute_status(
     Path(id): Path<String>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, AppError> {
-    require_admin(&st, &headers).await?;
+    let (_, email) = require_admin(&st, &headers).await?;
+    audit(&st, &email, "dispute.set_status", &id, &body.to_string()).await;
     forward(&st, reqwest::Method::POST, format!("{}/internal/disputes/{id}/status", st.support_url), Some(&body)).await
 }
 
@@ -319,7 +337,8 @@ async fn set_creator_active(
     Path(id): Path<String>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, AppError> {
-    require_admin(&st, &headers).await?;
+    let (_, email) = require_admin(&st, &headers).await?;
+    audit(&st, &email, "creator.set_active", &id, &body.to_string()).await;
     let resp = st
         .http
         .post(format!("{}/internal/creators/{id}/active", st.creators_url))
@@ -339,7 +358,8 @@ async fn set_payout_status(
     Path(id): Path<String>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, AppError> {
-    require_admin(&st, &headers).await?;
+    let (_, email) = require_admin(&st, &headers).await?;
+    audit(&st, &email, "payout.set_status", &id, &body.to_string()).await;
     let resp = st
         .http
         .post(format!("{}/internal/payouts/{id}/status", st.payments_url))
@@ -351,6 +371,85 @@ async fn set_payout_status(
         return Err(AppError::Upstream(format!("payments: {}", resp.status())));
     }
     Ok(Json(resp.json().await?))
+}
+
+async fn set_creator_featured(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, AppError> {
+    let (_, email) = require_admin(&st, &headers).await?;
+    audit(&st, &email, "creator.set_featured", &id, &body.to_string()).await;
+    forward(&st, reqwest::Method::POST, format!("{}/internal/creators/{id}/featured", st.creators_url), Some(&body)).await
+}
+
+/// Broadcast an announcement email via the scheduler's SMTP.
+async fn broadcast(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, AppError> {
+    let (_, email) = require_admin(&st, &headers).await?;
+    let subject = body.get("subject").and_then(|s| s.as_str()).unwrap_or("");
+    audit(&st, &email, "comms.broadcast", subject, "").await;
+    let resp = st
+        .http
+        .post(format!("{}/internal/broadcast", st.scheduler_url))
+        .json(&body)
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        return Err(AppError::Upstream(format!("scheduler: {}", resp.status())));
+    }
+    Ok(Json(resp.json().await?))
+}
+
+/// Fleet status: ping every service's /health with a short timeout.
+async fn system(State(st): State<AppState>, headers: HeaderMap) -> Result<Json<Value>, AppError> {
+    require_admin(&st, &headers).await?;
+    let targets: Vec<(String, String)> = vec![
+        ("accounts".into(), st.accounts_url.clone()),
+        ("creators".into(), st.creators_url.clone()),
+        ("tips".into(), st.tips_url.clone()),
+        ("payments".into(), st.payments_url.clone()),
+        ("support".into(), st.support_url.clone()),
+        ("platform".into(), st.platform_url.clone()),
+        ("scheduler".into(), st.scheduler_url.clone()),
+        ("blog".into(), "http://blog:8085".into()),
+        ("careers".into(), "http://careers:8086".into()),
+        ("enterprise".into(), "http://enterprise:8087".into()),
+        ("referrals".into(), "http://referrals:8089".into()),
+    ];
+    let mut handles = Vec::new();
+    for (name, base) in targets {
+        let http = st.http.clone();
+        handles.push(tokio::spawn(async move {
+            let ok = matches!(
+                http.get(format!("{base}/health"))
+                    .timeout(std::time::Duration::from_secs(3))
+                    .send()
+                    .await,
+                Ok(r) if r.status().is_success()
+            );
+            json!({ "service": name, "ok": ok })
+        }));
+    }
+    let mut results = Vec::new();
+    for h in handles {
+        results.push(h.await.unwrap_or_else(|_| json!({ "service": "?", "ok": false })));
+    }
+    Ok(Json(Value::Array(results)))
+}
+
+/// The admin action trail.
+async fn audit_list(State(st): State<AppState>, headers: HeaderMap) -> Result<Json<Value>, AppError> {
+    require_admin(&st, &headers).await?;
+    Ok(Json(
+        fetch_json(&st, format!("{}/internal/audit", st.platform_url), true)
+            .await
+            .unwrap_or(Value::Array(vec![])),
+    ))
 }
 
 // ── Bootstrap ───────────────────────────────────────────────────────────────
@@ -371,6 +470,7 @@ async fn main() {
         support_url: env("SUPPORT_URL", "http://localhost:8088"),
         payments_url: env("PAYMENTS_URL", "http://localhost:8083"),
         scheduler_url: env("SCHEDULER_URL", "http://localhost:8092"),
+        platform_url: env("PLATFORM_URL", "http://localhost:8090"),
         internal_key: env("INTERNAL_KEY", "tj-internal-dev-key"),
     };
 
@@ -393,6 +493,10 @@ async fn main() {
         .route("/disputes/:id/status", post(set_dispute_status))
         .route("/ops/daily-report", post(run_daily_report))
         .route("/ops/signup-reminders", post(run_signup_reminders))
+        .route("/creators/:id/featured", post(set_creator_featured))
+        .route("/broadcast", post(broadcast))
+        .route("/system", get(system))
+        .route("/audit", get(audit_list))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 

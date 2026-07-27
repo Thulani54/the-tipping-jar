@@ -225,7 +225,72 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     )
     .execute(pool)
     .await?;
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS audit_log (
+            id         UUID PRIMARY KEY,
+            actor      TEXT NOT NULL,
+            action     TEXT NOT NULL,
+            target     TEXT NOT NULL DEFAULT '',
+            detail     TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )",
+    )
+    .execute(pool)
+    .await?;
     Ok(())
+}
+
+// ── Audit log (admin portal writes; key-guarded) ────────────────────────────
+
+#[derive(sqlx::FromRow, Serialize)]
+struct AuditEntry {
+    id: Uuid,
+    actor: String,
+    action: String,
+    target: String,
+    detail: String,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Deserialize)]
+struct AuditReq {
+    actor: String,
+    action: String,
+    target: Option<String>,
+    detail: Option<String>,
+}
+
+async fn record_audit(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<AuditReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    sqlx::query(
+        "INSERT INTO audit_log (id, actor, action, target, detail) VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind(Uuid::new_v4())
+    .bind(req.actor.chars().take(120).collect::<String>())
+    .bind(req.action.chars().take(80).collect::<String>())
+    .bind(req.target.unwrap_or_default().chars().take(200).collect::<String>())
+    .bind(req.detail.unwrap_or_default().chars().take(500).collect::<String>())
+    .execute(&st.pool)
+    .await?;
+    Ok(Json(json!({ "ok": true })))
+}
+
+async fn list_audit(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<AuditEntry>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows: Vec<AuditEntry> = sqlx::query_as(
+        "SELECT id, actor, action, target, detail, created_at
+         FROM audit_log ORDER BY created_at DESC LIMIT 200",
+    )
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
 }
 
 async fn connect_with_retry(db_url: &str) -> PgPool {
@@ -266,6 +331,7 @@ async fn main() {
         .route("/health", get(health))
         .route("/platforms", post(register_platform).get(list_platforms))
         .route("/platforms/verify-key", post(verify_key))
+        .route("/internal/audit", post(record_audit).get(list_audit))
         .route("/platforms/:slug", get(get_platform))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
