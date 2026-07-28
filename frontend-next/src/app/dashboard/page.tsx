@@ -193,7 +193,7 @@ export default function DashboardPage() {
             </Link>
             <span
               title={name}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-green text-sm font-medium text-white shadow-soft ring-2 ring-white"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-sm font-medium text-white shadow-soft ring-2 ring-white"
             >
               {name.charAt(0).toUpperCase()}
             </span>
@@ -325,7 +325,7 @@ function DashboardSidebar({
           }`}
         >
           <Link href="/" className={`flex items-center gap-2.5 ${collapsed ? "lg:hidden" : ""}`}>
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-mint to-green text-navy">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-mint text-navy">
               <Palette className="h-[18px] w-[18px]" strokeWidth={2.4} />
             </span>
             <span className="font-display text-lg font-medium tracking-tight">
@@ -404,18 +404,14 @@ function StatCard({
 }) {
   const c = accent ?? "#12A25C";
   return (
-    <div className="card group !p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift">
+    <div className="card !p-5">
       <div
-        className="grid h-11 w-11 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-110"
-        style={{ backgroundColor: c + "1f" }}
+        className="grid h-10 w-10 place-items-center rounded-xl"
+        style={{ backgroundColor: c + "22" }}
       >
         <Icon className="h-5 w-5" style={{ color: c }} strokeWidth={2.2} />
       </div>
-      <p
-        className={`mt-4 text-2xl tracking-tight text-ink ${
-          value.trim().startsWith("R") ? "font-bold" : "font-medium"
-        }`}
-      >
+      <p className="mt-4 text-2xl font-extrabold tracking-tight text-ink">
         {value}
       </p>
       <p className="mt-1 text-xs font-medium text-muted">{label}</p>
@@ -518,16 +514,15 @@ function OverviewTab({
       )}
 
       {/* Share tip link */}
-      <div className="card relative overflow-hidden bg-brand-gradient !border-transparent">
-        <span aria-hidden className="dot-grid pointer-events-none absolute inset-0 opacity-[0.12]" />
-        <h3 className="relative text-lg font-medium text-ink">Share your tip link</h3>
-        <p className="relative mt-1 text-sm text-white/80">
+      <div className="card">
+        <h3 className="text-lg font-semibold text-ink">Share your tip link</h3>
+        <p className="mt-1 text-sm text-muted">
           Drop your link in your bio, streams and posts so fans can support you.
         </p>
         {shareUrl && slug ? (
           <>
             <p className="relative mt-3 break-all font-mono text-sm text-white/90">{shareUrl}</p>
-            <div className="relative mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               <Link
                 href={`/creator/${slug}`}
                 className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-primary transition hover:opacity-90"
@@ -565,7 +560,7 @@ function OverviewTab({
         ) : (
           <Link
             href="/onboarding"
-            className="relative mt-5 inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-primary transition hover:opacity-90"
+            className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-navy"
           >
             Set up your creator page <ArrowUpRight className="h-4 w-4" strokeWidth={2.4} />
           </Link>
@@ -898,28 +893,27 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
         </p>
       </div>
 
-      <div className="card relative overflow-hidden bg-brand-gradient !border-transparent">
-        <span aria-hidden className="dot-grid pointer-events-none absolute inset-0 opacity-[0.12]" />
-        <p className="relative inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-white/70">
+      <div className="card">
+        <p className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted">
           <Gift className="h-4 w-4" strokeWidth={2.2} /> Your referral code
         </p>
-        <div className="relative mt-3 flex items-center gap-3">
+        <div className="mt-3 flex items-center gap-3">
           <span className="font-mono text-3xl font-medium tracking-[0.3em] text-ink">{code || "—"}</span>
           {code && (
             <button
               onClick={() => copy(code, "code")}
-              className="rounded-lg bg-white/15 px-3 py-1.5 text-xs font-medium text-ink hover:bg-white/25"
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
             >
               {copied === "code" ? "Copied!" : "Copy"}
             </button>
           )}
         </div>
-        {shareUrl && <p className="relative mt-3 break-all text-xs text-white/60">{shareUrl}</p>}
+        {shareUrl && <p className="mt-3 break-all text-xs text-muted">{shareUrl}</p>}
         {shareUrl && (
-          <div className="relative mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={() => copy(shareUrl, "link")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-xs font-medium text-ink hover:bg-white/25"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted hover:border-teal hover:text-teal"
             >
               <Link2 className="h-3.5 w-3.5" strokeWidth={2.2} />
               {copied === "link" ? "Link copied!" : "Copy link"}
@@ -928,7 +922,7 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
               href={`https://wa.me/?text=${encodeURIComponent(`Sign up on TippingJar with my code ${code}: ${shareUrl}`)}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-xs font-medium text-ink hover:bg-white/25"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted hover:border-teal hover:text-teal"
             >
               <i className="bi bi-whatsapp" /> WhatsApp
             </a>
@@ -936,7 +930,7 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
               href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`I'm earning on @TippingJar — join with my code ${code}! ${shareUrl}`)}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-xs font-medium text-ink hover:bg-white/25"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted hover:border-teal hover:text-teal"
             >
               <i className="bi bi-twitter-x" /> Twitter / X
             </a>
@@ -1137,6 +1131,60 @@ function StudioTab({ token, slug }: { token: string | null; slug: string | null 
 
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
+function LineChart({ points, color = "#12A25C", height = 130 }: { points: number[]; color?: string; height?: number }) {
+  const W = 600;
+  const max = Math.max(...points, 1);
+  const step = W / Math.max(points.length - 1, 1);
+  const coords = points.map((v, i) => [i * step, height - 8 - (v / max) * (height - 20)]);
+  const path = coords.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const area = `${path} L${W},${height} L0,${height} Z`;
+  return (
+    <svg viewBox={`0 0 ${W} ${height}`} className="w-full" preserveAspectRatio="none" role="img" aria-label="line chart">
+      <path d={area} fill={color} opacity="0.12" />
+      <path d={path} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      {coords.length > 0 && (
+        <circle cx={coords[coords.length - 1][0]} cy={coords[coords.length - 1][1]} r="4" fill={color} />
+      )}
+    </svg>
+  );
+}
+
+function Donut({ slices }: { slices: { label: string; value: number; color: string }[] }) {
+  const total = slices.reduce((s, x) => s + x.value, 0) || 1;
+  let acc = 0;
+  const R = 15.9155; // circumference 100
+  return (
+    <div className="flex items-center gap-5">
+      <svg viewBox="0 0 42 42" className="h-28 w-28 -rotate-90">
+        <circle cx="21" cy="21" r={R} fill="none" stroke="#EFF2F0" strokeWidth="6" />
+        {slices.map((sl) => {
+          const frac = (sl.value / total) * 100;
+          const el = (
+            <circle
+              key={sl.label}
+              cx="21" cy="21" r={R} fill="none"
+              stroke={sl.color} strokeWidth="6"
+              strokeDasharray={`${frac} ${100 - frac}`}
+              strokeDashoffset={-acc}
+              strokeLinecap="butt"
+            />
+          );
+          acc += frac;
+          return el;
+        })}
+      </svg>
+      <div className="space-y-1.5">
+        {slices.map((sl) => (
+          <p key={sl.label} className="flex items-center gap-2 text-xs text-muted">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: sl.color }} />
+            {sl.label} · <span className="font-semibold text-ink">{sl.value}</span>
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AnalyticsTab({ token, creatorId, tips }: { token: string | null; creatorId: string | null; tips: Tip[] }) {
   const [days, setDays] = useState<{ day: string; count: number; gross: string; net: string }[] | null>(null);
   useEffect(() => {
@@ -1156,16 +1204,38 @@ function AnalyticsTab({ token, creatorId, tips }: { token: string | null; creato
   const biggest = completed.reduce((m, t) => Math.max(m, Number(t.amount || 0)), 0);
   const delta = lastMonth > 0 ? Math.round(((thisMonth - lastMonth) / lastMonth) * 100) : null;
 
-  // 30-day series with gaps filled
+  // 30-day series (gaps filled)
   const map = new Map((days ?? []).map((d) => [d.day, d]));
-  const series: { day: string; gross: number; count: number }[] = [];
+  const series: { day: string; gross: number; net: number; count: number }[] = [];
   for (let i = 29; i >= 0; i--) {
     const key = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
     const row = map.get(key);
-    series.push({ day: key, gross: Number(row?.gross ?? 0), count: row?.count ?? 0 });
+    series.push({ day: key, gross: Number(row?.gross ?? 0), net: Number(row?.net ?? 0), count: row?.count ?? 0 });
   }
   const max = Math.max(...series.map((x) => x.gross), 1);
   const total30 = series.reduce((s, x) => s + x.gross, 0);
+  // cumulative net earnings line
+  let running = 0;
+  const cumulative = series.map((x) => (running += x.net));
+  // weekday performance (from full tips history)
+  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const byDay = new Array(7).fill(0);
+  completed.forEach((t) => { byDay[(new Date(t.created_at).getDay() + 6) % 7] += Number(t.amount || 0); });
+  const maxDay = Math.max(...byDay, 1);
+  // tip-size distribution
+  const buckets = [
+    { label: "R10–24", value: 0, color: "#57CE8B" },
+    { label: "R25–49", value: 0, color: "#12A25C" },
+    { label: "R50–99", value: 0, color: "#0F2439" },
+    { label: "R100+", value: 0, color: "#E0A536" },
+  ];
+  completed.forEach((t) => {
+    const a = Number(t.amount || 0);
+    if (a < 25) buckets[0].value++;
+    else if (a < 50) buckets[1].value++;
+    else if (a < 100) buckets[2].value++;
+    else buckets[3].value++;
+  });
 
   return (
     <div className="space-y-6">
@@ -1179,16 +1249,33 @@ function AnalyticsTab({ token, creatorId, tips }: { token: string | null; creato
         <StatCard label="Average tip" value={`R${money(avg)}`} icon={HandCoins} accent="#E0A536" />
         <StatCard label="Biggest tip" value={`R${money(biggest)}`} icon={Trophy} accent="#EC4899" />
       </div>
+
+      {/* Cumulative earnings line */}
       <div className="card !p-5">
         <div className="flex items-baseline justify-between">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Tip volume · last 30 days</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Cumulative earnings · last 30 days (net)</p>
+          <p className="text-sm font-bold text-teal">R{money(cumulative[cumulative.length - 1] ?? 0)}</p>
+        </div>
+        <div className="mt-4">
+          {!days ? <p className="body-muted">Loading…</p> : <LineChart points={cumulative} color="#12A25C" />}
+        </div>
+        <div className="mt-1 flex justify-between font-mono text-[10px] text-muted">
+          <span>{series[0].day.slice(5)}</span>
+          <span>today</span>
+        </div>
+      </div>
+
+      {/* Daily volume bars */}
+      <div className="card !p-5">
+        <div className="flex items-baseline justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Daily tip volume · last 30 days</p>
           <p className="text-sm font-bold text-ink">R{money(total30)}</p>
         </div>
         {!days ? (
           <p className="body-muted mt-4">Loading…</p>
         ) : (
           <>
-            <div className="mt-4 flex h-32 items-end gap-[3px]">
+            <div className="mt-4 flex h-28 items-end gap-[3px]">
               {series.map((x) => (
                 <div
                   key={x.day}
@@ -1204,6 +1291,37 @@ function AnalyticsTab({ token, creatorId, tips }: { token: string | null; creato
             </div>
           </>
         )}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Weekday performance */}
+        <div className="card !p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Best days of the week (all time)</p>
+          <div className="mt-4 flex h-28 items-end gap-2">
+            {byDay.map((v, i) => (
+              <div key={weekdays[i]} className="flex flex-1 flex-col items-center gap-1.5">
+                <div
+                  className="w-full rounded-t bg-primary/80 transition hover:bg-primary"
+                  style={{ height: `${Math.max(4, (v / maxDay) * 88)}px` }}
+                  title={`${weekdays[i]}: R${money(v)}`}
+                />
+                <span className="font-mono text-[10px] text-muted">{weekdays[i]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tip size distribution */}
+        <div className="card !p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Tip size mix (count, all time)</p>
+          <div className="mt-4">
+            {completed.length === 0 ? (
+              <p className="body-muted">No completed tips yet.</p>
+            ) : (
+              <Donut slices={buckets} />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1421,7 +1539,7 @@ function ProfileTab({
                 key={c || "default"}
                 onClick={() => setTheme(c)}
                 className={`h-8 w-8 rounded-full border-2 transition ${theme === c ? "border-ink scale-110" : "border-border"}`}
-                style={{ background: c || "linear-gradient(135deg,#0F2439,#12A25C)" }}
+                style={{ background: c || "#0F2439" }}
                 title={c || "Default"}
               />
             ))}

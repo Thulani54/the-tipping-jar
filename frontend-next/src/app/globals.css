@@ -377,14 +377,9 @@ details.faq-item summary::-webkit-details-marker {
 
 /* ── Dashboard green-glass sidebar ──────────────────────────────────────── */
 .glass-sidebar {
-  background:
-    radial-gradient(130% 55% at 15% 0%, rgba(87, 206, 139, 0.18), transparent 62%),
-    radial-gradient(120% 50% at 100% 100%, rgba(18, 162, 92, 0.14), transparent 60%),
-    linear-gradient(168deg, #10233c 0%, #0b2c22 100%);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-right: 1px solid rgba(87, 206, 139, 0.16);
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05), inset 1px 0 0 rgba(255, 255, 255, 0.04);
+  /* Flat navy — matches the admin portal's solid surfaces (no gradients). */
+  background: #0f2439;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 /* active nav pill — frosted green glass with a soft glow */
 .nav-glass {
