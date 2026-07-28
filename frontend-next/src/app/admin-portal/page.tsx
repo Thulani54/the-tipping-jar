@@ -57,6 +57,7 @@ export default function AdminPortalPage() {
   const { token, isAuthenticated, isAdmin, initialized } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
+  const [commsPrefill, setCommsPrefill] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialized && (!isAuthenticated || !isAdmin)) router.push("/login");
@@ -98,12 +99,20 @@ export default function AdminPortalPage() {
       <div className="mt-8">
         {tab === "overview" && <OverviewTab token={token} />}
         {tab === "creators" && <CreatorsTab token={token} />}
-        {tab === "users" && <UsersTab token={token} />}
+        {tab === "users" && (
+          <UsersTab
+            token={token}
+            onEmail={(email) => {
+              setCommsPrefill(email);
+              setTab("comms");
+            }}
+          />
+        )}
         {tab === "tips" && <TipsTab token={token} />}
         {tab === "transactions" && <TransactionsTab token={token} />}
         {tab === "payouts" && <PayoutsTab token={token} />}
         {tab === "support" && <SupportTab token={token} />}
-        {tab === "comms" && <CommsTab token={token} />}
+        {tab === "comms" && <CommsTab token={token} prefill={commsPrefill} />}
         {tab === "system" && <SystemTab token={token} />}
       </div>
     </div>
@@ -416,7 +425,7 @@ function CreatorsTab({ token }: { token: string }) {
 
 // ── Users ────────────────────────────────────────────────────────────────────
 
-function UsersTab({ token }: { token: string }) {
+function UsersTab({ token, onEmail }: { token: string; onEmail: (email: string) => void }) {
   const [rows, setRows] = useState<AdminUser[] | null>(null);
   const [err, setErr] = useState(false);
   const [q, setQ] = useState("");
@@ -486,14 +495,23 @@ function UsersTab({ token }: { token: string }) {
             <td className="px-5 py-3 text-muted">{u.two_fa_enabled ? "on" : "off"}</td>
             <td className="px-5 py-3 text-muted">{when(u.created_at)}</td>
             <td className="px-5 py-3 text-right">
-              <button
-                onClick={() => remove(u)}
-                disabled={busy === u.id}
-                className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
-                title="Delete account"
-              >
-                <i className="bi bi-trash" />
-              </button>
+              <span className="inline-flex gap-2">
+                <button
+                  onClick={() => onEmail(u.email)}
+                  className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-teal hover:text-teal"
+                  title="Email this user"
+                >
+                  <i className="bi bi-envelope" />
+                </button>
+                <button
+                  onClick={() => remove(u)}
+                  disabled={busy === u.id}
+                  className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                  title="Delete account"
+                >
+                  <i className="bi bi-trash" />
+                </button>
+              </span>
             </td>
           </tr>
         ))}
@@ -807,23 +825,65 @@ function SupportTab({ token }: { token: string }) {
 
 // ── Comms (broadcast) ────────────────────────────────────────────────────────
 
-function CommsTab({ token }: { token: string }) {
+function CommsTab({ token, prefill }: { token: string; prefill?: string | null }) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
-  const [audience, setAudience] = useState<"creators" | "all">("creators");
+  const [audience, setAudience] = useState<"creators" | "all" | "fans" | "admins" | "custom">(
+    prefill ? "custom" : "creators",
+  );
+  const [recipients, setRecipients] = useState(prefill ?? "");
+  const [pickerQ, setPickerQ] = useState("");
+  const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [history, setHistory] = useState<
+    { id: string; actor: string; subject: string; audience: string; recipients: number; sent: number; created_at: string }[] | null
+  >(null);
+
+  const loadHistory = useCallback(() => {
+    api.adminCommsLog(token).then(setHistory).catch(() => setHistory([]));
+  }, [token]);
+  useEffect(loadHistory, [loadHistory]);
+  useEffect(() => {
+    if (audience === "custom" && !users) {
+      api.adminUsers(token).then(setUsers).catch(() => setUsers([]));
+    }
+  }, [audience, users, token]);
+
+  const recipientList = recipients
+    .split(/[\s,;]+/)
+    .map((e) => e.trim())
+    .filter((e) => e.includes("@"));
+
+  function addRecipient(email: string) {
+    if (!recipientList.includes(email)) {
+      setRecipients((r) => (r.trim() ? `${r.trim()}, ${email}` : email));
+    }
+  }
 
   async function send() {
     if (!subject.trim() || !message.trim()) { setNote("Subject and message are required."); return; }
-    if (!window.confirm(`Send "${subject}" to ${audience === "all" ? "ALL users" : "all creators"}?`)) return;
+    if (audience === "custom" && recipientList.length === 0) { setNote("Add at least one recipient email."); return; }
+    const who =
+      audience === "custom"
+        ? `${recipientList.length} selected recipient(s)`
+        : audience === "all"
+          ? "ALL users"
+          : `all ${audience}`;
+    if (!window.confirm(`Send "${subject}" to ${who}?`)) return;
     setBusy(true);
     setNote(null);
     try {
-      const r = await api.adminBroadcast(token, { subject: subject.trim(), message: message.trim(), audience });
+      const r = await api.adminBroadcast(token, {
+        subject: subject.trim(),
+        message: message.trim(),
+        audience,
+        recipients: audience === "custom" ? recipientList : undefined,
+      });
       setNote(`Sent ${r.sent}/${r.recipients} email(s).`);
       setSubject("");
       setMessage("");
+      loadHistory();
     } catch (e) {
       setNote(e instanceof Error ? e.message : "Broadcast failed.");
     } finally {
@@ -831,46 +891,118 @@ function CommsTab({ token }: { token: string }) {
     }
   }
 
+  const pickerMatches =
+    audience === "custom" && users
+      ? users.filter(
+          (u) =>
+            pickerQ.length >= 1 &&
+            (u.email.toLowerCase().includes(pickerQ.toLowerCase()) ||
+              u.username.toLowerCase().includes(pickerQ.toLowerCase())) &&
+            !recipientList.includes(u.email),
+        ).slice(0, 6)
+      : [];
+
   return (
-    <div className="max-w-2xl space-y-5">
-      <div>
-        <h3 className="text-base font-bold text-ink">Broadcast an announcement</h3>
-        <p className="body-muted mt-1">
-          Emails every {audience === "all" ? "user" : "creator"} from accounts@tippingjar.co.za. While the
-          comms override is active, one preview copy goes to the override inbox instead.
-        </p>
-      </div>
-      <div className="flex gap-2">
-        {(["creators", "all"] as const).map((a) => (
-          <button
-            key={a}
-            onClick={() => setAudience(a)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-              audience === a ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
-            }`}
-          >
-            {a === "creators" ? "Creators" : "Everyone"}
+    <div className="grid gap-8 xl:grid-cols-[1fr_380px]">
+      <div className="max-w-2xl space-y-5">
+        <div>
+          <h3 className="text-base font-bold text-ink">Send a message</h3>
+          <p className="body-muted mt-1">
+            Email a whole group or hand-picked people. While the comms override is active, one
+            preview copy goes to the override inbox instead of the real recipients.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(["creators", "fans", "admins", "all", "custom"] as const).map((a) => (
+            <button
+              key={a}
+              onClick={() => setAudience(a)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold capitalize transition ${
+                audience === a ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+              }`}
+            >
+              {a === "custom" ? "Specific people" : a === "all" ? "Everyone" : a}
+            </button>
+          ))}
+        </div>
+
+        {audience === "custom" && (
+          <div className="space-y-2">
+            <div className="relative">
+              <input
+                value={pickerQ}
+                onChange={(e) => setPickerQ(e.target.value)}
+                placeholder="Search users to add…"
+                className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
+              />
+              {pickerMatches.length > 0 && (
+                <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border bg-white shadow-lift">
+                  {pickerMatches.map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => { addRecipient(u.email); setPickerQ(""); }}
+                      className="flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-darker"
+                    >
+                      <span className="text-ink">{u.email}</span>
+                      <span className="text-xs text-muted">{u.role}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <textarea
+              value={recipients}
+              onChange={(e) => setRecipients(e.target.value)}
+              rows={2}
+              placeholder="Recipient emails (comma or space separated)"
+              className="w-full rounded-xl border border-border bg-white px-4 py-2.5 font-mono text-xs text-ink focus:border-primary/40 focus:outline-none"
+            />
+            <p className="text-xs text-muted">{recipientList.length} recipient(s)</p>
+          </div>
+        )}
+
+        <input
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          placeholder="Subject"
+          className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-ink focus:border-primary/40 focus:outline-none"
+        />
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          rows={8}
+          placeholder="Write your message… (plain text; line breaks are kept)"
+          className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-ink focus:border-primary/40 focus:outline-none"
+        />
+        <div className="flex items-center gap-3">
+          <button onClick={send} disabled={busy} className="btn-primary !px-6 !py-2.5 text-sm disabled:opacity-50">
+            {busy ? "Sending…" : <><i className="bi bi-send-fill" /> Send</>}
           </button>
-        ))}
+          {note && <p className="text-sm text-teal">{note}</p>}
+        </div>
       </div>
-      <input
-        value={subject}
-        onChange={(e) => setSubject(e.target.value)}
-        placeholder="Subject"
-        className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-ink focus:border-primary/40 focus:outline-none"
-      />
-      <textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        rows={8}
-        placeholder="Write your announcement… (plain text; line breaks are kept)"
-        className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-ink focus:border-primary/40 focus:outline-none"
-      />
-      <div className="flex items-center gap-3">
-        <button onClick={send} disabled={busy} className="btn-primary !px-6 !py-2.5 text-sm disabled:opacity-50">
-          {busy ? "Sending…" : <><i className="bi bi-send-fill" /> Send broadcast</>}
-        </button>
-        {note && <p className="text-sm text-teal">{note}</p>}
+
+      <div>
+        <h3 className="mb-3 text-base font-bold text-ink">Sent history</h3>
+        {!history ? (
+          <Loading />
+        ) : history.length === 0 ? (
+          <p className="body-muted">Nothing sent yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {history.slice(0, 12).map((h) => (
+              <div key={h.id} className="card !p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-semibold text-ink">{h.subject}</p>
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] text-primary">{h.audience}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted">
+                  {h.actor || "system"} · {when(h.created_at)} · {h.sent}/{h.recipients} sent
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

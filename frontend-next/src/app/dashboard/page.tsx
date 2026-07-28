@@ -4,7 +4,7 @@
 // The marketing top-nav + footer are hidden for /dashboard (see SiteFrame), so
 // this owns the whole viewport. Tabs render in the content area on the right.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -31,6 +31,8 @@ import {
   ArrowUpRight,
   Trophy,
   Download,
+  UserRound,
+  Megaphone,
   QrCode,
   Code2,
   Send,
@@ -51,7 +53,7 @@ import type {
   Balance,
 } from "@/types";
 
-type Tab = "overview" | "tips" | "supporters" | "transactions" | "referrals" | "studio";
+type Tab = "overview" | "tips" | "supporters" | "transactions" | "referrals" | "studio" | "profile";
 
 const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -60,6 +62,7 @@ const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "transactions", label: "Transactions", icon: Receipt },
   { id: "referrals", label: "Referrals", icon: Users },
   { id: "studio", label: "Studio", icon: Palette },
+  { id: "profile", label: "Profile", icon: UserRound },
 ];
 
 const money = (n: number) =>
@@ -202,6 +205,9 @@ export default function DashboardPage() {
             )}
             {tab === "referrals" && <ReferralsTab referral={referral} />}
             {tab === "studio" && <StudioTab token={token} slug={myCreator?.slug ?? null} />}
+            {tab === "profile" && (
+              <ProfileTab token={token} creator={myCreator} onSaved={setMyCreator} />
+            )}
           </div>
         </main>
       </div>
@@ -473,6 +479,30 @@ function OverviewTab({
         <StatCard label="Total tips" value={String(stats?.tip_count ?? 0)} icon={Heart} accent="#EC4899" />
       </div>
 
+      {/* Achievements */}
+      {stats && (
+        <div className="flex flex-wrap gap-2">
+          {[
+            { earned: (stats.tip_count ?? 0) >= 1, icon: "🫙", label: "First tip" },
+            { earned: Number(stats.total_amount) >= 100, icon: "🪙", label: "R100 club" },
+            { earned: Number(stats.total_amount) >= 1000, icon: "💰", label: "R1k club" },
+            { earned: (stats.supporter_count ?? 0) >= 5, icon: "🙌", label: "5 supporters" },
+            { earned: (stats.supporter_count ?? 0) >= 25, icon: "🔥", label: "25 supporters" },
+            { earned: (stats.tip_count ?? 0) >= 50, icon: "⭐", label: "50 tips" },
+          ].map((a) => (
+            <span
+              key={a.label}
+              title={a.earned ? "Earned!" : "Locked — keep going"}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                a.earned ? "border-gold/40 bg-gold/10 text-ink" : "border-border text-muted/50 grayscale"
+              }`}
+            >
+              {a.icon} {a.label}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Share tip link */}
       <div className="card relative overflow-hidden bg-brand-gradient !border-transparent">
         <span aria-hidden className="dot-grid pointer-events-none absolute inset-0 opacity-[0.12]" />
@@ -682,6 +712,11 @@ function TipsTab({ tips, loading, token }: { tips: Tip[]; loading: boolean; toke
 function SupportersTab({ token, creatorId }: { token: string | null; creatorId: string | null }) {
   const [rows, setRows] = useState<Supporter[] | null>(null);
   const [err, setErr] = useState(false);
+  const [composing, setComposing] = useState(false);
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendNote, setSendNote] = useState<string | null>(null);
   useEffect(() => {
     if (!token || !creatorId) { setRows([]); return; }
     api.creatorSupporters(token, creatorId).then(setRows).catch(() => setErr(true));
@@ -694,6 +729,7 @@ function SupportersTab({ token, creatorId }: { token: string | null; creatorId: 
 
   const medals = ["🥇", "🥈", "🥉"];
   const total = rows.reduce((s, r) => s + Number(r.total || 0), 0);
+  const withEmail = rows.filter((r) => r.email).length;
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -701,7 +737,60 @@ function SupportersTab({ token, creatorId }: { token: string | null; creatorId: 
           <h2 className="text-xl font-medium tracking-tight text-ink">Your supporters</h2>
           <p className="body-muted mt-1">{rows.length} supporter{rows.length === 1 ? "" : "s"} · R{money(total)} lifetime</p>
         </div>
+        <button
+          onClick={() => setComposing((v) => !v)}
+          disabled={withEmail === 0}
+          className="btn-primary !px-5 !py-2.5 text-sm disabled:opacity-50"
+          title={withEmail === 0 ? "No supporters left an email yet" : `Email your ${withEmail} reachable supporter(s)`}
+        >
+          <Megaphone className="h-4 w-4" strokeWidth={2.2} /> Message supporters
+        </button>
       </div>
+
+      {composing && (
+        <div className="card space-y-3 !p-5">
+          <p className="text-sm font-medium text-ink">
+            Send an update to {withEmail} supporter{withEmail === 1 ? "" : "s"} who left an email
+          </p>
+          <input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Subject — e.g. New album out Friday!"
+            className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
+          />
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={5}
+            placeholder="Your update… fans love hearing what their support made possible."
+            className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
+          />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={async () => {
+                if (!token || !creatorId || !subject.trim() || !body.trim()) return;
+                setSending(true);
+                setSendNote(null);
+                try {
+                  const r = await api.messageSupporters(token, creatorId, { subject: subject.trim(), message: body.trim() });
+                  setSendNote(`Sent to ${r.sent}/${r.recipients} supporter(s).`);
+                  setSubject("");
+                  setBody("");
+                } catch (e) {
+                  setSendNote(e instanceof Error ? e.message : "Send failed.");
+                } finally {
+                  setSending(false);
+                }
+              }}
+              disabled={sending || !subject.trim() || !body.trim()}
+              className="btn-primary !px-5 !py-2 text-sm disabled:opacity-50"
+            >
+              {sending ? "Sending…" : "Send update"}
+            </button>
+            {sendNote && <p className="text-sm text-teal">{sendNote}</p>}
+          </div>
+        </div>
+      )}
       <div className="card overflow-hidden !p-0">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
@@ -999,4 +1088,165 @@ function TransactionsTab({ token, creatorId }: { token: string | null; creatorId
 // ─── Studio ──────────────────────────────────────────────────────────────────
 function StudioTab({ token, slug }: { token: string | null; slug: string | null }) {
   return <StudioEditor token={token} slug={slug} />;
+}
+
+
+// ─── Profile ─────────────────────────────────────────────────────────────────
+async function compressImage(file: File, maxSide: number, quality = 0.82): Promise<string> {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    const fr = new FileReader();
+    fr.onload = () => {
+      img.onload = () => {
+        const k = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * k);
+        c.height = Math.round(img.height * k);
+        c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+        res(c.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = rej;
+      img.src = fr.result as string;
+    };
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+}
+
+function ProfileTab({
+  token,
+  creator,
+  onSaved,
+}: {
+  token: string | null;
+  creator: Creator | null;
+  onSaved: (c: Creator) => void;
+}) {
+  const [displayName, setDisplayName] = useState(creator?.display_name ?? "");
+  const [tagline, setTagline] = useState(creator?.tagline ?? "");
+  const [category, setCategory] = useState(creator?.category ?? "");
+  const [goal, setGoal] = useState(creator?.tip_goal ? String(Number(creator.tip_goal)) : "");
+  const [avatar, setAvatar] = useState<string | null>(null); // pending data URL
+  const [cover, setCover] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const avatarRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
+
+  if (!creator) {
+    return (
+      <EmptyState icon={UserRound} title="No creator page yet" body="Set up your creator page first — then manage it here." />
+    );
+  }
+
+  const avatarPreview = avatar ?? creator.avatar_url;
+  const coverPreview = cover ?? creator.cover_url;
+
+  async function save() {
+    if (!token) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const updated = await api.updateMyCreatorProfile(token, {
+        display_name: displayName.trim() || undefined,
+        tagline,
+        category,
+        tip_goal: goal.trim() ? Number(goal) : undefined,
+        avatar_url: avatar ?? undefined,
+        cover_url: cover ?? undefined,
+      });
+      onSaved(updated);
+      setAvatar(null);
+      setCover(null);
+      setNote("Profile saved — your public page is updated.");
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Could not save your profile.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const inputCls =
+    "w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none";
+
+  return (
+    <div className="max-w-2xl space-y-6">
+      <div>
+        <h2 className="text-xl font-medium tracking-tight text-ink">Your public profile</h2>
+        <p className="body-muted mt-1">What fans see on tippingjar.co.za/creator/{creator.slug}</p>
+      </div>
+
+      {/* Cover + avatar */}
+      <div className="card overflow-hidden !p-0">
+        <button
+          onClick={() => coverRef.current?.click()}
+          className="relative block h-36 w-full bg-navy transition hover:opacity-90"
+          title="Change cover photo"
+        >
+          {coverPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverPreview} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="absolute inset-0 grid place-items-center text-sm text-white/70">
+              Click to add a cover photo
+            </span>
+          )}
+        </button>
+        <div className="flex items-end gap-4 px-6 pb-5">
+          <button
+            onClick={() => avatarRef.current?.click()}
+            className="-mt-10 h-20 w-20 shrink-0 overflow-hidden rounded-3xl bg-white ring-4 ring-white transition hover:opacity-90"
+            title="Change avatar"
+          >
+            {avatarPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="grid h-full w-full place-items-center bg-primary text-xl font-bold text-white">
+                {(creator.display_name || "T").charAt(0)}
+              </span>
+            )}
+          </button>
+          <p className="pb-1 text-xs text-muted">Click the cover or avatar to change it. Images are compressed automatically.</p>
+        </div>
+        <input ref={avatarRef} type="file" accept="image/*" className="hidden"
+          onChange={async (e) => { const fl = e.target.files?.[0]; if (fl) setAvatar(await compressImage(fl, 500)); e.target.value = ""; }} />
+        <input ref={coverRef} type="file" accept="image/*" className="hidden"
+          onChange={async (e) => { const fl = e.target.files?.[0]; if (fl) setCover(await compressImage(fl, 1400)); e.target.value = ""; }} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-xs font-medium text-muted">
+          Display name
+          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className={`${inputCls} mt-1.5`} />
+        </label>
+        <label className="block text-xs font-medium text-muted">
+          Category
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className={`${inputCls} mt-1.5`}>
+            {["", "Music", "Art", "Writing", "Streaming", "Podcasts", "Photography", "Comedy", "Food", "Fitness", "Education"].map((c) => (
+              <option key={c} value={c}>{c || "— none —"}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <label className="block text-xs font-medium text-muted">
+        Tagline
+        <input value={tagline} onChange={(e) => setTagline(e.target.value)} maxLength={140} placeholder="One line about what you make" className={`${inputCls} mt-1.5`} />
+      </label>
+      <label className="block text-xs font-medium text-muted">
+        Monthly tip goal (R) — powers the jar on your page
+        <input value={goal} onChange={(e) => setGoal(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" placeholder="e.g. 3000" className={`${inputCls} mt-1.5 max-w-[200px]`} />
+      </label>
+
+      <div className="flex items-center gap-3">
+        <button onClick={save} disabled={busy} className="btn-primary !px-6 !py-2.5 text-sm disabled:opacity-50">
+          {busy ? "Saving…" : "Save profile"}
+        </button>
+        <Link href={`/creator/${creator.slug}`} className="text-sm text-muted hover:text-ink">
+          View public page <ArrowUpRight className="inline h-3.5 w-3.5" strokeWidth={2.4} />
+        </Link>
+        {note && <p className="text-sm text-teal">{note}</p>}
+      </div>
+    </div>
+  );
 }

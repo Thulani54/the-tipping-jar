@@ -104,6 +104,20 @@ async fn main() {
     .execute(&pools.accounts)
     .await
     .expect("failed to ensure signup_reminders table");
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS comms_log (
+            id         UUID PRIMARY KEY,
+            actor      TEXT NOT NULL DEFAULT '',
+            subject    TEXT NOT NULL,
+            audience   TEXT NOT NULL,
+            recipients BIGINT NOT NULL,
+            sent       BIGINT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )",
+    )
+    .execute(&pools.accounts)
+    .await
+    .expect("failed to ensure comms_log table");
 
     // Schedule the nightly report. Cron is 6-field (sec min hour dom mon dow),
     // evaluated in UTC — 22:00 UTC = 00:00 SAST.
@@ -158,6 +172,7 @@ async fn main() {
         .route("/internal/run-signup-reminders", post(trigger_reminders))
         .route("/internal/send-thanks", post(send_thanks))
         .route("/internal/broadcast", post(broadcast))
+        .route("/internal/comms-log", axum::routing::get(comms_log))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(pools);
 
@@ -289,12 +304,17 @@ async fn send_thanks(Json(req): Json<ThanksReq>) -> Result<Json<serde_json::Valu
 struct BroadcastReq {
     subject: String,
     message: String,
-    /// "creators" (default) or "all"
+    /// "creators" (default) | "fans" | "admins" | "all" | "custom"
     audience: Option<String>,
+    /// Explicit recipient emails — used when audience is "custom" (or always
+    /// merged in when present, e.g. a creator messaging their supporters).
+    recipients: Option<Vec<String>>,
+    /// Who initiated this (admin email or "creator:<name>") — for the log.
+    actor: Option<String>,
 }
 
-/// Internal: broadcast an announcement to creators (or every user).
-/// Honors COMMS_OVERRIDE_TO — while set, one copy goes to the override.
+/// Internal: send an announcement to an audience, a custom list, or one person.
+/// Honors COMMS_OVERRIDE_TO — while set, one preview copy goes to the override.
 async fn broadcast(
     State(pools): State<Pools>,
     Json(req): Json<BroadcastReq>,
@@ -302,24 +322,46 @@ async fn broadcast(
     if req.subject.trim().is_empty() || req.message.trim().is_empty() {
         return Err(AppError::BadRequest("subject and message are required".into()));
     }
-    let audience = req.audience.as_deref().unwrap_or("creators");
-    let rows: Vec<(String,)> = if audience == "all" {
-        sqlx::query_as("SELECT email FROM users ORDER BY created_at").fetch_all(&pools.accounts).await?
-    } else {
-        sqlx::query_as("SELECT email FROM users WHERE role IN ('creator','admin') ORDER BY created_at")
-            .fetch_all(&pools.accounts)
-            .await?
+    let audience = req.audience.as_deref().unwrap_or("creators").to_string();
+
+    // Resolve the intended recipient list.
+    let mut intended: Vec<String> = match audience.as_str() {
+        "custom" => Vec::new(),
+        "all" => sqlx::query_as::<_, (String,)>("SELECT email FROM users ORDER BY created_at")
+            .fetch_all(&pools.accounts).await?.into_iter().map(|r| r.0).collect(),
+        "fans" | "admins" | "creators" => {
+            let role = audience.trim_end_matches('s'); // fans->fan etc.
+            sqlx::query_as::<_, (String,)>("SELECT email FROM users WHERE role = $1 ORDER BY created_at")
+                .bind(role)
+                .fetch_all(&pools.accounts).await?.into_iter().map(|r| r.0).collect()
+        }
+        other => return Err(AppError::BadRequest(format!("unknown audience '{other}'"))),
     };
+    if let Some(extra) = &req.recipients {
+        for e in extra {
+            let e = e.trim().to_lowercase();
+            if e.contains('@') && !intended.contains(&e) {
+                intended.push(e);
+            }
+        }
+    }
+    if intended.is_empty() {
+        return Err(AppError::BadRequest("no recipients resolved".into()));
+    }
+    if intended.len() > 2000 {
+        return Err(AppError::BadRequest("recipient list too large".into()));
+    }
+
     let override_to = env("COMMS_OVERRIDE_TO", "");
-    let recipients: Vec<String> = if override_to.is_empty() {
-        rows.into_iter().map(|r| r.0).collect()
+    let send_list: Vec<String> = if override_to.is_empty() {
+        intended.clone()
     } else {
-        vec![override_to] // one representative copy while testing
+        vec![override_to] // one representative preview while testing
     };
 
     let html_body = req.message.replace('\n', "<br/>");
     let mut sent = 0usize;
-    for to in &recipients {
+    for to in &send_list {
         let subject = req.subject.clone();
         let text = req.message.clone();
         let html = format!(
@@ -345,8 +387,40 @@ async fn broadcast(
             Err(e) => tracing::error!("broadcast to {to} failed: {e}"),
         }
     }
-    tracing::info!("broadcast '{}' sent to {sent}/{} recipient(s)", req.subject, recipients.len());
-    Ok(Json(json!({ "recipients": recipients.len(), "sent": sent })))
+
+    // Log it.
+    let _ = sqlx::query(
+        "INSERT INTO comms_log (id, actor, subject, audience, recipients, sent) VALUES ($1,$2,$3,$4,$5,$6)",
+    )
+    .bind(Uuid::new_v4())
+    .bind(req.actor.unwrap_or_default())
+    .bind(req.subject.chars().take(200).collect::<String>())
+    .bind(&audience)
+    .bind(intended.len() as i64)
+    .bind(sent as i64)
+    .execute(&pools.accounts)
+    .await;
+
+    tracing::info!("broadcast '{}' [{audience}] -> {sent}/{} (intended {})", req.subject, send_list.len(), intended.len());
+    Ok(Json(json!({ "recipients": intended.len(), "sent": sent, "audience": audience })))
+}
+
+/// Internal: recent comms history.
+async fn comms_log(State(pools): State<Pools>) -> Result<Json<Vec<serde_json::Value>>, AppError> {
+    let rows: Vec<(Uuid, String, String, String, i64, i64, chrono::DateTime<Utc>)> = sqlx::query_as(
+        "SELECT id, actor, subject, audience, recipients, sent, created_at
+         FROM comms_log ORDER BY created_at DESC LIMIT 100",
+    )
+    .fetch_all(&pools.accounts)
+    .await?;
+    Ok(Json(
+        rows.into_iter()
+            .map(|(id, actor, subject, audience, recipients, sent, created_at)| {
+                json!({ "id": id, "actor": actor, "subject": subject, "audience": audience,
+                        "recipients": recipients, "sent": sent, "created_at": created_at })
+            })
+            .collect(),
+    ))
 }
 
 /// Find creator accounts older than REMINDER_AFTER_HOURS with no creator page

@@ -391,8 +391,13 @@ async fn broadcast(
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, AppError> {
     let (_, email) = require_admin(&st, &headers).await?;
-    let subject = body.get("subject").and_then(|s| s.as_str()).unwrap_or("");
-    audit(&st, &email, "comms.broadcast", subject, "").await;
+    let subject = body.get("subject").and_then(|s| s.as_str()).unwrap_or("").to_string();
+    let audience = body.get("audience").and_then(|s| s.as_str()).unwrap_or("creators").to_string();
+    audit(&st, &email, "comms.broadcast", &subject, &audience).await;
+    let mut body = body;
+    if let Some(obj) = body.as_object_mut() {
+        obj.insert("actor".into(), json!(email));
+    }
     let resp = st
         .http
         .post(format!("{}/internal/broadcast", st.scheduler_url))
@@ -440,6 +445,16 @@ async fn system(State(st): State<AppState>, headers: HeaderMap) -> Result<Json<V
         results.push(h.await.unwrap_or_else(|_| json!({ "service": "?", "ok": false })));
     }
     Ok(Json(Value::Array(results)))
+}
+
+/// Comms history from the scheduler's log.
+async fn comms_log(State(st): State<AppState>, headers: HeaderMap) -> Result<Json<Value>, AppError> {
+    require_admin(&st, &headers).await?;
+    Ok(Json(
+        fetch_json(&st, format!("{}/internal/comms-log", st.scheduler_url), false)
+            .await
+            .unwrap_or(Value::Array(vec![])),
+    ))
 }
 
 /// The admin action trail.
@@ -495,6 +510,7 @@ async fn main() {
         .route("/ops/signup-reminders", post(run_signup_reminders))
         .route("/creators/:id/featured", post(set_creator_featured))
         .route("/broadcast", post(broadcast))
+        .route("/comms-log", get(comms_log))
         .route("/system", get(system))
         .route("/audit", get(audit_list))
         .layer(tower_http::cors::CorsLayer::permissive())

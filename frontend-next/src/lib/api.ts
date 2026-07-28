@@ -214,13 +214,22 @@ export const api = {
     }),
   adminBroadcast: (
     token: string,
-    body: { subject: string; message: string; audience: "creators" | "all" },
+    body: {
+      subject: string;
+      message: string;
+      audience: "creators" | "all" | "fans" | "admins" | "custom";
+      recipients?: string[];
+    },
   ) =>
     request<{ recipients: number; sent: number }>("/admin/broadcast", {
       method: "POST",
       body,
       token,
     }),
+  adminCommsLog: (token: string) =>
+    request<
+      { id: string; actor: string; subject: string; audience: string; recipients: number; sent: number; created_at: string }[]
+    >("/admin/comms-log", { token }),
   adminSystem: (token: string) =>
     request<{ service: string; ok: boolean }[]>("/admin/system", { token }),
   adminAudit: (token: string) => request<AuditEntry[]>("/admin/audit", { token }),
@@ -246,6 +255,17 @@ export const api = {
     request<Jar>(`/creators/creators/${slug}/jars`, { method: "POST", body, token }),
   myCreatorProfile: (token: string) =>
     request<Creator>("/creators/creators/me", { token }),
+  updateMyCreatorProfile: (
+    token: string,
+    body: {
+      display_name?: string;
+      tagline?: string;
+      category?: string;
+      tip_goal?: number;
+      avatar_url?: string;
+      cover_url?: string;
+    },
+  ) => request<Creator>("/creators/creators/me", { method: "PUT", body, token }),
 
   // ── creators: studio designs (promo graphics gallery) ─────────────
   myDesigns: (token: string) =>
@@ -290,6 +310,15 @@ export const api = {
     request<CreatorStats>(`/tips/tips/creator/${creatorId}/stats`),
   creatorSupporters: (token: string, creatorId: string) =>
     request<Supporter[]>(`/tips/tips/creator/${creatorId}/supporters`, { token }),
+  messageSupporters: (
+    token: string,
+    creatorId: string,
+    body: { subject: string; message: string },
+  ) =>
+    request<{ recipients: number; sent: number }>(
+      `/tips/tips/creator/${creatorId}/message-supporters`,
+      { method: "POST", body, token },
+    ),
   thankTip: (token: string, tipId: string, message: string) =>
     request<Tip>(`/tips/tips/${tipId}/thanks`, {
       method: "POST",

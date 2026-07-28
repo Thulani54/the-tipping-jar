@@ -317,6 +317,62 @@ async fn thank_tip(
     Ok(Json(updated))
 }
 
+#[derive(Deserialize)]
+struct MessageSupportersReq {
+    subject: String,
+    message: String,
+}
+
+/// Creator emails an update to every supporter who left an email address.
+async fn message_supporters(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(creator_id): Path<Uuid>,
+    Json(req): Json<MessageSupportersReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    require_owner(&st, &headers, creator_id).await?;
+    if req.subject.trim().is_empty() || req.message.trim().is_empty() {
+        return Err(AppError::BadRequest("subject and message are required".into()));
+    }
+    let emails: Vec<(String,)> = sqlx::query_as(
+        "SELECT DISTINCT lower(tipper_email) FROM tips
+         WHERE creator_id = $1 AND status = 'completed' AND tipper_email <> ''",
+    )
+    .bind(creator_id)
+    .fetch_all(&st.pool)
+    .await?;
+    if emails.is_empty() {
+        return Err(AppError::BadRequest(
+            "none of your supporters left an email address yet".into(),
+        ));
+    }
+    let name: Option<(String,)> = sqlx::query_as(
+        "SELECT creator_name FROM tips WHERE creator_id = $1 AND creator_name <> '' LIMIT 1",
+    )
+    .bind(creator_id)
+    .fetch_optional(&st.pool)
+    .await?;
+    let creator_name = name.map(|n| n.0).unwrap_or_else(|| "your creator".into());
+
+    let body = serde_json::json!({
+        "subject": format!("{} · update from {}", req.subject.trim(), creator_name),
+        "message": req.message,
+        "audience": "custom",
+        "recipients": emails.into_iter().map(|e| e.0).collect::<Vec<_>>(),
+        "actor": format!("creator:{creator_name}"),
+    });
+    let resp = st
+        .http
+        .post(format!("{}/internal/broadcast", st.scheduler_url))
+        .json(&body)
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        return Err(AppError::Upstream(format!("scheduler: {}", resp.status())));
+    }
+    Ok(Json(resp.json().await?))
+}
+
 /// Internal (admin portal): latest tips across every status. Key-guarded.
 async fn list_tips_internal(
     State(st): State<AppState>,
@@ -641,6 +697,7 @@ async fn main() {
         .route("/tips/pledges/creator/:creator_id", get(pledges_for_creator))
         .route("/tips/creator/:creator_id", get(tips_for_creator))
         .route("/tips/creator/:creator_id/supporters", get(supporters_for_creator))
+        .route("/tips/creator/:creator_id/message-supporters", post(message_supporters))
         .route("/tips/:id/thanks", post(thank_tip))
         .route("/tips/creator/:creator_id/stats", get(creator_stats))
         .route("/tips/fan/:email", get(tips_for_fan))

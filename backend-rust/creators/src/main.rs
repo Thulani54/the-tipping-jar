@@ -376,6 +376,63 @@ async fn create_jar(
 }
 
 /// The caller's own creator profile (by user id from the token).
+#[derive(Deserialize)]
+struct UpdateMeReq {
+    display_name: Option<String>,
+    tagline: Option<String>,
+    category: Option<String>,
+    tip_goal: Option<f64>,
+    avatar_url: Option<String>,
+    cover_url: Option<String>,
+}
+
+/// Creator edits their own profile (partial update; images as data URLs).
+async fn update_me(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<UpdateMeReq>,
+) -> Result<Json<Creator>, AppError> {
+    let token = bearer(&headers)?;
+    let user_id = verify_caller(&st, &token).await?;
+    if let Some(d) = &req.display_name {
+        if d.trim().is_empty() || d.len() > 60 {
+            return Err(AppError::BadRequest("display_name must be 1–60 characters".into()));
+        }
+    }
+    for (label, img) in [("avatar", &req.avatar_url), ("cover", &req.cover_url)] {
+        if let Some(v) = img {
+            if v.len() > 500_000 {
+                return Err(AppError::BadRequest(format!("{label} image is too large")));
+            }
+            if !v.is_empty() && !v.starts_with("data:image/") {
+                return Err(AppError::BadRequest(format!("{label} must be an image data URL")));
+            }
+        }
+    }
+    let tip_goal = req.tip_goal.and_then(Decimal::from_f64_retain).map(|d| d.round_dp(2));
+    let row: Option<Creator> = sqlx::query_as(&format!(
+        "UPDATE creator_profiles SET
+            display_name = COALESCE($1, display_name),
+            tagline      = COALESCE($2, tagline),
+            category     = COALESCE($3, category),
+            tip_goal     = COALESCE($4, tip_goal),
+            avatar_url   = COALESCE($5, avatar_url),
+            cover_url    = COALESCE($6, cover_url)
+         WHERE user_id = $7 RETURNING {CREATOR_COLUMNS}"
+    ))
+    .bind(req.display_name.map(|d| d.trim().to_string()))
+    .bind(req.tagline)
+    .bind(req.category)
+    .bind(tip_goal)
+    .bind(req.avatar_url)
+    .bind(req.cover_url)
+    .bind(user_id)
+    .fetch_optional(&st.pool)
+    .await?;
+    row.map(Json)
+        .ok_or_else(|| AppError::NotFound("no creator profile for this user".into()))
+}
+
 async fn get_me(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -764,7 +821,7 @@ async fn main() {
     let app = Router::new()
         .route("/health", get(health))
         .route("/creators", post(create_creator).get(list_creators))
-        .route("/creators/me", get(get_me))
+        .route("/creators/me", get(get_me).put(update_me))
         .route("/creators/studio/designs", get(list_designs).post(save_design))
         .route(
             "/creators/studio/designs/:id",
