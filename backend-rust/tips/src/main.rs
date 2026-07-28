@@ -42,10 +42,11 @@ struct Tip {
     creator_net: Decimal,
     thanks_message: String,
     thanked_at: Option<chrono::DateTime<chrono::Utc>>,
+    jar_id: Option<Uuid>,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
-const TIP_COLUMNS: &str = "id, creator_id, creator_name, tipper_name, tipper_email, amount, message, status, reference, platform_fee, service_fee, creator_net, thanks_message, thanked_at, created_at";
+const TIP_COLUMNS: &str = "id, creator_id, creator_name, tipper_name, tipper_email, amount, message, status, reference, platform_fee, service_fee, creator_net, thanks_message, thanked_at, jar_id, created_at";
 
 #[derive(sqlx::FromRow, Serialize)]
 struct Pledge {
@@ -91,6 +92,7 @@ struct TipReq {
     tipper_name: Option<String>,
     tipper_email: Option<String>,
     message: Option<String>,
+    jar_id: Option<Uuid>,
 }
 
 // ── Handlers ────────────────────────────────────────────────────────────────
@@ -171,8 +173,8 @@ async fn create_tip(
     let row: Tip = sqlx::query_as(&format!(
         "INSERT INTO tips
             (id, creator_id, creator_name, tipper_name, tipper_email, amount, message,
-             status, reference, platform_fee, service_fee, creator_net)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+             status, reference, platform_fee, service_fee, creator_net, jar_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          RETURNING {TIP_COLUMNS}"
     ))
     .bind(Uuid::new_v4())
@@ -187,6 +189,7 @@ async fn create_tip(
     .bind(charge.platform_fee)
     .bind(charge.service_fee)
     .bind(charge.creator_net)
+    .bind(req.jar_id)
     .fetch_one(&st.pool)
     .await?;
 
@@ -397,6 +400,22 @@ async fn message_supporters(
         return Err(AppError::Upstream(format!("scheduler: {}", resp.status())));
     }
     Ok(Json(resp.json().await?))
+}
+
+/// Public: a jar's fundraising progress.
+async fn jar_stats(
+    State(st): State<AppState>,
+    Path(jar_id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let row: Option<(i64, Decimal)> = sqlx::query_as(
+        "SELECT count(*), COALESCE(SUM(amount),0) FROM tips
+         WHERE jar_id = $1 AND status = 'completed'",
+    )
+    .bind(jar_id)
+    .fetch_optional(&st.pool)
+    .await?;
+    let (count, raised) = row.unwrap_or((0, Decimal::ZERO));
+    Ok(Json(serde_json::json!({ "count": count, "raised": raised.to_string() })))
 }
 
 #[derive(Deserialize)]
@@ -610,6 +629,7 @@ struct RecordReq {
     platform_fee: Option<String>,
     service_fee: Option<String>,
     creator_net: Option<String>,
+    jar_id: Option<Uuid>,
 }
 
 fn dec(s: &Option<String>) -> Decimal {
@@ -636,8 +656,8 @@ async fn record_tip(
     let row: Tip = sqlx::query_as(&format!(
         "INSERT INTO tips
             (id, creator_id, creator_name, tipper_name, tipper_email, amount, message,
-             status, reference, platform_fee, service_fee, creator_net)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'completed',$8,$9,$10,$11)
+             status, reference, platform_fee, service_fee, creator_net, jar_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'completed',$8,$9,$10,$11,$12)
          RETURNING {TIP_COLUMNS}"
     ))
     .bind(Uuid::new_v4())
@@ -651,6 +671,7 @@ async fn record_tip(
     .bind(dec(&req.platform_fee))
     .bind(dec(&req.service_fee))
     .bind(dec(&req.creator_net))
+    .bind(req.jar_id)
     .fetch_one(&st.pool)
     .await?;
     Ok(Json(row))
@@ -686,6 +707,9 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
         .execute(pool)
         .await?;
     sqlx::query("ALTER TABLE tips ADD COLUMN IF NOT EXISTS thanked_at TIMESTAMPTZ")
+        .execute(pool)
+        .await?;
+    sqlx::query("ALTER TABLE tips ADD COLUMN IF NOT EXISTS jar_id UUID")
         .execute(pool)
         .await?;
     sqlx::query(
@@ -756,6 +780,7 @@ async fn main() {
         .route("/tips/:id/thanks", post(thank_tip))
         .route("/tips/creator/:creator_id/stats", get(creator_stats))
         .route("/tips/fan/:email", get(tips_for_fan))
+        .route("/tips/jar/:jar_id/stats", get(jar_stats))
         .route("/tips/internal/record", post(record_tip))
         .route("/internal/tips/recent", get(list_tips_internal))
         .route("/internal/tips/stats/daily", get(daily_stats_internal))

@@ -111,6 +111,7 @@ export const api = {
     tipper_name?: string;
     tipper_email?: string;
     message?: string;
+    jar_id?: string;
   }) => request<Tip>("/tips/tips", { method: "POST", body }),
 
   // ── blog ──────────────────────────────────────────────────────────
@@ -254,6 +255,10 @@ export const api = {
     request<Jar>(`/creators/creators/${slug}/jars/${jarSlug}`),
   createJar: (token: string, slug: string, body: { name: string; description?: string; goal?: number }) =>
     request<Jar>(`/creators/creators/${slug}/jars`, { method: "POST", body, token }),
+  deleteJar: (token: string, id: string) =>
+    request<{ deleted: string }>(`/creators/creators/me/jars/${id}`, { method: "DELETE", token }),
+  jarStats: (jarId: string) =>
+    request<{ count: number; raised: string }>(`/tips/tips/jar/${jarId}/stats`),
   myCreatorProfile: (token: string) =>
     request<Creator>("/creators/creators/me", { token }),
   updateMyCreatorProfile: (
@@ -269,6 +274,7 @@ export const api = {
       thanks_note?: string;
       links?: { instagram?: string; twitter?: string; youtube?: string; website?: string };
       bank_details?: { bank?: string; account_name?: string; account_no?: string };
+      theme?: string;
     },
   ) => request<Creator>("/creators/creators/me", { method: "PUT", body, token }),
   myPosts: (token: string) =>
@@ -390,6 +396,7 @@ export const api = {
     tipper_name?: string;
     tipper_email?: string;
     message?: string;
+    jar_id?: string;
   }) => request<CheckoutResult>("/payments/payments/checkout", { method: "POST", body }),
   getPayment: (reference: string) =>
     request<Transaction>(`/payments/payments/${reference}`),

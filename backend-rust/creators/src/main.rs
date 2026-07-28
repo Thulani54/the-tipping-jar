@@ -42,11 +42,12 @@ struct Creator {
     tip_presets: String,
     thanks_note: String,
     links: String,
+    theme: String,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
 const CREATOR_COLUMNS: &str =
-    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, is_featured, tip_presets, thanks_note, links, created_at";
+    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, is_featured, tip_presets, thanks_note, links, theme, created_at";
 
 #[derive(sqlx::FromRow, Serialize)]
 struct SupportTier {
@@ -396,6 +397,8 @@ struct UpdateMeReq {
     links: Option<serde_json::Value>,
     /// JSON object {bank, account_name, account_no} — never exposed publicly
     bank_details: Option<serde_json::Value>,
+    /// Accent colour for the public page, e.g. "#12A25C"
+    theme: Option<String>,
 }
 
 /// Creator edits their own profile (partial update; images as data URLs).
@@ -448,8 +451,9 @@ async fn update_me(
             tip_presets  = COALESCE($7, tip_presets),
             thanks_note  = COALESCE($8, thanks_note),
             links        = COALESCE($9, links),
-            bank_details = COALESCE($10, bank_details)
-         WHERE user_id = $11 RETURNING {CREATOR_COLUMNS}"
+            bank_details = COALESCE($10, bank_details),
+            theme        = COALESCE($11, theme)
+         WHERE user_id = $12 RETURNING {CREATOR_COLUMNS}"
     ))
     .bind(req.display_name.map(|d| d.trim().to_string()))
     .bind(req.tagline)
@@ -461,6 +465,7 @@ async fn update_me(
     .bind(req.thanks_note.map(|t| t.chars().take(300).collect::<String>()))
     .bind(links)
     .bind(bank)
+    .bind(req.theme.filter(|t| t.is_empty() || (t.starts_with('#') && t.len() <= 9)))
     .bind(user_id)
     .fetch_optional(&st.pool)
     .await?;
@@ -625,6 +630,24 @@ async fn delete_creator_internal(
         .await?;
     if res.rows_affected() == 0 {
         return Err(AppError::NotFound("creator not found".into()));
+    }
+    Ok(Json(json!({ "deleted": id })))
+}
+
+/// Owner deletes one of their jars.
+async fn delete_jar(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    let res = sqlx::query("DELETE FROM jars WHERE id = $1 AND creator_id = $2")
+        .bind(id)
+        .bind(creator_id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("jar not found".into()));
     }
     Ok(Json(json!({ "deleted": id })))
 }
@@ -968,7 +991,7 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     )
     .execute(pool)
     .await?;
-    for col in ["tip_presets", "thanks_note", "links", "bank_details"] {
+    for col in ["tip_presets", "thanks_note", "links", "bank_details", "theme"] {
         sqlx::query(&format!(
             "ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS {col} TEXT NOT NULL DEFAULT ''"
         ))
@@ -1064,6 +1087,7 @@ async fn main() {
         .route("/creators/me/bank", get(get_my_bank))
         .route("/creators/me/posts", get(my_posts).post(create_post))
         .route("/creators/me/posts/:id", axum::routing::delete(delete_post))
+        .route("/creators/me/jars/:id", axum::routing::delete(delete_jar))
         .route("/creators/:slug/exclusive/count", get(exclusive_count))
         .route("/creators/:slug/exclusive/unlock", post(exclusive_unlock))
         .route("/creators/studio/designs", get(list_designs).post(save_design))

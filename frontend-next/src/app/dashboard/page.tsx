@@ -35,6 +35,8 @@ import {
   Megaphone,
   BarChart3,
   Lock,
+  Milk,
+  Tv,
   QrCode,
   Code2,
   Send,
@@ -46,6 +48,7 @@ import { StudioEditor } from "@/components/StudioEditor";
 import { LiveClock } from "@/components/Clock";
 import type {
   ExclusivePost,
+  Jar,
   Supporter,
   Tip,
   ReferralCode,
@@ -56,7 +59,7 @@ import type {
   Balance,
 } from "@/types";
 
-type Tab = "overview" | "tips" | "supporters" | "analytics" | "exclusive" | "transactions" | "referrals" | "studio" | "profile";
+type Tab = "overview" | "tips" | "supporters" | "analytics" | "exclusive" | "jars" | "transactions" | "referrals" | "studio" | "profile";
 
 const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -64,6 +67,7 @@ const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "supporters", label: "Supporters", icon: Trophy },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "exclusive", label: "Exclusive", icon: Lock },
+  { id: "jars", label: "Jars", icon: Milk },
   { id: "transactions", label: "Transactions", icon: Receipt },
   { id: "referrals", label: "Referrals", icon: Users },
   { id: "studio", label: "Studio", icon: Palette },
@@ -209,6 +213,7 @@ export default function DashboardPage() {
               <AnalyticsTab token={token} creatorId={myCreator?.id ?? null} tips={tips} />
             )}
             {tab === "exclusive" && <ExclusiveTab token={token} hasProfile={!!myCreator} />}
+            {tab === "jars" && <JarsTab token={token} creator={myCreator} />}
             {tab === "transactions" && (
               <TransactionsTab token={token} creatorId={myCreator?.id ?? null} />
             )}
@@ -537,6 +542,15 @@ function OverviewTab({
               </button>
               <button
                 onClick={() => {
+                  navigator.clipboard?.writeText(`https://www.tippingjar.co.za/overlay/${slug}`);
+                  window.alert("Overlay URL copied — add it as a Browser Source in OBS/Streamlabs (transparent, shows live tip alerts + your goal bar).");
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-5 py-2.5 text-sm font-medium text-ink transition hover:bg-white/25"
+              >
+                <Tv className="h-4 w-4" strokeWidth={2.2} /> OBS overlay
+              </button>
+              <button
+                onClick={() => {
                   navigator.clipboard?.writeText(
                     `<iframe src="https://www.tippingjar.co.za/embed/${slug}" width="320" height="440" style="border:0;border-radius:16px" title="Tip me on Tipping Jar"></iframe>`,
                   );
@@ -718,6 +732,20 @@ function TipsTab({ tips, loading, token }: { tips: Tip[]; loading: boolean; toke
 }
 
 // ─── Supporters ──────────────────────────────────────────────────────────────
+function exportTipsCsvSupporters(rows: Supporter[]) {
+  const esc = (v: string) => `"${(v || "").replace(/"/g, '""')}"`;
+  const lines = [
+    "name,email,tips,total,last_tip",
+    ...rows.map((r) => [esc(r.name), esc(r.email), r.tip_count, r.total, r.last_tip_at].join(",")),
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `supporters-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function SupportersTab({ token, creatorId }: { token: string | null; creatorId: string | null }) {
   const [rows, setRows] = useState<Supporter[] | null>(null);
   const [err, setErr] = useState(false);
@@ -746,6 +774,14 @@ function SupportersTab({ token, creatorId }: { token: string | null; creatorId: 
           <h2 className="text-xl font-medium tracking-tight text-ink">Your supporters</h2>
           <p className="body-muted mt-1">{rows.length} supporter{rows.length === 1 ? "" : "s"} · R{money(total)} lifetime</p>
         </div>
+        <button
+          onClick={() =>
+            exportTipsCsvSupporters(rows)
+          }
+          className="btn-ghost !px-4 !py-2.5 text-xs"
+        >
+          <Download className="h-3.5 w-3.5" strokeWidth={2.2} /> CSV
+        </button>
         <button
           onClick={() => setComposing((v) => !v)}
           disabled={withEmail === 0}
@@ -1221,6 +1257,7 @@ function ProfileTab({
     try { return creator?.links ? JSON.parse(creator.links) : {}; } catch { return {}; }
   });
   const [bank, setBank] = useState<Record<string, string>>({});
+  const [theme, setTheme] = useState(creator?.theme ?? "");
   useEffect(() => {
     if (token) api.myBankDetails(token).then((b) => setBank(b as Record<string, string>)).catch(() => null);
   }, [token]);
@@ -1259,6 +1296,7 @@ function ProfileTab({
         thanks_note: thanksNote,
         links,
         bank_details: bank,
+        theme,
       });
       onSaved(updated);
       setAvatar(null);
@@ -1371,6 +1409,21 @@ function ProfileTab({
                   className={`${inputCls} mt-1.5`}
                 />
               </label>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-ink">Page accent colour</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {["", "#12A25C", "#7C3AED", "#E0A536", "#EC4899", "#2563EB", "#DC2626", "#0F766E"].map((c) => (
+              <button
+                key={c || "default"}
+                onClick={() => setTheme(c)}
+                className={`h-8 w-8 rounded-full border-2 transition ${theme === c ? "border-ink scale-110" : "border-border"}`}
+                style={{ background: c || "linear-gradient(135deg,#0F2439,#12A25C)" }}
+                title={c || "Default"}
+              />
             ))}
           </div>
         </div>
@@ -1521,6 +1574,138 @@ function ExclusiveTab({ token, hasProfile }: { token: string | null; hasProfile:
               </button>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ─── Jars (campaign funds) ───────────────────────────────────────────────────
+function JarsTab({ token, creator }: { token: string | null; creator: Creator | null }) {
+  const [jars, setJars] = useState<Jar[] | null>(null);
+  const [stats, setStats] = useState<Map<string, number>>(new Map());
+  const [name, setName] = useState("");
+  const [goal, setGoal] = useState("");
+  const [desc, setDesc] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    if (!creator) return;
+    api.getJars(creator.slug).then(async (js) => {
+      setJars(js);
+      const m = new Map<string, number>();
+      await Promise.all(
+        js.map(async (j) => {
+          try { m.set(j.id, Number((await api.jarStats(j.id)).raised) || 0); } catch { m.set(j.id, 0); }
+        }),
+      );
+      setStats(new Map(m));
+    }).catch(() => setJars([]));
+  }, [creator]);
+  useEffect(load, [load]);
+
+  if (!creator) {
+    return <EmptyState icon={Milk} title="No creator page yet" body="Set up your creator page first — then create campaign jars." />;
+  }
+
+  async function create() {
+    if (!token || !name.trim()) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      await api.createJar(token, creator!.slug, {
+        name: name.trim(),
+        description: desc.trim() || undefined,
+        goal: goal.trim() ? Number(goal) : undefined,
+      });
+      setName(""); setGoal(""); setDesc("");
+      setNote("Jar created — share its link below.");
+      load();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Could not create the jar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      <div>
+        <h2 className="text-xl font-medium tracking-tight text-ink">Campaign jars</h2>
+        <p className="body-muted mt-1">
+          Fund something specific — &ldquo;New microphone&rdquo;, &ldquo;Studio day&rdquo; — each jar has its own
+          goal, progress bar and shareable tip link.
+        </p>
+      </div>
+
+      <div className="card space-y-3 !p-5">
+        <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jar name — e.g. New microphone"
+            className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none" />
+          <input value={goal} onChange={(e) => setGoal(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" placeholder="Goal (R)"
+            className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none" />
+        </div>
+        <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="What's it for? (optional)"
+          className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none" />
+        <div className="flex items-center gap-3">
+          <button onClick={create} disabled={busy || !name.trim()} className="btn-primary !px-6 !py-2.5 text-sm disabled:opacity-50">
+            {busy ? "Creating…" : "Create jar"}
+          </button>
+          {note && <p className="text-sm text-teal">{note}</p>}
+        </div>
+      </div>
+
+      {!jars ? (
+        <p className="body-muted">Loading…</p>
+      ) : jars.length === 0 ? (
+        <EmptyState icon={Milk} title="No jars yet" body="Create your first campaign jar above." />
+      ) : (
+        <div className="space-y-3">
+          {jars.map((j) => {
+            const raised = stats.get(j.id) ?? 0;
+            const g = j.goal ? Number(j.goal) : 0;
+            const link = `https://www.tippingjar.co.za/tip/${creator.slug}?jar=${j.slug}`;
+            return (
+              <div key={j.id} className="card !p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink">🫙 {j.name}</p>
+                    {j.description && <p className="body-muted mt-0.5 text-sm">{j.description}</p>}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => { navigator.clipboard?.writeText(link); }}
+                      className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
+                      title={link}
+                    >
+                      Copy tip link
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!token || !window.confirm(`Delete jar "${j.name}"?`)) return;
+                        await api.deleteJar(token, j.id).catch(() => null);
+                        load();
+                      }}
+                      className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center justify-between font-mono text-xs text-muted">
+                  <span>R{raised.toLocaleString("en-ZA")} raised</span>
+                  {g > 0 && <span>goal R{g.toLocaleString("en-ZA")} · {Math.min(100, Math.round((raised / g) * 100))}%</span>}
+                </div>
+                {g > 0 && (
+                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
+                    <div className="h-full rounded-full bg-teal" style={{ width: `${Math.min(100, (raised / g) * 100)}%` }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -206,7 +206,11 @@ export default async function CreatorPage({
                   label={goal > 0 ? "of monthly goal" : "raised so far"}
                 />
               </div>
-              <Link href={`/tip/${creator.slug}`} className="btn-primary mt-8 w-full text-base">
+              <Link
+                href={`/tip/${creator.slug}`}
+                className="btn-primary mt-8 w-full text-base"
+                style={creator.theme ? { background: creator.theme } : undefined}
+              >
                 <i className="bi bi-heart-fill" /> Tip {creator.display_name.split(" ")[0]}
               </Link>
               <Link
@@ -292,6 +296,14 @@ export default async function CreatorPage({
                         <p className="body-muted mt-1 line-clamp-3 text-sm">
                           &ldquo;{tip.message}&rdquo;
                         </p>
+                      )}
+                      {tip.thanks_message && (
+                        <div className="mt-2 rounded-xl bg-mint/10 px-3 py-2">
+                          <p className="text-xs text-ink">
+                            <span className="font-semibold text-green">↳ {creator.display_name}:</span>{" "}
+                            {tip.thanks_message}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>

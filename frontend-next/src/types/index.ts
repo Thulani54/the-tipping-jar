@@ -33,6 +33,7 @@ export interface Creator {
   tip_presets: string; // JSON array, e.g. "[20,50,100]"
   thanks_note: string;
   links: string; // JSON object {instagram, twitter, youtube, website}
+  theme: string; // accent hex for the public page, e.g. "#7C3AED"
   created_at: string;
 }
 
@@ -51,6 +52,7 @@ export interface Tip {
   creator_net: string;
   thanks_message: string;
   thanked_at: string | null;
+  jar_id: string | null;
   created_at: string;
 }
 
@@ -279,6 +281,7 @@ export interface Transaction {
   tipper_name: string;
   tipper_email: string;
   message: string;
+  jar_id: string | null;
   created_at: string;
 }
 

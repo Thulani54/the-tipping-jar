@@ -1,9 +1,10 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import type { Creator, FeeQuote } from "@/types";
+import type { Creator, FeeQuote, Jar } from "@/types";
 
 const DEFAULT_PRESETS = [10, 20, 50, 100, 200, 500];
 
@@ -29,6 +30,7 @@ export default function TipPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
+  const jarSlug = useSearchParams().get("jar");
 
   const [creator, setCreator] = useState<Creator | null>(null);
   const [loadingCreator, setLoadingCreator] = useState(true);
@@ -42,6 +44,22 @@ export default function TipPage({
 
   const [quote, setQuote] = useState<FeeQuote | null>(null);
   const [exclusiveN, setExclusiveN] = useState(0);
+  const [jar, setJar] = useState<Jar | null>(null);
+  const [jarRaised, setJarRaised] = useState(0);
+
+  useEffect(() => {
+    if (!jarSlug) return;
+    let alive = true;
+    api.getJar(slug, jarSlug).then(async (j) => {
+      if (!alive) return;
+      setJar(j);
+      try {
+        const st = await api.jarStats(j.id);
+        if (alive) setJarRaised(Number(st.raised) || 0);
+      } catch { /* progress stays 0 */ }
+    }).catch(() => null);
+    return () => { alive = false; };
+  }, [slug, jarSlug]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -101,6 +119,7 @@ export default function TipPage({
         tipper_name: name.trim() || undefined,
         tipper_email: email.trim() || undefined,
         message: message.trim() || undefined,
+        jar_id: jar?.id,
       });
       window.location.href = res.pay_url;
     } catch (e) {
@@ -153,6 +172,28 @@ export default function TipPage({
           <p className="font-display text-xl font-bold text-ink">{creator.display_name}</p>
         </div>
       </div>
+
+      {jar && (
+        <div className="mt-5 rounded-2xl border border-mint/50 bg-mint/10 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-ink">
+              <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-green">Tipping into</span>
+              <span className="ml-2 font-display text-base font-bold">🫙 {jar.name}</span>
+            </p>
+            {jar.goal && (
+              <p className="font-mono text-xs text-muted">
+                R{Math.round(jarRaised).toLocaleString("en-ZA")} / R{Math.round(Number(jar.goal)).toLocaleString("en-ZA")}
+              </p>
+            )}
+          </div>
+          {jar.goal && Number(jar.goal) > 0 && (
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-border">
+              <div className="h-full rounded-full bg-green" style={{ width: `${Math.min(100, (jarRaised / Number(jar.goal)) * 100)}%` }} />
+            </div>
+          )}
+          {jar.description && <p className="body-muted mt-2 text-sm">{jar.description}</p>}
+        </div>
+      )}
 
       {exclusiveN > 0 && (
         <div className="mt-5 flex items-center gap-3 rounded-2xl border border-gold/40 bg-gold/10 px-5 py-3.5">

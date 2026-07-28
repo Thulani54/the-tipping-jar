@@ -312,10 +312,11 @@ struct Transaction {
     tipper_name: String,
     tipper_email: String,
     message: String,
+    jar_id: Option<Uuid>,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
-const TXN_COLUMNS: &str = "id, reference, creator_id, amount, platform_fee, service_fee, creator_net, status, merchant_order_no, trans_no, currency, pay_url, description, creator_name, tipper_name, tipper_email, message, created_at";
+const TXN_COLUMNS: &str = "id, reference, creator_id, amount, platform_fee, service_fee, creator_net, status, merchant_order_no, trans_no, currency, pay_url, description, creator_name, tipper_name, tipper_email, message, jar_id, created_at";
 
 #[derive(sqlx::FromRow, Serialize)]
 struct Payout {
@@ -384,6 +385,7 @@ struct CheckoutReq {
     tipper_name: Option<String>,
     tipper_email: Option<String>,
     message: Option<String>,
+    jar_id: Option<Uuid>,
 }
 
 #[derive(Deserialize)]
@@ -520,8 +522,8 @@ async fn checkout(
     // Persist a pending transaction first so the notify webhook can match it.
     let row: Transaction = sqlx::query_as(&format!(
         "INSERT INTO transactions
-            (id, reference, creator_id, amount, platform_fee, service_fee, creator_net, status, merchant_order_no, currency, description, creator_name, tipper_name, tipper_email, message)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$10,$11,$12,$13,$14)
+            (id, reference, creator_id, amount, platform_fee, service_fee, creator_net, status, merchant_order_no, currency, description, creator_name, tipper_name, tipper_email, message, jar_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$10,$11,$12,$13,$14,$15)
          RETURNING {TXN_COLUMNS}"
     ))
     .bind(Uuid::new_v4())
@@ -538,6 +540,7 @@ async fn checkout(
     .bind(req.tipper_name.clone().unwrap_or_else(|| "Anonymous".into()))
     .bind(req.tipper_email.clone().unwrap_or_default())
     .bind(req.message.clone().unwrap_or_default())
+    .bind(req.jar_id)
     .fetch_one(&st.pool)
     .await?;
 
@@ -686,6 +689,7 @@ async fn record_tip(st: &AppState, txn: &Transaction) {
         "platform_fee": txn.platform_fee.to_string(),
         "service_fee": txn.service_fee.to_string(),
         "creator_net": txn.creator_net.to_string(),
+        "jar_id": txn.jar_id,
     });
     if let Err(e) = st
         .http
@@ -1070,6 +1074,7 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
         "tipper_name TEXT NOT NULL DEFAULT 'Anonymous'",
         "tipper_email TEXT NOT NULL DEFAULT ''",
         "message TEXT NOT NULL DEFAULT ''",
+        "jar_id UUID",
     ] {
         sqlx::query(&format!(
             "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS {col}"
