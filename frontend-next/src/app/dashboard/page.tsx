@@ -34,6 +34,7 @@ import {
   UserRound,
   Megaphone,
   BarChart3,
+  Lock,
   QrCode,
   Code2,
   Send,
@@ -44,6 +45,7 @@ import { api } from "@/lib/api";
 import { StudioEditor } from "@/components/StudioEditor";
 import { LiveClock } from "@/components/Clock";
 import type {
+  ExclusivePost,
   Supporter,
   Tip,
   ReferralCode,
@@ -54,13 +56,14 @@ import type {
   Balance,
 } from "@/types";
 
-type Tab = "overview" | "tips" | "supporters" | "analytics" | "transactions" | "referrals" | "studio" | "profile";
+type Tab = "overview" | "tips" | "supporters" | "analytics" | "exclusive" | "transactions" | "referrals" | "studio" | "profile";
 
 const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "tips", label: "Tips", icon: HandCoins },
   { id: "supporters", label: "Supporters", icon: Trophy },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "exclusive", label: "Exclusive", icon: Lock },
   { id: "transactions", label: "Transactions", icon: Receipt },
   { id: "referrals", label: "Referrals", icon: Users },
   { id: "studio", label: "Studio", icon: Palette },
@@ -205,6 +208,7 @@ export default function DashboardPage() {
             {tab === "analytics" && (
               <AnalyticsTab token={token} creatorId={myCreator?.id ?? null} tips={tips} />
             )}
+            {tab === "exclusive" && <ExclusiveTab token={token} hasProfile={!!myCreator} />}
             {tab === "transactions" && (
               <TransactionsTab token={token} creatorId={myCreator?.id ?? null} />
             )}
@@ -1242,7 +1246,7 @@ function ProfileTab({
       const presetNums = presets
         .split(/[\s,;]+/)
         .map((v) => Number(v))
-        .filter((n) => n >= 1 && n <= 100000)
+        .filter((n) => n >= 10 && n <= 100000)
         .slice(0, 6);
       const updated = await api.updateMyCreatorProfile(token, {
         display_name: displayName.trim() || undefined,
@@ -1345,7 +1349,7 @@ function ProfileTab({
           <div className="mt-2 grid gap-4 sm:grid-cols-2">
             <label className="block text-xs font-medium text-muted">
               Preset amounts (2–6, comma separated)
-              <input value={presets} onChange={(e) => setPresets(e.target.value.replace(/[^0-9,.\s]/g, ""))} placeholder="20, 50, 100, 250" className={`${inputCls} mt-1.5`} />
+              <input value={presets} onChange={(e) => setPresets(e.target.value.replace(/[^0-9,.\s]/g, ""))} placeholder="20, 50, 100, 250 (min R10 each)" className={`${inputCls} mt-1.5`} />
             </label>
             <label className="block text-xs font-medium text-muted">
               Thank-you note (shown after a fan pays)
@@ -1398,6 +1402,127 @@ function ProfileTab({
         </Link>
         {note && <p className="text-sm text-teal">{note}</p>}
       </div>
+    </div>
+  );
+}
+
+
+// ─── Exclusive posts ─────────────────────────────────────────────────────────
+function ExclusiveTab({ token, hasProfile }: { token: string | null; hasProfile: boolean }) {
+  const [posts, setPosts] = useState<ExclusivePost[] | null>(null);
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [image, setImage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const imgRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(() => {
+    if (!token) return;
+    api.myPosts(token).then(setPosts).catch(() => setPosts([]));
+  }, [token]);
+  useEffect(load, [load]);
+
+  if (!hasProfile) {
+    return <EmptyState icon={Lock} title="No creator page yet" body="Set up your creator page first — then post exclusive content." />;
+  }
+
+  async function publish() {
+    if (!token || !title.trim()) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      await api.createPost(token, { title: title.trim(), body: body.trim() || undefined, image_url: image ?? undefined });
+      setTitle("");
+      setBody("");
+      setImage(null);
+      setNote("Published — supporters who tipped this month can see it now.");
+      load();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Could not publish.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      <div>
+        <h2 className="text-xl font-medium tracking-tight text-ink">Exclusive content</h2>
+        <p className="body-muted mt-1">
+          Only fans who tipped you <span className="font-medium text-ink">this month</span> (R10+, with their email)
+          can unlock these on your page. A fresh reason to tip, every month.
+        </p>
+      </div>
+
+      <div className="card space-y-3 !p-5">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Post title — e.g. Unreleased demo: 'Midnight'"
+          className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
+        />
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={5}
+          placeholder="The content — behind-the-scenes notes, download links, early access codes…"
+          className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <button onClick={() => imgRef.current?.click()} className="btn-ghost !px-4 !py-2 text-xs">
+            {image ? "Change image" : "Add image"}
+          </button>
+          {image && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image} alt="" className="h-10 w-10 rounded-lg object-cover" />
+              <button onClick={() => setImage(null)} className="text-xs text-muted hover:text-red-500">remove</button>
+            </>
+          )}
+          <button onClick={publish} disabled={busy || !title.trim()} className="btn-primary ml-auto !px-6 !py-2.5 text-sm disabled:opacity-50">
+            {busy ? "Publishing…" : "Publish"}
+          </button>
+        </div>
+        {note && <p className="text-sm text-teal">{note}</p>}
+        <input ref={imgRef} type="file" accept="image/*" className="hidden"
+          onChange={async (e) => { const fl = e.target.files?.[0]; if (fl) setImage(await compressImage(fl, 1200)); e.target.value = ""; }} />
+      </div>
+
+      {!posts ? (
+        <p className="body-muted">Loading…</p>
+      ) : posts.length === 0 ? (
+        <EmptyState icon={Lock} title="Nothing in the vault yet" body="Publish your first exclusive post above." />
+      ) : (
+        <div className="space-y-3">
+          {posts.map((p) => (
+            <div key={p.id} className="card flex items-start gap-4 !p-5">
+              {p.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={p.image_url} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-ink">{p.title}</p>
+                {p.body && <p className="body-muted mt-1 line-clamp-2 text-sm">{p.body}</p>}
+                <p className="mt-1.5 font-mono text-[11px] text-muted">
+                  {new Date(p.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  if (!token || !window.confirm(`Delete "${p.title}"?`)) return;
+                  await api.deletePost(token, p.id).catch(() => null);
+                  load();
+                }}
+                className="shrink-0 text-muted transition hover:text-red-500"
+                title="Delete post"
+              >
+                <X className="h-4 w-4" strokeWidth={2.2} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

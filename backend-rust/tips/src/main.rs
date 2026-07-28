@@ -149,8 +149,8 @@ async fn create_tip(
     State(st): State<AppState>,
     Json(req): Json<TipReq>,
 ) -> Result<Json<Tip>, AppError> {
-    if req.amount <= 0.0 {
-        return Err(AppError::BadRequest("amount must be positive".into()));
+    if req.amount < 10.0 {
+        return Err(AppError::BadRequest("minimum tip is R10".into()));
     }
 
     // 1) tips -> creators
@@ -397,6 +397,34 @@ async fn message_supporters(
         return Err(AppError::Upstream(format!("scheduler: {}", resp.status())));
     }
     Ok(Json(resp.json().await?))
+}
+
+#[derive(Deserialize)]
+struct TippedQuery {
+    creator_id: Uuid,
+    email: String,
+}
+
+/// Internal (creators service): did this email tip the creator this calendar
+/// month (SAST)? Powers the exclusive-content unlock. Key-guarded.
+async fn tipped_this_month(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    axum::extract::Query(q): axum::extract::Query<TippedQuery>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    let row: Option<(i64,)> = sqlx::query_as(
+        "SELECT count(*) FROM tips
+         WHERE creator_id = $1 AND status = 'completed'
+           AND lower(tipper_email) = lower($2)
+           AND date_trunc('month', created_at AT TIME ZONE 'Africa/Johannesburg')
+             = date_trunc('month', now() AT TIME ZONE 'Africa/Johannesburg')",
+    )
+    .bind(q.creator_id)
+    .bind(q.email.trim())
+    .fetch_optional(&st.pool)
+    .await?;
+    Ok(Json(serde_json::json!({ "tipped": row.map(|r| r.0).unwrap_or(0) > 0 })))
 }
 
 /// Internal (admin portal): latest tips across every status. Key-guarded.
@@ -731,6 +759,7 @@ async fn main() {
         .route("/tips/internal/record", post(record_tip))
         .route("/internal/tips/recent", get(list_tips_internal))
         .route("/internal/tips/stats/daily", get(daily_stats_internal))
+        .route("/internal/tips/tipped-this-month", get(tipped_this_month))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);
 

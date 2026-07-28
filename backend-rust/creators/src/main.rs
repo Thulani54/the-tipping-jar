@@ -21,6 +21,8 @@ struct AppState {
     pool: PgPool,
     http: reqwest::Client,
     accounts_url: String,
+    tips_url: String,
+    internal_key: String,
 }
 
 #[derive(sqlx::FromRow, Serialize)]
@@ -627,6 +629,169 @@ async fn delete_creator_internal(
     Ok(Json(json!({ "deleted": id })))
 }
 
+// ── Exclusive posts — supporter-only content, unlocked by tipping this month ─
+
+#[derive(sqlx::FromRow, Serialize)]
+struct ExclusivePost {
+    id: Uuid,
+    creator_id: Uuid,
+    title: String,
+    body: String,
+    image_url: String,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+const POST_COLUMNS: &str = "id, creator_id, title, body, image_url, created_at";
+
+#[derive(Deserialize)]
+struct CreatePostReq {
+    title: String,
+    body: Option<String>,
+    image_url: Option<String>,
+}
+
+async fn create_post(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<CreatePostReq>,
+) -> Result<Json<ExclusivePost>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    let title = req.title.trim().chars().take(120).collect::<String>();
+    if title.is_empty() {
+        return Err(AppError::BadRequest("title is required".into()));
+    }
+    let image = req.image_url.unwrap_or_default();
+    if image.len() > 500_000 {
+        return Err(AppError::BadRequest("image is too large".into()));
+    }
+    let row: ExclusivePost = sqlx::query_as(&format!(
+        "INSERT INTO exclusive_posts (id, creator_id, title, body, image_url)
+         VALUES ($1, $2, $3, $4, $5) RETURNING {POST_COLUMNS}"
+    ))
+    .bind(Uuid::new_v4())
+    .bind(creator_id)
+    .bind(title)
+    .bind(req.body.unwrap_or_default().chars().take(5000).collect::<String>())
+    .bind(image)
+    .fetch_one(&st.pool)
+    .await?;
+    Ok(Json(row))
+}
+
+async fn my_posts(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<ExclusivePost>>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    let rows: Vec<ExclusivePost> = sqlx::query_as(&format!(
+        "SELECT {POST_COLUMNS} FROM exclusive_posts WHERE creator_id = $1 ORDER BY created_at DESC LIMIT 100"
+    ))
+    .bind(creator_id)
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+async fn delete_post(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    let res = sqlx::query("DELETE FROM exclusive_posts WHERE id = $1 AND creator_id = $2")
+        .bind(id)
+        .bind(creator_id)
+        .execute(&st.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("post not found".into()));
+    }
+    Ok(Json(json!({ "deleted": id })))
+}
+
+/// Public: how many exclusive posts a creator has this month (teaser count).
+async fn exclusive_count(
+    State(st): State<AppState>,
+    Path(slug): Path<String>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let row: Option<(i64,)> = sqlx::query_as(
+        "SELECT count(*) FROM exclusive_posts p
+         JOIN creator_profiles c ON c.id = p.creator_id
+         WHERE c.slug = $1",
+    )
+    .bind(&slug)
+    .fetch_optional(&st.pool)
+    .await?;
+    Ok(Json(json!({ "count": row.map(|r| r.0).unwrap_or(0) })))
+}
+
+#[derive(Deserialize)]
+struct UnlockReq {
+    email: String,
+}
+
+/// A fan unlocks the vault with the email they tipped with this month.
+/// The tips service is the authority on whether that email tipped.
+async fn exclusive_unlock(
+    State(st): State<AppState>,
+    Path(slug): Path<String>,
+    Json(req): Json<UnlockReq>,
+) -> Result<Json<Vec<ExclusivePost>>, AppError> {
+    let email = req.email.trim().to_lowercase();
+    if !email.contains('@') {
+        return Err(AppError::BadRequest("enter the email you tipped with".into()));
+    }
+    let creator: Option<(Uuid,)> =
+        sqlx::query_as("SELECT id FROM creator_profiles WHERE slug = $1")
+            .bind(&slug)
+            .fetch_optional(&st.pool)
+            .await?;
+    let creator_id = creator
+        .map(|c| c.0)
+        .ok_or_else(|| AppError::NotFound("creator not found".into()))?;
+
+    let resp = st
+        .http
+        .get(format!(
+            "{}/internal/tips/tipped-this-month?creator_id={}&email={}",
+            st.tips_url,
+            creator_id,
+            urlencoding_encode(&email)
+        ))
+        .header("x-internal-key", &st.internal_key)
+        .send()
+        .await?;
+    let ok = resp.status().is_success()
+        && resp
+            .json::<serde_json::Value>()
+            .await
+            .ok()
+            .and_then(|v| v.get("tipped").and_then(|t| t.as_bool()))
+            .unwrap_or(false);
+    if !ok {
+        return Err(AppError::Unauthorized(
+            "no tip from that email this month — tip R10+ to unlock".into(),
+        ));
+    }
+    let rows: Vec<ExclusivePost> = sqlx::query_as(&format!(
+        "SELECT {POST_COLUMNS} FROM exclusive_posts WHERE creator_id = $1 ORDER BY created_at DESC LIMIT 100"
+    ))
+    .bind(creator_id)
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
+/// Minimal percent-encoding for a query value (emails: @ + . are the cases).
+fn urlencoding_encode(s: &str) -> String {
+    s.chars()
+        .map(|c| match c {
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '.' | '-' | '_' => c.to_string(),
+            other => format!("%{:02X}", other as u32),
+        })
+        .collect()
+}
+
 // ── Studio designs — the creator's saved promo graphics ─────────────────────
 
 #[derive(sqlx::FromRow, Serialize)]
@@ -791,6 +956,18 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::query("ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT FALSE")
         .execute(pool)
         .await?;
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS exclusive_posts (
+            id         UUID PRIMARY KEY,
+            creator_id UUID NOT NULL,
+            title      TEXT NOT NULL,
+            body       TEXT NOT NULL DEFAULT '',
+            image_url  TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )",
+    )
+    .execute(pool)
+    .await?;
     for col in ["tip_presets", "thanks_note", "links", "bank_details"] {
         sqlx::query(&format!(
             "ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS {col} TEXT NOT NULL DEFAULT ''"
@@ -876,6 +1053,8 @@ async fn main() {
         pool,
         http: reqwest::Client::new(),
         accounts_url: env("ACCOUNTS_URL", "http://localhost:8081"),
+        tips_url: env("TIPS_URL", "http://localhost:8084"),
+        internal_key: env("INTERNAL_KEY", "tj-internal-dev-key"),
     };
 
     let app = Router::new()
@@ -883,6 +1062,10 @@ async fn main() {
         .route("/creators", post(create_creator).get(list_creators))
         .route("/creators/me", get(get_me).put(update_me))
         .route("/creators/me/bank", get(get_my_bank))
+        .route("/creators/me/posts", get(my_posts).post(create_post))
+        .route("/creators/me/posts/:id", axum::routing::delete(delete_post))
+        .route("/creators/:slug/exclusive/count", get(exclusive_count))
+        .route("/creators/:slug/exclusive/unlock", post(exclusive_unlock))
         .route("/creators/studio/designs", get(list_designs).post(save_design))
         .route(
             "/creators/studio/designs/:id",

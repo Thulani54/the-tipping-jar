@@ -30,8 +30,8 @@ export function HeroDemo() {
 
   // Illustrative fill — a bigger tip drops the level higher (8%–100%).
   const pct = useMemo(() => {
-    const c = Math.max(5, Math.min(1000, amount));
-    return Math.round(8 + ((c - 5) / 995) * 92);
+    const c = Math.max(10, Math.min(1000, amount));
+    return Math.round(8 + ((c - 10) / 990) * 92);
   }, [amount]);
 
   const fee = (v?: string) => (v ? parseFloat(v).toFixed(2) : "0.00");
@@ -53,7 +53,7 @@ export function HeroDemo() {
 
         <input
           type="range"
-          min={5}
+          min={10}
           max={1000}
           step={5}
           value={amount}

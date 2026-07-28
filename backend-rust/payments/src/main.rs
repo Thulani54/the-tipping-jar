@@ -427,6 +427,11 @@ async fn charge(
     State(st): State<AppState>,
     Json(req): Json<ChargeReq>,
 ) -> Result<Json<Transaction>, AppError> {
+    if req.amount < min_tip() {
+        return Err(AppError::BadRequest(format!(
+            "minimum tip is R{:.0} (card processing costs)", min_tip()
+        )));
+    }
     let amount = parse_amount(req.amount)?;
     let f = calc_fees(amount, st.platform_pct, st.service_pct);
     let reference = req
@@ -466,6 +471,11 @@ async fn checkout(
     State(st): State<AppState>,
     Json(req): Json<CheckoutReq>,
 ) -> Result<Json<Value>, AppError> {
+    if req.amount < min_tip() {
+        return Err(AppError::BadRequest(format!(
+            "minimum tip is R{:.0} (card processing costs)", min_tip()
+        )));
+    }
     if !st.paycloud.enabled() {
         return Err(AppError::Internal(
             "PayCloud is not configured (need PAYCLOUD_PRIVATE_KEY and PAYCLOUD_MERCHANT_NO)".into(),
@@ -960,6 +970,11 @@ async fn creator_payouts(
     .fetch_all(&st.pool)
     .await?;
     Ok(Json(rows))
+}
+
+/// Card tips below this lose money to the acquirer's R2 minimum + 2.9%.
+fn min_tip() -> f64 {
+    env("MIN_TIP_AMOUNT", "10").parse().unwrap_or(10.0)
 }
 
 // ── Internal admin endpoints (key-guarded — publicly routable via nginx) ────

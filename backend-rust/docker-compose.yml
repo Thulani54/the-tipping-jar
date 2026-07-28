@@ -48,6 +48,7 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/creators_db
       ACCOUNTS_URL: http://accounts:8081
+      TIPS_URL: http://tips:8084
       PORT: "8082"
       INTERNAL_KEY: ${INTERNAL_KEY:-tj-internal-dev-key}
     ports:

@@ -12,7 +12,7 @@ function presetsFor(creator: Creator | null): number[] {
     try {
       const p = JSON.parse(creator.tip_presets);
       if (Array.isArray(p)) {
-        const nums = p.map(Number).filter((n) => n >= 1 && n <= 100000).slice(0, 6);
+        const nums = p.map(Number).filter((n) => n >= 10 && n <= 100000).slice(0, 6);
         if (nums.length >= 2) return nums;
       }
     } catch { /* fall back */ }
@@ -41,12 +41,14 @@ export default function TipPage({
   const [message, setMessage] = useState("");
 
   const [quote, setQuote] = useState<FeeQuote | null>(null);
+  const [exclusiveN, setExclusiveN] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     setLoadingCreator(true);
+    api.exclusiveCount(slug).then((r) => alive && setExclusiveN(r.count)).catch(() => null);
     api
       .getCreator(slug)
       .then((c) => alive && setCreator(c))
@@ -58,7 +60,7 @@ export default function TipPage({
   }, [slug]);
 
   useEffect(() => {
-    if (amount < 1) {
+    if (amount < 10) {
       setQuote(null);
       return;
     }
@@ -87,7 +89,7 @@ export default function TipPage({
   }
 
   async function payWithCard() {
-    if (amount < 1 || !creator) return setError("Enter an amount (R1 minimum).");
+    if (amount < 10 || !creator) return setError("Minimum tip is R10 (card processing costs).");
     setSubmitting(true);
     setError(null);
     try {
@@ -152,6 +154,17 @@ export default function TipPage({
         </div>
       </div>
 
+      {exclusiveN > 0 && (
+        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-gold/40 bg-gold/10 px-5 py-3.5">
+          <span className="text-2xl">🔓</span>
+          <p className="text-sm text-ink">
+            <span className="font-semibold">Supporter perk:</span> tipping R10+ this month unlocks{" "}
+            <span className="font-semibold">{exclusiveN} exclusive post{exclusiveN === 1 ? "" : "s"}</span> from{" "}
+            {creator.display_name}. Leave your email below so we can recognise you.
+          </p>
+        </div>
+      )}
+
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_390px]">
         {/* Left — amount + note */}
         <div>
@@ -182,7 +195,7 @@ export default function TipPage({
                 inputMode="decimal"
                 value={custom}
                 onChange={(e) => onCustom(e.target.value)}
-                placeholder="Custom amount"
+                placeholder="Custom amount (min R10)"
                 className="w-full bg-transparent py-3.5 pl-2 font-display text-lg text-ink placeholder:font-sans placeholder:text-base placeholder:font-normal placeholder:text-muted focus:outline-none"
               />
             </div>
@@ -222,7 +235,7 @@ export default function TipPage({
             </div>
             <p className="mt-1.5 text-sm text-muted">to {creator.display_name}</p>
 
-            {amount >= 1 && (
+            {amount >= 10 && (
               <>
                 <div className="mt-5 space-y-2 border-t border-dashed border-border pt-4 font-mono text-[13px]">
                   <div className="flex justify-between text-muted">
@@ -252,10 +265,10 @@ export default function TipPage({
             <button
               type="button"
               onClick={payWithCard}
-              disabled={submitting || amount < 1}
+              disabled={submitting || amount < 10}
               className="btn-primary mt-6 w-full text-base disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting ? "Processing…" : amount < 1 ? "Enter an amount" : <><i className="bi bi-credit-card-fill" /> Pay R{amount.toFixed(2)}</>}
+              {submitting ? "Processing…" : amount < 10 ? "Minimum R10" : <><i className="bi bi-credit-card-fill" /> Pay R{amount.toFixed(2)}</>}
             </button>
             <p className="mt-4 inline-flex w-full items-center justify-center gap-1 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
               <i className="bi bi-lock-fill" /> Secured by PayCloud

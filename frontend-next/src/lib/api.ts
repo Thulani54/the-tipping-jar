@@ -16,6 +16,7 @@ import type {
   CreatorStats,
   Dispute,
   Enterprise,
+  ExclusivePost,
   FeeQuote,
   Jar,
   Job,
@@ -270,6 +271,19 @@ export const api = {
       bank_details?: { bank?: string; account_name?: string; account_no?: string };
     },
   ) => request<Creator>("/creators/creators/me", { method: "PUT", body, token }),
+  myPosts: (token: string) =>
+    request<ExclusivePost[]>("/creators/creators/me/posts", { token }),
+  createPost: (token: string, body: { title: string; body?: string; image_url?: string }) =>
+    request<ExclusivePost>("/creators/creators/me/posts", { method: "POST", body, token }),
+  deletePost: (token: string, id: string) =>
+    request<{ deleted: string }>(`/creators/creators/me/posts/${id}`, { method: "DELETE", token }),
+  exclusiveCount: (slug: string) =>
+    request<{ count: number }>(`/creators/creators/${slug}/exclusive/count`),
+  unlockExclusive: (slug: string, email: string) =>
+    request<ExclusivePost[]>(`/creators/creators/${slug}/exclusive/unlock`, {
+      method: "POST",
+      body: { email },
+    }),
   myBankDetails: (token: string) =>
     request<{ bank?: string; account_name?: string; account_no?: string }>(
       "/creators/creators/me/bank",

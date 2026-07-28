@@ -1,22 +1,29 @@
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { JarMeter } from "@/components/JarMeter";
+import { ExclusiveVault } from "@/components/ExclusiveVault";
 import type { Creator, Tip } from "@/types";
 
-async function load(slug: string): Promise<{ creator: Creator | null; tips: Tip[] }> {
+async function load(slug: string): Promise<{ creator: Creator | null; tips: Tip[]; exclusiveCount: number }> {
   let creator: Creator | null = null;
   try {
     creator = await api.getCreator(slug);
   } catch {
-    return { creator: null, tips: [] };
+    return { creator: null, tips: [], exclusiveCount: 0 };
   }
   let tips: Tip[] = [];
+  let exclusiveCount = 0;
   try {
     tips = await api.tipsForCreator(creator.id);
   } catch {
     tips = [];
   }
-  return { creator, tips };
+  try {
+    exclusiveCount = (await api.exclusiveCount(slug)).count;
+  } catch {
+    exclusiveCount = 0;
+  }
+  return { creator, tips, exclusiveCount };
 }
 
 const initials = (name: string) =>
@@ -96,7 +103,7 @@ export default async function CreatorPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { creator, tips } = await load(slug);
+  const { creator, tips, exclusiveCount } = await load(slug);
 
   if (!creator) {
     return (
@@ -242,6 +249,8 @@ export default async function CreatorPage({
                 </div>
               ) : null;
             })()}
+
+            <ExclusiveVault slug={creator.slug} count={exclusiveCount} creatorName={creator.display_name.split(" ")[0]} />
 
             <div className="mt-8 card !p-0 overflow-hidden">
               <div className="flex items-center justify-between border-b border-border px-5 py-3.5 font-mono text-[11px] uppercase tracking-[0.18em] text-muted">

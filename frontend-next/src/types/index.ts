@@ -242,6 +242,15 @@ export interface AuditEntry {
   created_at: string;
 }
 
+export interface ExclusivePost {
+  id: string;
+  creator_id: string;
+  title: string;
+  body: string;
+  image_url: string;
+  created_at: string;
+}
+
 export interface StudioDesign {
   id: string;
   creator_id: string;
