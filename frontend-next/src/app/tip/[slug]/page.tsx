@@ -5,7 +5,20 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import type { Creator, FeeQuote } from "@/types";
 
-const PRESETS = [10, 20, 50, 100, 200, 500];
+const DEFAULT_PRESETS = [10, 20, 50, 100, 200, 500];
+
+function presetsFor(creator: Creator | null): number[] {
+  if (creator?.tip_presets) {
+    try {
+      const p = JSON.parse(creator.tip_presets);
+      if (Array.isArray(p)) {
+        const nums = p.map(Number).filter((n) => n >= 1 && n <= 100000).slice(0, 6);
+        if (nums.length >= 2) return nums;
+      }
+    } catch { /* fall back */ }
+  }
+  return DEFAULT_PRESETS;
+}
 
 const initials = (name: string) =>
   name.split(" ").map((w) => w.charAt(0)).join("").slice(0, 2).toUpperCase() || "T";
@@ -145,7 +158,7 @@ export default function TipPage({
           <div className="card">
             <p className="eyebrow">Choose an amount</p>
             <div className="mt-4 grid grid-cols-3 gap-3">
-              {PRESETS.map((v) => {
+              {presetsFor(creator).map((v) => {
                 const active = custom === "" && amount === v;
                 return (
                   <button

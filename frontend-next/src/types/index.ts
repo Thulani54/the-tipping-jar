@@ -30,6 +30,9 @@ export interface Creator {
   avatar_url: string;
   cover_url: string;
   is_featured: boolean;
+  tip_presets: string; // JSON array, e.g. "[20,50,100]"
+  thanks_note: string;
+  links: string; // JSON object {instagram, twitter, youtube, website}
   created_at: string;
 }
 
@@ -179,6 +182,7 @@ export interface AdminDashboard {
     transactions: number;
     payouts_pending: number;
     payouts_pending_amount: string;
+    fees_earned: string;
     contacts: number;
     disputes: number;
   };
@@ -211,6 +215,7 @@ export interface AdminCreator {
   is_featured: boolean;
   has_avatar: boolean;
   has_cover: boolean;
+  bank_details: { bank?: string; account_name?: string; account_no?: string };
   created_at: string;
 }
 

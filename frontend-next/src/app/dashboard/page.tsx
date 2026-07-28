@@ -33,6 +33,7 @@ import {
   Download,
   UserRound,
   Megaphone,
+  BarChart3,
   QrCode,
   Code2,
   Send,
@@ -53,12 +54,13 @@ import type {
   Balance,
 } from "@/types";
 
-type Tab = "overview" | "tips" | "supporters" | "transactions" | "referrals" | "studio" | "profile";
+type Tab = "overview" | "tips" | "supporters" | "analytics" | "transactions" | "referrals" | "studio" | "profile";
 
 const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "tips", label: "Tips", icon: HandCoins },
   { id: "supporters", label: "Supporters", icon: Trophy },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "transactions", label: "Transactions", icon: Receipt },
   { id: "referrals", label: "Referrals", icon: Users },
   { id: "studio", label: "Studio", icon: Palette },
@@ -199,6 +201,9 @@ export default function DashboardPage() {
             {tab === "tips" && <TipsTab tips={tips} loading={loading} token={token} />}
             {tab === "supporters" && (
               <SupportersTab token={token} creatorId={myCreator?.id ?? null} />
+            )}
+            {tab === "analytics" && (
+              <AnalyticsTab token={token} creatorId={myCreator?.id ?? null} tips={tips} />
             )}
             {tab === "transactions" && (
               <TransactionsTab token={token} creatorId={myCreator?.id ?? null} />
@@ -1091,6 +1096,79 @@ function StudioTab({ token, slug }: { token: string | null; slug: string | null 
 }
 
 
+// ─── Analytics ───────────────────────────────────────────────────────────────
+function AnalyticsTab({ token, creatorId, tips }: { token: string | null; creatorId: string | null; tips: Tip[] }) {
+  const [days, setDays] = useState<{ day: string; count: number; gross: string; net: string }[] | null>(null);
+  useEffect(() => {
+    if (!token || !creatorId) { setDays([]); return; }
+    api.creatorDailyStats(token, creatorId).then(setDays).catch(() => setDays([]));
+  }, [token, creatorId]);
+
+  const completed = tips.filter((t) => t.status === "completed");
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const thisMonth = completed.filter((t) => new Date(t.created_at) >= monthStart).reduce((s, t) => s + Number(t.amount || 0), 0);
+  const lastMonth = completed
+    .filter((t) => { const d = new Date(t.created_at); return d >= lastMonthStart && d < monthStart; })
+    .reduce((s, t) => s + Number(t.amount || 0), 0);
+  const avg = completed.length ? completed.reduce((s, t) => s + Number(t.amount || 0), 0) / completed.length : 0;
+  const biggest = completed.reduce((m, t) => Math.max(m, Number(t.amount || 0)), 0);
+  const delta = lastMonth > 0 ? Math.round(((thisMonth - lastMonth) / lastMonth) * 100) : null;
+
+  // 30-day series with gaps filled
+  const map = new Map((days ?? []).map((d) => [d.day, d]));
+  const series: { day: string; gross: number; count: number }[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const key = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    const row = map.get(key);
+    series.push({ day: key, gross: Number(row?.gross ?? 0), count: row?.count ?? 0 });
+  }
+  const max = Math.max(...series.map((x) => x.gross), 1);
+  const total30 = series.reduce((s, x) => s + x.gross, 0);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-medium tracking-tight text-ink">Analytics</h2>
+        <p className="body-muted mt-1">How your jar is filling.</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label={delta === null ? "This month" : `This month (${delta >= 0 ? "+" : ""}${delta}% vs last)`} value={`R${money(thisMonth)}`} icon={Calendar} accent="#12A25C" />
+        <StatCard label="Last month" value={`R${money(lastMonth)}`} icon={Calendar} accent="#2563EB" />
+        <StatCard label="Average tip" value={`R${money(avg)}`} icon={HandCoins} accent="#E0A536" />
+        <StatCard label="Biggest tip" value={`R${money(biggest)}`} icon={Trophy} accent="#EC4899" />
+      </div>
+      <div className="card !p-5">
+        <div className="flex items-baseline justify-between">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Tip volume · last 30 days</p>
+          <p className="text-sm font-bold text-ink">R{money(total30)}</p>
+        </div>
+        {!days ? (
+          <p className="body-muted mt-4">Loading…</p>
+        ) : (
+          <>
+            <div className="mt-4 flex h-32 items-end gap-[3px]">
+              {series.map((x) => (
+                <div
+                  key={x.day}
+                  className="flex-1 rounded-t bg-teal/70 transition hover:bg-teal"
+                  style={{ height: `${Math.max(3, (x.gross / max) * 100)}%` }}
+                  title={`${x.day}: R${money(x.gross)} (${x.count} tip${x.count === 1 ? "" : "s"})`}
+                />
+              ))}
+            </div>
+            <div className="mt-2 flex justify-between font-mono text-[10px] text-muted">
+              <span>{series[0].day.slice(5)}</span>
+              <span>{series[series.length - 1].day.slice(5)}</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Profile ─────────────────────────────────────────────────────────────────
 async function compressImage(file: File, maxSide: number, quality = 0.82): Promise<string> {
   return new Promise((res, rej) => {
@@ -1128,6 +1206,20 @@ function ProfileTab({
   const [goal, setGoal] = useState(creator?.tip_goal ? String(Number(creator.tip_goal)) : "");
   const [avatar, setAvatar] = useState<string | null>(null); // pending data URL
   const [cover, setCover] = useState<string | null>(null);
+  const [presets, setPresets] = useState<string>(() => {
+    try {
+      const p = creator?.tip_presets ? JSON.parse(creator.tip_presets) : null;
+      return Array.isArray(p) ? p.join(", ") : "";
+    } catch { return ""; }
+  });
+  const [thanksNote, setThanksNote] = useState(creator?.thanks_note ?? "");
+  const [links, setLinks] = useState<Record<string, string>>(() => {
+    try { return creator?.links ? JSON.parse(creator.links) : {}; } catch { return {}; }
+  });
+  const [bank, setBank] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (token) api.myBankDetails(token).then((b) => setBank(b as Record<string, string>)).catch(() => null);
+  }, [token]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const avatarRef = useRef<HTMLInputElement>(null);
@@ -1147,6 +1239,11 @@ function ProfileTab({
     setBusy(true);
     setNote(null);
     try {
+      const presetNums = presets
+        .split(/[\s,;]+/)
+        .map((v) => Number(v))
+        .filter((n) => n >= 1 && n <= 100000)
+        .slice(0, 6);
       const updated = await api.updateMyCreatorProfile(token, {
         display_name: displayName.trim() || undefined,
         tagline,
@@ -1154,6 +1251,10 @@ function ProfileTab({
         tip_goal: goal.trim() ? Number(goal) : undefined,
         avatar_url: avatar ?? undefined,
         cover_url: cover ?? undefined,
+        tip_presets: presetNums.length >= 2 ? presetNums : [],
+        thanks_note: thanksNote,
+        links,
+        bank_details: bank,
       });
       onSaved(updated);
       setAvatar(null);
@@ -1237,6 +1338,56 @@ function ProfileTab({
         Monthly tip goal (R) — powers the jar on your page
         <input value={goal} onChange={(e) => setGoal(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" placeholder="e.g. 3000" className={`${inputCls} mt-1.5 max-w-[200px]`} />
       </label>
+
+      <div className="space-y-4">
+        <div>
+          <p className="text-sm font-medium text-ink">Tip page</p>
+          <div className="mt-2 grid gap-4 sm:grid-cols-2">
+            <label className="block text-xs font-medium text-muted">
+              Preset amounts (2–6, comma separated)
+              <input value={presets} onChange={(e) => setPresets(e.target.value.replace(/[^0-9,.\s]/g, ""))} placeholder="20, 50, 100, 250" className={`${inputCls} mt-1.5`} />
+            </label>
+            <label className="block text-xs font-medium text-muted">
+              Thank-you note (shown after a fan pays)
+              <input value={thanksNote} onChange={(e) => setThanksNote(e.target.value.slice(0, 300))} placeholder="You're amazing — this keeps the lights on! 💚" className={`${inputCls} mt-1.5`} />
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-ink">Social links</p>
+          <div className="mt-2 grid gap-4 sm:grid-cols-2">
+            {(["instagram", "twitter", "youtube", "website"] as const).map((k) => (
+              <label key={k} className="block text-xs font-medium capitalize text-muted">
+                {k === "twitter" ? "X / Twitter" : k}
+                <input
+                  value={links[k] ?? ""}
+                  onChange={(e) => setLinks((l) => ({ ...l, [k]: e.target.value }))}
+                  placeholder={k === "website" ? "https://…" : "@handle"}
+                  className={`${inputCls} mt-1.5`}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-ink">Payout bank account</p>
+          <p className="text-xs text-muted">Used by the team when settling your payout requests. Never shown publicly.</p>
+          <div className="mt-2 grid gap-4 sm:grid-cols-3">
+            {([["bank", "Bank"], ["account_name", "Account holder"], ["account_no", "Account number"]] as const).map(([k, label]) => (
+              <label key={k} className="block text-xs font-medium text-muted">
+                {label}
+                <input
+                  value={bank[k] ?? ""}
+                  onChange={(e) => setBank((b) => ({ ...b, [k]: e.target.value }))}
+                  className={`${inputCls} mt-1.5`}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <div className="flex items-center gap-3">
         <button onClick={save} disabled={busy} className="btn-primary !px-6 !py-2.5 text-sm disabled:opacity-50">

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
+import type { Creator } from "@/types";
 
 type Status = "loading" | "completed" | "failed" | "pending" | "error";
 
@@ -35,6 +36,13 @@ function CallbackInner() {
   }, [searchParams]);
 
   const [status, setStatus] = useState<Status>("loading");
+  const [creator, setCreator] = useState<Creator | null>(null);
+
+  useEffect(() => {
+    if (creatorSlug) {
+      api.getCreator(creatorSlug).then(setCreator).catch(() => null);
+    }
+  }, [creatorSlug]);
 
   useEffect(() => {
     let alive = true;
@@ -102,8 +110,14 @@ function CallbackInner() {
         <IconCircle icon="bi-heart-fill" tone="teal" />
         <h1 className="mt-6 text-2xl font-extrabold">Payment received!</h1>
         <p className="body-muted mx-auto mt-3 max-w-sm">
-          Your tip has been sent. The creator will love it!
+          Your tip has been sent{creator ? ` to ${creator.display_name}` : ""}. The creator will love it!
         </p>
+        {creator?.thanks_note && (
+          <blockquote className="mx-auto mt-4 max-w-sm rounded-2xl border border-mint/40 bg-mint/10 px-5 py-4 text-sm text-ink">
+            &ldquo;{creator.thanks_note}&rdquo;
+            <footer className="mt-1.5 text-xs text-muted">— {creator.display_name}</footer>
+          </blockquote>
+        )}
         {reference && (
           <p className="mt-4 font-mono text-xs text-muted">Ref: {reference}</p>
         )}

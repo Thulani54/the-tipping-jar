@@ -132,6 +132,11 @@ async fn dashboard(
     let pending_payouts: Vec<&Value> =
         payouts.iter().filter(|p| is_status(p, "pending")).collect();
     let pending_amount: f64 = pending_payouts.iter().map(|p| num(p, "amount")).sum();
+    let fees_earned: f64 = txns
+        .iter()
+        .filter(|t| is_status(t, "completed"))
+        .map(|t| num(t, "platform_fee") + num(t, "service_fee"))
+        .sum();
 
     Ok(Json(json!({
         "totals": {
@@ -145,6 +150,7 @@ async fn dashboard(
             "transactions": txns.len(),
             "payouts_pending": pending_payouts.len(),
             "payouts_pending_amount": format!("{pending_amount:.2}"),
+            "fees_earned": format!("{fees_earned:.2}"),
             "contacts": contacts.len(),
             "disputes": disputes.len(),
         },

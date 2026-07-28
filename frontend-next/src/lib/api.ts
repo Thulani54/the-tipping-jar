@@ -264,8 +264,17 @@ export const api = {
       tip_goal?: number;
       avatar_url?: string;
       cover_url?: string;
+      tip_presets?: number[];
+      thanks_note?: string;
+      links?: { instagram?: string; twitter?: string; youtube?: string; website?: string };
+      bank_details?: { bank?: string; account_name?: string; account_no?: string };
     },
   ) => request<Creator>("/creators/creators/me", { method: "PUT", body, token }),
+  myBankDetails: (token: string) =>
+    request<{ bank?: string; account_name?: string; account_no?: string }>(
+      "/creators/creators/me/bank",
+      { token },
+    ),
 
   // ── creators: studio designs (promo graphics gallery) ─────────────
   myDesigns: (token: string) =>
@@ -308,6 +317,11 @@ export const api = {
     request<Pledge[]>(`/tips/tips/pledges/creator/${creatorId}`),
   creatorStats: (creatorId: string) =>
     request<CreatorStats>(`/tips/tips/creator/${creatorId}/stats`),
+  creatorDailyStats: (token: string, creatorId: string) =>
+    request<{ day: string; count: number; gross: string; net: string }[]>(
+      `/tips/tips/creator/${creatorId}/stats/daily`,
+      { token },
+    ),
   creatorSupporters: (token: string, creatorId: string) =>
     request<Supporter[]>(`/tips/tips/creator/${creatorId}/supporters`, { token }),
   messageSupporters: (

@@ -133,6 +133,17 @@ function StatCard({ label, value, icon, accent = "#004423" }: { label: string; v
   );
 }
 
+function exportCsv(filename: string, header: string[], rows: (string | number)[][]) {
+  const esc = (v: string | number) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csv = [header.join(","), ...rows.map((r) => r.map(esc).join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function Loading() {
   return <p className="body-muted">Loading…</p>;
 }
@@ -262,6 +273,7 @@ function OverviewTab({ token }: { token: string }) {
         <StatCard label="Transactions" value={String(t.transactions)} icon="bi-receipt" accent="#2563EB" />
         <StatCard label="Users" value={String(t.users)} icon="bi-people-fill" accent="#7C3AED" />
         <StatCard label={`Creators (${t.creators_active} active)`} value={String(t.creators)} icon="bi-patch-check-fill" accent="#004423" />
+        <StatCard label="Platform fees earned" value={money(t.fees_earned)} icon="bi-safe" accent="#0F766E" />
         <StatCard label={`Payouts pending (${money(t.payouts_pending_amount)})`} value={String(t.payouts_pending)} icon="bi-bank" accent="#D97706" />
         <StatCard label={`Support (${t.disputes} disputes)`} value={String(t.contacts + t.disputes)} icon="bi-life-preserver" accent="#DC2626" />
       </div>
@@ -469,12 +481,22 @@ function UsersTab({ token, onEmail }: { token: string; onEmail: (email: string) 
 
   return (
     <div className="space-y-4">
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search email or username…"
-        className="w-full max-w-sm rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
-      />
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search email or username…"
+          className="w-full max-w-sm rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
+        />
+        <button
+          onClick={() => exportCsv(`users-${new Date().toISOString().slice(0, 10)}.csv`,
+            ["email", "username", "role", "2fa", "joined"],
+            filtered.map((u) => [u.email, u.username, u.role, u.two_fa_enabled ? "on" : "off", u.created_at]))}
+          className="rounded-full border border-border px-3.5 py-1.5 text-xs font-semibold text-muted hover:border-teal hover:text-teal"
+        >
+          <i className="bi bi-download" /> CSV
+        </button>
+      </div>
       <Table head={["Email", "Username", "Role", "2FA", "Joined", ""]}>
         {filtered.map((u) => (
           <tr key={u.id} className="border-b border-border/60 last:border-0">
@@ -624,6 +646,14 @@ function TransactionsTab({ token }: { token: string }) {
           className="w-full max-w-sm rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
         />
         <FilterChips options={["all", "completed", "pending", "failed"]} value={status} onChange={setStatus} />
+        <button
+          onClick={() => exportCsv(`transactions-${new Date().toISOString().slice(0, 10)}.csv`,
+            ["date", "reference", "creator", "tipper", "amount", "platform_fee", "service_fee", "net", "status"],
+            filtered.map((t) => [t.created_at, t.reference, t.creator_name, t.tipper_name, t.amount, t.platform_fee, t.service_fee, t.creator_net, t.status]))}
+          className="rounded-full border border-border px-3.5 py-1.5 text-xs font-semibold text-muted hover:border-teal hover:text-teal"
+        >
+          <i className="bi bi-download" /> CSV
+        </button>
       </div>
       {note && <p className="text-sm text-teal">{note}</p>}
       <Table head={["Reference", "Creator", "Tipper", "Status", "Date", "Amount", "Net", ""]}>
@@ -658,10 +688,14 @@ function TransactionsTab({ token }: { token: string }) {
 
 function PayoutsTab({ token }: { token: string }) {
   const [rows, setRows] = useState<Payout[] | null>(null);
+  const [creators, setCreators] = useState<Map<string, AdminCreator>>(new Map());
   const [err, setErr] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const load = useCallback(() => {
     api.adminPayouts(token).then(setRows).catch(() => setErr(true));
+    api.adminCreators(token)
+      .then((cs) => setCreators(new Map(cs.map((c) => [c.id, c]))))
+      .catch(() => null);
   }, [token]);
   useEffect(load, [load]);
   if (err) return <LoadError />;
@@ -687,10 +721,25 @@ function PayoutsTab({ token }: { token: string }) {
   }
 
   return (
-    <Table head={["Reference", "Date", "Status", "Amount", "Settle"]}>
-      {rows.map((p) => (
+    <Table head={["Reference", "Creator", "Bank details", "Date", "Status", "Amount", "Settle"]}>
+      {rows.map((p) => {
+        const c = creators.get(p.creator_id);
+        const b = c?.bank_details ?? {};
+        return (
         <tr key={p.id} className="border-b border-border/60 last:border-0">
           <td className="px-5 py-3 font-mono text-xs text-muted">{p.reference}</td>
+          <td className="px-5 py-3 font-medium text-ink">{c?.display_name ?? "—"}</td>
+          <td className="px-5 py-3 text-xs text-muted">
+            {b.bank || b.account_no ? (
+              <>
+                {b.bank && <span className="text-ink">{b.bank}</span>}
+                {b.account_name && <> · {b.account_name}</>}
+                {b.account_no && <span className="font-mono"> · {b.account_no}</span>}
+              </>
+            ) : (
+              <span className="text-red-400">no bank on file</span>
+            )}
+          </td>
           <td className="px-5 py-3 text-muted">{when(p.created_at)}</td>
           <td className="px-5 py-3"><StatusPill status={p.status} /></td>
           <td className="px-5 py-3 font-bold text-ink">{money(p.amount)}</td>
@@ -717,7 +766,8 @@ function PayoutsTab({ token }: { token: string }) {
             )}
           </td>
         </tr>
-      ))}
+        );
+      })}
     </Table>
   );
 }

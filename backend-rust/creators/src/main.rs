@@ -37,11 +37,14 @@ struct Creator {
     avatar_url: String,
     cover_url: String,
     is_featured: bool,
+    tip_presets: String,
+    thanks_note: String,
+    links: String,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
 const CREATOR_COLUMNS: &str =
-    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, is_featured, created_at";
+    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, is_featured, tip_presets, thanks_note, links, created_at";
 
 #[derive(sqlx::FromRow, Serialize)]
 struct SupportTier {
@@ -384,6 +387,13 @@ struct UpdateMeReq {
     tip_goal: Option<f64>,
     avatar_url: Option<String>,
     cover_url: Option<String>,
+    /// JSON array of preset amounts, e.g. [20, 50, 100]
+    tip_presets: Option<serde_json::Value>,
+    thanks_note: Option<String>,
+    /// JSON object {instagram, twitter, youtube, website}
+    links: Option<serde_json::Value>,
+    /// JSON object {bank, account_name, account_no} — never exposed publicly
+    bank_details: Option<serde_json::Value>,
 }
 
 /// Creator edits their own profile (partial update; images as data URLs).
@@ -410,6 +420,21 @@ async fn update_me(
         }
     }
     let tip_goal = req.tip_goal.and_then(Decimal::from_f64_retain).map(|d| d.round_dp(2));
+    let to_json = |v: Option<serde_json::Value>, cap: usize| -> Result<Option<String>, AppError> {
+        match v {
+            None => Ok(None),
+            Some(val) => {
+                let s = val.to_string();
+                if s.len() > cap {
+                    return Err(AppError::BadRequest("field too large".into()));
+                }
+                Ok(Some(s))
+            }
+        }
+    };
+    let presets = to_json(req.tip_presets, 200)?;
+    let links = to_json(req.links, 1000)?;
+    let bank = to_json(req.bank_details, 1000)?;
     let row: Option<Creator> = sqlx::query_as(&format!(
         "UPDATE creator_profiles SET
             display_name = COALESCE($1, display_name),
@@ -417,8 +442,12 @@ async fn update_me(
             category     = COALESCE($3, category),
             tip_goal     = COALESCE($4, tip_goal),
             avatar_url   = COALESCE($5, avatar_url),
-            cover_url    = COALESCE($6, cover_url)
-         WHERE user_id = $7 RETURNING {CREATOR_COLUMNS}"
+            cover_url    = COALESCE($6, cover_url),
+            tip_presets  = COALESCE($7, tip_presets),
+            thanks_note  = COALESCE($8, thanks_note),
+            links        = COALESCE($9, links),
+            bank_details = COALESCE($10, bank_details)
+         WHERE user_id = $11 RETURNING {CREATOR_COLUMNS}"
     ))
     .bind(req.display_name.map(|d| d.trim().to_string()))
     .bind(req.tagline)
@@ -426,11 +455,32 @@ async fn update_me(
     .bind(tip_goal)
     .bind(req.avatar_url)
     .bind(req.cover_url)
+    .bind(presets)
+    .bind(req.thanks_note.map(|t| t.chars().take(300).collect::<String>()))
+    .bind(links)
+    .bind(bank)
     .bind(user_id)
     .fetch_optional(&st.pool)
     .await?;
     row.map(Json)
         .ok_or_else(|| AppError::NotFound("no creator profile for this user".into()))
+}
+
+/// The caller's stored payout bank details (kept off the public profile).
+async fn get_my_bank(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let token = bearer(&headers)?;
+    let user_id = verify_caller(&st, &token).await?;
+    let row: Option<(String,)> =
+        sqlx::query_as("SELECT bank_details FROM creator_profiles WHERE user_id = $1")
+            .bind(user_id)
+            .fetch_optional(&st.pool)
+            .await?;
+    let raw = row.map(|r| r.0).unwrap_or_default();
+    let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap_or(json!({}));
+    Ok(Json(parsed))
 }
 
 async fn get_me(
@@ -457,20 +507,23 @@ async fn list_all_internal(
     headers: HeaderMap,
 ) -> Result<Json<Vec<serde_json::Value>>, AppError> {
     common::require_internal_key(&headers)?;
-    let rows: Vec<Creator> = sqlx::query_as(&format!(
-        "SELECT {CREATOR_COLUMNS} FROM creator_profiles ORDER BY created_at DESC LIMIT 300"
-    ))
+    let rows: Vec<(Uuid, Uuid, String, String, String, String, Option<Decimal>, bool, String, String, String, bool, String, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
+        "SELECT id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, is_featured, bank_details, created_at
+         FROM creator_profiles ORDER BY created_at DESC LIMIT 300",
+    )
     .fetch_all(&st.pool)
     .await?;
     Ok(Json(
         rows.into_iter()
-            .map(|c| {
+            .map(|(id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, is_featured, bank_details, created_at)| {
                 json!({
-                    "id": c.id, "user_id": c.user_id, "display_name": c.display_name,
-                    "slug": c.slug, "tagline": c.tagline, "category": c.category,
-                    "tip_goal": c.tip_goal, "is_active": c.is_active,
-                    "kyc_status": c.kyc_status, "is_featured": c.is_featured, "has_avatar": !c.avatar_url.is_empty(),
-                    "has_cover": !c.cover_url.is_empty(), "created_at": c.created_at,
+                    "id": id, "user_id": user_id, "display_name": display_name,
+                    "slug": slug, "tagline": tagline, "category": category,
+                    "tip_goal": tip_goal, "is_active": is_active,
+                    "kyc_status": kyc_status, "is_featured": is_featured, "has_avatar": !avatar_url.is_empty(),
+                    "has_cover": !cover_url.is_empty(),
+                    "bank_details": serde_json::from_str::<serde_json::Value>(&bank_details).unwrap_or(json!({})),
+                    "created_at": created_at,
                 })
             })
             .collect(),
@@ -738,6 +791,13 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::query("ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT FALSE")
         .execute(pool)
         .await?;
+    for col in ["tip_presets", "thanks_note", "links", "bank_details"] {
+        sqlx::query(&format!(
+            "ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS {col} TEXT NOT NULL DEFAULT ''"
+        ))
+        .execute(pool)
+        .await?;
+    }
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS support_tiers (
             id          UUID PRIMARY KEY,
@@ -822,6 +882,7 @@ async fn main() {
         .route("/health", get(health))
         .route("/creators", post(create_creator).get(list_creators))
         .route("/creators/me", get(get_me).put(update_me))
+        .route("/creators/me/bank", get(get_my_bank))
         .route("/creators/studio/designs", get(list_designs).post(save_design))
         .route(
             "/creators/studio/designs/:id",

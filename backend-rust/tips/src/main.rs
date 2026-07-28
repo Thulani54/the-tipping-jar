@@ -317,6 +317,32 @@ async fn thank_tip(
     Ok(Json(updated))
 }
 
+/// The creator's own tip volume per day, last 30 days (owner-only).
+async fn creator_daily_stats(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(creator_id): Path<Uuid>,
+) -> Result<Json<Vec<serde_json::Value>>, AppError> {
+    require_owner(&st, &headers, creator_id).await?;
+    let rows: Vec<(chrono::NaiveDate, i64, Decimal, Decimal)> = sqlx::query_as(
+        "SELECT (created_at AT TIME ZONE 'Africa/Johannesburg')::date AS day,
+                count(*), COALESCE(SUM(amount),0), COALESCE(SUM(creator_net),0)
+         FROM tips
+         WHERE creator_id = $1 AND status = 'completed' AND created_at > now() - interval '30 days'
+         GROUP BY day ORDER BY day",
+    )
+    .bind(creator_id)
+    .fetch_all(&st.pool)
+    .await?;
+    Ok(Json(
+        rows.into_iter()
+            .map(|(day, count, gross, net)| {
+                serde_json::json!({ "day": day.to_string(), "count": count, "gross": gross.to_string(), "net": net.to_string() })
+            })
+            .collect(),
+    ))
+}
+
 #[derive(Deserialize)]
 struct MessageSupportersReq {
     subject: String,
@@ -697,6 +723,7 @@ async fn main() {
         .route("/tips/pledges/creator/:creator_id", get(pledges_for_creator))
         .route("/tips/creator/:creator_id", get(tips_for_creator))
         .route("/tips/creator/:creator_id/supporters", get(supporters_for_creator))
+        .route("/tips/creator/:creator_id/stats/daily", get(creator_daily_stats))
         .route("/tips/creator/:creator_id/message-supporters", post(message_supporters))
         .route("/tips/:id/thanks", post(thank_tip))
         .route("/tips/creator/:creator_id/stats", get(creator_stats))

@@ -48,6 +48,48 @@ function relative(iso: string): string {
 
 const rand = (n: number) => `R${Math.round(n).toLocaleString("en-ZA")}`;
 
+function SocialLinks({ raw }: { raw: string }) {
+  let links: Record<string, string> = {};
+  try { links = raw ? JSON.parse(raw) : {}; } catch { return null; }
+  const items = [
+    { key: "instagram", icon: "bi-instagram", prefix: "https://instagram.com/" },
+    { key: "twitter", icon: "bi-twitter-x", prefix: "https://x.com/" },
+    { key: "youtube", icon: "bi-youtube", prefix: "https://youtube.com/@" },
+    { key: "website", icon: "bi-globe2", prefix: "" },
+  ].filter((i) => links[i.key]);
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-4 flex items-center gap-3">
+      {items.map((i) => {
+        const v = links[i.key].trim();
+        const href = v.startsWith("http") ? v : `${i.prefix}${v.replace(/^@/, "")}`;
+        return (
+          <a key={i.key} href={href} target="_blank" rel="noreferrer"
+             className="grid h-10 w-10 place-items-center rounded-full border border-border bg-white text-muted transition hover:border-green hover:text-green"
+             aria-label={i.key}>
+            <i className={`bi ${i.icon}`} />
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
+function topSupporter(tips: Tip[]): { name: string; total: number } | null {
+  const sums = new Map<string, number>();
+  for (const t of tips) {
+    const key = (t.tipper_email || t.tipper_name || "anon").toLowerCase();
+    sums.set(key, (sums.get(key) ?? 0) + (parseFloat(t.amount) || 0));
+  }
+  let best: { name: string; total: number } | null = null;
+  for (const t of tips) {
+    const key = (t.tipper_email || t.tipper_name || "anon").toLowerCase();
+    const total = sums.get(key) ?? 0;
+    if (!best || total > best.total) best = { name: t.tipper_name, total };
+  }
+  return best && best.total > 0 ? best : null;
+}
+
 export default async function CreatorPage({
   params,
 }: {
@@ -140,6 +182,7 @@ export default async function CreatorPage({
           {creator.tagline && (
             <p className="body-muted mx-auto mt-5 max-w-2xl text-lg">{creator.tagline}</p>
           )}
+          <SocialLinks raw={creator.links} />
         </div>
 
         {/* Two columns: supporters ledger + the jar */}
@@ -184,6 +227,21 @@ export default async function CreatorPage({
                 </div>
               ))}
             </div>
+
+            {(() => {
+              const top = topSupporter(completed);
+              return top ? (
+                <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/10 px-5 py-3.5">
+                  <span className="text-2xl">🥇</span>
+                  <div>
+                    <p className="text-sm font-semibold text-ink">
+                      Top supporter: {maskName(top.name)} · {rand(top.total)}
+                    </p>
+                    <p className="text-xs text-muted">Legend status. Thank you!</p>
+                  </div>
+                </div>
+              ) : null;
+            })()}
 
             <div className="mt-8 card !p-0 overflow-hidden">
               <div className="flex items-center justify-between border-b border-border px-5 py-3.5 font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
