@@ -381,10 +381,9 @@ details.faq-item summary::-webkit-details-marker {
   background: #0f2439;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
-/* active nav pill — frosted green glass with a soft glow */
+/* active nav pill — flat, matches admin card language (no gradients) */
 .nav-glass {
-  background: linear-gradient(100deg, rgba(87, 206, 139, 0.22), rgba(255, 255, 255, 0.06));
-  box-shadow: 0 10px 26px -12px rgba(87, 206, 139, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background: rgba(87, 206, 139, 0.18);
 }
 
 /* ── Aurora: animated blob background (the "living" illustration layer) ──── */

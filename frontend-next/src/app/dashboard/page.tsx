@@ -245,7 +245,7 @@ function NavRow({
   onClick?: () => void;
   href?: string;
 }) {
-  const cls = `group relative flex w-full items-center gap-3 rounded-xl p-1.5 transition-all duration-200 ${
+  const cls = `group relative flex w-full items-center gap-3 rounded-lg p-1.5 transition-colors duration-200 ${
     collapsed ? "lg:justify-center" : ""
   } ${active ? "nav-glass" : "hover:bg-white/[0.06]"}`;
   const inner = (
