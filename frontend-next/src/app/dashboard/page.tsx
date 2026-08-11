@@ -251,10 +251,10 @@ function NavRow({
   const inner = (
     <>
       <span
-        className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-all duration-200 ${
+        className={`grid h-9 w-9 shrink-0 place-items-center transition-colors duration-200 ${
           active
-            ? "bg-mint/25 text-mint ring-1 ring-mint/30"
-            : "text-white/70 group-hover:bg-white/10 group-hover:text-white"
+            ? "ml-0.5 rounded-full bg-mint/25 text-mint ring-1 ring-mint/30"
+            : "rounded-lg text-white/70 group-hover:bg-white/10 group-hover:text-white"
         }`}
       >
         <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
