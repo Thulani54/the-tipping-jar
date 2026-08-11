@@ -34,6 +34,11 @@ export interface Creator {
   thanks_note: string;
   links: string; // JSON object {instagram, twitter, youtube, website}
   theme: string; // accent hex for the public page, e.g. "#7C3AED"
+  profile_type: string; // "individual" | "organisation"
+  org_type: string;     // "" | "ngo" | "church" | "school" | "business" | "other"
+  registration_number: string;
+  country: string;      // ISO like "ZA"
+  city: string;
   created_at: string;
 }
 
@@ -218,6 +223,10 @@ export interface AdminCreator {
   has_avatar: boolean;
   has_cover: boolean;
   bank_details: { bank?: string; account_name?: string; account_no?: string };
+  profile_type: string;
+  org_type: string;
+  country: string;
+  city: string;
   created_at: string;
 }
 

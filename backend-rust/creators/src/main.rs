@@ -43,11 +43,16 @@ struct Creator {
     thanks_note: String,
     links: String,
     theme: String,
+    profile_type: String,       // "individual" | "organisation"
+    org_type: String,           // "" | "ngo" | "church" | "school" | "business" | "other"
+    registration_number: String,// NPO/company reg for orgs (public but light-weight)
+    country: String,            // ISO like "ZA"
+    city: String,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
 const CREATOR_COLUMNS: &str =
-    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, is_featured, tip_presets, thanks_note, links, theme, created_at";
+    "id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, is_featured, tip_presets, thanks_note, links, theme, profile_type, org_type, registration_number, country, city, created_at";
 
 #[derive(sqlx::FromRow, Serialize)]
 struct SupportTier {
@@ -147,6 +152,13 @@ struct CreateReq {
     category: Option<String>,
     tip_goal: Option<f64>,
     slug: Option<String>,
+    /// "individual" (default) or "organisation"
+    profile_type: Option<String>,
+    /// For organisations: "ngo" | "church" | "school" | "business" | "other"
+    org_type: Option<String>,
+    registration_number: Option<String>,
+    country: Option<String>,
+    city: Option<String>,
 }
 
 // ── Handlers ────────────────────────────────────────────────────────────────
@@ -177,9 +189,25 @@ async fn create_creator(
         .and_then(Decimal::from_f64_retain)
         .map(|d| d.round_dp(2));
 
+    // Normalise profile_type — "organisation" is the only non-default.
+    let profile_type = match req.profile_type.as_deref() {
+        Some("organisation") | Some("org") | Some("ngo") | Some("church") => "organisation",
+        _ => "individual",
+    }.to_string();
+    let org_type = match req.org_type.as_deref() {
+        Some(v @ ("ngo" | "church" | "school" | "business" | "other")) => v.to_string(),
+        _ => String::new(),
+    };
+    let country = req.country.unwrap_or_default().chars().take(4).collect::<String>().to_uppercase();
+    let city = req.city.unwrap_or_default().chars().take(80).collect::<String>();
+    let registration = req.registration_number.unwrap_or_default().chars().take(60).collect::<String>();
+
     let row: Creator = sqlx::query_as(&format!(
-        "INSERT INTO creator_profiles (id, user_id, display_name, slug, tagline, category, tip_goal)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING {CREATOR_COLUMNS}"
+        "INSERT INTO creator_profiles
+            (id, user_id, display_name, slug, tagline, category, tip_goal,
+             profile_type, org_type, registration_number, country, city)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+         RETURNING {CREATOR_COLUMNS}"
     ))
     .bind(Uuid::new_v4())
     .bind(user_id)
@@ -188,6 +216,11 @@ async fn create_creator(
     .bind(req.tagline.unwrap_or_default())
     .bind(req.category.unwrap_or_default())
     .bind(tip_goal)
+    .bind(profile_type)
+    .bind(org_type)
+    .bind(registration)
+    .bind(country)
+    .bind(city)
     .fetch_one(&st.pool)
     .await
     .map_err(|e| match &e {
@@ -399,6 +432,10 @@ struct UpdateMeReq {
     bank_details: Option<serde_json::Value>,
     /// Accent colour for the public page, e.g. "#12A25C"
     theme: Option<String>,
+    country: Option<String>,
+    city: Option<String>,
+    org_type: Option<String>,
+    registration_number: Option<String>,
 }
 
 /// Creator edits their own profile (partial update; images as data URLs).
@@ -452,8 +489,12 @@ async fn update_me(
             thanks_note  = COALESCE($8, thanks_note),
             links        = COALESCE($9, links),
             bank_details = COALESCE($10, bank_details),
-            theme        = COALESCE($11, theme)
-         WHERE user_id = $12 RETURNING {CREATOR_COLUMNS}"
+            theme        = COALESCE($11, theme),
+            country      = COALESCE($12, country),
+            city         = COALESCE($13, city),
+            org_type     = COALESCE($14, org_type),
+            registration_number = COALESCE($15, registration_number)
+         WHERE user_id = $16 RETURNING {CREATOR_COLUMNS}"
     ))
     .bind(req.display_name.map(|d| d.trim().to_string()))
     .bind(req.tagline)
@@ -466,6 +507,10 @@ async fn update_me(
     .bind(links)
     .bind(bank)
     .bind(req.theme.filter(|t| t.is_empty() || (t.starts_with('#') && t.len() <= 9)))
+    .bind(req.country.map(|c| c.chars().take(4).collect::<String>().to_uppercase()))
+    .bind(req.city.map(|c| c.chars().take(80).collect::<String>()))
+    .bind(req.org_type.filter(|v| matches!(v.as_str(), "" | "ngo" | "church" | "school" | "business" | "other")))
+    .bind(req.registration_number.map(|r| r.chars().take(60).collect::<String>()))
     .bind(user_id)
     .fetch_optional(&st.pool)
     .await?;
@@ -514,23 +559,39 @@ async fn list_all_internal(
     headers: HeaderMap,
 ) -> Result<Json<Vec<serde_json::Value>>, AppError> {
     common::require_internal_key(&headers)?;
-    let rows: Vec<(Uuid, Uuid, String, String, String, String, Option<Decimal>, bool, String, String, String, bool, String, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
-        "SELECT id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, is_featured, bank_details, created_at
+    use sqlx::Row as _;
+    let rows = sqlx::query(
+        "SELECT id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status,
+                avatar_url, cover_url, is_featured, bank_details, profile_type, country, city, org_type, created_at
          FROM creator_profiles ORDER BY created_at DESC LIMIT 300",
     )
     .fetch_all(&st.pool)
     .await?;
     Ok(Json(
         rows.into_iter()
-            .map(|(id, user_id, display_name, slug, tagline, category, tip_goal, is_active, kyc_status, avatar_url, cover_url, is_featured, bank_details, created_at)| {
+            .map(|r| {
+                let avatar_url: String = r.try_get("avatar_url").unwrap_or_default();
+                let cover_url: String = r.try_get("cover_url").unwrap_or_default();
+                let bank_details: String = r.try_get("bank_details").unwrap_or_default();
                 json!({
-                    "id": id, "user_id": user_id, "display_name": display_name,
-                    "slug": slug, "tagline": tagline, "category": category,
-                    "tip_goal": tip_goal, "is_active": is_active,
-                    "kyc_status": kyc_status, "is_featured": is_featured, "has_avatar": !avatar_url.is_empty(),
+                    "id": r.try_get::<Uuid, _>("id").ok(),
+                    "user_id": r.try_get::<Uuid, _>("user_id").ok(),
+                    "display_name": r.try_get::<String, _>("display_name").unwrap_or_default(),
+                    "slug": r.try_get::<String, _>("slug").unwrap_or_default(),
+                    "tagline": r.try_get::<String, _>("tagline").unwrap_or_default(),
+                    "category": r.try_get::<String, _>("category").unwrap_or_default(),
+                    "tip_goal": r.try_get::<Option<Decimal>, _>("tip_goal").ok().flatten(),
+                    "is_active": r.try_get::<bool, _>("is_active").unwrap_or(false),
+                    "kyc_status": r.try_get::<String, _>("kyc_status").unwrap_or_default(),
+                    "is_featured": r.try_get::<bool, _>("is_featured").unwrap_or(false),
+                    "has_avatar": !avatar_url.is_empty(),
                     "has_cover": !cover_url.is_empty(),
                     "bank_details": serde_json::from_str::<serde_json::Value>(&bank_details).unwrap_or(json!({})),
-                    "created_at": created_at,
+                    "profile_type": r.try_get::<String, _>("profile_type").unwrap_or_default(),
+                    "country": r.try_get::<String, _>("country").unwrap_or_default(),
+                    "city": r.try_get::<String, _>("city").unwrap_or_default(),
+                    "org_type": r.try_get::<String, _>("org_type").unwrap_or_default(),
+                    "created_at": r.try_get::<chrono::DateTime<chrono::Utc>, _>("created_at").ok(),
                 })
             })
             .collect(),
@@ -991,13 +1052,21 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     )
     .execute(pool)
     .await?;
-    for col in ["tip_presets", "thanks_note", "links", "bank_details", "theme"] {
+    for col in [
+        "tip_presets", "thanks_note", "links", "bank_details", "theme",
+        "profile_type", "org_type", "registration_number", "country", "city",
+    ] {
         sqlx::query(&format!(
             "ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS {col} TEXT NOT NULL DEFAULT ''"
         ))
         .execute(pool)
         .await?;
     }
+    // profile_type defaults to 'individual' for existing rows so the public page
+    // treats them the same as before.
+    sqlx::query("UPDATE creator_profiles SET profile_type='individual' WHERE profile_type=''")
+        .execute(pool)
+        .await?;
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS support_tiers (
             id          UUID PRIMARY KEY,

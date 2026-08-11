@@ -189,6 +189,19 @@ export default async function CreatorPage({
           {creator.tagline && (
             <p className="body-muted mx-auto mt-5 max-w-2xl text-lg">{creator.tagline}</p>
           )}
+          {(creator.city || creator.country) && (
+            <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted">
+              <i className="bi bi-geo-alt-fill" />
+              {[creator.city, creator.country].filter(Boolean).join(", ")}
+            </p>
+          )}
+          {creator.profile_type === "organisation" && (
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-mint/40 bg-mint/10 px-3 py-1 text-xs font-semibold text-green">
+              <i className="bi bi-patch-check-fill" />
+              {creator.org_type ? creator.org_type.charAt(0).toUpperCase() + creator.org_type.slice(1) : "Organisation"}
+              {creator.registration_number && <span className="font-mono text-muted"> · {creator.registration_number}</span>}
+            </div>
+          )}
           <SocialLinks raw={creator.links} />
         </div>
 

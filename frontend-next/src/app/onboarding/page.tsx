@@ -5,7 +5,62 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
-const TOTAL_STEPS = 6;
+// Individual flow: profile-type → platforms → niche → audience-size → age → gender → location → identity  (8)
+// Organisation flow: profile-type → org-type → causes/focus → registration → location → identity  (6)
+const INDIVIDUAL_STEPS = 8;
+const ORG_STEPS = 6;
+
+const PROFILE_TYPES = [
+  {
+    id: "individual" as const,
+    icon: "bi-person-heart",
+    title: "I'm a creator",
+    body: "Individuals — musicians, artists, streamers, writers, podcasters. Get tipped for the work you already do.",
+  },
+  {
+    id: "organisation" as const,
+    icon: "bi-building-fill-check",
+    title: "We're an organisation",
+    body: "NGOs, churches, schools and mission-driven orgs. Accept public support for your cause and campaigns.",
+  },
+];
+
+const ORG_TYPES = [
+  { id: "ngo",      icon: "bi-heart-fill",       title: "NGO / non-profit",  sub: "Registered NPO or PBO doing community work" },
+  { id: "church",   icon: "bi-building-fill",    title: "Church / faith community", sub: "Congregations, ministries, mission groups" },
+  { id: "school",   icon: "bi-mortarboard-fill", title: "School / educator",  sub: "Public/private schools, learning collectives" },
+  { id: "business", icon: "bi-shop",             title: "Social enterprise",  sub: "For-profit with a public cause" },
+  { id: "other",    icon: "bi-three-dots",       title: "Something else",     sub: "Community groups, foundations, clubs" },
+];
+
+const ORG_CAUSES = [
+  { label: "Community", icon: "bi-people-fill" },
+  { label: "Faith", icon: "bi-book-fill" },
+  { label: "Education", icon: "bi-mortarboard-fill" },
+  { label: "Youth", icon: "bi-emoji-smile-fill" },
+  { label: "Health", icon: "bi-heart-pulse-fill" },
+  { label: "Poverty relief", icon: "bi-basket-fill" },
+  { label: "Environment", icon: "bi-tree-fill" },
+  { label: "Arts & culture", icon: "bi-palette-fill" },
+  { label: "Animal welfare", icon: "bi-github" },
+  { label: "Other", icon: "bi-three-dots" },
+];
+
+const COUNTRIES = [
+  { code: "ZA", name: "South Africa" },
+  { code: "NA", name: "Namibia" },
+  { code: "BW", name: "Botswana" },
+  { code: "ZW", name: "Zimbabwe" },
+  { code: "MZ", name: "Mozambique" },
+  { code: "LS", name: "Lesotho" },
+  { code: "SZ", name: "Eswatini" },
+  { code: "KE", name: "Kenya" },
+  { code: "NG", name: "Nigeria" },
+  { code: "GH", name: "Ghana" },
+  { code: "UK", name: "United Kingdom" },
+  { code: "US", name: "United States" },
+  { code: "OT", name: "Elsewhere" },
+];
 
 const PLATFORMS = [
   "YouTube",
@@ -70,15 +125,33 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Profile type — step 0 branches the whole flow.
+  const [profileType, setProfileType] = useState<"individual" | "organisation" | null>(null);
+
+  // Individual signals
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [niche, setNiche] = useState<string | null>(null);
   const [audienceSize, setAudienceSize] = useState<string | null>(null);
   const [ageGroup, setAgeGroup] = useState<string | null>(null);
   const [audienceGender, setAudienceGender] = useState<string | null>(null);
+
+  // Organisation signals
+  const [orgType, setOrgType] = useState<string | null>(null);
+  const [orgCauses, setOrgCauses] = useState<string[]>([]);
+  const [registrationNumber, setRegistrationNumber] = useState("");
+
+  // Geo (shared)
+  const [country, setCountry] = useState("ZA");
+  const [city, setCity] = useState("");
+
+  // Identity (shared)
   const [displayName, setDisplayName] = useState("");
   const [tagline, setTagline] = useState("");
   const [bio, setBio] = useState("");
   const [goal, setGoal] = useState("");
+
+  const isOrg = profileType === "organisation";
+  const TOTAL_STEPS = isOrg ? ORG_STEPS : profileType === "individual" ? INDIVIDUAL_STEPS : 1;
 
   // Onboarding creates a creator profile, so it requires a signed-in account.
   useEffect(() => {
@@ -91,24 +164,32 @@ export default function OnboardingPage() {
   }, [user]);
 
   const canProceed = (() => {
-    switch (step) {
-      case 0:
-        return platforms.length > 0;
-      case 1:
-        return niche !== null;
-      case 2:
-        return audienceSize !== null;
-      case 3:
-        return ageGroup !== null;
-      case 4:
-        return audienceGender !== null;
-      case 5:
-        return displayName.trim().length > 0 && tagline.trim().length > 0;
-      default:
-        return false;
+    if (step === 0) return profileType !== null;
+    if (isOrg) {
+      switch (step) {
+        case 1: return orgType !== null;
+        case 2: return orgCauses.length > 0;
+        case 3: return true; // registration_number is optional
+        case 4: return country.length > 0 && city.trim().length > 0;
+        case 5: return displayName.trim().length > 0 && tagline.trim().length > 0;
+      }
+    } else {
+      switch (step) {
+        case 1: return platforms.length > 0;
+        case 2: return niche !== null;
+        case 3: return audienceSize !== null;
+        case 4: return ageGroup !== null;
+        case 5: return audienceGender !== null;
+        case 6: return country.length > 0 && city.trim().length > 0;
+        case 7: return displayName.trim().length > 0 && tagline.trim().length > 0;
+      }
     }
+    return false;
   })();
 
+  function toggleCause(c: string) {
+    setOrgCauses((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+  }
   function togglePlatform(p: string) {
     setPlatforms((prev) =>
       prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p],
@@ -141,8 +222,13 @@ export default function OnboardingPage() {
       await api.createCreator(token, {
         display_name: displayName.trim(),
         tagline: tagline.trim() || undefined,
-        category: niche ?? undefined,
+        category: isOrg ? (orgCauses[0] ?? undefined) : (niche ?? undefined),
         tip_goal: parseGoal(goal),
+        profile_type: profileType ?? undefined,
+        org_type: isOrg ? (orgType as "ngo" | "church" | "school" | "business" | "other" | undefined) : undefined,
+        registration_number: isOrg ? registrationNumber.trim() || undefined : undefined,
+        country,
+        city: city.trim() || undefined,
       });
       router.push("/dashboard");
     } catch (e) {
@@ -189,11 +275,90 @@ export default function OnboardingPage() {
         </p>
 
         <div className="mt-10">
+          {/* Step 0 — profile type (shown once profileType is null OR user hit Back to 0) */}
           {step === 0 && (
             <StepShell
-              title="Where do you create?"
-              subtitle="Select all that apply."
+              title="Are you registering as an individual or organisation?"
+              subtitle="This tailors the rest of the setup. You can only choose once."
             >
+              <div className="grid gap-4 sm:grid-cols-2">
+                {PROFILE_TYPES.map((p) => {
+                  const active = profileType === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setProfileType(p.id)}
+                      className={`flex flex-col gap-3 rounded-2xl border p-6 text-left transition ${
+                        active ? "border-teal bg-primary/10 text-ink shadow-lift" : "border-border bg-card text-ink hover:border-teal/50"
+                      }`}
+                    >
+                      <span className={`grid h-11 w-11 place-items-center rounded-xl ${active ? "bg-teal text-white" : "bg-border/40 text-teal"}`} aria-hidden>
+                        <i className={`bi ${p.icon} text-xl`} />
+                      </span>
+                      <span className="text-lg font-extrabold">{p.title}</span>
+                      <span className="text-sm text-muted">{p.body}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </StepShell>
+          )}
+
+          {/* ─── ORGANISATION FLOW ────────────────────────────────────────── */}
+          {isOrg && step === 1 && (
+            <StepShell title="What kind of organisation?" subtitle="Pick the closest match.">
+              <div className="space-y-3">
+                {ORG_TYPES.map((o) => (
+                  <RowOption key={o.id} active={orgType === o.id} icon={o.icon} title={o.title} sub={o.sub} onClick={() => setOrgType(o.id)} />
+                ))}
+              </div>
+            </StepShell>
+          )}
+
+          {isOrg && step === 2 && (
+            <StepShell title="What causes do you serve?" subtitle="Pick as many as apply.">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {ORG_CAUSES.map((c) => {
+                  const active = orgCauses.includes(c.label);
+                  return (
+                    <button
+                      key={c.label}
+                      type="button"
+                      onClick={() => toggleCause(c.label)}
+                      className={`flex flex-col items-center justify-center gap-2 rounded-xl border px-3 py-5 text-center transition ${
+                        active ? "border-teal bg-primary/15 text-teal" : "border-border bg-card text-muted hover:border-teal/50"
+                      }`}
+                    >
+                      <span className="text-2xl" aria-hidden><i className={`bi ${c.icon}`} /></span>
+                      <span className="text-xs font-semibold">{c.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </StepShell>
+          )}
+
+          {isOrg && step === 3 && (
+            <StepShell
+              title="Registration details"
+              subtitle="If you have an NPO or company registration number, add it — it builds public trust. You can skip this and add it later."
+            >
+              <label className="mb-2 block text-sm font-semibold text-ink">Registration number</label>
+              <input
+                value={registrationNumber}
+                maxLength={60}
+                onChange={(e) => setRegistrationNumber(e.target.value)}
+                placeholder="e.g. NPO 123-456 or 2024/012345/08"
+                className={inputClass}
+              />
+              <p className="mt-1.5 text-xs text-muted">Shown on your public page as a small trust badge.</p>
+            </StepShell>
+          )}
+
+          {/* ─── INDIVIDUAL FLOW ──────────────────────────────────────────── */}
+          {!isOrg && profileType && step === 1 && (
+            <StepShell title="Where do you create?" subtitle="Select all that apply.">
               <div className="grid gap-3 sm:grid-cols-2">
                 {PLATFORMS.map((p) => {
                   const active = platforms.includes(p);
@@ -208,11 +373,8 @@ export default function OnboardingPage() {
             </StepShell>
           )}
 
-          {step === 1 && (
-            <StepShell
-              title="What's your content niche?"
-              subtitle="Pick the one that best describes your content."
-            >
+          {!isOrg && profileType && step === 2 && (
+            <StepShell title="What's your content niche?" subtitle="Pick the one that best describes your content.">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {NICHES.map((n) => {
                   const active = niche === n.label;
@@ -222,14 +384,10 @@ export default function OnboardingPage() {
                       type="button"
                       onClick={() => setNiche(n.label)}
                       className={`flex flex-col items-center justify-center gap-2 rounded-xl border px-3 py-5 text-center transition ${
-                        active
-                          ? "border-teal bg-primary/15 text-teal"
-                          : "border-border bg-card text-muted hover:border-teal/50"
+                        active ? "border-teal bg-primary/15 text-teal" : "border-border bg-card text-muted hover:border-teal/50"
                       }`}
                     >
-                      <span className="text-2xl" aria-hidden>
-                        <i className={`bi ${n.icon}`} />
-                      </span>
+                      <span className="text-2xl" aria-hidden><i className={`bi ${n.icon}`} /></span>
                       <span className="text-xs font-semibold">{n.label}</span>
                     </button>
                   );
@@ -238,51 +396,28 @@ export default function OnboardingPage() {
             </StepShell>
           )}
 
-          {step === 2 && (
-            <StepShell
-              title="How big is your audience?"
-              subtitle="This helps us tailor your experience."
-            >
+          {!isOrg && profileType && step === 3 && (
+            <StepShell title="How big is your audience?" subtitle="This helps us tailor your experience.">
               <div className="space-y-3">
                 {AUDIENCE_SIZES.map((s) => (
-                  <RowOption
-                    key={s.title}
-                    active={audienceSize === s.title}
-                    icon={s.icon}
-                    title={s.title}
-                    sub={s.sub}
-                    onClick={() => setAudienceSize(s.title)}
-                  />
+                  <RowOption key={s.title} active={audienceSize === s.title} icon={s.icon} title={s.title} sub={s.sub} onClick={() => setAudienceSize(s.title)} />
                 ))}
               </div>
             </StepShell>
           )}
 
-          {step === 3 && (
-            <StepShell
-              title="Who is your content for?"
-              subtitle="Select the primary age group you create for."
-            >
+          {!isOrg && profileType && step === 4 && (
+            <StepShell title="Who is your content for?" subtitle="Select the primary age group you create for.">
               <div className="space-y-3">
                 {AGE_GROUPS.map((g) => (
-                  <RowOption
-                    key={g.title}
-                    active={ageGroup === g.title}
-                    icon={g.icon}
-                    title={g.title}
-                    sub={g.sub}
-                    onClick={() => setAgeGroup(g.title)}
-                  />
+                  <RowOption key={g.title} active={ageGroup === g.title} icon={g.icon} title={g.title} sub={g.sub} onClick={() => setAgeGroup(g.title)} />
                 ))}
               </div>
             </StepShell>
           )}
 
-          {step === 4 && (
-            <StepShell
-              title="Who watches your content?"
-              subtitle="Helps match you with the right opportunities."
-            >
+          {!isOrg && profileType && step === 5 && (
+            <StepShell title="Who watches your content?" subtitle="Helps match you with the right opportunities.">
               <div className="grid grid-cols-2 gap-4">
                 {AUDIENCE_GENDERS.map((g) => {
                   const active = audienceGender === g.label;
@@ -292,14 +427,10 @@ export default function OnboardingPage() {
                       type="button"
                       onClick={() => setAudienceGender(g.label)}
                       className={`flex flex-col items-center justify-center gap-3 rounded-2xl border px-4 py-8 text-center transition ${
-                        active
-                          ? "border-teal bg-primary/15 text-teal"
-                          : "border-border bg-card text-ink hover:border-teal/50"
+                        active ? "border-teal bg-primary/15 text-teal" : "border-border bg-card text-ink hover:border-teal/50"
                       }`}
                     >
-                      <span className="text-3xl" aria-hidden>
-                        <i className={`bi ${g.icon}`} />
-                      </span>
+                      <span className="text-3xl" aria-hidden><i className={`bi ${g.icon}`} /></span>
                       <span className="text-sm font-bold">{g.label}</span>
                     </button>
                   );
@@ -308,100 +439,71 @@ export default function OnboardingPage() {
             </StepShell>
           )}
 
-          {step === 5 && (
+          {/* ─── SHARED: Geo (step 4 for org, 6 for individual) ───────────── */}
+          {profileType && ((isOrg && step === 4) || (!isOrg && step === 6)) && (
+            <StepShell title="Where are you based?" subtitle="Shown on your public page — helps local supporters find you.">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-ink">Country</label>
+                  <select value={country} onChange={(e) => setCountry(e.target.value)} className={inputClass}>
+                    {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-ink">City / town</label>
+                  <input value={city} maxLength={80} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Cape Town" className={inputClass} />
+                </div>
+              </div>
+            </StepShell>
+          )}
+
+          {/* ─── SHARED: Identity (step 5 for org, 7 for individual) ──────── */}
+          {profileType && ((isOrg && step === 5) || (!isOrg && step === 7)) && (
             <StepShell
-              title="Set up your creator profile"
+              title={isOrg ? "Set up your organisation profile" : "Set up your creator profile"}
               subtitle="You can always change these later."
             >
               <div className="space-y-6">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-ink">
-                    Creator name
-                  </label>
-                  <input
-                    value={displayName}
-                    maxLength={60}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Your public creator name"
-                    className={inputClass}
-                  />
-                  <p className="mt-1.5 text-xs text-muted">
-                    Shown on your public tip page and used to create your link.
-                  </p>
+                  <label className="mb-2 block text-sm font-semibold text-ink">{isOrg ? "Organisation name" : "Creator name"}</label>
+                  <input value={displayName} maxLength={60} onChange={(e) => setDisplayName(e.target.value)} placeholder={isOrg ? "Your public organisation name" : "Your public creator name"} className={inputClass} />
+                  <p className="mt-1.5 text-xs text-muted">Shown on your public tip page and used to create your link.</p>
                 </div>
-
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-ink">
-                    Your tagline
-                  </label>
-                  <input
-                    value={tagline}
-                    maxLength={80}
-                    onChange={(e) => setTagline(e.target.value)}
-                    placeholder={'e.g. "Indie game dev sharing my journey"'}
-                    className={inputClass}
-                  />
+                  <label className="mb-2 block text-sm font-semibold text-ink">Your tagline</label>
+                  <input value={tagline} maxLength={80} onChange={(e) => setTagline(e.target.value)} placeholder={isOrg ? 'e.g. "Feeding 300 kids every school day"' : 'e.g. "Indie game dev sharing my journey"'} className={inputClass} />
                 </div>
-
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">
-                    Short bio (optional)
-                  </label>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Short {isOrg ? "mission statement" : "bio"} (optional)</label>
                   <p className="mb-2 text-xs text-muted">Visible on your public tip page.</p>
-                  <textarea
-                    value={bio}
-                    maxLength={200}
-                    rows={3}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Tell your fans a bit about you…"
-                    className={inputClass}
-                  />
+                  <textarea value={bio} maxLength={200} rows={3} onChange={(e) => setBio(e.target.value)} placeholder={isOrg ? "What does your organisation do?" : "Tell your fans a bit about you…"} className={inputClass} />
                 </div>
-
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">
-                    Monthly tip goal (optional)
-                  </label>
-                  <p className="mb-3 text-xs text-muted">
-                    Sets a visible goal bar on your tip page.
-                  </p>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Monthly {isOrg ? "fundraising" : "tip"} goal (optional)</label>
+                  <p className="mb-3 text-xs text-muted">Sets a visible goal bar on your page.</p>
                   <div className="flex flex-wrap gap-2.5">
                     {GOALS.map((g) => {
                       const active = goal === g;
                       return (
-                        <button
-                          key={g}
-                          type="button"
-                          onClick={() => setGoal(g)}
+                        <button key={g} type="button" onClick={() => setGoal(g)}
                           className={`rounded-full border px-5 py-2 text-sm font-semibold transition ${
-                            active
-                              ? "border-teal bg-primary/15 text-teal"
-                              : "border-border bg-card text-muted hover:border-teal/50"
-                          }`}
-                        >
+                            active ? "border-teal bg-primary/15 text-teal" : "border-border bg-card text-muted hover:border-teal/50"
+                          }`}>
                           {g}
                         </button>
                       );
                     })}
                   </div>
                 </div>
-
-                {/* Preview */}
                 <div className="rounded-2xl border border-teal/30 bg-card p-5">
                   <div className="flex items-center gap-3.5">
                     <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-gradient text-lg text-white">
-                      <i className="bi bi-heart-fill" />
+                      <i className={`bi ${isOrg ? "bi-building-fill-check" : "bi-heart-fill"}`} />
                     </span>
                     <div>
                       <p className="text-xs text-muted">Your tip page preview</p>
-                      <p className="text-sm font-bold text-ink">
-                        {displayName || "Your creator name"}
-                      </p>
-                      <p
-                        className={`text-xs ${tagline ? "text-muted" : "text-muted/60"}`}
-                      >
-                        {tagline || "Your tagline will appear here…"}
-                      </p>
+                      <p className="text-sm font-bold text-ink">{displayName || (isOrg ? "Your organisation name" : "Your creator name")}</p>
+                      <p className={`text-xs ${tagline ? "text-muted" : "text-muted/60"}`}>{tagline || "Your tagline will appear here…"}</p>
                     </div>
                   </div>
                 </div>

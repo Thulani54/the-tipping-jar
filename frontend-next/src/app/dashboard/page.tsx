@@ -237,6 +237,7 @@ function NavRow({
   collapsed,
   onClick,
   href,
+  danger,
 }: {
   icon: LucideIcon;
   label: string;

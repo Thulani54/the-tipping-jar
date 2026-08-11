@@ -88,7 +88,17 @@ export const api = {
   getCreator: (slug: string) => request<Creator>(`/creators/creators/${slug}`),
   createCreator: (
     token: string,
-    body: { display_name: string; tagline?: string; category?: string; tip_goal?: number },
+    body: {
+      display_name: string;
+      tagline?: string;
+      category?: string;
+      tip_goal?: number;
+      profile_type?: "individual" | "organisation";
+      org_type?: "ngo" | "church" | "school" | "business" | "other" | "";
+      registration_number?: string;
+      country?: string;
+      city?: string;
+    },
   ) => request<Creator>("/creators/creators", { method: "POST", body, token }),
 
   // ── payments (service routes are prefixed /payments, so double up) ─
@@ -275,6 +285,10 @@ export const api = {
       links?: { instagram?: string; twitter?: string; youtube?: string; website?: string };
       bank_details?: { bank?: string; account_name?: string; account_no?: string };
       theme?: string;
+      country?: string;
+      city?: string;
+      org_type?: string;
+      registration_number?: string;
     },
   ) => request<Creator>("/creators/creators/me", { method: "PUT", body, token }),
   myPosts: (token: string) =>
