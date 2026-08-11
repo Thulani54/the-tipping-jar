@@ -244,23 +244,28 @@ function NavRow({
   collapsed: boolean;
   onClick?: () => void;
   href?: string;
+  danger?: boolean;
 }) {
+  // Danger variant (used by Log out) mirrors the active pill's shape/size but
+  // in red-on-red-tint with white text, so it reads as a destructive action.
   const cls = `group relative flex w-full items-center gap-3 rounded-[32px] p-1.5 transition-colors duration-200 ${
     collapsed ? "lg:justify-center" : ""
-  } ${active ? "nav-glass" : "hover:bg-white/[0.06]"}`;
+  } ${danger ? "bg-red-500/20 hover:bg-red-500/30" : active ? "nav-glass" : "hover:bg-white/[0.06]"}`;
   const inner = (
     <>
       <span
         className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition-colors duration-200 ${
-          active
-            ? "ml-[2px] bg-mint/25 text-mint ring-1 ring-mint/30"
-            : "text-white/70 group-hover:bg-white/10 group-hover:text-white"
+          danger
+            ? "ml-[2px] bg-red-500/30 text-white ring-1 ring-red-400/40"
+            : active
+              ? "ml-[2px] bg-mint/25 text-mint ring-1 ring-mint/30"
+              : "text-white/70 group-hover:bg-white/10 group-hover:text-white"
         }`}
       >
         <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
       </span>
       <span
-        className={`text-sm font-medium ${active ? "text-white" : "text-white/65 group-hover:text-white"} ${
+        className={`text-sm font-medium ${danger ? "text-white" : active ? "text-white" : "text-white/65 group-hover:text-white"} ${
           collapsed ? "lg:hidden" : ""
         }`}
       >
@@ -383,7 +388,15 @@ function DashboardSidebar({
           {creator?.slug && (
             <NavRow icon={ExternalLink} label="My page" collapsed={collapsed} href={`/creator/${creator.slug}`} />
           )}
-          <NavRow icon={LogOut} label="Log out" collapsed={collapsed} onClick={onLogout} />
+          <NavRow
+            icon={LogOut}
+            label="Log out"
+            collapsed={collapsed}
+            danger
+            onClick={() => {
+              if (window.confirm("Log out of your Tipping Jar dashboard?")) onLogout();
+            }}
+          />
         </div>
       </aside>
     </>
