@@ -1556,6 +1556,23 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
 }
 
 // ─── Transactions & payouts ─────────────────────────────────────────────────
+function exportTxnCsv(rows: Transaction[]) {
+  const esc = (v: string | number) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = [
+    "date,reference,tipper,email,message,status,currency,amount,platform_fee,service_fee,you_get,jar_id",
+    ...rows.map((t) => [
+      t.created_at, esc(t.reference), esc(t.tipper_name || "Anonymous"), esc(t.tipper_email || ""),
+      esc(t.message || ""), t.status, t.currency, t.amount, t.platform_fee, t.service_fee, t.creator_net, esc(t.jar_id || ""),
+    ].join(",")),
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function TransactionsTab({ token, creatorId }: { token: string | null; creatorId: string | null }) {
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [balance, setBalance] = useState<Balance | null>(null);
@@ -1563,29 +1580,24 @@ function TransactionsTab({ token, creatorId }: { token: string | null; creatorId
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<"all" | "completed" | "pending" | "failed">("all");
+  const [range, setRange] = useState<"all" | "7d" | "30d" | "month">("all");
+  const [minAmount, setMinAmount] = useState("");
+  const [selected, setSelected] = useState<Transaction | null>(null);
 
   const load = useCallback(() => {
-    if (!token || !creatorId) {
-      setLoading(false);
-      return;
-    }
+    if (!token || !creatorId) { setLoading(false); return; }
     setLoading(true);
     Promise.all([
       api.creatorTransactions(token, creatorId).catch(() => [] as Transaction[]),
       api.creatorBalance(token, creatorId).catch(() => null),
       api.creatorPayouts(token, creatorId).catch(() => [] as Payout[]),
     ])
-      .then(([t, b, p]) => {
-        setTxns(t);
-        setBalance(b);
-        setPayouts(p);
-      })
+      .then(([t, b, p]) => { setTxns(t); setBalance(b); setPayouts(p); })
       .finally(() => setLoading(false));
   }, [token, creatorId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(load, [load]);
 
   async function payout() {
     if (!token || busy) return;
@@ -1618,89 +1630,275 @@ function TransactionsTab({ token, creatorId }: { token: string | null; creatorId
   }
   if (loading) return <p className="body-muted">Loading…</p>;
 
+  // Filtering
+  const now = Date.now();
+  const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+  const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0, 0, 0, 0);
+  const cutoff =
+    range === "7d"    ? new Date(now - 7 * 86400000)
+    : range === "30d" ? new Date(now - 30 * 86400000)
+    : range === "month" ? startOfMonth
+    : null;
+  const minA = parseFloat(minAmount);
+  const filtered = txns.filter((t) => {
+    if (cutoff && new Date(t.created_at) < cutoff) return false;
+    if (status !== "all" && t.status !== status) return false;
+    if (!Number.isNaN(minA) && Number(t.amount) < minA) return false;
+    if (q) {
+      const n = q.toLowerCase();
+      if (
+        !(t.reference || "").toLowerCase().includes(n) &&
+        !(t.tipper_name || "").toLowerCase().includes(n) &&
+        !(t.tipper_email || "").toLowerCase().includes(n) &&
+        !(t.message || "").toLowerCase().includes(n)
+      ) return false;
+    }
+    return true;
+  });
+
+  // KPI derivations
+  const completed = txns.filter((t) => t.status === "completed");
+  const pending = txns.filter((t) => t.status === "pending");
+  const totalGross = completed.reduce((s, t) => s + Number(t.amount || 0), 0);
+  const totalNet = completed.reduce((s, t) => s + Number(t.creator_net || 0), 0);
+  const totalFees = completed.reduce((s, t) => s + Number(t.platform_fee || 0) + Number(t.service_fee || 0), 0);
+  const pendingAmt = pending.reduce((s, t) => s + Number(t.amount || 0), 0);
   const available = Number(balance?.available ?? "0");
+  const withdrawn = Number(balance?.withdrawn ?? "0");
+
+  // 14-day mini sparkline
+  const bins: number[] = Array(14).fill(0);
+  completed.forEach((t) => {
+    const d = new Date(t.created_at);
+    const day = Math.floor((now - +d) / 86400000);
+    if (day >= 0 && day < 14) bins[13 - day] += Number(t.amount || 0);
+  });
+  const maxBin = Math.max(...bins, 1);
 
   return (
-    <div className="space-y-8">
-      <div className="stagger grid gap-4 sm:grid-cols-3">
-        <StatCard label="Net earned" value={`R${balance?.net_balance ?? "0.00"}`} icon={Banknote} accent="#12A25C" />
-        <StatCard label="Withdrawn" value={`R${balance?.withdrawn ?? "0.00"}`} icon={Wallet} accent="#2563EB" />
-        <StatCard label="Available" value={`R${balance?.available ?? "0.00"}`} icon={CircleCheck} accent="#0097B2" />
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-medium tracking-tight text-ink">Transactions & payouts</h2>
+        <p className="body-muted mt-1">Every card payment, its fee split, and your withdrawals — one screen.</p>
       </div>
 
-      <div className="card flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="font-medium text-ink">Payouts</p>
-          <p className="body-muted">Withdraw your available balance to your bank account.</p>
+      {/* KPI row */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Gross received" value={`R${money(totalGross)}`} icon={Banknote} accent="#2563EB" />
+        <StatCard label="Net after fees" value={`R${money(totalNet)}`} icon={Wallet} accent="#12A25C" />
+        <StatCard label="Available now" value={`R${money(available)}`} icon={CircleCheck} accent="#0097B2" />
+        <StatCard label="Withdrawn" value={`R${money(withdrawn)}`} icon={Percent} accent="#7C3AED" />
+        <StatCard label="Fees paid" value={`R${money(totalFees)}`} icon={Percent} accent="#DC2626" />
+        <StatCard label={`Pending (${pending.length})`} value={`R${money(pendingAmt)}`} icon={Calendar} accent="#E0A536" />
+      </div>
+
+      {/* Payout card + sparkline */}
+      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <div className="card !p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-medium text-ink">Request a payout</p>
+              <p className="body-muted mt-1 text-sm">
+                Withdraw your available balance to your bank account. Set up your bank details on the Profile tab first.
+              </p>
+              <p className="mt-3 font-display text-3xl font-extrabold tracking-tight text-teal">
+                R{money(available)}
+                <span className="ml-2 text-sm font-medium text-muted">available</span>
+              </p>
+            </div>
+            <button
+              onClick={payout}
+              disabled={busy || available <= 0}
+              className="btn-primary !font-medium disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? "Requesting…" : "Request payout"}
+            </button>
+          </div>
+          {msg && <p className="mt-3 text-sm text-teal">{msg}</p>}
         </div>
-        <button
-          onClick={payout}
-          disabled={busy || available <= 0}
-          className="btn-primary !font-medium disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy ? "Requesting…" : `Request payout · R${available.toFixed(2)}`}
+        <div className="card !p-5">
+          <div className="flex items-baseline justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Volume · last 14 days</p>
+            <p className="text-sm font-bold text-ink">R{money(bins.reduce((s, x) => s + x, 0))}</p>
+          </div>
+          <div className="mt-4 flex h-20 items-end gap-1.5">
+            {bins.map((v, i) => (
+              <div key={i} className="flex-1 rounded-t bg-teal/70 transition hover:bg-teal"
+                style={{ height: `${Math.max(3, (v / maxBin) * 68)}px` }}
+                title={`R${money(v)}`} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Filter toolbar */}
+      <div className="card flex flex-wrap items-center gap-3 !p-4">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search reference, name, email, message…"
+          className="w-full max-w-xs rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none" />
+        <input value={minAmount} onChange={(e) => setMinAmount(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal"
+          placeholder="Min R" className="w-24 rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none" />
+        <div className="flex flex-wrap gap-1.5">
+          {(["all", "completed", "pending", "failed"] as const).map((s) => (
+            <button key={s} onClick={() => setStatus(s)} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${status === s ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"}`}>
+              {s}
+            </button>
+          ))}
+        </div>
+        <span className="mx-1 h-5 w-px bg-border" />
+        <div className="flex flex-wrap gap-1.5">
+          {(["all", "7d", "30d", "month"] as const).map((r) => (
+            <button key={r} onClick={() => setRange(r)} className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${range === r ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"}`}>
+              {r === "all" ? "All time" : r === "month" ? "This month" : `Last ${r}`}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => exportTxnCsv(filtered)} disabled={filtered.length === 0}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-border px-3.5 py-1.5 text-xs font-medium text-muted transition hover:border-teal hover:text-teal disabled:opacity-40">
+          <Download className="h-3.5 w-3.5" strokeWidth={2.2} /> CSV
         </button>
       </div>
-      {msg && <p className="text-sm text-teal">{msg}</p>}
 
-      <div>
-        <h3 className="mb-4 text-base font-medium text-ink">Transactions</h3>
-        {txns.length === 0 ? (
-          <EmptyState icon={Receipt} title="No transactions yet" body="Tips and card payments will show up here." />
-        ) : (
+      {/* Transactions */}
+      {filtered.length === 0 ? (
+        txns.length === 0
+          ? <EmptyState icon={Receipt} title="No transactions yet" body="Tips and card payments will show up here." />
+          : <EmptyState icon={Receipt} title="No transactions match those filters" body="Widen the range, drop the min amount, or clear the search." />
+      ) : (
+        <div className="card overflow-hidden !p-0">
+          <div className="border-b border-border bg-darker/40 px-5 py-2 text-xs text-muted">
+            {filtered.length} of {txns.length} · R{money(filtered.reduce((s, t) => s + Number(t.amount || 0), 0))} gross · click any row for full details
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] text-left text-sm">
+              <thead className="border-b border-border text-xs uppercase tracking-wide text-muted">
+                <tr>
+                  <th className="px-5 py-3 font-medium">Reference</th>
+                  <th className="px-5 py-3 font-medium">Tipper</th>
+                  <th className="px-5 py-3 font-medium">Date</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 text-right font-medium">Amount</th>
+                  <th className="px-5 py-3 text-right font-medium">Fees</th>
+                  <th className="px-5 py-3 text-right font-medium">You get</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((t) => {
+                  const fees = Number(t.platform_fee || 0) + Number(t.service_fee || 0);
+                  return (
+                  <tr key={t.id} onClick={() => setSelected(t)} className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-ink/[0.02]">
+                    <td className="px-5 py-3">
+                      <p className="font-mono text-xs text-ink">{t.reference.slice(0, 22)}…</p>
+                      {t.jar_id && <p className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-mint/15 px-2 py-0.5 text-[10px] font-medium text-green">🫙 jar</p>}
+                    </td>
+                    <td className="px-5 py-3">
+                      <p className="text-ink">{t.tipper_name || "Anonymous"}</p>
+                      {t.tipper_email && <p className="text-[11px] text-muted">{t.tipper_email}</p>}
+                    </td>
+                    <td className="px-5 py-3 text-muted whitespace-nowrap">
+                      {new Date(t.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+                      <span className="ml-1 text-[11px] text-muted/60">{new Date(t.created_at).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}</span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                        t.status === "completed" ? "bg-teal/10 text-teal"
+                        : t.status === "pending" ? "bg-yellow-500/10 text-yellow-500"
+                        : "bg-red-500/10 text-red-500"
+                      }`}>{t.status}</span>
+                    </td>
+                    <td className="px-5 py-3 text-right text-ink">{t.currency} {t.amount}</td>
+                    <td className="px-5 py-3 text-right text-muted">R{fees.toFixed(2)}</td>
+                    <td className="px-5 py-3 text-right font-bold text-teal">R{t.creator_net}</td>
+                  </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Details modal */}
+      {selected && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-navy/60 p-4 backdrop-blur-sm" onClick={() => setSelected(null)}>
+          <div className="card w-full max-w-xl !p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Transaction</p>
+                <h3 className="mt-1 font-display text-2xl font-extrabold tracking-tight text-ink">
+                  R{selected.amount} <span className="text-sm font-medium text-muted">gross</span>
+                </h3>
+              </div>
+              <button onClick={() => setSelected(null)} className="text-muted hover:text-ink" aria-label="Close">
+                <X className="h-5 w-5" strokeWidth={2.2} />
+              </button>
+            </div>
+            <dl className="mt-5 grid gap-y-3 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs text-muted">Reference</dt><dd className="mt-0.5 break-all font-mono text-xs text-ink">{selected.reference}</dd></div>
+              <div><dt className="text-xs text-muted">PayCloud trans_no</dt><dd className="mt-0.5 break-all font-mono text-xs text-ink">{selected.trans_no || "—"}</dd></div>
+              <div><dt className="text-xs text-muted">Tipper</dt><dd className="mt-0.5 text-ink">{selected.tipper_name || "Anonymous"}</dd></div>
+              <div><dt className="text-xs text-muted">Email</dt><dd className="mt-0.5 text-ink">{selected.tipper_email || "—"}</dd></div>
+              <div><dt className="text-xs text-muted">Status</dt><dd className="mt-0.5"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${selected.status === "completed" ? "bg-teal/10 text-teal" : selected.status === "pending" ? "bg-yellow-500/10 text-yellow-500" : "bg-red-500/10 text-red-500"}`}>{selected.status}</span></dd></div>
+              <div><dt className="text-xs text-muted">When</dt><dd className="mt-0.5 text-ink">{new Date(selected.created_at).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" })}</dd></div>
+              <div className="sm:col-span-2"><dt className="text-xs text-muted">Message</dt><dd className="mt-0.5 whitespace-pre-wrap text-ink">{selected.message || <span className="text-muted">—</span>}</dd></div>
+            </dl>
+            <div className="mt-5 rounded-xl bg-darker/40 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Fee breakdown</p>
+              <div className="mt-2 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted">Gross</span><span className="font-mono text-ink">R{selected.amount}</span></div>
+                <div className="flex justify-between"><span className="text-muted">Platform fee</span><span className="font-mono text-red-500">−R{selected.platform_fee}</span></div>
+                <div className="flex justify-between"><span className="text-muted">Card & service</span><span className="font-mono text-red-500">−R{selected.service_fee}</span></div>
+                <div className="flex justify-between border-t border-border pt-1.5"><span className="font-semibold text-ink">You get</span><span className="font-mono font-bold text-teal">R{selected.creator_net}</span></div>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                onClick={() => { navigator.clipboard?.writeText(selected.reference); setMsg("Reference copied"); window.setTimeout(() => setMsg(null), 1500); }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
+              >
+                <Copy className="h-3 w-3" strokeWidth={2.4} /> Copy reference
+              </button>
+              <Link href={`/dashboard?tab=tips`} className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal">
+                Open in Tips <ArrowUpRight className="h-3 w-3" strokeWidth={2.4} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payout history */}
+      {payouts.length > 0 && (
+        <div>
+          <div className="mb-4 flex items-baseline justify-between">
+            <h3 className="text-base font-medium text-ink">Payout history</h3>
+            <p className="text-xs text-muted">{payouts.length} withdrawal{payouts.length === 1 ? "" : "s"}</p>
+          </div>
           <div className="card overflow-hidden !p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-sm">
+              <table className="w-full min-w-[560px] text-left text-sm">
                 <thead className="border-b border-border text-xs uppercase tracking-wide text-muted">
                   <tr>
                     <th className="px-5 py-3 font-medium">Reference</th>
-                    <th className="px-5 py-3 font-medium">Date</th>
+                    <th className="px-5 py-3 font-medium">When</th>
                     <th className="px-5 py-3 font-medium">Status</th>
                     <th className="px-5 py-3 text-right font-medium">Amount</th>
-                    <th className="px-5 py-3 text-right font-medium">You get</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {txns.map((t) => (
-                    <tr key={t.id} className="border-b border-border/60 transition-colors last:border-0 hover:bg-ink/[0.02]">
-                      <td className="px-5 py-3 font-mono text-xs text-muted">{t.reference.slice(0, 18)}…</td>
-                      <td className="px-5 py-3 text-muted">{new Date(t.created_at).toLocaleDateString()}</td>
+                  {payouts.map((p) => (
+                    <tr key={p.id} className="border-b border-border/60 last:border-0">
+                      <td className="px-5 py-3 font-mono text-xs text-muted">{p.reference}</td>
+                      <td className="px-5 py-3 text-muted">{new Date(p.created_at).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" })}</td>
                       <td className="px-5 py-3">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            t.status === "completed"
-                              ? "bg-teal/10 text-teal"
-                              : t.status === "pending"
-                                ? "bg-yellow-500/10 text-yellow-500"
-                                : "bg-red-500/10 text-red-500"
-                          }`}
-                        >
-                          {t.status}
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${p.status === "completed" ? "bg-teal/10 text-teal" : p.status === "pending" ? "bg-yellow-500/10 text-yellow-500" : "bg-red-500/10 text-red-500"}`}>
+                          {p.status}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-right text-ink">{t.currency} {t.amount}</td>
-                      <td className="px-5 py-3 text-right font-bold text-ink">R{t.creator_net}</td>
+                      <td className="px-5 py-3 text-right font-bold text-teal">R{p.amount}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-      </div>
-
-      {payouts.length > 0 && (
-        <div>
-          <h3 className="mb-4 text-base font-medium text-ink">Payout history</h3>
-          <div className="space-y-2">
-            {payouts.map((p) => (
-              <div key={p.id} className="card flex flex-wrap items-center justify-between gap-3 !py-3">
-                <span className="font-mono text-xs text-muted">{p.reference}</span>
-                <span className="text-sm text-muted">{new Date(p.created_at).toLocaleDateString()}</span>
-                <span className="rounded-full bg-border px-2.5 py-1 text-xs text-muted">{p.status}</span>
-                <span className="font-bold text-ink">R{p.amount}</span>
-              </div>
-            ))}
           </div>
         </div>
       )}
