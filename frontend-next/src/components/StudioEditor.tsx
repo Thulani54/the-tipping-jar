@@ -76,7 +76,10 @@ const MINT = "#57CE8B";
 const GREEN = "#12A25C";
 const GOLD = "#E0A536";
 const SWATCHES = ["#FFFFFF", NAVY, GREEN, MINT, GOLD, "#EF4444", "#3B82F6", "#000000"];
-const STICKERS = ["🫙", "🪙", "💚", "🎉", "🔥", "⭐", "🎵", "📣", "✨", "❤️", "🙌", "☕"];
+const STICKERS = [
+  "🫙", "🪙", "💚", "🎉", "🔥", "⭐", "🎵", "📣", "✨", "❤️", "🙌", "☕",
+  "🏆", "💎", "🎨", "📸", "🎤", "🎧", "🎸", "🍀", "🚀", "👑", "🎁", "🕊",
+];
 
 const text = (p: Partial<El>): El => ({
   id: uid(), type: "text", x: 270, y: 270, size: 32, weight: 700, font: "display",
@@ -145,6 +148,99 @@ const TEMPLATES: { name: string; state: CanvasState }[] = [
         text({ y: 505, text: "Tip a song request", size: 24, color: "#DFF5E9", font: "body", weight: 500 }),
         { id: uid(), type: "rect", x: 270, y: 640, w: 320, h: 64, radius: 32, color: "#FFFFFF", opacity: 1 },
         text({ y: 640, text: "tippingjar.co.za / you", size: 18, font: "mono", color: NAVY }),
+      ],
+    },
+  },
+  {
+    name: "New drop",
+    state: {
+      kind: "square",
+      bg: { mode: "linear", c1: "#7C3AED", c2: NAVY, angle: 145 },
+      els: [
+        text({ y: 108, text: "OUT NOW", size: 22, font: "mono", spacing: 8, color: GOLD }),
+        text({ y: 200, text: "New single", size: 30, weight: 500, color: MINT }),
+        text({ y: 280, text: '"Song title"', size: 60, weight: 800 }),
+        text({ y: 372, text: "Available on every streaming platform", size: 20, font: "body", weight: 500, color: "#DFDBFF" }),
+        { id: uid(), type: "rect", x: 270, y: 470, w: 300, h: 62, radius: 31, color: MINT, opacity: 1 },
+        text({ y: 470, text: "Tip the artist ↗", size: 20, font: "display", weight: 700, color: NAVY }),
+      ],
+    },
+  },
+  {
+    name: "Milestone",
+    state: {
+      kind: "square",
+      bg: { mode: "radial", c1: GOLD, c2: "#8A6112", angle: 0 },
+      els: [
+        text({ y: 108, text: "🏆", size: 84 }),
+        text({ y: 230, text: "10,000", size: 96, weight: 800 }),
+        text({ y: 315, text: "supporters", size: 26, weight: 500, font: "body", color: "#FFF6E0" }),
+        text({ y: 400, text: "Thank you — this is only because of you.", size: 20, color: "#FFEEC2", font: "body", spacing: 0 }),
+        text({ y: 470, text: "tippingjar.co.za / you", size: 16, font: "mono", color: NAVY }),
+      ],
+    },
+  },
+  {
+    name: "Event",
+    state: {
+      kind: "portrait",
+      bg: { mode: "linear", c1: NAVY, c2: "#0F766E", angle: 175 },
+      els: [
+        text({ y: 130, text: "LIVE EVENT", size: 22, font: "mono", spacing: 6, color: GOLD }),
+        text({ y: 240, text: "Friday", size: 100, weight: 800 }),
+        text({ y: 330, text: "August 15 · 20:00", size: 26, font: "mono", color: MINT }),
+        { id: uid(), type: "rect", x: 270, y: 460, w: 400, h: 3, radius: 2, color: MINT, opacity: 0.5 },
+        text({ y: 560, text: "Venue name", size: 28, weight: 700 }),
+        text({ y: 610, text: "Cape Town", size: 20, font: "body", color: "#B4D9CB" }),
+        { id: uid(), type: "rect", x: 270, y: 800, w: 340, h: 64, radius: 32, color: MINT, opacity: 1 },
+        text({ y: 800, text: "Tickets · tippingjar / you", size: 18, font: "mono", color: NAVY }),
+      ],
+    },
+  },
+  {
+    name: "Quote",
+    state: {
+      kind: "square",
+      bg: { mode: "solid", c1: "#EFF2F0", c2: "#EFF2F0", angle: 0 },
+      els: [
+        text({ y: 90, text: "“", size: 140, weight: 800, color: GREEN }),
+        text({ y: 260, text: "The work is the reward.", size: 42, weight: 800, color: NAVY }),
+        text({ y: 330, text: "Everything else is a bonus.", size: 42, weight: 800, color: NAVY }),
+        text({ y: 430, text: "— your name", size: 22, font: "mono", color: "#5A6B7B" }),
+        text({ y: 490, text: "tippingjar.co.za / you", size: 16, font: "mono", color: GREEN }),
+      ],
+    },
+  },
+  {
+    name: "Behind-the-scenes",
+    state: {
+      kind: "portrait",
+      bg: { mode: "linear", c1: "#1B0F2A", c2: "#4C1D95", angle: 165 },
+      els: [
+        text({ y: 130, text: "🎬 BTS", size: 22, font: "mono", spacing: 6, color: GOLD }),
+        text({ y: 260, text: "Behind the", size: 60, weight: 800 }),
+        text({ y: 330, text: "scenes.", size: 90, weight: 800, color: MINT }),
+        text({ y: 490, text: "Fresh drops for supporters this week:", size: 22, font: "body", color: "#DFDBFF" }),
+        text({ y: 560, text: "· Studio demo", size: 22, font: "body", weight: 700 }),
+        text({ y: 610, text: "· Photo dump", size: 22, font: "body", weight: 700 }),
+        text({ y: 660, text: "· Early access", size: 22, font: "body", weight: 700 }),
+        { id: uid(), type: "rect", x: 270, y: 800, w: 380, h: 64, radius: 32, color: MINT, opacity: 1 },
+        text({ y: 800, text: "Unlock at tippingjar / you", size: 18, font: "mono", color: NAVY }),
+      ],
+    },
+  },
+  {
+    name: "Sale/discount",
+    state: {
+      kind: "square",
+      bg: { mode: "linear", c1: "#DC2626", c2: "#7F1D1D", angle: 135 },
+      els: [
+        text({ y: 100, text: "LIMITED", size: 22, font: "mono", spacing: 8 }),
+        text({ y: 210, text: "40% OFF", size: 96, weight: 800, color: GOLD }),
+        text({ y: 300, text: "Everything · This week only", size: 22, font: "body", weight: 500, color: "#FEE2E2" }),
+        { id: uid(), type: "rect", x: 270, y: 400, w: 340, h: 62, radius: 31, color: "#FFFFFF", opacity: 1 },
+        text({ y: 400, text: "Code: TIPFAM", size: 24, font: "mono", weight: 800, color: NAVY }),
+        text({ y: 490, text: "tippingjar.co.za / you", size: 16, font: "mono", color: "#FEE2E2" }),
       ],
     },
   },
@@ -241,6 +337,33 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
       return { ...s, els };
     });
   };
+  // Bring the selected element all the way to the front (end of the array,
+  // rendered last / on top) or send it all the way to the back.
+  const zSel = (where: "front" | "back") => {
+    if (!selected) return;
+    commit(true);
+    setState((s) => {
+      const el = s.els.find((e) => e.id === selected);
+      if (!el) return s;
+      const others = s.els.filter((e) => e.id !== selected);
+      return { ...s, els: where === "front" ? [...others, el] : [el, ...others] };
+    });
+  };
+  // Center the selected element horizontally / vertically on the canvas.
+  const alignSel = (axis: "h" | "v") => {
+    if (!selected) return;
+    commit(true);
+    setState((s) => ({
+      ...s,
+      els: s.els.map((e) =>
+        e.id === selected
+          ? axis === "h"
+            ? { ...e, x: LOG_W / 2 }
+            : { ...e, y: logH / 2 }
+          : e,
+      ),
+    }));
+  };
 
   async function addImage(file: File) {
     const url = await new Promise<string>((res, rej) => {
@@ -275,6 +398,13 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
     if (!url) return;
     const src = await QRCode.toDataURL(url, { width: 512, margin: 1, color: { dark: NAVY, light: "#FFFFFF" } });
     addEl({ id: uid(), type: "qr", x: LOG_W / 2, y: logH / 2, w: 140, h: 140, color: "#fff", src, opacity: 1 });
+  }
+
+  // Drops the creator's public tip URL as a pre-styled mono-font text block —
+  // one click instead of typing it every time.
+  function addTipLink() {
+    const url = `tippingjar.co.za / ${slug || "you"}`;
+    addEl(text({ x: LOG_W / 2, y: logH - 60, text: url, size: 20, font: "mono", color: NAVY, weight: 600 }));
   }
 
   // ── Pointer interactions ────────────────────────────────────────────
@@ -363,6 +493,15 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
         e.preventDefault(); duplicateSel();
       } else if (e.key === "Delete" || e.key === "Backspace") {
         if (selected) { e.preventDefault(); removeSel(); }
+      } else if (selected && e.key === "[") {
+        e.preventDefault(); e.shiftKey ? zSel("back") : reorderSel(-1);
+      } else if (selected && e.key === "]") {
+        e.preventDefault(); e.shiftKey ? zSel("front") : reorderSel(1);
+      } else if (selected && !mod && /^[1-8]$/.test(e.key)) {
+        // Quick swatch: number keys apply SWATCHES[n-1] to the selection.
+        e.preventDefault();
+        const c = SWATCHES[Number(e.key) - 1];
+        if (c) patchEl(selected, { color: c });
       } else if (selected && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
         e.preventDefault();
         const step = e.shiftKey ? 10 : 2;
@@ -375,8 +514,22 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
         }));
       }
     }
+    // Clipboard paste — accept an image from anywhere on the page.
+    async function onPaste(e: ClipboardEvent) {
+      const active = document.activeElement as HTMLElement | null;
+      if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) return;
+      const item = Array.from(e.clipboardData?.items ?? []).find((it) => it.type.startsWith("image/"));
+      if (!item) return;
+      const file = item.getAsFile();
+      if (file) { e.preventDefault(); await addImage(file); }
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("paste", onPaste);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("paste", onPaste);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, undo, redo, duplicateSel, removeSel, logH]);
 
   // ── Gallery ─────────────────────────────────────────────────────────
@@ -671,6 +824,27 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
         <button onClick={() => fileRef.current?.click()} className={chip(false)}><i className="bi bi-image" /> Image</button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) addImage(f); e.target.value = ""; }} />
         <button onClick={addQr} className={chip(false)}><i className="bi bi-qr-code" /> Tip-link QR</button>
+        <button onClick={addTipLink} className={chip(false)} title="Insert your tipping-jar URL as pre-styled text">
+          <i className="bi bi-link-45deg" /> Tip URL
+        </button>
+        <details className="ml-auto">
+          <summary className="cursor-pointer text-xs font-medium text-muted hover:text-ink">
+            <i className="bi bi-keyboard mr-1" /> Shortcuts
+          </summary>
+          <div className="absolute z-20 mt-2 w-72 rounded-xl border border-border bg-white p-3 shadow-lift">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Editing</p>
+            <ul className="mt-1.5 space-y-1 font-mono text-[11px] text-ink">
+              <li className="flex justify-between"><span>Undo / Redo</span><span className="text-muted">⌘Z / ⇧⌘Z</span></li>
+              <li className="flex justify-between"><span>Duplicate selection</span><span className="text-muted">⌘D</span></li>
+              <li className="flex justify-between"><span>Nudge / big nudge</span><span className="text-muted">arrows / ⇧arrows</span></li>
+              <li className="flex justify-between"><span>Delete</span><span className="text-muted">⌫</span></li>
+              <li className="flex justify-between"><span>Send back / forward</span><span className="text-muted">[ / ]</span></li>
+              <li className="flex justify-between"><span>To back / front</span><span className="text-muted">⇧[ / ⇧]</span></li>
+              <li className="flex justify-between"><span>Apply swatch</span><span className="text-muted">1 – 8</span></li>
+              <li className="flex justify-between"><span>Paste image</span><span className="text-muted">⌘V</span></li>
+            </ul>
+          </div>
+        </details>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
@@ -815,8 +989,14 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label(sel)}</p>
                 <div className="flex gap-1">
-                  <button onClick={() => reorderSel(-1)} className="rounded p-1 text-muted hover:text-ink" title="Send back"><i className="bi bi-layer-backward" /></button>
-                  <button onClick={() => reorderSel(1)} className="rounded p-1 text-muted hover:text-ink" title="Bring forward"><i className="bi bi-layer-forward" /></button>
+                  <button onClick={() => zSel("back")} className="rounded p-1 text-muted hover:text-ink" title="Send to back (Shift+[)"><i className="bi bi-chevron-double-down" /></button>
+                  <button onClick={() => reorderSel(-1)} className="rounded p-1 text-muted hover:text-ink" title="Send backward ([)"><i className="bi bi-layer-backward" /></button>
+                  <button onClick={() => reorderSel(1)} className="rounded p-1 text-muted hover:text-ink" title="Bring forward (])"><i className="bi bi-layer-forward" /></button>
+                  <button onClick={() => zSel("front")} className="rounded p-1 text-muted hover:text-ink" title="Bring to front (Shift+])"><i className="bi bi-chevron-double-up" /></button>
+                  <span className="mx-1 h-4 w-px bg-border" />
+                  <button onClick={() => alignSel("h")} className="rounded p-1 text-muted hover:text-ink" title="Centre horizontally"><i className="bi bi-align-center" /></button>
+                  <button onClick={() => alignSel("v")} className="rounded p-1 text-muted hover:text-ink" title="Centre vertically"><i className="bi bi-align-middle" /></button>
+                  <span className="mx-1 h-4 w-px bg-border" />
                   <button onClick={duplicateSel} className="rounded p-1 text-muted hover:text-ink" title="Duplicate (Ctrl+D)"><i className="bi bi-copy" /></button>
                   <button onClick={removeSel} className="rounded p-1 text-red-500" title="Delete"><i className="bi bi-trash" /></button>
                 </div>
