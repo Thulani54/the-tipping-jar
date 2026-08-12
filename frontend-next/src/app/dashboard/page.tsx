@@ -1435,11 +1435,58 @@ function SupportersTab({ token, creatorId }: { token: string | null; creatorId: 
 }
 
 // ─── Referrals ───────────────────────────────────────────────────────────────
+async function downloadReferralPoster(code: string, link: string) {
+  const QRCode = (await import("qrcode")).default;
+  const qr = await QRCode.toDataURL(link, { width: 480, margin: 1, color: { dark: "#0F2439", light: "#FFFFFF" } });
+  const W = 720, H = 960;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, "#0F2439"); g.addColorStop(1, "#12A25C");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textAlign = "center";
+  ctx.font = "500 22px Manrope, system-ui, sans-serif";
+  ctx.fillText("Join me on", W / 2, 90);
+  ctx.font = "bold 56px Manrope, system-ui, sans-serif";
+  ctx.fillStyle = "#57CE8B";
+  ctx.fillText("🫙 Tipping Jar", W / 2, 156);
+  ctx.font = "500 22px 'Space Mono', monospace";
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillText(`Code: ${code}`, W / 2, 210);
+  const qs = 460, qx = (W - qs) / 2, qy = 260;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.roundRect(qx - 24, qy - 24, qs + 48, qs + 48, 32);
+  ctx.fill();
+  const img = new Image();
+  await new Promise<void>((res) => { img.onload = () => res(); img.src = qr; });
+  ctx.drawImage(img, qx, qy, qs, qs);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "500 20px 'Space Mono', monospace";
+  ctx.fillText(link.replace(/^https?:\/\//, ""), W / 2, qy + qs + 90);
+  ctx.font = "400 18px Manrope, system-ui, sans-serif";
+  ctx.fillStyle = "#DFF5E9";
+  ctx.fillText("Scan or use my code at sign-up", W / 2, qy + qs + 130);
+  const a = document.createElement("a");
+  a.href = c.toDataURL("image/png");
+  a.download = `tipping-jar-referral-${code}.png`;
+  a.click();
+}
+
 function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
   const [copied, setCopied] = useState<string | null>(null);
+  const [simAmount, setSimAmount] = useState(3000);
+  const [simCreators, setSimCreators] = useState(3);
   const code = referral?.code ?? "";
   const rate = referral ? Number(referral.commission_rate) || 0.01 : 0.01;
   const shareUrl = code ? `https://tippingjar.co.za/register?ref=${code}` : "";
+
+  // Countdown from the code's creation. Codes earn commission on signups
+  // within a 6-month rolling window from when THEY sign up, but the code
+  // itself has no expiry — this timer shows time since it was minted.
+  const codeAge = referral ? Math.floor((Date.now() - +new Date(referral.created_at)) / 86400000) : 0;
 
   const copy = (text: string, key: string) => {
     navigator.clipboard?.writeText(text);
@@ -1447,96 +1494,205 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  // Channel-tagged share URL — helps you see where signups came from later.
+  const channelUrl = (channel: string) => (shareUrl ? `${shareUrl}&s=${channel}` : "");
+
+  // 6-month commission simulator
+  const monthlyPerCreator = simAmount;
+  const totalMonthlyGross = monthlyPerCreator * simCreators;
+  const monthlyComm = totalMonthlyGross * rate;
+  const sixMonthComm = monthlyComm * 6;
+
   const steps = [
-    ["Share your code", "Send your referral link to creators you know. They enter your code at signup."],
-    ["They sign up", "When a creator registers with your code, a 6-month commission window starts."],
-    ["Submit bank details", "You'll get an email — submit your bank account so we can pay your commission."],
-    [`Earn ${(rate * 100).toFixed(1)}% of their tips`, "For every tip they receive in 6 months, you earn commission paid directly to your account."],
+    { icon: Link2,    title: "Share your code",  body: "Send your referral link to creators you know. They enter your code at signup." },
+    { icon: Users,    title: "They sign up",     body: "When a creator registers with your code, a 6-month commission window starts." },
+    { icon: Banknote, title: "Submit bank details", body: "You'll get an email — submit your bank account so we can pay your commission." },
+    { icon: Gift,     title: `Earn ${(rate * 100).toFixed(1)}% of their tips`, body: "For every tip they receive in 6 months, you earn commission paid directly to your account." },
   ];
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="space-y-6">
       <div>
         <h2 className="text-xl font-medium tracking-tight text-ink">Referrals</h2>
         <p className="body-muted mt-1">
-          Earn {(rate * 100).toFixed(1)}% of tips from every creator you refer — for 6 months.
+          Earn <span className="font-semibold text-ink">{(rate * 100).toFixed(1)}%</span> of every tip your referred creators receive — for 6 months.
         </p>
       </div>
 
-      <div className="card">
-        <p className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted">
-          <Gift className="h-4 w-4" strokeWidth={2.2} /> Your referral code
-        </p>
-        <div className="mt-3 flex items-center gap-3">
-          <span className="font-mono text-3xl font-medium tracking-[0.3em] text-ink">{code || "—"}</span>
-          {code && (
-            <button
-              onClick={() => copy(code, "code")}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
-            >
-              {copied === "code" ? "Copied!" : "Copy"}
-            </button>
-          )}
-        </div>
-        {shareUrl && <p className="mt-3 break-all text-xs text-muted">{shareUrl}</p>}
-        {shareUrl && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              onClick={() => copy(shareUrl, "link")}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted hover:border-teal hover:text-teal"
-            >
-              <Link2 className="h-3.5 w-3.5" strokeWidth={2.2} />
-              {copied === "link" ? "Link copied!" : "Copy link"}
-            </button>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(`Sign up on TippingJar with my code ${code}: ${shareUrl}`)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted hover:border-teal hover:text-teal"
-            >
-              <i className="bi bi-whatsapp" /> WhatsApp
-            </a>
-            <a
-              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`I'm earning on @TippingJar — join with my code ${code}! ${shareUrl}`)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted hover:border-teal hover:text-teal"
-            >
-              <i className="bi bi-twitter-x" /> Twitter / X
-            </a>
-          </div>
-        )}
-      </div>
-
-      {/* "Your commission" is live from the referrals service; counts have no
-          endpoint yet (the service stores codes, not signups per code). */}
-      <div className="stagger grid gap-4 sm:grid-cols-3">
+      {/* KPI row */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Your commission" value={`${(rate * 100).toFixed(1)}%`} icon={Percent} accent="#2563EB" />
         <StatCard label="Total referrals" value="0" icon={Users} accent="#12A25C" />
         <StatCard label="Active (earning)" value="0" icon={Zap} accent="#E0A536" />
-        <StatCard label="Your commission" value={`${(rate * 100).toFixed(1)}%`} icon={Percent} accent="#2563EB" />
+        <StatCard label="Code age" value={code ? `${codeAge}d` : "—"} icon={Calendar} accent="#7C3AED" />
       </div>
 
+      {/* Referral card + poster preview */}
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <div className="card !p-5">
+          <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+            <Gift className="h-4 w-4" strokeWidth={2.2} /> Your referral code
+          </p>
+          {code ? (
+            <>
+              <div className="mt-3 flex items-center gap-3">
+                <span className="rounded-xl border border-border bg-darker/40 px-4 py-3 font-mono text-2xl font-medium tracking-[0.3em] text-ink">{code}</span>
+                <button
+                  onClick={() => copy(code, "code")}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${copied === "code" ? "border-teal bg-teal text-white" : "border-border text-muted hover:border-teal hover:text-teal"}`}
+                >
+                  {copied === "code" ? <><Check className="inline h-3 w-3" strokeWidth={2.6} /> Copied</> : <><Copy className="inline h-3 w-3" strokeWidth={2.4} /> Copy</>}
+                </button>
+              </div>
+              <p className="mt-3 break-all rounded-lg bg-darker/40 px-3 py-2 font-mono text-xs text-ink">{shareUrl}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  onClick={() => copy(shareUrl, "link")}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${copied === "link" ? "border-teal bg-teal text-white" : "border-border text-muted hover:border-teal hover:text-teal"}`}
+                >
+                  <Link2 className="h-3.5 w-3.5" strokeWidth={2.2} /> {copied === "link" ? "Link copied!" : "Copy link"}
+                </button>
+                <button
+                  onClick={() => downloadReferralPoster(code, shareUrl)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
+                >
+                  <QrCode className="h-3.5 w-3.5" strokeWidth={2.2} /> QR poster
+                </button>
+                <button
+                  onClick={async () => {
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({ title: "Tipping Jar", text: `Join TippingJar with my code ${code}`, url: shareUrl });
+                      } catch { /* user cancelled */ }
+                    } else {
+                      copy(shareUrl, "share");
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
+                >
+                  <Send className="h-3.5 w-3.5" strokeWidth={2.4} /> Share…
+                </button>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`Sign up on TippingJar with my code ${code}: ${channelUrl("wa")}`)}`}
+                  target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
+                >
+                  <i className="bi bi-whatsapp" /> WhatsApp
+                </a>
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`I'm earning on @TippingJar — join with my code ${code}! ${channelUrl("x")}`)}`}
+                  target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
+                >
+                  <i className="bi bi-twitter-x" /> X / Twitter
+                </a>
+                <a
+                  href={`mailto:?subject=${encodeURIComponent("Join me on Tipping Jar")}&body=${encodeURIComponent(`Hey — thought you'd like this. It's a tipping platform for South African creators.\n\nSign up with my code ${code}: ${channelUrl("email")}`)}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
+                >
+                  <i className="bi bi-envelope" /> Email
+                </a>
+              </div>
+            </>
+          ) : (
+            <p className="body-muted mt-3">Loading your referral code…</p>
+          )}
+        </div>
+
+        {/* Earnings simulator */}
+        <div className="card !p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Commission simulator</p>
+          <p className="body-muted mt-1 text-sm">See what your referrals could earn you over 6 months.</p>
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className="flex items-center justify-between text-xs text-muted">
+                Creators you refer
+                <span className="font-mono font-semibold text-ink">{simCreators}</span>
+              </label>
+              <input
+                type="range" min={1} max={20} value={simCreators}
+                onChange={(e) => setSimCreators(Number(e.target.value))}
+                className="tip-range mt-2"
+              />
+            </div>
+            <div>
+              <label className="flex items-center justify-between text-xs text-muted">
+                Their monthly tip volume
+                <span className="font-mono font-semibold text-ink">R{money(simAmount)}</span>
+              </label>
+              <input
+                type="range" min={100} max={20000} step={100} value={simAmount}
+                onChange={(e) => setSimAmount(Number(e.target.value))}
+                className="tip-range mt-2"
+              />
+            </div>
+            <div className="rounded-xl border border-teal/30 bg-teal/5 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-muted">Estimated over 6 months</p>
+              <p className="mt-1 font-display text-3xl font-extrabold tracking-tight text-teal">
+                R{money(sixMonthComm)}
+              </p>
+              <p className="mt-1 text-[11px] text-muted">
+                ≈ R{money(monthlyComm)}/month · {(rate * 100).toFixed(1)}% of R{money(totalMonthlyGross)} tipped monthly
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Referrals table (empty state until the referrals service tracks signups per code) */}
       <div>
         <h3 className="mb-3 text-base font-medium text-ink">Your referrals</h3>
-        <EmptyState icon={Users} title="No referrals yet" body="Share your code above to start earning commission." />
+        <EmptyState
+          icon={Users}
+          title="No signups yet"
+          body="Share your code above to start earning commission. Signups linked to your code will appear here as they happen."
+        />
       </div>
 
+      {/* How it works — richer with icons */}
       <div>
         <h3 className="mb-4 text-base font-medium text-ink">How it works</h3>
-        <div className="space-y-4">
-          {steps.map(([title, body], i) => (
-            <div key={title} className="flex gap-4">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-sm font-medium text-teal">
-                {i + 1}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((s, i) => (
+            <div key={s.title} className="card !p-5">
+              <div className="flex items-center gap-2">
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-bold text-white">{i + 1}</span>
+                <s.icon className="h-4 w-4 text-teal" strokeWidth={2.2} />
               </div>
-              <div>
-                <p className="font-medium text-ink">{title}</p>
-                <p className="body-muted">{body}</p>
-              </div>
+              <p className="mt-3 font-medium text-ink">{s.title}</p>
+              <p className="body-muted mt-1 text-sm">{s.body}</p>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Copy-paste pitch templates */}
+      {code && (
+        <div className="card !p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Message templates</p>
+          <p className="body-muted mt-1 text-sm">Ready-to-send messages — click Copy to grab one.</p>
+          <div className="mt-4 space-y-3">
+            {[
+              { label: "For a friend creator", text: `Hey! You should try Tipping Jar — SA-first, fans tip you by card and you keep most of it. If you sign up with my code ${code}, I get a small kickback and you get on a legit platform. Link: ${shareUrl}` },
+              { label: "For a stream chat", text: `Support my friends too — sign up on Tipping Jar with code ${code}: ${channelUrl("stream")}` },
+              { label: "For an email intro", text: `Sharing this: Tipping Jar. It's a South African tipping platform — fans pay by card, creators get paid out to bank. If you're on the fence about monetising, this is the easiest way in. Use my code ${code} at signup — ${channelUrl("email")}` },
+            ].map((t) => (
+              <div key={t.label} className="rounded-xl border border-border bg-white p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-xs font-semibold text-ink">{t.label}</p>
+                  <button
+                    onClick={() => copy(t.text, `tpl-${t.label}`)}
+                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${copied === `tpl-${t.label}` ? "border-teal bg-teal text-white" : "border-border text-muted hover:border-teal hover:text-teal"}`}
+                  >
+                    {copied === `tpl-${t.label}` ? "Copied!" : <><Copy className="inline h-2.5 w-2.5" strokeWidth={2.4} /> Copy</>}
+                  </button>
+                </div>
+                <p className="mt-1.5 whitespace-pre-wrap text-xs text-muted">{t.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
