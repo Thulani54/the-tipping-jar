@@ -52,7 +52,9 @@ import { LiveClock } from "@/components/Clock";
 import type {
   ExclusivePost,
   Jar,
+  Subscriber,
   Supporter,
+  SupportTier,
   Tip,
   ReferralCode,
   Creator,
@@ -62,12 +64,13 @@ import type {
   Balance,
 } from "@/types";
 
-type Tab = "overview" | "tips" | "supporters" | "analytics" | "exclusive" | "jars" | "transactions" | "referrals" | "studio" | "profile";
+type Tab = "overview" | "tips" | "supporters" | "subscribers" | "analytics" | "exclusive" | "jars" | "transactions" | "referrals" | "studio" | "profile";
 
 const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "tips", label: "Tips", icon: HandCoins },
   { id: "supporters", label: "Supporters", icon: Trophy },
+  { id: "subscribers", label: "Subscribers", icon: Users },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "exclusive", label: "Exclusive", icon: Lock },
   { id: "jars", label: "Jars", icon: Milk },
@@ -102,7 +105,7 @@ function DashboardInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const TAB_IDS: Tab[] = ["overview", "tips", "supporters", "analytics", "exclusive", "jars", "transactions", "referrals", "studio", "profile"];
+  const TAB_IDS: Tab[] = ["overview", "tips", "supporters", "subscribers", "analytics", "exclusive", "jars", "transactions", "referrals", "studio", "profile"];
   const urlTab = searchParams.get("tab");
   const initialTab: Tab = TAB_IDS.includes(urlTab as Tab) ? (urlTab as Tab) : "overview";
   const [tab, setTabState] = useState<Tab>(initialTab);
@@ -229,6 +232,7 @@ function DashboardInner() {
             {tab === "supporters" && (
               <SupportersTab token={token} creatorId={myCreator?.id ?? null} />
             )}
+            {tab === "subscribers" && <SubscribersTab token={token} slug={myCreator?.slug ?? null} />}
             {tab === "analytics" && (
               <AnalyticsTab token={token} creatorId={myCreator?.id ?? null} tips={tips} />
             )}
@@ -2393,9 +2397,15 @@ const POST_TEMPLATES: { label: string; title: string; body: string }[] = [
 
 function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasProfile: boolean; slug: string | null }) {
   const [posts, setPosts] = useState<ExclusivePost[] | null>(null);
+  const [tiers, setTiers] = useState<SupportTier[]>([]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [image, setImage] = useState<string | null>(null);
+  const [kind, setKind] = useState<"post" | "video" | "audio" | "gallery">("post");
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [access, setAccess] = useState<"monthly_tip" | "subscription" | "public">("monthly_tip");
+  const [minTip, setMinTip] = useState("10");
+  const [tierId, setTierId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -2408,6 +2418,7 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
   const load = useCallback(() => {
     if (!token) return;
     api.myPosts(token).then(setPosts).catch(() => setPosts([]));
+    api.myTiers(token).then(setTiers).catch(() => setTiers([]));
   }, [token]);
   useEffect(load, [load]);
 
@@ -2420,11 +2431,25 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
     setBusy(true);
     setNote(null);
     try {
-      await api.createPost(token, { title: title.trim(), body: body.trim() || undefined, image_url: image ?? undefined });
+      await api.createPost(token, {
+        title: title.trim(),
+        body: body.trim() || undefined,
+        image_url: image ?? undefined,
+        kind,
+        media_url: mediaUrl.trim() || undefined,
+        access,
+        min_tip: access === "monthly_tip" ? Math.max(10, Number(minTip) || 10) : undefined,
+        tier_id: access === "subscription" ? tierId ?? undefined : undefined,
+      });
       setTitle("");
       setBody("");
       setImage(null);
-      setNote("Published — supporters who tipped this month can see it now.");
+      setMediaUrl("");
+      setKind("post");
+      setAccess("monthly_tip");
+      setMinTip("10");
+      setTierId(null);
+      setNote("Published — supporters with matching access can see it now.");
       load();
     } catch (e) {
       setNote(e instanceof Error ? e.message : "Could not publish.");
@@ -2534,17 +2559,68 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
           )}
         </div>
 
+        {/* Kind switcher */}
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Content type</p>
+          <div className="flex flex-wrap gap-1.5">
+            {([
+              ["post", "📝 Post"],
+              ["video", "🎥 Video"],
+              ["audio", "🎧 Audio"],
+              ["gallery", "🖼 Gallery"],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setKind(id)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                  kind === id ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div>
           <input
             id="exclusive-title"
             value={title}
             maxLength={120}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Post title — e.g. Unreleased demo: 'Midnight'"
+            placeholder={
+              kind === "video" ? "Video title — e.g. Studio tour"
+              : kind === "audio" ? "Audio title — e.g. Unreleased demo"
+              : kind === "gallery" ? "Gallery title — e.g. This month's outtakes"
+              : "Post title — e.g. Behind the scenes"
+            }
             className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
           />
           <p className="mt-1 text-right font-mono text-[10px] text-muted">{title.length}/120</p>
         </div>
+
+        {(kind === "video" || kind === "audio") && (
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {kind === "video" ? "Video URL" : "Audio URL"}
+            </label>
+            <input
+              value={mediaUrl}
+              onChange={(e) => setMediaUrl(e.target.value)}
+              placeholder={
+                kind === "video"
+                  ? "YouTube, Vimeo, or a direct .mp4 URL"
+                  : "Direct .mp3 / .wav URL"
+              }
+              className="mt-1.5 w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
+            />
+            <p className="mt-1 text-[11px] text-muted">
+              {kind === "video"
+                ? "YouTube and Vimeo embed automatically. Upload to Vimeo/YouTube as Unlisted for privacy."
+                : "Host on SoundCloud (direct link) or your own storage. The vault renders a native audio player."}
+            </p>
+          </div>
+        )}
 
         <div>
           <textarea
@@ -2599,14 +2675,78 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
           />
         </div>
 
+        {/* Access controls */}
+        <div className="rounded-xl border border-border bg-darker/40 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Who can see this?</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {([
+              ["monthly_tip", "💚 Monthly tippers"],
+              ["subscription", "⭐ Subscribers only"],
+              ["public", "🌍 Public"],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setAccess(id)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                  access === id ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {access === "monthly_tip" && (
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <label className="text-xs text-muted">Minimum tip this month:</label>
+              <span className="font-mono text-ink">R</span>
+              <input
+                value={minTip}
+                onChange={(e) => setMinTip(e.target.value.replace(/[^0-9.]/g, ""))}
+                inputMode="decimal"
+                className="w-20 rounded border border-border bg-white px-2 py-1 text-sm text-ink focus:border-primary/40 focus:outline-none"
+              />
+            </div>
+          )}
+          {access === "subscription" && (
+            <div className="mt-3">
+              {tiers.length === 0 ? (
+                <p className="text-xs text-red-500">
+                  You don&apos;t have any support tiers yet — this post will be locked to nobody.
+                  Create a tier first.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {tiers.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setTierId(t.id)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                        tierId === t.id ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+                      }`}
+                    >
+                      {t.name} · R{Number(t.price).toFixed(0)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
           <p className="text-xs text-muted">
             <Lock className="mr-1 inline-block h-3 w-3" strokeWidth={2.4} />
-            Locked to fans who tipped this month
+            {access === "monthly_tip"
+              ? `Locked to fans who tipped R${minTip || 10}+ this month`
+              : access === "subscription"
+                ? tierId
+                  ? `Locked to subscribers of "${tiers.find((t) => t.id === tierId)?.name}"`
+                  : "Pick a tier"
+                : "Public — anyone with the vault link can view"}
           </p>
           <button
             onClick={publish}
-            disabled={busy || !title.trim()}
+            disabled={busy || !title.trim() || (access === "subscription" && !tierId)}
             className="btn-primary ml-auto !px-6 !py-2.5 text-sm disabled:opacity-50"
           >
             {busy ? "Publishing…" : "Publish to the vault"}
@@ -2661,10 +2801,15 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
               <div className="space-y-2 p-5">
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-medium text-ink">{p.title}</p>
-                  <span className="shrink-0 rounded-full bg-mint/15 px-2 py-0.5 text-[10px] font-medium text-green">
-                    <Lock className="mr-1 inline h-2.5 w-2.5" strokeWidth={2.6} />
-                    Vault
-                  </span>
+                  <div className="flex shrink-0 gap-1">
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                      {p.kind === "video" ? "🎥" : p.kind === "audio" ? "🎧" : p.kind === "gallery" ? "🖼" : "📝"} {p.kind}
+                    </span>
+                    <span className="rounded-full bg-mint/15 px-2 py-0.5 text-[10px] font-medium text-green">
+                      <Lock className="mr-1 inline h-2.5 w-2.5" strokeWidth={2.6} />
+                      {p.access === "subscription" ? "Subs" : p.access === "public" ? "Public" : `R${Number(p.min_tip) || 10}+`}
+                    </span>
+                  </div>
                 </div>
                 {p.body && (
                   <p className={`text-sm text-muted whitespace-pre-wrap ${isOpen ? "" : "line-clamp-3"}`}>{p.body}</p>
@@ -2845,6 +2990,181 @@ function JarsTab({ token, creator }: { token: string | null; creator: Creator | 
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Subscribers ─────────────────────────────────────────────────────────────
+function SubscribersTab({ token, slug }: { token: string | null; slug: string | null }) {
+  const [subs, setSubs] = useState<Subscriber[] | null>(null);
+  const [tiers, setTiers] = useState<SupportTier[]>([]);
+  const [tierFilter, setTierFilter] = useState<string>("all");
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (!token) return;
+    api.mySubscribers(token).then(setSubs).catch(() => setSubs([]));
+    api.myTiers(token).then(setTiers).catch(() => setTiers([]));
+  }, [token]);
+
+  if (!subs) return <p className="body-muted">Loading…</p>;
+
+  const filtered = subs.filter((s) => {
+    if (tierFilter !== "all" && s.tier_id !== tierFilter) return false;
+    if (q) {
+      const n = q.toLowerCase();
+      if (!s.email.toLowerCase().includes(n) && !s.name.toLowerCase().includes(n)) return false;
+    }
+    return true;
+  });
+
+  const active = subs.filter((s) => s.status === "active").length;
+  const monthlyRev = subs.filter((s) => s.status === "active").reduce((sum, s) => {
+    const t = tiers.find((t) => t.id === s.tier_id);
+    return sum + (t ? Number(t.price) || 0 : 0);
+  }, 0);
+  const byTier = new Map<string, number>();
+  subs.forEach((s) => byTier.set(s.tier_id, (byTier.get(s.tier_id) ?? 0) + 1));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-medium tracking-tight text-ink">Subscribers</h2>
+          <p className="body-muted mt-1">Fans on your recurring support tiers. They unlock subscription-only content in your vault.</p>
+        </div>
+        <button
+          onClick={() => {
+            const csv = ["email,name,tier,status,joined", ...filtered.map((s) => `"${s.email}","${s.name}","${s.tier_name}",${s.status},${s.created_at}`)].join("\n");
+            const blob = new Blob([csv], { type: "text/csv" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `subscribers-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+          }}
+          disabled={filtered.length === 0}
+          className="btn-ghost !px-4 !py-2.5 text-xs disabled:opacity-40"
+        >
+          <Download className="h-3.5 w-3.5" strokeWidth={2.2} /> CSV
+        </button>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Total subscribers" value={String(subs.length)} icon={Users} accent="#7C3AED" />
+        <StatCard label="Active" value={String(active)} icon={CircleCheck} accent="#12A25C" />
+        <StatCard label="Estimated MRR" value={`R${money(monthlyRev)}`} icon={Banknote} accent="#E0A536" />
+        <StatCard label="Support tiers" value={String(tiers.length)} icon={Trophy} accent="#EC4899" />
+      </div>
+
+      {tiers.length === 0 ? (
+        <div className="card !p-5">
+          <p className="text-sm font-semibold text-ink">No support tiers yet</p>
+          <p className="body-muted mt-1 text-sm">
+            Support tiers unlock subscription-only content. Set them up on your creator page — coming soon:
+            in-dashboard tier editor. For now, tiers are managed via the API.
+          </p>
+        </div>
+      ) : (
+        <div className="card !p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Your tiers</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {tiers.map((t) => (
+              <div key={t.id} className="rounded-xl border border-border bg-white p-4">
+                <div className="flex items-baseline justify-between">
+                  <p className="font-medium text-ink">{t.name}</p>
+                  <p className="font-mono text-sm font-bold text-teal">R{Number(t.price).toFixed(0)}/mo</p>
+                </div>
+                {t.description && <p className="mt-1 text-xs text-muted line-clamp-2">{t.description}</p>}
+                <p className="mt-2 text-xs text-muted">{byTier.get(t.id) ?? 0} subscriber{(byTier.get(t.id) ?? 0) === 1 ? "" : "s"}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {subs.length > 0 && (
+        <>
+          <div className="card flex flex-wrap items-center gap-3 !p-4">
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search email or name…"
+              className="w-full max-w-xs rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
+            />
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setTierFilter("all")}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${tierFilter === "all" ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"}`}
+              >
+                All · {subs.length}
+              </button>
+              {tiers.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTierFilter(t.id)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${tierFilter === t.id ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"}`}
+                >
+                  {t.name} · {byTier.get(t.id) ?? 0}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="card overflow-hidden !p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead className="border-b border-border text-xs uppercase tracking-wide text-muted">
+                  <tr>
+                    <th className="px-5 py-3 font-medium">Subscriber</th>
+                    <th className="px-5 py-3 font-medium">Tier</th>
+                    <th className="px-5 py-3 font-medium">Status</th>
+                    <th className="px-5 py-3 font-medium">Joined</th>
+                    <th className="px-5 py-3 text-right font-medium">Act</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((s) => (
+                    <tr key={s.id} className="border-b border-border/60 last:border-0 hover:bg-ink/[0.02]">
+                      <td className="px-5 py-3">
+                        <p className="font-medium text-ink">{s.name || s.email.split("@")[0]}</p>
+                        <p className="text-[11px] text-muted">{s.email}</p>
+                      </td>
+                      <td className="px-5 py-3 text-muted">{s.tier_name || "—"}</td>
+                      <td className="px-5 py-3">
+                        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${s.status === "active" ? "bg-teal/10 text-teal" : "bg-border/60 text-muted"}`}>
+                          {s.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-muted">
+                        {new Date(s.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <a
+                          href={`mailto:${s.email}`}
+                          className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted hover:border-teal hover:text-teal"
+                        >
+                          <Send className="h-3 w-3" strokeWidth={2.4} /> Email
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {slug && (
+        <p className="text-xs text-muted">
+          Share your public tier list at{" "}
+          <a href={`/creator/${slug}`} target="_blank" className="text-teal hover:underline">
+            tippingjar.co.za/creator/{slug}
+          </a>{" "}
+          — fans subscribe there.
+        </p>
       )}
     </div>
   );

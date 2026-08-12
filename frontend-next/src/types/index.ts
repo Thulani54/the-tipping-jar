@@ -259,6 +259,30 @@ export interface ExclusivePost {
   title: string;
   body: string;
   image_url: string;
+  kind: "post" | "video" | "audio" | "gallery";
+  media_url: string;
+  access: "monthly_tip" | "subscription" | "one_tip" | "public";
+  min_tip: string;
+  tier_id: string | null;
+  created_at: string;
+}
+
+export interface UnlockResp {
+  posts: ExclusivePost[];
+  grants: {
+    tipped_this_month: boolean;
+    tier_ids: string[];
+    month_tip_total: string;
+  };
+}
+
+export interface Subscriber {
+  id: string;
+  tier_id: string;
+  tier_name: string;
+  email: string;
+  name: string;
+  status: string;
   created_at: string;
 }
 

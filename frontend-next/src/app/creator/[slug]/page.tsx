@@ -2,28 +2,22 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { JarMeter } from "@/components/JarMeter";
 import { ExclusiveVault } from "@/components/ExclusiveVault";
-import type { Creator, Tip } from "@/types";
+import type { Creator, SupportTier, Tip } from "@/types";
 
-async function load(slug: string): Promise<{ creator: Creator | null; tips: Tip[]; exclusiveCount: number }> {
+async function load(slug: string): Promise<{ creator: Creator | null; tips: Tip[]; exclusiveCount: number; tiers: SupportTier[] }> {
   let creator: Creator | null = null;
   try {
     creator = await api.getCreator(slug);
   } catch {
-    return { creator: null, tips: [], exclusiveCount: 0 };
+    return { creator: null, tips: [], exclusiveCount: 0, tiers: [] };
   }
   let tips: Tip[] = [];
   let exclusiveCount = 0;
-  try {
-    tips = await api.tipsForCreator(creator.id);
-  } catch {
-    tips = [];
-  }
-  try {
-    exclusiveCount = (await api.exclusiveCount(slug)).count;
-  } catch {
-    exclusiveCount = 0;
-  }
-  return { creator, tips, exclusiveCount };
+  let tiers: SupportTier[] = [];
+  try { tips = await api.tipsForCreator(creator.id); } catch { tips = []; }
+  try { exclusiveCount = (await api.exclusiveCount(slug)).count; } catch { exclusiveCount = 0; }
+  try { tiers = await api.getTiers(slug); } catch { tiers = []; }
+  return { creator, tips, exclusiveCount, tiers };
 }
 
 const initials = (name: string) =>
@@ -103,7 +97,7 @@ export default async function CreatorPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { creator, tips, exclusiveCount } = await load(slug);
+  const { creator, tips, exclusiveCount, tiers } = await load(slug);
 
   if (!creator) {
     return (
@@ -267,7 +261,7 @@ export default async function CreatorPage({
               ) : null;
             })()}
 
-            <ExclusiveVault slug={creator.slug} count={exclusiveCount} creatorName={creator.display_name.split(" ")[0]} />
+            <ExclusiveVault slug={creator.slug} count={exclusiveCount} creatorName={creator.display_name.split(" ")[0]} tiers={tiers} />
 
             <div className="mt-8 card !p-0 overflow-hidden">
               <div className="flex items-center justify-between border-b border-border px-5 py-3.5 font-mono text-[11px] uppercase tracking-[0.18em] text-muted">

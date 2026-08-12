@@ -17,6 +17,8 @@ import type {
   Dispute,
   Enterprise,
   ExclusivePost,
+  Subscriber,
+  UnlockResp,
   FeeQuote,
   Jar,
   Job,
@@ -293,14 +295,34 @@ export const api = {
   ) => request<Creator>("/creators/creators/me", { method: "PUT", body, token }),
   myPosts: (token: string) =>
     request<ExclusivePost[]>("/creators/creators/me/posts", { token }),
-  createPost: (token: string, body: { title: string; body?: string; image_url?: string }) =>
-    request<ExclusivePost>("/creators/creators/me/posts", { method: "POST", body, token }),
+  createPost: (
+    token: string,
+    body: {
+      title: string;
+      body?: string;
+      image_url?: string;
+      kind?: "post" | "video" | "audio" | "gallery";
+      media_url?: string;
+      access?: "monthly_tip" | "subscription" | "one_tip" | "public";
+      min_tip?: number;
+      tier_id?: string;
+    },
+  ) => request<ExclusivePost>("/creators/creators/me/posts", { method: "POST", body, token }),
+  updatePost: (
+    token: string,
+    id: string,
+    body: Partial<{ title: string; body: string; image_url: string; kind: string; media_url: string; access: string; min_tip: number; tier_id: string | null }>,
+  ) => request<ExclusivePost>(`/creators/creators/me/posts/${id}`, { method: "PUT", body, token }),
+  myTiers: (token: string) => request<SupportTier[]>("/creators/creators/me/tiers", { token }),
+  mySubscribers: (token: string) => request<Subscriber[]>("/creators/creators/me/subscribers", { token }),
+  subscribeToTier: (slug: string, body: { tier_id: string; email: string; name?: string }) =>
+    request<{ subscribed: boolean }>(`/creators/creators/${slug}/subscribe`, { method: "POST", body }),
   deletePost: (token: string, id: string) =>
     request<{ deleted: string }>(`/creators/creators/me/posts/${id}`, { method: "DELETE", token }),
   exclusiveCount: (slug: string) =>
     request<{ count: number }>(`/creators/creators/${slug}/exclusive/count`),
   unlockExclusive: (slug: string, email: string) =>
-    request<ExclusivePost[]>(`/creators/creators/${slug}/exclusive/unlock`, {
+    request<UnlockResp>(`/creators/creators/${slug}/exclusive/unlock`, {
       method: "POST",
       body: { email },
     }),

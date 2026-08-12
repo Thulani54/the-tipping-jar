@@ -722,16 +722,32 @@ struct ExclusivePost {
     title: String,
     body: String,
     image_url: String,
+    /// "post" | "video" | "audio" | "gallery"
+    kind: String,
+    /// External URL for video/audio (YouTube, Vimeo, MP3, etc.)
+    media_url: String,
+    /// "monthly_tip" | "subscription" | "one_tip" | "public"
+    access: String,
+    /// Minimum tip amount (rand) required this month for monthly_tip
+    min_tip: Decimal,
+    /// If access="subscription", which support_tier is required (nullable)
+    tier_id: Option<Uuid>,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
-const POST_COLUMNS: &str = "id, creator_id, title, body, image_url, created_at";
+const POST_COLUMNS: &str =
+    "id, creator_id, title, body, image_url, kind, media_url, access, min_tip, tier_id, created_at";
 
 #[derive(Deserialize)]
 struct CreatePostReq {
     title: String,
     body: Option<String>,
     image_url: Option<String>,
+    kind: Option<String>,
+    media_url: Option<String>,
+    access: Option<String>,
+    min_tip: Option<f64>,
+    tier_id: Option<Uuid>,
 }
 
 async fn create_post(
@@ -748,15 +764,35 @@ async fn create_post(
     if image.len() > 500_000 {
         return Err(AppError::BadRequest("image is too large".into()));
     }
+    let kind = match req.kind.as_deref() {
+        Some(v @ ("post" | "video" | "audio" | "gallery")) => v.to_string(),
+        _ => "post".to_string(),
+    };
+    let access = match req.access.as_deref() {
+        Some(v @ ("monthly_tip" | "subscription" | "one_tip" | "public")) => v.to_string(),
+        _ => "monthly_tip".to_string(),
+    };
+    let media_url = req.media_url.unwrap_or_default().chars().take(1000).collect::<String>();
+    let min_tip = req
+        .min_tip
+        .and_then(|v| Decimal::from_f64_retain(v.max(0.0)))
+        .map(|d| d.round_dp(2))
+        .unwrap_or_else(|| Decimal::new(10, 0));
     let row: ExclusivePost = sqlx::query_as(&format!(
-        "INSERT INTO exclusive_posts (id, creator_id, title, body, image_url)
-         VALUES ($1, $2, $3, $4, $5) RETURNING {POST_COLUMNS}"
+        "INSERT INTO exclusive_posts
+            (id, creator_id, title, body, image_url, kind, media_url, access, min_tip, tier_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING {POST_COLUMNS}"
     ))
     .bind(Uuid::new_v4())
     .bind(creator_id)
     .bind(title)
     .bind(req.body.unwrap_or_default().chars().take(5000).collect::<String>())
     .bind(image)
+    .bind(kind)
+    .bind(media_url)
+    .bind(access)
+    .bind(min_tip)
+    .bind(req.tier_id)
     .fetch_one(&st.pool)
     .await?;
     Ok(Json(row))
@@ -774,6 +810,58 @@ async fn my_posts(
     .fetch_all(&st.pool)
     .await?;
     Ok(Json(rows))
+}
+
+#[derive(Deserialize)]
+struct UpdatePostReq {
+    title: Option<String>,
+    body: Option<String>,
+    image_url: Option<String>,
+    kind: Option<String>,
+    media_url: Option<String>,
+    access: Option<String>,
+    min_tip: Option<f64>,
+    tier_id: Option<Uuid>,
+}
+
+async fn update_post(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<UpdatePostReq>,
+) -> Result<Json<ExclusivePost>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    let kind = req.kind.filter(|v| matches!(v.as_str(), "post" | "video" | "audio" | "gallery"));
+    let access = req.access.filter(|v| matches!(v.as_str(), "monthly_tip" | "subscription" | "one_tip" | "public"));
+    let min_tip = req.min_tip
+        .and_then(|v| Decimal::from_f64_retain(v.max(0.0)))
+        .map(|d| d.round_dp(2));
+    let row: Option<ExclusivePost> = sqlx::query_as(&format!(
+        "UPDATE exclusive_posts SET
+            title = COALESCE($1, title),
+            body = COALESCE($2, body),
+            image_url = COALESCE($3, image_url),
+            kind = COALESCE($4, kind),
+            media_url = COALESCE($5, media_url),
+            access = COALESCE($6, access),
+            min_tip = COALESCE($7, min_tip),
+            tier_id = COALESCE($8, tier_id)
+         WHERE id = $9 AND creator_id = $10
+         RETURNING {POST_COLUMNS}"
+    ))
+    .bind(req.title.map(|t| t.chars().take(120).collect::<String>()))
+    .bind(req.body.map(|b| b.chars().take(5000).collect::<String>()))
+    .bind(req.image_url)
+    .bind(kind)
+    .bind(req.media_url.map(|m| m.chars().take(1000).collect::<String>()))
+    .bind(access)
+    .bind(min_tip)
+    .bind(req.tier_id)
+    .bind(id)
+    .bind(creator_id)
+    .fetch_optional(&st.pool)
+    .await?;
+    row.map(Json).ok_or_else(|| AppError::NotFound("post not found".into()))
 }
 
 async fn delete_post(
@@ -816,11 +904,27 @@ struct UnlockReq {
 
 /// A fan unlocks the vault with the email they tipped with this month.
 /// The tips service is the authority on whether that email tipped.
+#[derive(Serialize)]
+struct UnlockResp {
+    posts: Vec<ExclusivePost>,
+    /// The reasons the caller was granted access — helps the UI explain locks.
+    grants: UnlockGrants,
+}
+
+#[derive(Serialize, Default)]
+struct UnlockGrants {
+    tipped_this_month: bool,
+    /// The set of tier_ids this email is subscribed to.
+    tier_ids: Vec<Uuid>,
+    /// The tip amount for the current month, capped for privacy.
+    month_tip_total: String,
+}
+
 async fn exclusive_unlock(
     State(st): State<AppState>,
     Path(slug): Path<String>,
     Json(req): Json<UnlockReq>,
-) -> Result<Json<Vec<ExclusivePost>>, AppError> {
+) -> Result<Json<UnlockResp>, AppError> {
     let email = req.email.trim().to_lowercase();
     if !email.contains('@') {
         return Err(AppError::BadRequest("enter the email you tipped with".into()));
@@ -852,18 +956,167 @@ async fn exclusive_unlock(
             .ok()
             .and_then(|v| v.get("tipped").and_then(|t| t.as_bool()))
             .unwrap_or(false);
-    if !ok {
+    // Which tiers is this email subscribed to (for this creator)?
+    let tier_rows: Vec<(Uuid,)> = sqlx::query_as(
+        "SELECT tier_id FROM subscriptions
+         WHERE creator_id = $1 AND lower(email) = $2 AND status = 'active'",
+    )
+    .bind(creator_id)
+    .bind(&email)
+    .fetch_all(&st.pool)
+    .await?;
+    let tier_ids: Vec<Uuid> = tier_rows.into_iter().map(|r| r.0).collect();
+    if !ok && tier_ids.is_empty() {
         return Err(AppError::Unauthorized(
-            "no tip from that email this month — tip R10+ to unlock".into(),
+            "no tip or subscription from that email — tip R10+ or subscribe to unlock".into(),
         ));
     }
-    let rows: Vec<ExclusivePost> = sqlx::query_as(&format!(
-        "SELECT {POST_COLUMNS} FROM exclusive_posts WHERE creator_id = $1 ORDER BY created_at DESC LIMIT 100"
+    // Filter posts by their access rules. We still return locked ones with
+    // media_url/body blanked so the UI can render teasers.
+    let all: Vec<ExclusivePost> = sqlx::query_as(&format!(
+        "SELECT {POST_COLUMNS} FROM exclusive_posts WHERE creator_id = $1 ORDER BY created_at DESC LIMIT 200"
+    ))
+    .bind(creator_id)
+    .fetch_all(&st.pool)
+    .await?;
+    let rows: Vec<ExclusivePost> = all
+        .into_iter()
+        .filter_map(|p| {
+            let granted = match p.access.as_str() {
+                "public" => true,
+                "subscription" => p.tier_id.map(|t| tier_ids.contains(&t)).unwrap_or(false),
+                "monthly_tip" | "one_tip" | _ => ok,
+            };
+            if granted {
+                Some(p)
+            } else {
+                Some(ExclusivePost {
+                    body: String::new(),
+                    media_url: String::new(),
+                    ..p
+                })
+            }
+        })
+        .collect();
+
+    Ok(Json(UnlockResp {
+        posts: rows,
+        grants: UnlockGrants {
+            tipped_this_month: ok,
+            tier_ids,
+            month_tip_total: String::new(),
+        },
+    }))
+}
+
+/// Creator: list your own tiers (for the composer's tier picker).
+async fn my_tiers(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<SupportTier>>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    let rows: Vec<SupportTier> = sqlx::query_as(&format!(
+        "SELECT {TIER_COLUMNS} FROM support_tiers WHERE creator_id = $1 AND is_active = TRUE ORDER BY sort_order, price"
     ))
     .bind(creator_id)
     .fetch_all(&st.pool)
     .await?;
     Ok(Json(rows))
+}
+
+#[derive(Serialize)]
+struct SubscriberRow {
+    id: Uuid,
+    tier_id: Uuid,
+    tier_name: String,
+    email: String,
+    name: String,
+    status: String,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Creator: list their subscribers.
+async fn my_subscribers(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<SubscriberRow>>, AppError> {
+    let creator_id = my_creator_id(&st, &headers).await?;
+    let rows = sqlx::query(
+        "SELECT s.id, s.tier_id, COALESCE(t.name, '') AS tier_name, s.email, s.name, s.status, s.created_at
+         FROM subscriptions s
+         LEFT JOIN support_tiers t ON t.id = s.tier_id
+         WHERE s.creator_id = $1 ORDER BY s.created_at DESC LIMIT 500",
+    )
+    .bind(creator_id)
+    .fetch_all(&st.pool)
+    .await?;
+    use sqlx::Row as _;
+    Ok(Json(
+        rows.into_iter()
+            .map(|r| SubscriberRow {
+                id: r.try_get("id").unwrap_or_default(),
+                tier_id: r.try_get("tier_id").unwrap_or_default(),
+                tier_name: r.try_get("tier_name").unwrap_or_default(),
+                email: r.try_get("email").unwrap_or_default(),
+                name: r.try_get("name").unwrap_or_default(),
+                status: r.try_get("status").unwrap_or_default(),
+                created_at: r.try_get("created_at").unwrap_or_else(|_| chrono::Utc::now()),
+            })
+            .collect(),
+    ))
+}
+
+#[derive(Deserialize)]
+struct SubscribeReq {
+    tier_id: Uuid,
+    email: String,
+    name: Option<String>,
+}
+
+/// Public: a fan subscribes to a tier. First iteration is trial-friendly —
+/// no payment gate here; the tips flow already handles money, this table just
+/// records who has access. Idempotent per (creator, tier, email).
+async fn subscribe(
+    State(st): State<AppState>,
+    Path(slug): Path<String>,
+    Json(req): Json<SubscribeReq>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let email = req.email.trim().to_lowercase();
+    if !email.contains('@') {
+        return Err(AppError::BadRequest("enter a valid email".into()));
+    }
+    let creator: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM creator_profiles WHERE slug = $1")
+        .bind(&slug)
+        .fetch_optional(&st.pool)
+        .await?;
+    let creator_id = creator
+        .map(|c| c.0)
+        .ok_or_else(|| AppError::NotFound("creator not found".into()))?;
+    // Validate the tier belongs to this creator + is active.
+    let tier: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT id FROM support_tiers WHERE id = $1 AND creator_id = $2 AND is_active = TRUE",
+    )
+    .bind(req.tier_id)
+    .bind(creator_id)
+    .fetch_optional(&st.pool)
+    .await?;
+    if tier.is_none() {
+        return Err(AppError::NotFound("tier not found".into()));
+    }
+    let name = req.name.unwrap_or_default().chars().take(120).collect::<String>();
+    let res = sqlx::query(
+        "INSERT INTO subscriptions (id, creator_id, tier_id, email, name)
+         VALUES ($1,$2,$3,$4,$5)
+         ON CONFLICT (creator_id, tier_id, email) DO UPDATE SET status='active', name = EXCLUDED.name",
+    )
+    .bind(Uuid::new_v4())
+    .bind(creator_id)
+    .bind(req.tier_id)
+    .bind(&email)
+    .bind(name)
+    .execute(&st.pool)
+    .await?;
+    Ok(Json(serde_json::json!({ "subscribed": true, "rows": res.rows_affected() })))
 }
 
 /// Minimal percent-encoding for a query value (emails: @ + . are the cases).
@@ -1052,6 +1305,32 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     )
     .execute(pool)
     .await?;
+    // Media / access controls — migrate existing rows in place.
+    for stmt in [
+        "ALTER TABLE exclusive_posts ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'post'",
+        "ALTER TABLE exclusive_posts ADD COLUMN IF NOT EXISTS media_url TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE exclusive_posts ADD COLUMN IF NOT EXISTS access TEXT NOT NULL DEFAULT 'monthly_tip'",
+        "ALTER TABLE exclusive_posts ADD COLUMN IF NOT EXISTS min_tip NUMERIC(10,2) NOT NULL DEFAULT 10",
+        "ALTER TABLE exclusive_posts ADD COLUMN IF NOT EXISTS tier_id UUID",
+    ] {
+        sqlx::query(stmt).execute(pool).await?;
+    }
+    // Subscribers — a fan chooses to follow a support tier.
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS subscriptions (
+            id          UUID PRIMARY KEY,
+            creator_id  UUID NOT NULL,
+            tier_id     UUID NOT NULL,
+            email       TEXT NOT NULL,
+            name        TEXT NOT NULL DEFAULT '',
+            status      TEXT NOT NULL DEFAULT 'active',
+            period_end  TIMESTAMPTZ,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+            UNIQUE (creator_id, tier_id, email)
+        )",
+    )
+    .execute(pool)
+    .await?;
     for col in [
         "tip_presets", "thanks_note", "links", "bank_details", "theme",
         "profile_type", "org_type", "registration_number", "country", "city",
@@ -1155,7 +1434,10 @@ async fn main() {
         .route("/creators/me", get(get_me).put(update_me))
         .route("/creators/me/bank", get(get_my_bank))
         .route("/creators/me/posts", get(my_posts).post(create_post))
-        .route("/creators/me/posts/:id", axum::routing::delete(delete_post))
+        .route("/creators/me/posts/:id", axum::routing::put(update_post).delete(delete_post))
+        .route("/creators/me/tiers", get(my_tiers))
+        .route("/creators/me/subscribers", get(my_subscribers))
+        .route("/creators/:slug/subscribe", post(subscribe))
         .route("/creators/me/jars/:id", axum::routing::delete(delete_jar))
         .route("/creators/:slug/exclusive/count", get(exclusive_count))
         .route("/creators/:slug/exclusive/unlock", post(exclusive_unlock))
