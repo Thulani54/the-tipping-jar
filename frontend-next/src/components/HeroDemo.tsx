@@ -39,16 +39,16 @@ export function HeroDemo() {
 
   return (
     <div className="relative mx-auto w-full max-w-sm lg:mx-0 lg:ml-auto">
-      <div className="card !rounded-[26px] !border-white/70 !bg-white !bg-none !p-6 shadow-lift">
-        <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
+      <div className="!bg-transparent p-2">
+        <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.18em] text-white/60">
           <span>Try a tip</span>
-          <span className="inline-flex items-center gap-1 text-green">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green" /> live
+          <span className="inline-flex items-center gap-1 text-mint">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-mint" /> live
           </span>
         </div>
 
         <div className="mt-1">
-          <JarMeter raised={`R${amount}`} goal="" pct={pct} label="a tip of" />
+          <JarMeter raised={`R${amount}`} goal="" pct={pct} label="a tip of" dark />
         </div>
 
         <input
@@ -69,8 +69,8 @@ export function HeroDemo() {
               onClick={() => setAmount(v)}
               className={`rounded-full px-3 py-1.5 font-mono text-xs transition ${
                 amount === v
-                  ? "bg-primary text-white"
-                  : "border border-border text-muted hover:border-primary/40"
+                  ? "bg-mint text-navy"
+                  : "border border-white/20 text-white/80 hover:border-mint/60 hover:text-mint"
               }`}
             >
               R{v}
@@ -78,7 +78,7 @@ export function HeroDemo() {
           ))}
         </div>
 
-        <div className="mt-5 space-y-1.5 border-t border-dashed border-border pt-4 font-mono text-[12px] text-muted">
+        <div className="mt-5 space-y-1.5 border-t border-dashed border-white/20 pt-4 font-mono text-[12px] text-white/70">
           <div className="flex justify-between">
             <span>platform fee{quote ? ` (${fee(quote.platform_pct)}%)` : ""}</span>
             <span>− R{fee(quote?.platform_fee)}</span>
@@ -88,14 +88,14 @@ export function HeroDemo() {
             <span>− R{fee(quote?.service_fee)}</span>
           </div>
         </div>
-        <div className="mt-3 flex items-center justify-between rounded-2xl bg-mint/10 px-4 py-3">
-          <span className="text-sm font-semibold text-ink">Creator keeps</span>
-          <span className="font-display text-2xl font-extrabold text-green">
+        <div className="mt-3 flex items-center justify-between rounded-2xl border border-mint/25 bg-mint/10 px-4 py-3">
+          <span className="text-sm font-semibold text-white">Creator keeps</span>
+          <span className="font-display text-2xl font-extrabold text-mint">
             R{net.toFixed(2)}
           </span>
         </div>
       </div>
-      <p className="mt-3 text-center font-mono text-[11px] text-muted">
+      <p className="mt-3 text-center font-mono text-[11px] text-white/60">
         drag the amount — see what a creator takes home
       </p>
     </div>
