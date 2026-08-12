@@ -230,6 +230,7 @@ function DashboardInner() {
                 slug={myCreator?.slug ?? null}
                 creator={myCreator}
                 onTab={setTab}
+                token={token}
               />
             )}
             {tab === "tips" && <TipsTab tips={tips} loading={loading} token={token} />}
@@ -631,6 +632,7 @@ function OverviewTab({
   slug,
   creator,
   onTab,
+  token,
 }: {
   tips: Tip[];
   loading: boolean;
@@ -638,10 +640,30 @@ function OverviewTab({
   slug: string | null;
   creator: Creator | null;
   onTab: (t: Tab) => void;
+  token: string | null;
 }) {
   const netEarned = stats ? Number(stats.creator_net_total) || 0 : 0;
   const thisMonth = stats ? Number(stats.this_month_amount) || 0 : 0;
   const shareUrl = slug ? `https://tippingjar.co.za/creator/${slug}` : null;
+
+  // Bank-details status — we surface a top-of-page nudge until the
+  // creator has enough saved to actually receive a payout. `bankKnown`
+  // guards against flashing the banner on first paint while we're still
+  // fetching.
+  const [bankReady, setBankReady] = useState(false);
+  const [bankKnown, setBankKnown] = useState(false);
+  useEffect(() => {
+    if (!token) return;
+    api
+      .myBankDetails(token)
+      .then((b) => {
+        setBankReady(
+          !!(b.account_name?.trim() && b.bank?.trim() && b.account_no?.trim()),
+        );
+      })
+      .catch(() => setBankReady(false))
+      .finally(() => setBankKnown(true));
+  }, [token]);
 
   // Monthly goal push
   const goal = creator?.tip_goal ? Number(creator.tip_goal) : 0;
@@ -669,6 +691,33 @@ function OverviewTab({
 
   return (
     <div className="space-y-8">
+      {/* Bank-details nudge — high-signal callout at the very top when
+          the creator can't yet receive a payout. Loud, actionable, and
+          it hides itself the moment the bank form is filled in. */}
+      {bankKnown && !bankReady && (
+        <div className="flex flex-wrap items-start gap-4 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 p-5 shadow-sm">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-500 text-white">
+            <Wallet className="h-5 w-5" strokeWidth={2.4} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-ink">
+              Add your payout bank account to withdraw your earnings
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              {netEarned > 0
+                ? <>You've earned <span className="font-semibold text-ink">R{money(netEarned)}</span>. You need banking details on file before we can send it to you.</>
+                : <>You'll need banking details on file to withdraw tips — takes under a minute.</>}
+            </p>
+          </div>
+          <button
+            onClick={() => onTab("profile")}
+            className="btn-primary shrink-0 !bg-amber-500 !px-4 !py-2 text-sm !text-white hover:!opacity-90"
+          >
+            Set up bank details <ArrowUpRight className="ml-1 inline h-3.5 w-3.5" strokeWidth={2.4} />
+          </button>
+        </div>
+      )}
+
       <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Net earned" value={`R${money(netEarned)}`} icon={Banknote} accent="#12A25C" />
         <StatCard label="This month" value={`R${money(thisMonth)}`} icon={Calendar} accent="#2563EB" />
