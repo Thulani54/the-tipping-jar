@@ -942,22 +942,14 @@ const TIP_PERIODS: { id: TipPeriod; label: string }[] = [
 ];
 
 function exportTipsCsv(tips: Tip[]) {
-  const esc = (v: string) => `"${(v || "").replace(/"/g, '""')}"`;
-  const rows = [
-    "date,tipper,email,message,amount,platform_fee,service_fee,net,status,reference",
-    ...tips.map((t) =>
-      [
-        new Date(t.created_at).toISOString(), esc(t.tipper_name), esc(t.tipper_email),
-        esc(t.message), t.amount, t.platform_fee, t.service_fee, t.creator_net, t.status, t.reference,
-      ].join(","),
-    ),
-  ];
-  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `tipping-jar-tips-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  downloadCsv(
+    `tipping-jar-tips-${new Date().toISOString().slice(0, 10)}.csv`,
+    ["date", "tipper", "email", "message", "amount", "platform_fee", "service_fee", "net", "status", "reference"],
+    tips.map((t) => [
+      new Date(t.created_at).toISOString(), t.tipper_name, t.tipper_email, t.message,
+      t.amount, t.platform_fee, t.service_fee, t.creator_net, t.status, t.reference,
+    ]),
+  );
 }
 
 function TipsTab({ tips, loading, token }: { tips: Tip[]; loading: boolean; token?: string | null }) {
@@ -1157,17 +1149,11 @@ function TipsTab({ tips, loading, token }: { tips: Tip[]; loading: boolean; toke
 
 // ─── Supporters ──────────────────────────────────────────────────────────────
 function exportTipsCsvSupporters(rows: Supporter[]) {
-  const esc = (v: string) => `"${(v || "").replace(/"/g, '""')}"`;
-  const lines = [
-    "name,email,tips,total,last_tip",
-    ...rows.map((r) => [esc(r.name), esc(r.email), r.tip_count, r.total, r.last_tip_at].join(",")),
-  ];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `supporters-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  downloadCsv(
+    `supporters-${new Date().toISOString().slice(0, 10)}.csv`,
+    ["name", "email", "tips", "total", "last_tip"],
+    rows.map((r) => [r.name, r.email, r.tip_count, r.total, r.last_tip_at]),
+  );
 }
 
 // Classify a supporter into a segment for at-a-glance CRM.
@@ -1556,21 +1542,34 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
 }
 
 // ─── Transactions & payouts ─────────────────────────────────────────────────
-function exportTxnCsv(rows: Transaction[]) {
-  const esc = (v: string | number) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const lines = [
-    "date,reference,tipper,email,message,status,currency,amount,platform_fee,service_fee,you_get,jar_id",
-    ...rows.map((t) => [
-      t.created_at, esc(t.reference), esc(t.tipper_name || "Anonymous"), esc(t.tipper_email || ""),
-      esc(t.message || ""), t.status, t.currency, t.amount, t.platform_fee, t.service_fee, t.creator_net, esc(t.jar_id || ""),
-    ].join(",")),
-  ];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+// Escape a CSV cell, defusing spreadsheet formula-injection attacks. Any cell
+// whose first character is a formula trigger (= + - @ \t \r) gets a leading
+// single-quote so Excel/Sheets renders it as literal text.
+function csvCell(v: string | number | null | undefined): string {
+  let s = String(v ?? "");
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+function downloadCsv(name: string, header: string[], rows: (string | number | null | undefined)[][]) {
+  const lines = [header.map(csvCell).join(","), ...rows.map((r) => r.map(csvCell).join(","))];
+  // Prepend a UTF-8 BOM so Excel opens non-ASCII content correctly.
+  const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = name;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+function exportTxnCsv(rows: Transaction[]) {
+  downloadCsv(
+    `transactions-${new Date().toISOString().slice(0, 10)}.csv`,
+    ["date", "reference", "tipper", "email", "message", "status", "currency", "amount", "platform_fee", "service_fee", "you_get", "jar_id"],
+    rows.map((t) => [
+      t.created_at, t.reference, t.tipper_name || "Anonymous", t.tipper_email || "",
+      t.message || "", t.status, t.currency, t.amount, t.platform_fee, t.service_fee, t.creator_net, t.jar_id || "",
+    ]),
+  );
 }
 
 function TransactionsTab({ token, creatorId }: { token: string | null; creatorId: string | null }) {
@@ -3617,13 +3616,11 @@ function SubscribersTab({ token, slug }: { token: string | null; slug: string | 
         </div>
         <button
           onClick={() => {
-            const csv = ["email,name,tier,status,joined", ...filtered.map((s) => `"${s.email}","${s.name}","${s.tier_name}",${s.status},${s.created_at}`)].join("\n");
-            const blob = new Blob([csv], { type: "text/csv" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `subscribers-${new Date().toISOString().slice(0, 10)}.csv`;
-            a.click();
-            URL.revokeObjectURL(a.href);
+            downloadCsv(
+              `subscribers-${new Date().toISOString().slice(0, 10)}.csv`,
+              ["email", "name", "tier", "status", "joined"],
+              filtered.map((s) => [s.email, s.name, s.tier_name, s.status, s.created_at]),
+            );
           }}
           disabled={filtered.length === 0}
           className="btn-ghost !px-4 !py-2.5 text-xs disabled:opacity-40"

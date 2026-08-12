@@ -133,10 +133,18 @@ function StatCard({ label, value, icon, accent = "#004423" }: { label: string; v
   );
 }
 
+// Escape a CSV cell + defuse spreadsheet formula-injection (=, +, -, @, tab,
+// CR triggers). Every user-influenceable column is passed through this,
+// including headers, so an attacker can't hide a payload in any field.
 function exportCsv(filename: string, header: string[], rows: (string | number)[][]) {
-  const esc = (v: string | number) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const csv = [header.join(","), ...rows.map((r) => r.map(esc).join(","))].join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
+  const esc = (v: string | number) => {
+    let s = String(v ?? "");
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return `"${s.replace(/"/g, '""')}"`;
+  };
+  const csv = [header.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))].join("\n");
+  // Leading UTF-8 BOM so Excel decodes non-ASCII names correctly.
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = filename;
