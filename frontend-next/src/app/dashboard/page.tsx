@@ -4,8 +4,9 @@
 // The marketing top-nav + footer are hidden for /dashboard (see SiteFrame), so
 // this owns the whole viewport. Tabs render in the content area on the right.
 
-import { useCallback, useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -87,9 +88,46 @@ function greeting(): string {
 }
 
 export default function DashboardPage() {
+  // Suspense boundary is required because DashboardInner uses useSearchParams
+  // to sync the active tab with the URL (?tab=…).
+  return (
+    <Suspense fallback={<div className="grid min-h-screen place-items-center bg-darker text-muted">Loading…</div>}>
+      <DashboardInner />
+    </Suspense>
+  );
+}
+
+function DashboardInner() {
   const { user, token, isAuthenticated, initialized, logout } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("overview");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const TAB_IDS: Tab[] = ["overview", "tips", "supporters", "analytics", "exclusive", "jars", "transactions", "referrals", "studio", "profile"];
+  const urlTab = searchParams.get("tab");
+  const initialTab: Tab = TAB_IDS.includes(urlTab as Tab) ? (urlTab as Tab) : "overview";
+  const [tab, setTabState] = useState<Tab>(initialTab);
+
+  // Two-way sync: when the URL param changes (browser back/forward, external
+  // link, etc.) we follow it; when the user clicks a nav row we push the URL
+  // via setTab below.
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t && TAB_IDS.includes(t as Tab) && t !== tab) {
+      setTabState(t as Tab);
+    } else if (!t && tab !== "overview") {
+      setTabState("overview");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const setTab = (next: Tab) => {
+    setTabState(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "overview") params.delete("tab");
+    else params.set("tab", next);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -1725,8 +1763,89 @@ function Donut({ slices }: { slices: { label: string; value: number; color: stri
   );
 }
 
+function DualLineChart({
+  gross,
+  net,
+  height = 180,
+}: {
+  gross: number[];
+  net: number[];
+  height?: number;
+}) {
+  const W = 600;
+  const max = Math.max(...gross, ...net, 1);
+  const step = W / Math.max(gross.length - 1, 1);
+  const path = (arr: number[]) =>
+    arr.map((v, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${(height - 12 - (v / max) * (height - 30)).toFixed(1)}`).join(" ");
+  const area = (arr: number[]) => `${path(arr)} L${W},${height} L0,${height} Z`;
+  return (
+    <svg viewBox={`0 0 ${W} ${height}`} className="w-full" preserveAspectRatio="none" role="img" aria-label="dual line chart">
+      {/* horizontal grid ticks */}
+      {[0.25, 0.5, 0.75].map((f) => (
+        <line key={f} x1="0" x2={W} y1={height - 12 - f * (height - 30)} y2={height - 12 - f * (height - 30)} stroke="#EFF2F0" strokeWidth="1" />
+      ))}
+      <path d={area(gross)} fill="#2563EB" opacity="0.10" />
+      <path d={path(gross)} fill="none" stroke="#2563EB" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={area(net)} fill="#12A25C" opacity="0.14" />
+      <path d={path(net)} fill="none" stroke="#12A25C" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function HourHeatmap({ tips }: { tips: Tip[] }) {
+  // 7 weekdays × 24 hours (Mon-first)
+  const grid: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
+  tips.forEach((t) => {
+    const d = new Date(t.created_at);
+    const wd = (d.getDay() + 6) % 7;
+    grid[wd][d.getHours()] += Number(t.amount || 0);
+  });
+  const max = Math.max(1, ...grid.flat());
+  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  return (
+    <div>
+      <div className="grid gap-[3px]" style={{ gridTemplateColumns: "36px repeat(24, minmax(0, 1fr))" }}>
+        <span />
+        {Array.from({ length: 24 }, (_, h) => (
+          <span key={h} className="text-center font-mono text-[9px] text-muted">
+            {h % 3 === 0 ? h : ""}
+          </span>
+        ))}
+        {grid.map((row, i) => (
+          <React.Fragment key={i}>
+            <span className="pr-1 text-right font-mono text-[10px] text-muted">{weekdays[i]}</span>
+            {row.map((v, h) => {
+              const t = v / max;
+              const bg = v === 0
+                ? "rgba(15,36,57,0.04)"
+                : `rgba(18,162,92,${0.2 + 0.75 * t})`;
+              return (
+                <span
+                  key={h}
+                  className="aspect-square rounded-sm"
+                  style={{ background: bg }}
+                  title={`${weekdays[i]} ${h.toString().padStart(2, "0")}:00 · R${Math.round(v)}`}
+                />
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type Range = "7d" | "30d" | "90d" | "all";
+const RANGES: { id: Range; label: string; days: number | null }[] = [
+  { id: "7d", label: "7d", days: 7 },
+  { id: "30d", label: "30d", days: 30 },
+  { id: "90d", label: "90d", days: 90 },
+  { id: "all", label: "All", days: null },
+];
+
 function AnalyticsTab({ token, creatorId, tips }: { token: string | null; creatorId: string | null; tips: Tip[] }) {
   const [days, setDays] = useState<{ day: string; count: number; gross: string; net: string }[] | null>(null);
+  const [range, setRange] = useState<Range>("30d");
   useEffect(() => {
     if (!token || !creatorId) { setDays([]); return; }
     api.creatorDailyStats(token, creatorId).then(setDays).catch(() => setDays([]));
@@ -1743,33 +1862,79 @@ function AnalyticsTab({ token, creatorId, tips }: { token: string | null; creato
   const avg = completed.length ? completed.reduce((s, t) => s + Number(t.amount || 0), 0) / completed.length : 0;
   const biggest = completed.reduce((m, t) => Math.max(m, Number(t.amount || 0)), 0);
   const delta = lastMonth > 0 ? Math.round(((thisMonth - lastMonth) / lastMonth) * 100) : null;
+  const withMessage = completed.filter((t) => t.message).length;
+  const messagePct = completed.length ? Math.round((withMessage / completed.length) * 100) : 0;
 
-  // 30-day series (gaps filled)
+  // Repeat vs one-off supporters (uses email or name as key)
+  const seenBy = new Map<string, number>();
+  completed.forEach((t) => {
+    const key = (t.tipper_email || t.tipper_name || "anon").toLowerCase();
+    seenBy.set(key, (seenBy.get(key) ?? 0) + 1);
+  });
+  const supporters = seenBy.size;
+  const repeat = [...seenBy.values()].filter((c) => c >= 2).length;
+  const oneOff = supporters - repeat;
+  const repeatRate = supporters ? Math.round((repeat / supporters) * 100) : 0;
+
+  // Top supporters (top 5 by lifetime completed)
+  const totalsByKey = new Map<string, { name: string; total: number; count: number }>();
+  completed.forEach((t) => {
+    const key = (t.tipper_email || t.tipper_name || "anon").toLowerCase();
+    const cur = totalsByKey.get(key) ?? { name: t.tipper_name || "Anonymous", total: 0, count: 0 };
+    cur.total += Number(t.amount || 0);
+    cur.count += 1;
+    totalsByKey.set(key, cur);
+  });
+  const topSupporters = [...totalsByKey.values()].sort((a, b) => b.total - a.total).slice(0, 5);
+
+  // Time series driven by the range switcher (server data is 30 days,
+  // longer ranges fall back to the tips array).
+  const rangeDays = RANGES.find((r) => r.id === range)!.days;
+  const cutoff = rangeDays ? new Date(Date.now() - rangeDays * 86400000) : new Date(0);
+  const inRange = completed.filter((t) => new Date(t.created_at) >= cutoff);
+
   const map = new Map((days ?? []).map((d) => [d.day, d]));
+  const nDays = rangeDays ?? Math.max(30, Math.ceil((Date.now() - +cutoff) / 86400000));
   const series: { day: string; gross: number; net: number; count: number }[] = [];
-  for (let i = 29; i >= 0; i--) {
-    const key = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+  for (let i = nDays - 1; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const key = d.toISOString().slice(0, 10);
     const row = map.get(key);
-    series.push({ day: key, gross: Number(row?.gross ?? 0), net: Number(row?.net ?? 0), count: row?.count ?? 0 });
+    if (row) {
+      series.push({ day: key, gross: Number(row.gross ?? 0), net: Number(row.net ?? 0), count: row.count ?? 0 });
+    } else {
+      const next = new Date(d.getTime() + 86400000); next.setHours(0,0,0,0); d.setHours(0,0,0,0);
+      const rows = completed.filter((t) => { const td = new Date(t.created_at); return td >= d && td < next; });
+      series.push({
+        day: key,
+        gross: rows.reduce((s, t) => s + (Number(t.amount) || 0), 0),
+        net: rows.reduce((s, t) => s + (Number(t.creator_net) || 0), 0),
+        count: rows.length,
+      });
+    }
   }
   const max = Math.max(...series.map((x) => x.gross), 1);
-  const total30 = series.reduce((s, x) => s + x.gross, 0);
-  // cumulative net earnings line
+  const totalRange = series.reduce((s, x) => s + x.gross, 0);
+  const netRange = series.reduce((s, x) => s + x.net, 0);
+  const countRange = series.reduce((s, x) => s + x.count, 0);
   let running = 0;
   const cumulative = series.map((x) => (running += x.net));
-  // weekday performance (from full tips history)
+
+  // weekday performance (from range)
   const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const byDay = new Array(7).fill(0);
-  completed.forEach((t) => { byDay[(new Date(t.created_at).getDay() + 6) % 7] += Number(t.amount || 0); });
+  inRange.forEach((t) => { byDay[(new Date(t.created_at).getDay() + 6) % 7] += Number(t.amount || 0); });
   const maxDay = Math.max(...byDay, 1);
-  // tip-size distribution
+  const bestDay = weekdays[byDay.indexOf(Math.max(...byDay))];
+
+  // tip-size distribution (from range)
   const buckets = [
     { label: "R10–24", value: 0, color: "#57CE8B" },
     { label: "R25–49", value: 0, color: "#12A25C" },
     { label: "R50–99", value: 0, color: "#0F2439" },
     { label: "R100+", value: 0, color: "#E0A536" },
   ];
-  completed.forEach((t) => {
+  inRange.forEach((t) => {
     const a = Number(t.amount || 0);
     if (a < 25) buckets[0].value++;
     else if (a < 50) buckets[1].value++;
@@ -1779,64 +1944,105 @@ function AnalyticsTab({ token, creatorId, tips }: { token: string | null; creato
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-medium tracking-tight text-ink">Analytics</h2>
-        <p className="body-muted mt-1">How your jar is filling.</p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label={delta === null ? "This month" : `This month (${delta >= 0 ? "+" : ""}${delta}% vs last)`} value={`R${money(thisMonth)}`} icon={Calendar} accent="#12A25C" />
-        <StatCard label="Last month" value={`R${money(lastMonth)}`} icon={Calendar} accent="#2563EB" />
-        <StatCard label="Average tip" value={`R${money(avg)}`} icon={HandCoins} accent="#E0A536" />
-        <StatCard label="Biggest tip" value={`R${money(biggest)}`} icon={Trophy} accent="#EC4899" />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-medium tracking-tight text-ink">Analytics</h2>
+          <p className="body-muted mt-1">How your jar is filling.</p>
+        </div>
+        <div className="flex gap-1.5">
+          {RANGES.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => setRange(r.id)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                range === r.id ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Cumulative earnings line */}
+      {/* 6-tile KPI header */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Gross (range)" value={`R${money(totalRange)}`} icon={Banknote} accent="#2563EB" />
+        <StatCard label="Net (range)" value={`R${money(netRange)}`} icon={Wallet} accent="#12A25C" />
+        <StatCard label="Tips (range)" value={String(countRange)} icon={HandCoins} accent="#E0A536" />
+        <StatCard label={delta === null ? "This month" : `Month (${delta >= 0 ? "+" : ""}${delta}%)`} value={`R${money(thisMonth)}`} icon={Calendar} accent="#7C3AED" />
+        <StatCard label="Average tip" value={`R${money(avg)}`} icon={Percent} accent="#EC4899" />
+        <StatCard label="Biggest tip" value={`R${money(biggest)}`} icon={Trophy} accent="#DC2626" />
+      </div>
+
+      {/* Insights strip */}
+      <div className="card flex flex-wrap items-center gap-x-6 gap-y-2 !p-4 text-xs text-muted">
+        <span><span className="font-semibold text-ink">{repeatRate}%</span> of supporters give more than once</span>
+        <span className="h-3 w-px bg-border" />
+        <span><span className="font-semibold text-ink">{messagePct}%</span> of tips came with a message</span>
+        <span className="h-3 w-px bg-border" />
+        <span>Best day: <span className="font-semibold text-ink">{bestDay || "—"}</span></span>
+        <span className="h-3 w-px bg-border" />
+        <span>Range gross: <span className="font-semibold text-ink">R{money(totalRange)}</span></span>
+      </div>
+
+      {/* Dual-line: gross vs net */}
       <div className="card !p-5">
         <div className="flex items-baseline justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Cumulative earnings · last 30 days (net)</p>
-          <p className="text-sm font-bold text-teal">R{money(cumulative[cumulative.length - 1] ?? 0)}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Gross vs net · {range === "all" ? "all time" : `last ${rangeDays} days`}</p>
+          <div className="flex items-center gap-3 text-[11px]">
+            <span className="inline-flex items-center gap-1.5 text-muted"><span className="h-2 w-3 rounded-sm bg-[#2563EB]" /> gross</span>
+            <span className="inline-flex items-center gap-1.5 text-muted"><span className="h-2 w-3 rounded-sm bg-[#12A25C]" /> net</span>
+          </div>
         </div>
         <div className="mt-4">
-          {!days ? <p className="body-muted">Loading…</p> : <LineChart points={cumulative} color="#12A25C" />}
+          {!days ? <p className="body-muted">Loading…</p> : <DualLineChart gross={series.map((x) => x.gross)} net={series.map((x) => x.net)} />}
         </div>
         <div className="mt-1 flex justify-between font-mono text-[10px] text-muted">
-          <span>{series[0].day.slice(5)}</span>
+          <span>{series[0]?.day.slice(5)}</span>
           <span>today</span>
         </div>
       </div>
 
-      {/* Daily volume bars */}
-      <div className="card !p-5">
-        <div className="flex items-baseline justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Daily tip volume · last 30 days</p>
-          <p className="text-sm font-bold text-ink">R{money(total30)}</p>
+      {/* Daily volume bars + cumulative earnings */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="card !p-5">
+          <div className="flex items-baseline justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Daily tip volume</p>
+            <p className="text-sm font-bold text-ink">R{money(totalRange)}</p>
+          </div>
+          <div className="mt-4 flex h-28 items-end gap-[3px]">
+            {series.map((x) => (
+              <div
+                key={x.day}
+                className="flex-1 rounded-t bg-teal/70 transition hover:bg-teal"
+                style={{ height: `${Math.max(3, (x.gross / max) * 100)}%` }}
+                title={`${x.day}: R${money(x.gross)} (${x.count})`}
+              />
+            ))}
+          </div>
         </div>
-        {!days ? (
-          <p className="body-muted mt-4">Loading…</p>
-        ) : (
-          <>
-            <div className="mt-4 flex h-28 items-end gap-[3px]">
-              {series.map((x) => (
-                <div
-                  key={x.day}
-                  className="flex-1 rounded-t bg-teal/70 transition hover:bg-teal"
-                  style={{ height: `${Math.max(3, (x.gross / max) * 100)}%` }}
-                  title={`${x.day}: R${money(x.gross)} (${x.count} tip${x.count === 1 ? "" : "s"})`}
-                />
-              ))}
-            </div>
-            <div className="mt-2 flex justify-between font-mono text-[10px] text-muted">
-              <span>{series[0].day.slice(5)}</span>
-              <span>{series[series.length - 1].day.slice(5)}</span>
-            </div>
-          </>
-        )}
+        <div className="card !p-5">
+          <div className="flex items-baseline justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Cumulative net earnings</p>
+            <p className="text-sm font-bold text-teal">R{money(cumulative[cumulative.length - 1] ?? 0)}</p>
+          </div>
+          <div className="mt-4"><LineChart points={cumulative} color="#12A25C" height={112} /></div>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Hour-of-day heatmap */}
+      <div className="card !p-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">When your fans tip (weekday × hour)</p>
+        <p className="mt-1 text-[11px] text-muted">Darker green = more money that hour, from every completed tip.</p>
+        <div className="mt-4 overflow-x-auto">
+          {completed.length === 0 ? <p className="body-muted">No completed tips yet.</p> : <HourHeatmap tips={completed} />}
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Weekday performance */}
         <div className="card !p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Best days of the week (all time)</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Best days of the week</p>
           <div className="mt-4 flex h-28 items-end gap-2">
             {byDay.map((v, i) => (
               <div key={weekdays[i]} className="flex flex-1 flex-col items-center gap-1.5">
@@ -1853,15 +2059,50 @@ function AnalyticsTab({ token, creatorId, tips }: { token: string | null; creato
 
         {/* Tip size distribution */}
         <div className="card !p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Tip size mix (count, all time)</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Tip size mix</p>
           <div className="mt-4">
-            {completed.length === 0 ? (
-              <p className="body-muted">No completed tips yet.</p>
+            {inRange.length === 0 ? <p className="body-muted">No completed tips yet.</p> : <Donut slices={buckets} />}
+          </div>
+        </div>
+
+        {/* Repeat vs one-off */}
+        <div className="card !p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Repeat vs one-off supporters</p>
+          <div className="mt-4">
+            {supporters === 0 ? (
+              <p className="body-muted">No supporters yet.</p>
             ) : (
-              <Donut slices={buckets} />
+              <Donut
+                slices={[
+                  { label: `Repeat · ${repeat}`, value: repeat, color: "#12A25C" },
+                  { label: `One-off · ${oneOff}`, value: oneOff, color: "#E0A536" },
+                ]}
+              />
             )}
           </div>
         </div>
+      </div>
+
+      {/* Top supporters micro-list */}
+      <div className="card !p-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Top supporters (all time)</p>
+        {topSupporters.length === 0 ? (
+          <p className="body-muted mt-3">No completed tips yet.</p>
+        ) : (
+          <div className="mt-4 space-y-2">
+            {topSupporters.map((s, i) => (
+              <div key={s.name + i} className="flex items-center gap-3">
+                <span className="w-6 text-center text-lg">{["🥇", "🥈", "🥉"][i] ?? <span className="text-xs text-muted">{i + 1}</span>}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-ink">{s.name}</span>
+                <div className="h-1.5 w-40 max-w-[45%] overflow-hidden rounded-full bg-border/60">
+                  <div className="h-full rounded-full bg-teal" style={{ width: `${(s.total / (topSupporters[0].total || 1)) * 100}%` }} />
+                </div>
+                <span className="w-24 text-right font-bold text-teal">R{money(s.total)}</span>
+                <span className="w-14 text-right text-xs text-muted">{s.count} tip{s.count === 1 ? "" : "s"}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
