@@ -1126,6 +1126,24 @@ function exportTipsCsvSupporters(rows: Supporter[]) {
   URL.revokeObjectURL(a.href);
 }
 
+// Classify a supporter into a segment for at-a-glance CRM.
+function segmentOf(r: Supporter): "champion" | "recurring" | "new" | "dormant" | "one-off" {
+  const daysSince = Math.floor((Date.now() - new Date(r.last_tip_at).getTime()) / 86400000);
+  const total = Number(r.total) || 0;
+  if (total >= 500 || r.tip_count >= 5) return "champion";
+  if (r.tip_count >= 2 && daysSince <= 60) return "recurring";
+  if (daysSince <= 14) return "new";
+  if (daysSince > 90) return "dormant";
+  return "one-off";
+}
+const SEGMENT_META: Record<string, { label: string; cls: string; emoji: string }> = {
+  champion: { label: "Champion",  cls: "bg-gold/15 text-ink border-gold/40",     emoji: "🏆" },
+  recurring:{ label: "Recurring", cls: "bg-teal/15 text-teal border-teal/40",    emoji: "💚" },
+  new:      { label: "New",       cls: "bg-mint/15 text-green border-mint/40",   emoji: "✨" },
+  dormant:  { label: "Dormant",   cls: "bg-border/50 text-muted border-border",  emoji: "😴" },
+  "one-off":{ label: "One-off",   cls: "bg-white text-muted border-border",      emoji: "•"  },
+};
+
 function SupportersTab({ token, creatorId }: { token: string | null; creatorId: string | null }) {
   const [rows, setRows] = useState<Supporter[] | null>(null);
   const [err, setErr] = useState(false);
@@ -1134,6 +1152,10 @@ function SupportersTab({ token, creatorId }: { token: string | null; creatorId: 
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [sendNote, setSendNote] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState<"lifetime" | "recent" | "count">("lifetime");
+  const [segment, setSegment] = useState<"all" | "champion" | "recurring" | "new" | "dormant">("all");
+
   useEffect(() => {
     if (!token || !creatorId) { setRows([]); return; }
     api.creatorSupporters(token, creatorId).then(setRows).catch(() => setErr(true));
@@ -1147,29 +1169,83 @@ function SupportersTab({ token, creatorId }: { token: string | null; creatorId: 
   const medals = ["🥇", "🥈", "🥉"];
   const total = rows.reduce((s, r) => s + Number(r.total || 0), 0);
   const withEmail = rows.filter((r) => r.email).length;
+
+  // Segment counts (before filtering, so the chips always show real numbers)
+  const counts: Record<string, number> = { all: rows.length, champion: 0, recurring: 0, new: 0, dormant: 0 };
+  const bySegment = new Map<string, string>();
+  rows.forEach((r) => {
+    const s = segmentOf(r);
+    bySegment.set(r.name + "|" + r.email, s);
+    if (counts[s] !== undefined) counts[s]++;
+  });
+
+  // Filter + sort
+  const filtered = rows.filter((r) => {
+    if (segment !== "all" && segmentOf(r) !== segment) return false;
+    if (q) {
+      const needle = q.toLowerCase();
+      if (!r.name.toLowerCase().includes(needle) && !(r.email || "").toLowerCase().includes(needle)) return false;
+    }
+    return true;
+  });
+  const sorted = [...filtered].sort((a, b) => {
+    if (sort === "recent") return +new Date(b.last_tip_at) - +new Date(a.last_tip_at);
+    if (sort === "count") return b.tip_count - a.tip_count;
+    return Number(b.total) - Number(a.total);
+  });
+
+  const now = Date.now();
+  const first = new Date(rows[rows.length - 1].last_tip_at).getTime();
+  const daysSinceOldest = Math.max(1, Math.floor((now - first) / 86400000));
+  const avgSupport = total / rows.length;
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-xl font-medium tracking-tight text-ink">Your supporters</h2>
-          <p className="body-muted mt-1">{rows.length} supporter{rows.length === 1 ? "" : "s"} · R{money(total)} lifetime</p>
+          <p className="body-muted mt-1">
+            {rows.length} people · R{money(total)} lifetime · {withEmail} reachable by email
+          </p>
         </div>
-        <button
-          onClick={() =>
-            exportTipsCsvSupporters(rows)
-          }
-          className="btn-ghost !px-4 !py-2.5 text-xs"
-        >
-          <Download className="h-3.5 w-3.5" strokeWidth={2.2} /> CSV
-        </button>
-        <button
-          onClick={() => setComposing((v) => !v)}
-          disabled={withEmail === 0}
-          className="btn-primary !px-5 !py-2.5 text-sm disabled:opacity-50"
-          title={withEmail === 0 ? "No supporters left an email yet" : `Email your ${withEmail} reachable supporter(s)`}
-        >
-          <Megaphone className="h-4 w-4" strokeWidth={2.2} /> Message supporters
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => exportTipsCsvSupporters(rows)}
+            className="btn-ghost !px-4 !py-2.5 text-xs"
+          >
+            <Download className="h-3.5 w-3.5" strokeWidth={2.2} /> CSV
+          </button>
+          <button
+            onClick={() => setComposing((v) => !v)}
+            disabled={withEmail === 0}
+            className="btn-primary !px-5 !py-2.5 text-sm disabled:opacity-50"
+            title={withEmail === 0 ? "No supporters left an email yet" : `Email your ${withEmail} reachable supporter(s)`}
+          >
+            <Megaphone className="h-4 w-4" strokeWidth={2.2} /> Message supporters
+          </button>
+        </div>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Supporters" value={String(rows.length)} icon={Users} accent="#12A25C" />
+        <StatCard label="Lifetime volume" value={`R${money(total)}`} icon={Banknote} accent="#2563EB" />
+        <StatCard label="Average per supporter" value={`R${money(avgSupport)}`} icon={Percent} accent="#E0A536" />
+        <StatCard label="Reachable by email" value={`${withEmail} · ${Math.round((withEmail / rows.length) * 100)}%`} icon={Send} accent="#EC4899" />
+      </div>
+
+      {/* Segment chips (labels + counts) */}
+      <div className="flex flex-wrap gap-2">
+        {(["all", "champion", "recurring", "new", "dormant"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setSegment(s)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+              segment === s ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+            }`}
+          >
+            {s === "all" ? "All" : SEGMENT_META[s].label} · {counts[s]}
+          </button>
+        ))}
       </div>
 
       {composing && (
@@ -1216,35 +1292,114 @@ function SupportersTab({ token, creatorId }: { token: string | null; creatorId: 
           </div>
         </div>
       )}
+      {/* Filter toolbar */}
+      <div className="card flex flex-wrap items-center gap-3 !p-4">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search name or email…"
+          className="w-full max-w-xs rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
+        />
+        <span className="text-xs font-medium text-muted">Sort by</span>
+        <div className="flex gap-1.5">
+          {([
+            ["lifetime", "Lifetime"],
+            ["recent", "Recent"],
+            ["count", "Tips"],
+          ] as const).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setSort(id)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                sort === id ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className="ml-auto text-xs text-muted">
+          Showing {sorted.length} of {rows.length}
+          {" · "}avg supporter has been giving for ~{Math.round(daysSinceOldest / Math.max(1, rows.length))}d
+        </span>
+      </div>
+
+      {sorted.length === 0 ? (
+        <EmptyState icon={Trophy} title="No supporters match those filters" body="Try widening the segment or clearing the search." />
+      ) : (
       <div className="card overflow-hidden !p-0">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-border text-xs uppercase tracking-wide text-muted">
               <tr>
                 <th className="px-5 py-3 font-medium">#</th>
                 <th className="px-5 py-3 font-medium">Supporter</th>
+                <th className="px-5 py-3 font-medium">Segment</th>
                 <th className="px-5 py-3 font-medium">Tips</th>
                 <th className="px-5 py-3 font-medium">Last tip</th>
                 <th className="px-5 py-3 text-right font-medium">Lifetime</th>
+                <th className="px-5 py-3 text-right font-medium">Act</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r, i) => (
+              {sorted.map((r, i) => {
+                const seg = bySegment.get(r.name + "|" + r.email) ?? "one-off";
+                const meta = SEGMENT_META[seg];
+                const days = Math.floor((now - new Date(r.last_tip_at).getTime()) / 86400000);
+                const initial = (r.name || "?").charAt(0).toUpperCase();
+                return (
                 <tr key={`${r.name}-${i}`} className="border-b border-border/60 last:border-0 hover:bg-ink/[0.02]">
-                  <td className="px-5 py-3 text-lg">{medals[i] ?? <span className="text-xs text-muted">{i + 1}</span>}</td>
+                  <td className="px-5 py-3 text-lg">
+                    {sort === "lifetime" && i < 3 ? medals[i] : <span className="text-xs text-muted">{i + 1}</span>}
+                  </td>
                   <td className="px-5 py-3">
-                    <span className="font-medium text-ink">{r.name || "Anonymous"}</span>
-                    {r.email && <span className="ml-2 text-xs text-muted">{r.email}</span>}
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold text-white"
+                        style={{ background: seg === "champion" ? "#E0A536" : seg === "recurring" ? "#12A25C" : "#0F2439" }}
+                      >
+                        {initial}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-ink">{r.name || "Anonymous"}</p>
+                        {r.email && <p className="truncate text-[11px] text-muted">{r.email}</p>}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${meta.cls}`}>
+                      <span>{meta.emoji}</span> {meta.label}
+                    </span>
                   </td>
                   <td className="px-5 py-3 text-muted">{r.tip_count}</td>
-                  <td className="px-5 py-3 text-muted">{new Date(r.last_tip_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}</td>
+                  <td className="px-5 py-3 text-muted">
+                    {new Date(r.last_tip_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+                    <span className="ml-1 text-[11px] text-muted/70">
+                      · {days === 0 ? "today" : `${days}d ago`}
+                    </span>
+                  </td>
                   <td className="px-5 py-3 text-right font-bold text-teal">R{money(Number(r.total) || 0)}</td>
+                  <td className="px-5 py-3 text-right">
+                    {r.email ? (
+                      <a
+                        href={`mailto:${r.email}?subject=${encodeURIComponent("A quick thanks from your Tipping Jar creator")}&body=${encodeURIComponent(`Hi ${r.name?.split(" ")[0] || "there"},\n\nJust wanted to say thank you for supporting my work — it means the world.\n\n`)}`}
+                        className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted transition hover:border-teal hover:text-teal"
+                        title="Compose an email"
+                      >
+                        <Send className="h-3 w-3" strokeWidth={2.4} /> Email
+                      </a>
+                    ) : (
+                      <span className="text-[11px] text-muted/60">no email</span>
+                    )}
+                  </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }
