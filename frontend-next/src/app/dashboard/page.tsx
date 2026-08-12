@@ -2062,8 +2062,195 @@ function TransactionsTab({ token, creatorId }: { token: string | null; creatorId
 }
 
 // ─── Studio ──────────────────────────────────────────────────────────────────
+
+function GalleryPreview({ token }: { token: string | null }) {
+  const [designs, setDesigns] = useState<StudioDesign[] | null>(null);
+  const [q, setQ] = useState("");
+  const [kindFilter, setKindFilter] = useState<"all" | "square" | "portrait" | "story" | "landscape">("all");
+  const [note, setNote] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    if (!token) return;
+    api.myDesigns(token).then(setDesigns).catch(() => setDesigns([]));
+  }, [token]);
+  useEffect(load, [load]);
+
+  if (!designs) return null;
+  const filtered = designs.filter((d) => {
+    if (kindFilter !== "all" && d.kind !== kindFilter) return false;
+    if (q && !d.title.toLowerCase().includes(q.toLowerCase())) return false;
+    return true;
+  });
+
+  const total = designs.length;
+  const monthAgo = Date.now() - 30 * 86400000;
+  const thisMonth = designs.filter((d) => +new Date(d.created_at) >= monthAgo).length;
+  const byKind: Record<string, number> = {};
+  designs.forEach((d) => { byKind[d.kind] = (byKind[d.kind] || 0) + 1; });
+  const latest = designs[0]?.created_at;
+  const daysSince = latest ? Math.floor((Date.now() - +new Date(latest)) / 86400000) : null;
+
+  async function download(d: StudioDesign) {
+    if (!d.thumb) return;
+    const a = document.createElement("a");
+    a.href = d.thumb;
+    a.download = `${d.title.replace(/\W+/g, "-").toLowerCase() || d.kind}.png`;
+    a.click();
+  }
+  async function copyImage(d: StudioDesign) {
+    try {
+      const res = await fetch(d.thumb);
+      const blob = await res.blob();
+      await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+      setNote("Design copied — paste into a chat or post.");
+    } catch {
+      setNote("Clipboard image not supported here — use Download instead.");
+    }
+    window.setTimeout(() => setNote(null), 2000);
+  }
+
+  async function remove(d: StudioDesign) {
+    if (!token || !window.confirm(`Delete "${d.title || d.kind}"?`)) return;
+    await api.deleteDesign(token, d.id).catch(() => null);
+    load();
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* KPIs */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Designs saved" value={String(total)} icon={Palette} accent="#EC4899" />
+        <StatCard label="This month" value={String(thisMonth)} icon={Calendar} accent="#12A25C" />
+        <StatCard label="Days since last save" value={daysSince === null ? "—" : String(daysSince)} icon={Zap} accent={daysSince !== null && daysSince > 30 ? "#DC2626" : "#2563EB"} />
+        <StatCard label="Sizes used" value={String(Object.keys(byKind).length)} icon={QrCode} accent="#E0A536" />
+      </div>
+
+      {designs.length > 0 && (
+        <div className="card flex flex-wrap items-center gap-3 !p-4">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search designs…"
+            className="w-full max-w-xs rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {(["all", "square", "portrait", "story", "landscape"] as const).map((k) => (
+              <button
+                key={k}
+                onClick={() => setKindFilter(k)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  kindFilter === k ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+                }`}
+              >
+                {k === "all" ? "All" : k}
+              </button>
+            ))}
+          </div>
+          <span className="ml-auto text-xs text-muted">{filtered.length} of {designs.length}</span>
+        </div>
+      )}
+
+      {note && <p className="text-sm text-teal">{note}</p>}
+
+      {designs.length > 0 && (
+        <div>
+          <h3 className="mb-3 text-base font-medium text-ink">Your gallery</h3>
+          {filtered.length === 0 ? (
+            <EmptyState icon={Palette} title="No designs match" body="Try clearing your search or widening the size filter." />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filtered.map((d) => (
+                <div key={d.id} className="card overflow-hidden !p-0">
+                  <div className="grid place-items-center bg-darker/40 p-2">
+                    {d.thumb ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={d.thumb} alt="" className="w-full rounded-lg object-contain" />
+                    ) : (
+                      <div className="grid aspect-square w-full place-items-center text-4xl text-muted">🎨</div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="min-w-0 truncate text-sm font-medium text-ink">{d.title || "Untitled"}</p>
+                      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                        {d.kind}
+                      </span>
+                    </div>
+                    <p className="mt-1 font-mono text-[10px] text-muted">
+                      {new Date(d.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+                    </p>
+                    <div className="mt-2 flex items-center gap-1">
+                      <button
+                        onClick={() => download(d)}
+                        className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted hover:border-teal hover:text-teal"
+                        title="Download PNG"
+                      >
+                        <Download className="inline h-3 w-3" strokeWidth={2.4} />
+                      </button>
+                      <button
+                        onClick={() => copyImage(d)}
+                        className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted hover:border-teal hover:text-teal"
+                        title="Copy image to clipboard"
+                      >
+                        <Copy className="inline h-3 w-3" strokeWidth={2.4} />
+                      </button>
+                      <button
+                        onClick={() => remove(d)}
+                        className="ml-auto rounded-full border border-red-200 px-2.5 py-1 text-[11px] font-medium text-red-500 hover:bg-red-50"
+                        title="Delete"
+                      >
+                        <X className="inline h-3 w-3" strokeWidth={2.4} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StudioTab({ token, slug }: { token: string | null; slug: string | null }) {
-  return <StudioEditor token={token} slug={slug} />;
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-medium tracking-tight text-ink">Creator Studio</h2>
+          <p className="body-muted mt-1">
+            Design share-ready graphics for your posts, stories, and streams — with your tip link built in.
+          </p>
+        </div>
+      </div>
+
+      {/* Ideas strip — what to make */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { emoji: "📱", title: "Instagram post", body: "1080×1080 square with your tip link + tagline." },
+          { emoji: "📸", title: "Story / Reel cover", body: "1080×1920 portrait — sticker on your story." },
+          { emoji: "🎥", title: "OBS overlay card", body: "Landscape banner that reads on stream." },
+          { emoji: "🎯", title: "QR tip poster", body: "Print-ready QR + your slug for events/gigs." },
+        ].map((i) => (
+          <div key={i.title} className="card !p-4">
+            <span className="text-2xl">{i.emoji}</span>
+            <p className="mt-2 font-medium text-ink">{i.title}</p>
+            <p className="body-muted mt-1 text-xs">{i.body}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Gallery + KPIs */}
+      <GalleryPreview token={token} />
+
+      {/* Editor */}
+      <div className="pt-2">
+        <h3 className="mb-3 text-base font-medium text-ink">The editor</h3>
+        <StudioEditor token={token} slug={slug} />
+      </div>
+    </div>
+  );
 }
 
 
