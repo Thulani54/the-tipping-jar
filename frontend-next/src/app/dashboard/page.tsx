@@ -3040,23 +3040,88 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
 
 
 // ─── Jars (campaign funds) ───────────────────────────────────────────────────
+// Popular jar patterns creators reach for.
+const JAR_TEMPLATES = [
+  { emoji: "🎙️", name: "New microphone",   goal: 2500, desc: "Upgrading my setup for cleaner recordings." },
+  { emoji: "🎧", name: "Studio day",        goal: 1500, desc: "A full day in a proper studio." },
+  { emoji: "💻", name: "New laptop",        goal: 15000, desc: "The old one's on its last legs." },
+  { emoji: "🎨", name: "New art supplies",  goal: 800,  desc: "Paints, canvases, brushes for the next series." },
+  { emoji: "✈️", name: "Tour fund",         goal: 8000, desc: "Getting on the road to meet you all." },
+  { emoji: "📚", name: "Course/workshop",   goal: 3500, desc: "Levelling up my craft." },
+];
+
+function ProgressRing({ pct, size = 56 }: { pct: number; size?: number }) {
+  const r = size / 2 - 6;
+  const c = 2 * Math.PI * r;
+  const off = c * (1 - Math.max(0, Math.min(1, pct / 100)));
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#EFF2F0" strokeWidth="4" />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#12A25C" strokeWidth="4"
+        strokeLinecap="round" strokeDasharray={c} strokeDashoffset={off}
+      />
+    </svg>
+  );
+}
+
+async function downloadJarQr(link: string, name: string) {
+  const QRCode = (await import("qrcode")).default;
+  const qr = await QRCode.toDataURL(link, { width: 480, margin: 1, color: { dark: "#0F2439", light: "#FFFFFF" } });
+  const W = 720, H = 900;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, "#0F2439"); g.addColorStop(1, "#12A25C");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textAlign = "center";
+  ctx.font = "bold 34px Manrope, system-ui, sans-serif";
+  ctx.fillText("🫙 " + name, W / 2, 96);
+  ctx.font = "500 22px Manrope, system-ui, sans-serif";
+  ctx.fillStyle = "#57CE8B";
+  ctx.fillText("Scan to tip into this jar", W / 2, 138);
+  const qs = 420, qx = (W - qs) / 2, qy = 200;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.roundRect(qx - 24, qy - 24, qs + 48, qs + 48, 32);
+  ctx.fill();
+  const img = new Image();
+  await new Promise<void>((res) => { img.onload = () => res(); img.src = qr; });
+  ctx.drawImage(img, qx, qy, qs, qs);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "500 20px 'Space Mono', monospace";
+  ctx.fillText(link.replace(/^https?:\/\//, ""), W / 2, qy + qs + 88);
+  const a = document.createElement("a");
+  a.href = c.toDataURL("image/png");
+  a.download = `jar-${name.replace(/\W+/g, "-").toLowerCase()}.png`;
+  a.click();
+}
+
 function JarsTab({ token, creator }: { token: string | null; creator: Creator | null }) {
   const [jars, setJars] = useState<Jar[] | null>(null);
-  const [stats, setStats] = useState<Map<string, number>>(new Map());
+  const [stats, setStats] = useState<Map<string, { raised: number; count: number }>>(new Map());
   const [name, setName] = useState("");
   const [goal, setGoal] = useState("");
   const [desc, setDesc] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [copiedFor, setCopiedFor] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (!creator) return;
     api.getJars(creator.slug).then(async (js) => {
       setJars(js);
-      const m = new Map<string, number>();
+      const m = new Map<string, { raised: number; count: number }>();
       await Promise.all(
         js.map(async (j) => {
-          try { m.set(j.id, Number((await api.jarStats(j.id)).raised) || 0); } catch { m.set(j.id, 0); }
+          try {
+            const s = await api.jarStats(j.id);
+            m.set(j.id, { raised: Number(s.raised) || 0, count: s.count });
+          } catch { m.set(j.id, { raised: 0, count: 0 }); }
         }),
       );
       setStats(new Map(m));
@@ -3066,6 +3131,11 @@ function JarsTab({ token, creator }: { token: string | null; creator: Creator | 
 
   if (!creator) {
     return <EmptyState icon={Milk} title="No creator page yet" body="Set up your creator page first — then create campaign jars." />;
+  }
+
+  function useTemplate(t: typeof JAR_TEMPLATES[number]) {
+    setName(t.name); setGoal(String(t.goal)); setDesc(t.desc);
+    document.getElementById("jar-name")?.focus();
   }
 
   async function create() {
@@ -3088,24 +3158,77 @@ function JarsTab({ token, creator }: { token: string | null; creator: Creator | 
     }
   }
 
+  function copy(link: string, jarId: string) {
+    navigator.clipboard?.writeText(link);
+    setCopiedFor(jarId);
+    window.setTimeout(() => setCopiedFor((c) => (c === jarId ? null : c)), 1800);
+  }
+
+  const rows = (jars ?? []).map((j) => {
+    const s = stats.get(j.id) ?? { raised: 0, count: 0 };
+    const g = j.goal ? Number(j.goal) : 0;
+    const pct = g > 0 ? Math.min(100, Math.round((s.raised / g) * 100)) : 0;
+    return { j, raised: s.raised, count: s.count, goal: g, pct, isDone: g > 0 && s.raised >= g };
+  });
+  const active = rows.filter((r) => !r.isDone);
+  const completed = rows.filter((r) => r.isDone);
+  const filteredActive = active.filter((r) => !q || r.j.name.toLowerCase().includes(q.toLowerCase()) || (r.j.description || "").toLowerCase().includes(q.toLowerCase()));
+  filteredActive.sort((a, b) => b.raised - a.raised);
+
+  const totalRaised = rows.reduce((s, r) => s + r.raised, 0);
+  const totalCount  = rows.reduce((s, r) => s + r.count, 0);
+  const totalGoal   = rows.reduce((s, r) => s + r.goal, 0);
+  const totalPct    = totalGoal > 0 ? Math.round((totalRaised / totalGoal) * 100) : 0;
+
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h2 className="text-xl font-medium tracking-tight text-ink">Campaign jars</h2>
         <p className="body-muted mt-1">
-          Fund something specific — &ldquo;New microphone&rdquo;, &ldquo;Studio day&rdquo; — each jar has its own
-          goal, progress bar and shareable tip link.
+          Fund something specific — each jar has its own goal, progress bar and shareable tip link.
         </p>
       </div>
 
-      <div className="card space-y-3 !p-5">
-        <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jar name — e.g. New microphone"
-            className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none" />
+      {/* KPIs */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Total jars" value={String(rows.length)} icon={Milk} accent="#12A25C" />
+        <StatCard label="Raised across jars" value={`R${money(totalRaised)}`} icon={Banknote} accent="#2563EB" />
+        <StatCard label="Tips into jars" value={String(totalCount)} icon={HandCoins} accent="#E0A536" />
+        <StatCard label="Overall goal progress" value={totalGoal > 0 ? `${totalPct}%` : "—"} icon={Trophy} accent="#EC4899" />
+      </div>
+
+      {/* Composer with templates */}
+      <div className="card space-y-4 !p-5">
+        <div className="flex flex-wrap gap-2">
+          <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted">Templates</span>
+          {JAR_TEMPLATES.map((t) => (
+            <button
+              key={t.name}
+              onClick={() => useTemplate(t)}
+              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted transition hover:border-teal hover:text-teal"
+            >
+              {t.emoji} {t.name}
+            </button>
+          ))}
+          {(name || goal || desc) && (
+            <button onClick={() => { setName(""); setGoal(""); setDesc(""); }} className="ml-auto text-xs font-medium text-muted hover:text-red-500">
+              Clear
+            </button>
+          )}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-[1fr_160px]">
+          <input
+            id="jar-name"
+            value={name}
+            maxLength={80}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Jar name — e.g. New microphone"
+            className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
+          />
           <input value={goal} onChange={(e) => setGoal(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" placeholder="Goal (R)"
             className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none" />
         </div>
-        <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="What's it for? (optional)"
+        <input value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={200} placeholder="What's it for? (optional)"
           className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none" />
         <div className="flex items-center gap-3">
           <button onClick={create} disabled={busy || !name.trim()} className="btn-primary !px-6 !py-2.5 text-sm disabled:opacity-50">
@@ -3115,55 +3238,140 @@ function JarsTab({ token, creator }: { token: string | null; creator: Creator | 
         </div>
       </div>
 
+      {rows.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search jars…"
+            className="w-full max-w-xs rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
+          />
+          <span className="text-xs text-muted">{filteredActive.length} active</span>
+          {completed.length > 0 && (
+            <button
+              onClick={() => setShowCompleted((v) => !v)}
+              className="ml-auto rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted transition hover:border-teal hover:text-teal"
+            >
+              {showCompleted ? "Hide" : "Show"} {completed.length} completed
+            </button>
+          )}
+        </div>
+      )}
+
       {!jars ? (
         <p className="body-muted">Loading…</p>
       ) : jars.length === 0 ? (
-        <EmptyState icon={Milk} title="No jars yet" body="Create your first campaign jar above." />
+        <EmptyState icon={Milk} title="No jars yet" body="Pick a template above or write your own to start." />
+      ) : filteredActive.length === 0 && !showCompleted ? (
+        <EmptyState icon={Milk} title="No active jars match" body="Try clearing your search." />
       ) : (
-        <div className="space-y-3">
-          {jars.map((j) => {
-            const raised = stats.get(j.id) ?? 0;
-            const g = j.goal ? Number(j.goal) : 0;
+        <div className="grid gap-4 lg:grid-cols-2">
+          {filteredActive.map(({ j, raised, count, goal: g, pct }) => {
             const link = `https://www.tippingjar.co.za/tip/${creator.slug}?jar=${j.slug}`;
+            const remaining = g > 0 ? Math.max(0, g - raised) : 0;
             return (
-              <div key={j.id} className="card !p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium text-ink">🫙 {j.name}</p>
-                    {j.description && <p className="body-muted mt-0.5 text-sm">{j.description}</p>}
+              <div key={j.id} className="card overflow-hidden !p-0">
+                <div className="flex items-center gap-4 border-b border-border p-5">
+                  {g > 0 ? (
+                    <div className="relative shrink-0">
+                      <ProgressRing pct={pct} size={56} />
+                      <span className="absolute inset-0 grid place-items-center text-[10px] font-bold text-ink">{pct}%</span>
+                    </div>
+                  ) : (
+                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-mint/20 text-2xl">🫙</span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-ink">{j.name}</p>
+                    {j.description && <p className="body-muted line-clamp-1 text-xs">{j.description}</p>}
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                </div>
+                <div className="space-y-3 p-5">
+                  <div className="flex items-baseline justify-between font-mono text-xs text-muted">
+                    <span><span className="font-semibold text-ink">R{money(raised)}</span> raised · {count} tip{count === 1 ? "" : "s"}</span>
+                    {g > 0 && <span>of R{money(g)}</span>}
+                  </div>
+                  {g > 0 && (
+                    <>
+                      <div className="h-2 overflow-hidden rounded-full bg-border">
+                        <div className="h-full rounded-full bg-teal transition-all duration-700" style={{ width: `${Math.max(3, pct)}%` }} />
+                      </div>
+                      <p className="text-[11px] text-muted">
+                        {remaining > 0 ? <>Need <span className="font-semibold text-ink">R{money(remaining)}</span> more to hit the goal.</> : "Goal reached! 🎉"}
+                      </p>
+                    </>
+                  )}
+                  <div className="flex flex-wrap gap-2 pt-1">
                     <button
-                      onClick={() => { navigator.clipboard?.writeText(link); }}
-                      className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
+                      onClick={() => copy(link, j.id)}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                        copiedFor === j.id ? "border-teal bg-teal text-white" : "border-border text-muted hover:border-teal hover:text-teal"
+                      }`}
                       title={link}
                     >
-                      Copy tip link
+                      {copiedFor === j.id ? <><Check className="h-3 w-3" strokeWidth={2.6} /> Copied!</> : <><Copy className="h-3 w-3" strokeWidth={2.4} /> Copy link</>}
                     </button>
+                    <button
+                      onClick={() => downloadJarQr(link, j.name)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
+                    >
+                      <QrCode className="h-3 w-3" strokeWidth={2.4} /> QR poster
+                    </button>
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(`Help me fill this jar: ${j.name}\n${link}`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-teal hover:text-teal"
+                    >
+                      <i className="bi bi-whatsapp" /> Share
+                    </a>
                     <button
                       onClick={async () => {
                         if (!token || !window.confirm(`Delete jar "${j.name}"?`)) return;
                         await api.deleteJar(token, j.id).catch(() => null);
                         load();
                       }}
-                      className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                      className="ml-auto rounded-full border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
                     >
                       Delete
                     </button>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between font-mono text-xs text-muted">
-                  <span>R{raised.toLocaleString("en-ZA")} raised</span>
-                  {g > 0 && <span>goal R{g.toLocaleString("en-ZA")} · {Math.min(100, Math.round((raised / g) * 100))}%</span>}
-                </div>
-                {g > 0 && (
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
-                    <div className="h-full rounded-full bg-teal" style={{ width: `${Math.min(100, (raised / g) * 100)}%` }} />
-                  </div>
-                )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {showCompleted && completed.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 pt-4">
+            <Trophy className="h-4 w-4 text-gold" strokeWidth={2.4} />
+            <p className="text-sm font-semibold text-ink">Completed jars — legends</p>
+          </div>
+          <div className="grid gap-3 lg:grid-cols-2">
+            {completed.map(({ j, raised, count, goal: g }) => (
+              <div key={j.id} className="card flex items-center gap-4 !p-5 !border-gold/40 bg-gold/5">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gold/20 text-2xl">🏆</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-ink">{j.name}</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    R{money(raised)} raised · {count} tip{count === 1 ? "" : "s"}
+                    {g > 0 && <> · goal R{money(g)}</>}
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!token || !window.confirm(`Delete completed jar "${j.name}"?`)) return;
+                    await api.deleteJar(token, j.id).catch(() => null);
+                    load();
+                  }}
+                  className="text-xs text-muted hover:text-red-500"
+                >
+                  Archive
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
