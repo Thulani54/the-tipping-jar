@@ -69,6 +69,21 @@ async function getCreators(): Promise<Creator[]> {
   }
 }
 
+// Roll platform-wide numbers for the hero social-proof ribbon. The backend
+// caps listCreators + listTips at ~200 rows each, so these are 'recent
+// activity' numbers rather than lifetime totals — which stays honest and
+// updates automatically as the platform grows.
+async function getHeroStats(): Promise<{ creators: number; tipsCount: number; totalRaised: number }> {
+  try {
+    const [creators, tips] = await Promise.all([api.listCreators(), api.listTips()]);
+    const completed = tips.filter((t) => t.status === "completed");
+    const totalRaised = completed.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+    return { creators: creators.length, tipsCount: completed.length, totalRaised };
+  } catch {
+    return { creators: 0, tipsCount: 0, totalRaised: 0 };
+  }
+}
+
 async function getTicker(): Promise<TickerItem[]> {
   try {
     const tips = await api.listTips();
@@ -86,14 +101,29 @@ async function getTicker(): Promise<TickerItem[]> {
   }
 }
 
+// Compact number formatter — 1230 → "1.2k", 15_000 → "15k", 1_500_000 → "1.5M".
+function compact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${Math.round(n / 1_000)}k`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(Math.round(n));
+}
+
 export default async function LandingPage() {
-  const [creators, ticker] = await Promise.all([getCreators(), getTicker()]);
+  const [creators, ticker, stats] = await Promise.all([
+    getCreators(),
+    getTicker(),
+    getHeroStats(),
+  ]);
   const categories = Array.from(
     new Set(creators.map((c) => c.category).filter(Boolean)),
   ).slice(0, 6);
   const chips = categories.length
     ? categories
     : ["Music", "Art", "Writing", "Streaming", "Podcasts", "Photography"];
+  // Latest tip for the hero's live-activity pill — pulled from the same
+  // ticker feed we already fetched.
+  const latestTip = ticker[0];
 
   return (
     <>
@@ -121,6 +151,22 @@ export default async function LandingPage() {
 
         <div className="container-content relative grid items-center gap-14 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
           <div>
+            {/* Live activity pill — a tiny bit of proof-of-life the moment
+                the page loads. Falls back cleanly when there's no ticker. */}
+            {latestTip && (
+              <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-mint/30 bg-mint/10 py-1.5 pl-2 pr-4 text-xs font-medium text-mint rise-in">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint/60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-mint" />
+                </span>
+                <span className="text-white/85">
+                  <span className="text-mint">{latestTip.name}</span> just tipped{" "}
+                  <span className="font-mono">{latestTip.amount}</span> to{" "}
+                  <span className="text-mint">{latestTip.creator}</span>
+                </span>
+              </span>
+            )}
+
             <p className="eyebrow !text-mint rise-in">Fan tipping · South Africa</p>
             <h1
               className="mt-5 max-w-xl font-display text-[2.9rem] font-extrabold leading-[1.02] tracking-[-0.02em] md:text-[4.2rem] rise-in"
@@ -163,6 +209,72 @@ export default async function LandingPage() {
                 </span>
               ))}
             </div>
+
+            {/* Social proof — real numbers from the platform + creator
+                avatar stack. Replaces the previous single line of chips
+                with something creators can actually see themselves in. */}
+            <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4 rise-in" style={{ animationDelay: "0.25s" }}>
+              {creators.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="flex -space-x-2.5">
+                    {creators.slice(0, 5).map((c) => (
+                      <span
+                        key={c.id}
+                        className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border-2 border-navy bg-white text-sm font-bold text-navy"
+                        title={c.display_name}
+                      >
+                        {c.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={c.avatar_url} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span>{(c.display_name || "T").charAt(0)}</span>
+                        )}
+                      </span>
+                    ))}
+                    {stats.creators > 5 && (
+                      <span className="grid h-9 w-9 place-items-center rounded-full border-2 border-navy bg-mint text-[10px] font-bold text-navy">
+                        +{stats.creators - 5}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs leading-tight opacity-80">
+                    <span className="font-semibold text-white">{compact(stats.creators)}+ creators</span>
+                    <br />
+                    trust Tipping Jar
+                  </p>
+                </div>
+              )}
+              {stats.totalRaised > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-mint/15 text-mint">
+                    <i className="bi bi-cash-coin text-base" aria-hidden />
+                  </span>
+                  <p className="text-xs leading-tight opacity-80">
+                    <span className="font-semibold text-white">R{compact(stats.totalRaised)}</span>
+                    <br />
+                    tipped recently
+                  </p>
+                </div>
+              )}
+              {stats.tipsCount > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-gold/15 text-gold">
+                    <i className="bi bi-lightning-charge-fill text-base" aria-hidden />
+                  </span>
+                  <p className="text-xs leading-tight opacity-80">
+                    <span className="font-semibold text-white">{stats.tipsCount}</span>
+                    <br />
+                    tips in the feed
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Scroll cue — a small nudge that there's more below the fold. */}
+            <p className="mt-12 hidden items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-white/60 lg:flex rise-in" style={{ animationDelay: "0.3s" }}>
+              <span className="h-px w-8 bg-white/40" />
+              Scroll to see how a tip flows
+            </p>
           </div>
 
           <div className="rise-in" style={{ animationDelay: "0.25s" }}>
