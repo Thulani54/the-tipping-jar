@@ -62,6 +62,7 @@ import type {
   Transaction,
   Payout,
   Balance,
+  StudioDesign,
 } from "@/types";
 
 type Tab = "overview" | "tips" | "supporters" | "subscribers" | "analytics" | "exclusive" | "jars" | "transactions" | "referrals" | "studio" | "profile";
@@ -2066,7 +2067,9 @@ function TransactionsTab({ token, creatorId }: { token: string | null; creatorId
 function GalleryPreview({ token }: { token: string | null }) {
   const [designs, setDesigns] = useState<StudioDesign[] | null>(null);
   const [q, setQ] = useState("");
-  const [kindFilter, setKindFilter] = useState<"all" | "square" | "portrait" | "story" | "landscape">("all");
+  const [kindFilter, setKindFilter] = useState<
+    "all" | "square" | "portrait" | "story" | "landscape" | "banner" | "thumb" | "poster" | "card"
+  >("all");
   const [note, setNote] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -2134,7 +2137,7 @@ function GalleryPreview({ token }: { token: string | null }) {
             className="w-full max-w-xs rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
           />
           <div className="flex flex-wrap gap-1.5">
-            {(["all", "square", "portrait", "story", "landscape"] as const).map((k) => (
+            {(["all", "square", "portrait", "story", "landscape", "banner", "thumb", "poster", "card"] as const).map((k) => (
               <button
                 key={k}
                 onClick={() => setKindFilter(k)}

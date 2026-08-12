@@ -19,12 +19,24 @@ import type { StudioDesign } from "@/types";
 const LOG_W = 540; // logical canvas width — all coordinates are in this space
 const MAX_CANVAS_BYTES = 195_000; // backend rejects canvas JSON > 200KB
 
-type Kind = "square" | "portrait" | "story" | "landscape";
+type Kind =
+  | "square"
+  | "portrait"
+  | "story"
+  | "landscape"
+  | "banner"
+  | "thumb"
+  | "poster"
+  | "card";
 const PRESETS: Record<Kind, { label: string; w: number; h: number }> = {
   square: { label: "Square", w: 1080, h: 1080 },
   portrait: { label: "Portrait", w: 1080, h: 1350 },
   story: { label: "Story", w: 1080, h: 1920 },
   landscape: { label: "Landscape", w: 1920, h: 1080 },
+  banner: { label: "LinkedIn banner", w: 1584, h: 396 },
+  thumb: { label: "YouTube thumb", w: 1280, h: 720 },
+  poster: { label: "A4 poster", w: 1240, h: 1754 },
+  card: { label: "Web card", w: 1600, h: 900 },
 };
 
 type Font = "display" | "body" | "mono";
@@ -48,6 +60,10 @@ type El = {
   rotation?: number; // degrees
   opacity?: number; // 0–1
   color: string;
+  hidden?: boolean;
+  locked?: boolean;
+  flipX?: boolean;
+  flipY?: boolean;
   // text
   text?: string;
   size?: number;
@@ -55,16 +71,26 @@ type El = {
   font?: Font;
   align?: "left" | "center" | "right";
   spacing?: number; // letter-spacing, logical px
+  lineHeight?: number; // multiplier, default 1.25
   shadow?: boolean;
   // rect
   radius?: number;
+  stroke?: string;
+  strokeWidth?: number;
   // line
   thickness?: number;
   // image / qr
   src?: string;
 };
 
-type Bg = { mode: "solid" | "linear" | "radial"; c1: string; c2: string; angle: number };
+type Bg = {
+  mode: "solid" | "linear" | "radial";
+  c1: string;
+  c2: string;
+  angle: number;
+  image?: string; // data URL for a background photo
+  imageOpacity?: number; // 0–1
+};
 
 type CanvasState = { kind: Kind; bg: Bg; els: El[] };
 
@@ -262,9 +288,11 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
   const [note, setNote] = useState<string | null>(null);
   const [guides, setGuides] = useState<{ v: boolean; h: boolean }>({ v: false, h: false });
   const [stickerOpen, setStickerOpen] = useState(false);
+  const [overlay, setOverlay] = useState<"none" | "grid" | "safe">("none");
 
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const bgFileRef = useRef<HTMLInputElement>(null);
   const mode = useRef<PointerMode | null>(null);
   const history = useRef<{ past: string[]; future: string[]; last: number }>({ past: [], future: [], last: 0 });
 
@@ -349,6 +377,50 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
       return { ...s, els: where === "front" ? [...others, el] : [el, ...others] };
     });
   };
+  // Toggle a boolean flag on the selected element.
+  const toggleSel = (key: "hidden" | "locked" | "flipX" | "flipY") => {
+    if (!selected) return;
+    commit(true);
+    setState((s) => ({
+      ...s,
+      els: s.els.map((e) => (e.id === selected ? { ...e, [key]: !e[key] } : e)),
+    }));
+  };
+  // Toggle a boolean flag on any element by id (used by layer-row eye/lock).
+  const toggleFlag = (id: string, key: "hidden" | "locked") => {
+    commit(true);
+    setState((s) => ({
+      ...s,
+      els: s.els.map((e) => (e.id === id ? { ...e, [key]: !e[key] } : e)),
+    }));
+  };
+
+  // Load a photo as the background image (cover-fitted). Compressed to keep
+  // the serialized canvas well under the 195 KB save cap.
+  async function addBgImage(file: File) {
+    const src = await new Promise<string>((res, rej) => {
+      const img = new Image();
+      const fr = new FileReader();
+      fr.onload = () => {
+        img.onload = () => {
+          const max = 1400;
+          const k = Math.min(1, max / Math.max(img.width, img.height));
+          const c = document.createElement("canvas");
+          c.width = Math.round(img.width * k);
+          c.height = Math.round(img.height * k);
+          c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+          res(c.toDataURL("image/jpeg", 0.78));
+        };
+        img.onerror = rej;
+        img.src = fr.result as string;
+      };
+      fr.onerror = rej;
+      fr.readAsDataURL(file);
+    });
+    commit(true);
+    setState((s) => ({ ...s, bg: { ...s.bg, image: src, imageOpacity: s.bg.imageOpacity ?? 1 } }));
+  }
+
   // Center the selected element horizontally / vertically on the canvas.
   const alignSel = (axis: "h" | "v") => {
     if (!selected) return;
@@ -412,7 +484,9 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
 
   function startDrag(e: React.PointerEvent, el: El) {
     e.stopPropagation();
+    if (el.hidden) return;
     setSelected(el.id);
+    if (el.locked) return; // selectable but not draggable
     commit(true);
     const rect = stageRef.current!.getBoundingClientRect();
     const k = stageScale();
@@ -502,6 +576,13 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
         e.preventDefault();
         const c = SWATCHES[Number(e.key) - 1];
         if (c) patchEl(selected, { color: c });
+      } else if (selected && !mod && e.key.toLowerCase() === "l") {
+        e.preventDefault(); toggleSel("locked");
+      } else if (selected && !mod && e.key.toLowerCase() === "h") {
+        e.preventDefault(); toggleSel("hidden");
+      } else if (!mod && e.shiftKey && e.key.toLowerCase() === "g") {
+        e.preventDefault();
+        setOverlay((o) => (o === "grid" ? "none" : "grid"));
       } else if (selected && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
         e.preventDefault();
         const step = e.shiftKey ? 10 : 2;
@@ -567,11 +648,30 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
     }
     ctx.fillRect(0, 0, c.width, c.height);
 
+    // Background photo, if any — cover-fit and honour opacity.
+    if (bg.image) {
+      const bgImg = await new Promise<HTMLImageElement | null>((res) => {
+        const im = new Image();
+        im.onload = () => res(im);
+        im.onerror = () => res(null);
+        im.src = bg.image!;
+      });
+      if (bgImg) {
+        const rw = bgImg.width, rh = bgImg.height;
+        const kk = Math.max(c.width / rw, c.height / rh);
+        const dw = rw * kk, dh = rh * kk;
+        ctx.save();
+        ctx.globalAlpha = bg.imageOpacity ?? 1;
+        ctx.drawImage(bgImg, (c.width - dw) / 2, (c.height - dh) / 2, dw, dh);
+        ctx.restore();
+      }
+    }
+
     // preload images
     const imgs = new Map<string, HTMLImageElement>();
     await Promise.all(
       state.els
-        .filter((e) => e.src)
+        .filter((e) => e.src && !e.hidden)
         .map(
           (e) =>
             new Promise<void>((res) => {
@@ -584,10 +684,12 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
     );
 
     for (const el of state.els) {
+      if (el.hidden) continue;
       ctx.save();
       ctx.globalAlpha = el.opacity ?? 1;
       ctx.translate(el.x * k, el.y * k);
       if (el.rotation) ctx.rotate((el.rotation * Math.PI) / 180);
+      if (el.flipX || el.flipY) ctx.scale(el.flipX ? -1 : 1, el.flipY ? -1 : 1);
 
       if (el.type === "text") {
         const size = (el.size ?? 28) * k;
@@ -604,7 +706,7 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
         ctx.fillStyle = el.color;
         ctx.textBaseline = "middle";
         const lines = (el.text ?? "").split("\n");
-        const lh = size * 1.25;
+        const lh = size * (el.lineHeight ?? 1.25);
         const widths = lines.map((l) => ctx.measureText(l).width);
         const maxW = Math.max(...widths, 1);
         lines.forEach((line, i) => {
@@ -619,6 +721,11 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
         ctx.beginPath();
         ctx.roundRect(-w / 2, -h / 2, w, h, (el.radius ?? 0) * k);
         ctx.fill();
+        if (el.strokeWidth && el.strokeWidth > 0 && el.stroke) {
+          ctx.strokeStyle = el.stroke;
+          ctx.lineWidth = el.strokeWidth * k;
+          ctx.stroke();
+        }
       } else if (el.type === "circle") {
         ctx.fillStyle = el.color;
         ctx.beginPath();
@@ -827,6 +934,21 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
         <button onClick={addTipLink} className={chip(false)} title="Insert your tipping-jar URL as pre-styled text">
           <i className="bi bi-link-45deg" /> Tip URL
         </button>
+        <span className="mx-1 h-5 w-px bg-border" />
+        <button
+          onClick={() => setOverlay((o) => (o === "grid" ? "none" : "grid"))}
+          className={chip(overlay === "grid")}
+          title="Toggle grid overlay (Shift+G)"
+        >
+          <i className="bi bi-grid-3x3" /> Grid
+        </button>
+        <button
+          onClick={() => setOverlay((o) => (o === "safe" ? "none" : "safe"))}
+          className={chip(overlay === "safe")}
+          title="Toggle safe-area overlay"
+        >
+          <i className="bi bi-aspect-ratio" /> Safe area
+        </button>
         <details className="ml-auto">
           <summary className="cursor-pointer text-xs font-medium text-muted hover:text-ink">
             <i className="bi bi-keyboard mr-1" /> Shortcuts
@@ -842,6 +964,8 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
               <li className="flex justify-between"><span>To back / front</span><span className="text-muted">⇧[ / ⇧]</span></li>
               <li className="flex justify-between"><span>Apply swatch</span><span className="text-muted">1 – 8</span></li>
               <li className="flex justify-between"><span>Paste image</span><span className="text-muted">⌘V</span></li>
+              <li className="flex justify-between"><span>Lock / Hide selection</span><span className="text-muted">L / H</span></li>
+              <li className="flex justify-between"><span>Grid overlay</span><span className="text-muted">⇧G</span></li>
             </ul>
           </div>
         </details>
@@ -867,16 +991,49 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
                     : `linear-gradient(${state.bg.angle}deg, ${state.bg.c1}, ${state.bg.c2})`,
             }}
           >
+            {/* background photo */}
+            {state.bg.image && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={state.bg.image}
+                alt=""
+                draggable={false}
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                style={{ opacity: state.bg.imageOpacity ?? 1 }}
+              />
+            )}
+
+            {/* grid overlay */}
+            {overlay === "grid" && (
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(to right, rgba(255,255,255,0.14) 1px, transparent 1px)," +
+                    "linear-gradient(to bottom, rgba(255,255,255,0.14) 1px, transparent 1px)",
+                  backgroundSize: "10% 10%",
+                  mixBlendMode: "difference",
+                }}
+              />
+            )}
+            {/* safe-area overlay — a 90% inset frame most social crops respect */}
+            {overlay === "safe" && (
+              <div className="pointer-events-none absolute inset-[5%] rounded-lg border-2 border-dashed border-mint/70" />
+            )}
+
             {/* snap guides */}
             {guides.v && <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-mint" />}
             {guides.h && <span className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-mint" />}
 
             {state.els.map((el) => {
+              if (el.hidden) return null;
               const isSel = el.id === selected;
+              const sx = el.flipX ? -1 : 1;
+              const sy = el.flipY ? -1 : 1;
               const base: React.CSSProperties = {
                 left: `${(el.x / LOG_W) * 100}%`,
                 top: `${(el.y / logH) * 100}%`,
-                transform: `translate(-50%, -50%) rotate(${el.rotation ?? 0}deg)`,
+                transform: `translate(-50%, -50%) rotate(${el.rotation ?? 0}deg) scale(${sx}, ${sy})`,
                 opacity: el.opacity ?? 1,
               };
               let body: React.ReactNode = null;
@@ -889,7 +1046,7 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
                       fontFamily: FONTS[el.font ?? "display"].css,
                       fontSize: cq(el.size ?? 28),
                       letterSpacing: cq(el.spacing ?? 0),
-                      lineHeight: 1.25,
+                      lineHeight: el.lineHeight ?? 1.25,
                       whiteSpace: "pre",
                       textAlign: el.align ?? "center",
                       textShadow: el.shadow ? "0 2px 8px rgba(0,0,0,0.45)" : undefined,
@@ -920,6 +1077,7 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
                   />
                 );
               } else {
+                const stroked = el.type === "rect" && el.strokeWidth && el.stroke;
                 body = (
                   <div
                     style={{
@@ -927,6 +1085,7 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
                       aspectRatio: `${el.w ?? 100} / ${el.h ?? 100}`,
                       background: el.color,
                       borderRadius: el.type === "circle" ? "50%" : cq(el.radius ?? 0),
+                      boxShadow: stroked ? `inset 0 0 0 ${cq(el.strokeWidth ?? 0)} ${el.stroke}` : undefined,
                     }}
                   />
                 );
@@ -981,6 +1140,47 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
                 </label>
               )}
             </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => bgFileRef.current?.click()}
+                className={chip(!!state.bg.image)}
+                title="Set a background photo (cover-fitted)"
+              >
+                <i className="bi bi-image" /> {state.bg.image ? "Change photo" : "Add photo"}
+              </button>
+              {state.bg.image && (
+                <>
+                  <button
+                    onClick={() => setBg({ image: undefined })}
+                    className="text-xs font-medium text-muted hover:text-red-500"
+                  >
+                    <i className="bi bi-x-lg" /> Remove
+                  </button>
+                  <label className="ml-auto flex items-center gap-2 text-xs text-muted">
+                    {Math.round((state.bg.imageOpacity ?? 1) * 100)}%
+                    <input
+                      type="range"
+                      min={10}
+                      max={100}
+                      value={Math.round((state.bg.imageOpacity ?? 1) * 100)}
+                      onChange={(e) => setBg({ imageOpacity: Number(e.target.value) / 100 })}
+                      className="tip-range !w-24"
+                    />
+                  </label>
+                </>
+              )}
+              <input
+                ref={bgFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) addBgImage(f);
+                  e.target.value = "";
+                }}
+              />
+            </div>
           </div>
 
           {/* Selected element */}
@@ -997,9 +1197,37 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
                   <button onClick={() => alignSel("h")} className="rounded p-1 text-muted hover:text-ink" title="Centre horizontally"><i className="bi bi-align-center" /></button>
                   <button onClick={() => alignSel("v")} className="rounded p-1 text-muted hover:text-ink" title="Centre vertically"><i className="bi bi-align-middle" /></button>
                   <span className="mx-1 h-4 w-px bg-border" />
+                  <button onClick={() => toggleSel("flipX")} className={`rounded p-1 ${sel.flipX ? "text-primary" : "text-muted hover:text-ink"}`} title="Flip horizontally"><i className="bi bi-symmetry-horizontal" /></button>
+                  <button onClick={() => toggleSel("flipY")} className={`rounded p-1 ${sel.flipY ? "text-primary" : "text-muted hover:text-ink"}`} title="Flip vertically"><i className="bi bi-symmetry-vertical" /></button>
+                  <button onClick={() => toggleSel("locked")} className={`rounded p-1 ${sel.locked ? "text-primary" : "text-muted hover:text-ink"}`} title="Lock (L)"><i className={`bi ${sel.locked ? "bi-lock-fill" : "bi-unlock"}`} /></button>
+                  <button onClick={() => toggleSel("hidden")} className={`rounded p-1 ${sel.hidden ? "text-primary" : "text-muted hover:text-ink"}`} title="Hide (H)"><i className={`bi ${sel.hidden ? "bi-eye-slash" : "bi-eye"}`} /></button>
+                  <span className="mx-1 h-4 w-px bg-border" />
                   <button onClick={duplicateSel} className="rounded p-1 text-muted hover:text-ink" title="Duplicate (Ctrl+D)"><i className="bi bi-copy" /></button>
                   <button onClick={removeSel} className="rounded p-1 text-red-500" title="Delete"><i className="bi bi-trash" /></button>
                 </div>
+              </div>
+
+              {/* Precise position — the numeric X/Y row shows what the
+                  drag surface gives you but lets you snap to a pixel. */}
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-[11px] text-muted">
+                  X
+                  <input
+                    type="number"
+                    value={Math.round(sel.x)}
+                    onChange={(e) => patchEl(sel.id, { x: clamp(Number(e.target.value), 0, LOG_W) })}
+                    className="mt-0.5 w-full rounded border border-border bg-white px-2 py-1 text-xs text-ink focus:border-primary/40 focus:outline-none"
+                  />
+                </label>
+                <label className="text-[11px] text-muted">
+                  Y
+                  <input
+                    type="number"
+                    value={Math.round(sel.y)}
+                    onChange={(e) => patchEl(sel.id, { y: clamp(Number(e.target.value), 0, logH) })}
+                    className="mt-0.5 w-full rounded border border-border bg-white px-2 py-1 text-xs text-ink focus:border-primary/40 focus:outline-none"
+                  />
+                </label>
               </div>
 
               {sel.type === "text" && (
@@ -1036,6 +1264,14 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
                   <label className="block text-xs text-muted">Letter spacing · {sel.spacing ?? 0}
                     <input type="range" min={-2} max={20} value={sel.spacing ?? 0} onChange={(e) => patchEl(sel.id, { spacing: Number(e.target.value) })} className="tip-range mt-1" />
                   </label>
+                  <label className="block text-xs text-muted">Line height · {(sel.lineHeight ?? 1.25).toFixed(2)}
+                    <input
+                      type="range" min={90} max={220} step={5}
+                      value={Math.round((sel.lineHeight ?? 1.25) * 100)}
+                      onChange={(e) => patchEl(sel.id, { lineHeight: Number(e.target.value) / 100 })}
+                      className="tip-range mt-1"
+                    />
+                  </label>
                 </>
               )}
 
@@ -1053,9 +1289,32 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
                 </label>
               )}
               {sel.type === "rect" && (
-                <label className="block text-xs text-muted">Corner radius · {sel.radius ?? 0}
-                  <input type="range" min={0} max={120} value={sel.radius ?? 0} onChange={(e) => patchEl(sel.id, { radius: Number(e.target.value) })} className="tip-range mt-1" />
-                </label>
+                <>
+                  <label className="block text-xs text-muted">Corner radius · {sel.radius ?? 0}
+                    <input type="range" min={0} max={120} value={sel.radius ?? 0} onChange={(e) => patchEl(sel.id, { radius: Number(e.target.value) })} className="tip-range mt-1" />
+                  </label>
+                  <div className="grid grid-cols-[auto_1fr] gap-2">
+                    <label className="text-[11px] text-muted">
+                      Stroke
+                      <input
+                        type="color"
+                        value={/^#/.test(sel.stroke ?? "") ? (sel.stroke as string) : "#0F2439"}
+                        onChange={(e) => patchEl(sel.id, { stroke: e.target.value, strokeWidth: sel.strokeWidth || 4 })}
+                        className="mt-0.5 h-7 w-full cursor-pointer rounded border border-border"
+                        aria-label="Stroke colour"
+                      />
+                    </label>
+                    <label className="text-[11px] text-muted">
+                      Width · {sel.strokeWidth ?? 0}
+                      <input
+                        type="range" min={0} max={40}
+                        value={sel.strokeWidth ?? 0}
+                        onChange={(e) => patchEl(sel.id, { strokeWidth: Number(e.target.value) })}
+                        className="tip-range mt-0.5"
+                      />
+                    </label>
+                  </div>
+                </>
               )}
               {sel.type === "line" && (
                 <>
@@ -1089,23 +1348,50 @@ export function StudioEditor({ token, slug }: { token: string | null; slug?: str
           {/* Layers */}
           {state.els.length > 0 && (
             <div className="card !p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Layers</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  Layers · {state.els.length}
+                </p>
+                <span className="text-[10px] font-mono text-muted">top → bottom</span>
+              </div>
               <div className="mt-2 space-y-1">
-                {[...state.els].reverse().map((el) => (
-                  <button
-                    key={el.id}
-                    onClick={() => setSelected(el.id)}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-medium transition ${
-                      el.id === selected ? "bg-mint/15 text-ink" : "text-muted hover:bg-darker"
-                    }`}
-                  >
-                    <i className={`bi ${
-                      el.type === "text" ? "bi-type" : el.type === "image" ? "bi-image" : el.type === "qr" ? "bi-qr-code"
-                      : el.type === "circle" ? "bi-circle-fill" : el.type === "line" ? "bi-dash-lg" : el.type === "triangle" ? "bi-triangle-fill" : "bi-square-fill"
-                    }`} />
-                    <span className="truncate">{label(el)}</span>
-                  </button>
-                ))}
+                {[...state.els].reverse().map((el) => {
+                  const active = el.id === selected;
+                  return (
+                    <div
+                      key={el.id}
+                      className={`group flex items-center gap-1 rounded-lg px-1.5 py-1 transition ${
+                        active ? "bg-mint/15" : "hover:bg-darker"
+                      }`}
+                    >
+                      <button
+                        onClick={() => setSelected(el.id)}
+                        className="flex flex-1 items-center gap-2 truncate text-left text-xs font-medium text-ink"
+                        title="Select layer"
+                      >
+                        <i className={`bi ${
+                          el.type === "text" ? "bi-type" : el.type === "image" ? "bi-image" : el.type === "qr" ? "bi-qr-code"
+                          : el.type === "circle" ? "bi-circle-fill" : el.type === "line" ? "bi-dash-lg" : el.type === "triangle" ? "bi-triangle-fill" : "bi-square-fill"
+                        } ${el.hidden ? "opacity-40" : ""}`} />
+                        <span className={`truncate ${el.hidden ? "italic text-muted" : ""}`}>{label(el)}</span>
+                      </button>
+                      <button
+                        onClick={() => toggleFlag(el.id, "hidden")}
+                        className="rounded p-1 text-muted hover:text-ink"
+                        title={el.hidden ? "Show layer" : "Hide layer"}
+                      >
+                        <i className={`bi ${el.hidden ? "bi-eye-slash" : "bi-eye"}`} />
+                      </button>
+                      <button
+                        onClick={() => toggleFlag(el.id, "locked")}
+                        className={`rounded p-1 ${el.locked ? "text-primary" : "text-muted hover:text-ink"}`}
+                        title={el.locked ? "Unlock layer" : "Lock layer"}
+                      >
+                        <i className={`bi ${el.locked ? "bi-lock-fill" : "bi-unlock"}`} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
