@@ -71,6 +71,7 @@ services:
       ACCOUNTS_URL: http://accounts:8081
       CREATORS_URL: http://creators:8082
       TIPS_URL: http://tips:8084
+      REFERRALS_URL: http://referrals:8089
       # base for the notify webhook — note the doubled /payments (nginx strips
       # /api/v2/payments/, so the service's /payments/notify sits under it)
       PUBLIC_BASE_URL: ${PAYMENTS_PUBLIC_BASE_URL:-https://api.tippingjar.co.za/api/v2/payments}

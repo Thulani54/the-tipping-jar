@@ -269,6 +269,23 @@ async fn get_by_id(
     Ok(Json(row))
 }
 
+/// Internal: resolve a creator profile by user_id. Used by the payments
+/// service when crediting a referral commission — it has the referrer's
+/// accounts user_id and needs their creator_id to write a ledger row.
+async fn get_by_user_id_internal(
+    State(st): State<AppState>,
+    Path(user_id): Path<Uuid>,
+) -> Result<Json<Creator>, AppError> {
+    let row: Creator = sqlx::query_as(&format!(
+        "SELECT {CREATOR_COLUMNS} FROM creator_profiles WHERE user_id = $1"
+    ))
+    .bind(user_id)
+    .fetch_optional(&st.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("no creator profile for that user".into()))?;
+    Ok(Json(row))
+}
+
 // ── Tiers, jars, my-profile ─────────────────────────────────────────────────
 
 #[derive(Deserialize)]
@@ -1455,6 +1472,7 @@ async fn main() {
             "/internal/creators/:id",
             get(get_by_id).delete(delete_creator_internal),
         )
+        .route("/internal/creators/by-user/:user_id", get(get_by_user_id_internal))
         .route("/internal/creators/:id/active", post(set_active_internal))
         .route("/internal/creators/:id/kyc", post(set_kyc_internal))
         .route("/internal/creators/:id/featured", post(set_featured_internal))

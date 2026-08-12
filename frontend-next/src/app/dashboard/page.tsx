@@ -244,7 +244,9 @@ function DashboardInner() {
             {tab === "transactions" && (
               <TransactionsTab token={token} creatorId={myCreator?.id ?? null} />
             )}
-            {tab === "referrals" && <ReferralsTab referral={referral} />}
+            {tab === "referrals" && (
+              <ReferralsTab referral={referral} token={token} creatorId={myCreator?.id ?? null} />
+            )}
             {tab === "studio" && <StudioTab token={token} slug={myCreator?.slug ?? null} />}
             {tab === "profile" && (
               <ProfileTab token={token} creator={myCreator} onSaved={setMyCreator} />
@@ -1476,13 +1478,42 @@ async function downloadReferralPoster(code: string, link: string) {
   a.click();
 }
 
-function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
+function ReferralsTab({
+  referral,
+  token,
+  creatorId,
+}: {
+  referral: ReferralCode | null;
+  token: string | null;
+  creatorId: string | null;
+}) {
   const [copied, setCopied] = useState<string | null>(null);
   const [simAmount, setSimAmount] = useState(3000);
   const [simCreators, setSimCreators] = useState(3);
+  const [commissionRows, setCommissionRows] = useState<Transaction[]>([]);
   const code = referral?.code ?? "";
   const rate = referral ? Number(referral.commission_rate) || 0.01 : 0.01;
   const shareUrl = code ? `https://tippingjar.co.za/register?ref=${code}` : "";
+
+  // Pull the caller's own transactions ledger and pick out referral-commission
+  // rows. Backend keys those with reference = `rc_<original_tip_ref>`, so a
+  // prefix filter is enough. Errors here just leave the KPIs at zero.
+  useEffect(() => {
+    if (!token || !creatorId) return;
+    api
+      .creatorTransactions(token, creatorId)
+      .then((rows) =>
+        setCommissionRows(rows.filter((r) => (r.reference || "").startsWith("rc_"))),
+      )
+      .catch(() => setCommissionRows([]));
+  }, [token, creatorId]);
+
+  const totalEarned = commissionRows.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const monthAgo = Date.now() - 30 * 86400000;
+  const earned30d = commissionRows
+    .filter((r) => +new Date(r.created_at) >= monthAgo)
+    .reduce((s, r) => s + Number(r.amount || 0), 0);
+  const referralsCount = commissionRows.length;
 
   // Countdown from the code's creation. Codes earn commission on signups
   // within a 6-month rolling window from when THEY sign up, but the code
@@ -1522,11 +1553,44 @@ function ReferralsTab({ referral }: { referral: ReferralCode | null }) {
 
       {/* KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Your commission" value={`${(rate * 100).toFixed(1)}%`} icon={Percent} accent="#2563EB" />
-        <StatCard label="Total referrals" value="0" icon={Users} accent="#12A25C" />
-        <StatCard label="Active (earning)" value="0" icon={Zap} accent="#E0A536" />
-        <StatCard label="Code age" value={code ? `${codeAge}d` : "—"} icon={Calendar} accent="#7C3AED" />
+        <StatCard label="Commission earned" value={`R${money(totalEarned)}`} icon={Banknote} accent="#12A25C" />
+        <StatCard label="Last 30 days" value={`R${money(earned30d)}`} icon={Zap} accent="#E0A536" />
+        <StatCard label="Commission events" value={String(referralsCount)} icon={Users} accent="#2563EB" />
+        <StatCard label={code ? `Rate · ${(rate * 100).toFixed(1)}%` : "Rate"} value={code ? `${codeAge}d code` : "—"} icon={Percent} accent="#7C3AED" />
       </div>
+
+      {/* Recent commissions — the real ledger, filtered from Transactions.
+          This makes the money movement visible without leaving the tab. */}
+      {commissionRows.length > 0 && (
+        <div className="card !p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Recent commissions</p>
+            <Link href="/dashboard?tab=transactions" className="text-xs font-medium text-teal hover:underline">
+              See all in Transactions →
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[11px] font-mono uppercase tracking-wide text-muted">
+                  <th className="pb-2">Date</th>
+                  <th className="pb-2">Source</th>
+                  <th className="pb-2 text-right">Earned</th>
+                </tr>
+              </thead>
+              <tbody>
+                {commissionRows.slice(0, 8).map((r) => (
+                  <tr key={r.id} className="border-t border-border/60">
+                    <td className="py-2 font-mono text-xs text-muted">{new Date(r.created_at).toLocaleDateString()}</td>
+                    <td className="py-2 truncate text-ink">{r.tipper_name || r.description || "Referral commission"}</td>
+                    <td className="py-2 text-right font-semibold text-green">+R{money(Number(r.amount || 0))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Referral card + poster preview */}
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">

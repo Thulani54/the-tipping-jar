@@ -215,6 +215,7 @@ struct AppState {
     accounts_url: String,
     creators_url: String,
     tips_url: String,
+    referrals_url: String,
 }
 
 // ── Auth (delegated to the accounts + creators services) ────────────────────
@@ -464,6 +465,9 @@ async fn charge(
         }
         _ => e.into(),
     })?;
+    // Referral commission fires on this simulated path too, so devs and
+    // the internal tips flow behave the same as the real PayCloud path.
+    credit_referrer(&st, &row).await;
     Ok(Json(row))
 }
 
@@ -673,12 +677,149 @@ async fn notify(
     .await?;
 
     // 6) On first completion, record a visible tip in the tips service so it
-    //    shows on the creator's public page + feed.
+    //    shows on the creator's public page + feed, and credit the referrer
+    //    if the tipped creator signed up with a referral code.
     if new_status == "completed" && res.rows_affected() > 0 {
         record_tip(&st, &txn).await;
+        credit_referrer(&st, &txn).await;
     }
 
     Ok("SUCCESS".into())
+}
+
+/// Credit a referral commission to the person who referred the tipped creator.
+///
+/// Flow, all best-effort — a failure at any step is logged and the tip
+/// completion continues normally:
+///
+///   1. accounts /internal/users/:id   → the tipped creator's `referral_code_used`
+///   2. referrals /codes/:code         → owner_user_id + commission_rate
+///   3. creators /internal/creators/by-user/:user_id → the referrer's creator profile
+///   4. INSERT INTO transactions ...   → a synthetic 'completed' row for the referrer
+///
+/// Idempotency: the row's `reference` is `rc_<original_tip_reference>`. The
+/// `transactions.reference` column is UNIQUE, so a webhook + reconcile that
+/// both call this for the same tip only credit once. The unique-violation is
+/// caught and treated as success.
+async fn credit_referrer(st: &AppState, txn: &Transaction) {
+    // Step 1 — look up the tipped creator's owning user.
+    let creator_lookup = st
+        .http
+        .get(format!("{}/internal/creators/{}", st.creators_url, txn.creator_id))
+        .send()
+        .await;
+    let user_id = match creator_lookup {
+        Ok(r) if r.status().is_success() => match r.json::<serde_json::Value>().await {
+            Ok(v) => v.get("user_id").and_then(|x| x.as_str()).map(String::from),
+            Err(e) => { tracing::warn!("referral: creator lookup body failed: {e}"); return; }
+        },
+        Ok(r) => { tracing::warn!("referral: creator lookup {}: {}", txn.creator_id, r.status()); return; }
+        Err(e) => { tracing::warn!("referral: creator lookup failed: {e}"); return; }
+    };
+    let Some(user_id) = user_id else { return; };
+
+    // Step 2 — get the referral code that user signed up with, if any.
+    let internal_key = std::env::var("INTERNAL_KEY").unwrap_or_default();
+    let user_resp = st
+        .http
+        .get(format!("{}/internal/users/{}", st.accounts_url, user_id))
+        .header("X-Internal-Key", &internal_key)
+        .send()
+        .await;
+    let code = match user_resp {
+        Ok(r) if r.status().is_success() => match r.json::<serde_json::Value>().await {
+            Ok(v) => v.get("referral_code_used").and_then(|x| x.as_str()).map(str::to_string),
+            Err(_) => return,
+        },
+        _ => return,
+    };
+    let Some(code) = code.filter(|c| !c.trim().is_empty()) else { return; };
+
+    // Step 3 — resolve the code owner + commission rate.
+    let code_resp = st
+        .http
+        .get(format!("{}/codes/{}", st.referrals_url, code.trim().to_uppercase()))
+        .send()
+        .await;
+    let (owner_user_id, commission_rate) = match code_resp {
+        Ok(r) if r.status().is_success() => match r.json::<serde_json::Value>().await {
+            Ok(v) => {
+                let owner = v.get("owner_user_id").and_then(|x| x.as_str()).map(String::from);
+                let rate = v
+                    .get("commission_rate")
+                    .and_then(|x| x.as_str().and_then(|s| s.parse::<f64>().ok()).or_else(|| x.as_f64()))
+                    .unwrap_or(0.01);
+                (owner, rate)
+            }
+            Err(_) => return,
+        },
+        Ok(r) => { tracing::info!("referral: unknown code {code} ({})", r.status()); return; }
+        Err(e) => { tracing::warn!("referral: code lookup failed: {e}"); return; }
+    };
+    let Some(owner_user_id) = owner_user_id else { return; };
+
+    // Don't self-refer — a creator can't earn commission on their own tips.
+    if owner_user_id == user_id { return; }
+
+    // Step 4 — resolve the referrer's own creator profile so we can write
+    //          the ledger entry against a creator_id (not a user_id).
+    let ref_creator_resp = st
+        .http
+        .get(format!("{}/internal/creators/by-user/{}", st.creators_url, owner_user_id))
+        .send()
+        .await;
+    let (ref_creator_id, ref_display_name) = match ref_creator_resp {
+        Ok(r) if r.status().is_success() => match r.json::<serde_json::Value>().await {
+            Ok(v) => {
+                let id = v.get("id").and_then(|x| x.as_str()).map(String::from);
+                let name = v.get("display_name").and_then(|x| x.as_str()).unwrap_or("").to_string();
+                (id, name)
+            }
+            Err(_) => return,
+        },
+        Ok(_) => { tracing::info!("referral: referrer {owner_user_id} has no creator profile — skipping"); return; }
+        Err(e) => { tracing::warn!("referral: referrer creator lookup failed: {e}"); return; }
+    };
+    let Some(ref_creator_id) = ref_creator_id.and_then(|s| Uuid::parse_str(&s).ok()) else { return; };
+
+    // Compute commission from the tip's gross amount.
+    let rate = Decimal::from_f64(commission_rate).unwrap_or_else(|| Decimal::new(1, 2)); // 0.01 fallback
+    let commission = (txn.amount * rate).round_dp(2);
+    if commission <= Decimal::ZERO { return; }
+
+    // Insert the ledger entry. UNIQUE(reference) → idempotent across retries.
+    let ref_reference = format!("rc_{}", txn.reference);
+    let ref_mono = format!("rc_{}", txn.merchant_order_no);
+    let desc = format!("Referral commission ({}%) on tip from {}",
+        (rate * Decimal::from(100)).round_dp(2),
+        if txn.creator_name.is_empty() { "a creator you referred".into() } else { txn.creator_name.clone() });
+    let res = sqlx::query(
+        "INSERT INTO transactions
+            (id, reference, creator_id, amount, platform_fee, service_fee, creator_net,
+             status, merchant_order_no, currency, description, creator_name,
+             tipper_name, tipper_email, message)
+         VALUES ($1,$2,$3,$4,0,0,$5,'completed',$6,$7,$8,$9,$10,'','')
+         ON CONFLICT (reference) DO NOTHING",
+    )
+    .bind(Uuid::new_v4())
+    .bind(&ref_reference)
+    .bind(ref_creator_id)
+    .bind(commission)
+    .bind(commission)
+    .bind(&ref_mono)
+    .bind(&txn.currency)
+    .bind(&desc)
+    .bind(&ref_display_name)
+    .bind(format!("Referral: {}", if txn.creator_name.is_empty() { "creator" } else { &txn.creator_name }))
+    .execute(&st.pool)
+    .await;
+    match res {
+        Ok(r) if r.rows_affected() > 0 => {
+            tracing::info!("referral: credited {commission} to {ref_creator_id} for tip {}", txn.reference);
+        }
+        Ok(_) => { /* already credited — idempotency worked */ }
+        Err(e) => { tracing::warn!("referral: insert failed: {e}"); }
+    }
 }
 
 /// Best-effort: mirror a completed card payment into the tips feed.
@@ -814,6 +955,7 @@ async fn reconcile(
         .await?;
         if new_status == "completed" && res.rows_affected() > 0 {
             record_tip(&st, &txn).await;
+            credit_referrer(&st, &txn).await;
         }
         tracing::info!("reconciled {merchant_order_no}: gateway {ts:?} -> {new_status}");
     }
@@ -1181,6 +1323,7 @@ async fn main() {
         accounts_url: env("ACCOUNTS_URL", "http://localhost:8081"),
         creators_url: env("CREATORS_URL", "http://localhost:8082"),
         tips_url: env("TIPS_URL", "http://localhost:8084"),
+        referrals_url: env("REFERRALS_URL", "http://localhost:8089"),
     };
 
     let app = Router::new()
