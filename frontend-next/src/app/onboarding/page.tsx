@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
-// Individual flow: profile-type → platforms → niche → audience-size → age → gender → location → identity  (8)
-// Organisation flow: profile-type → org-type → causes/focus → registration → location → identity  (6)
-const INDIVIDUAL_STEPS = 8;
-const ORG_STEPS = 6;
+// Individual flow: profile-type → platforms → niche → audience-size → age → gender → location → identity → bank  (9)
+// Organisation flow: profile-type → org-type → causes/focus → registration → location → identity → bank  (7)
+// The final "bank" step is a payout-verification form; users can skip it and
+// add banking details later from Dashboard → Bank.
+const INDIVIDUAL_STEPS = 9;
+const ORG_STEPS = 7;
 
 const PROFILE_TYPES = [
   {
@@ -114,6 +116,29 @@ const AUDIENCE_GENDERS = [
 
 const GOALS = ["R500", "R2,000", "R5,000", "R10,000"];
 
+// South-African banks with their universal branch codes. The universal code
+// works for any branch, so we prefill it when a user picks a bank to save
+// them the lookup (they can still override).
+const SA_BANKS: { name: string; code: string }[] = [
+  { name: "Absa", code: "632005" },
+  { name: "African Bank", code: "430000" },
+  { name: "Bank Zero", code: "888000" },
+  { name: "Capitec Bank", code: "470010" },
+  { name: "Discovery Bank", code: "679000" },
+  { name: "First National Bank (FNB)", code: "250655" },
+  { name: "Investec", code: "580105" },
+  { name: "Nedbank", code: "198765" },
+  { name: "Standard Bank", code: "051001" },
+  { name: "TymeBank", code: "678910" },
+  { name: "Other", code: "" },
+];
+
+const ACCOUNT_TYPES = [
+  { id: "cheque", label: "Cheque / Current" },
+  { id: "savings", label: "Savings" },
+  { id: "transmission", label: "Transmission" },
+];
+
 const inputClass =
   "w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/30";
 
@@ -150,6 +175,15 @@ export default function OnboardingPage() {
   const [bio, setBio] = useState("");
   const [goal, setGoal] = useState("");
 
+  // Bank verification (shared) — the final step. All fields are optional at
+  // signup so we don't lose people on a financial form, but we validate as
+  // soon as any field is filled.
+  const [bankName, setBankName] = useState("");
+  const [accountHolder, setAccountHolder] = useState("");
+  const [accountNo, setAccountNo] = useState("");
+  const [branchCode, setBranchCode] = useState("");
+  const [accountType, setAccountType] = useState("cheque");
+
   const isOrg = profileType === "organisation";
   const TOTAL_STEPS = isOrg ? ORG_STEPS : profileType === "individual" ? INDIVIDUAL_STEPS : 1;
 
@@ -163,6 +197,13 @@ export default function OnboardingPage() {
     if (user?.username) setDisplayName((n) => n || user.username);
   }, [user]);
 
+  // Bank fields validate as a group: either fully filled or fully empty (skip).
+  const bankFilled = accountHolder.trim().length > 0 || accountNo.trim().length > 0 || bankName.length > 0;
+  const bankValid =
+    accountHolder.trim().length >= 2 &&
+    bankName.length > 0 &&
+    /^\d{6,12}$/.test(accountNo.replace(/\s+/g, ""));
+
   const canProceed = (() => {
     if (step === 0) return profileType !== null;
     if (isOrg) {
@@ -172,6 +213,7 @@ export default function OnboardingPage() {
         case 3: return true; // registration_number is optional
         case 4: return country.length > 0 && city.trim().length > 0;
         case 5: return displayName.trim().length > 0 && tagline.trim().length > 0;
+        case 6: return !bankFilled || bankValid; // bank step — skippable
       }
     } else {
       switch (step) {
@@ -182,6 +224,7 @@ export default function OnboardingPage() {
         case 5: return audienceGender !== null;
         case 6: return country.length > 0 && city.trim().length > 0;
         case 7: return displayName.trim().length > 0 && tagline.trim().length > 0;
+        case 8: return !bankFilled || bankValid; // bank step — skippable
       }
     }
     return false;
@@ -205,6 +248,14 @@ export default function OnboardingPage() {
   async function next() {
     setError(null);
     if (step < TOTAL_STEPS - 1) {
+      // Advancing off the identity step into bank verification — copy the
+      // display name across as the default account holder so people rarely
+      // retype it.
+      const enteringBankStep =
+        (isOrg && step === 5) || (!isOrg && step === 7);
+      if (enteringBankStep && !accountHolder.trim() && displayName.trim()) {
+        setAccountHolder(displayName.trim());
+      }
       setStep((s) => s + 1);
       return;
     }
@@ -230,6 +281,23 @@ export default function OnboardingPage() {
         country,
         city: city.trim() || undefined,
       });
+      // If bank fields were provided, persist them as a follow-up PUT. The
+      // create endpoint doesn't accept bank_details; the profile-update one
+      // does. Errors here don't block the dashboard redirect — the user can
+      // fix them from Dashboard → Bank.
+      if (bankFilled && bankValid) {
+        await api
+          .updateMyCreatorProfile(token, {
+            bank_details: {
+              bank: bankName,
+              account_name: accountHolder.trim(),
+              account_no: accountNo.replace(/\s+/g, ""),
+              branch_code: branchCode.replace(/\s+/g, "") || undefined,
+              account_type: accountType,
+            },
+          })
+          .catch(() => null);
+      }
       router.push("/dashboard");
     } catch (e) {
       // The user already has a creator profile — send them on to the dashboard.
@@ -457,6 +525,137 @@ export default function OnboardingPage() {
             </StepShell>
           )}
 
+          {/* ─── SHARED: Bank verification (step 6 for org, 8 for individual) ─ */}
+          {profileType && ((isOrg && step === 6) || (!isOrg && step === 8)) && (
+            <StepShell
+              title="Verify your bank account"
+              subtitle="Where should we send your tips? This is required before your first payout — we only send money in; we never take it out."
+            >
+              <div className="space-y-5">
+                {/* Trust panel — sets expectations up-front so the form
+                    doesn't feel invasive. */}
+                <div className="flex items-start gap-3 rounded-2xl border border-teal/30 bg-primary/5 p-4">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-teal/15 text-teal">
+                    <i className="bi bi-shield-lock-fill" aria-hidden />
+                  </span>
+                  <div className="text-xs text-muted">
+                    <p className="font-semibold text-ink">Encrypted &amp; private</p>
+                    <p className="mt-0.5">
+                      Your bank details are stored securely, never shown on your public page, and only used to pay you out.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-ink">
+                    Account holder name
+                  </label>
+                  <input
+                    value={accountHolder}
+                    maxLength={80}
+                    onChange={(e) => setAccountHolder(e.target.value)}
+                    placeholder="Exactly as it appears on the account"
+                    className={inputClass}
+                  />
+                  <p className="mt-1.5 text-xs text-muted">
+                    Must match the name on the account or your first payout may be rejected.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-ink">Bank</label>
+                    <select
+                      value={bankName}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setBankName(v);
+                        // Auto-fill the universal branch code for the picked
+                        // bank when the user hasn't typed one yet.
+                        const found = SA_BANKS.find((b) => b.name === v);
+                        if (found && found.code && !branchCode.trim()) {
+                          setBranchCode(found.code);
+                        }
+                      }}
+                      className={inputClass}
+                    >
+                      <option value="">Select your bank…</option>
+                      {SA_BANKS.map((b) => (
+                        <option key={b.name} value={b.name}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-ink">Account type</label>
+                    <select
+                      value={accountType}
+                      onChange={(e) => setAccountType(e.target.value)}
+                      className={inputClass}
+                    >
+                      {ACCOUNT_TYPES.map((t) => (
+                        <option key={t.id} value={t.id}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-ink">Account number</label>
+                    <input
+                      value={accountNo}
+                      inputMode="numeric"
+                      maxLength={20}
+                      onChange={(e) => setAccountNo(e.target.value.replace(/[^\d\s]/g, ""))}
+                      placeholder="e.g. 12345678901"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-ink">Branch code</label>
+                    <input
+                      value={branchCode}
+                      inputMode="numeric"
+                      maxLength={10}
+                      onChange={(e) => setBranchCode(e.target.value.replace(/[^\d\s]/g, ""))}
+                      placeholder="Universal"
+                      className={inputClass}
+                    />
+                    {bankName && (
+                      <p className="mt-1.5 text-[11px] text-muted">
+                        {(SA_BANKS.find((b) => b.name === bankName)?.code)
+                          ? `Universal code for ${bankName} auto-filled.`
+                          : "Optional — most SA banks accept a universal code."}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Inline validation hint — soft, only when the user has
+                    started filling in but isn't done. */}
+                {bankFilled && !bankValid && (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-700">
+                    Fill in the holder name, bank, and a valid 6–12 digit account number to save these details. Or skip and add them later.
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBankName("");
+                    setAccountHolder("");
+                    setAccountNo("");
+                    setBranchCode("");
+                    setAccountType("cheque");
+                  }}
+                  className="text-xs font-medium text-muted underline underline-offset-2 hover:text-ink"
+                >
+                  I'll add these later — clear the form
+                </button>
+              </div>
+            </StepShell>
+          )}
+
           {/* ─── SHARED: Identity (step 5 for org, 7 for individual) ──────── */}
           {profileType && ((isOrg && step === 5) || (!isOrg && step === 7)) && (
             <StepShell
@@ -542,7 +741,9 @@ export default function OnboardingPage() {
               {saving
                 ? "Saving…"
                 : step === TOTAL_STEPS - 1
-                  ? "Go to dashboard →"
+                  ? bankFilled && bankValid
+                    ? "Verify & finish →"
+                    : "Skip and go to dashboard →"
                   : "Continue"}
             </button>
           </div>

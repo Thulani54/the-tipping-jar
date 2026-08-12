@@ -285,7 +285,13 @@ export const api = {
       tip_presets?: number[];
       thanks_note?: string;
       links?: { instagram?: string; twitter?: string; youtube?: string; website?: string };
-      bank_details?: { bank?: string; account_name?: string; account_no?: string };
+      bank_details?: {
+        bank?: string;
+        account_name?: string;
+        account_no?: string;
+        branch_code?: string;
+        account_type?: string;
+      };
       theme?: string;
       country?: string;
       city?: string;
@@ -327,10 +333,13 @@ export const api = {
       body: { email },
     }),
   myBankDetails: (token: string) =>
-    request<{ bank?: string; account_name?: string; account_no?: string }>(
-      "/creators/creators/me/bank",
-      { token },
-    ),
+    request<{
+      bank?: string;
+      account_name?: string;
+      account_no?: string;
+      branch_code?: string;
+      account_type?: string;
+    }>("/creators/creators/me/bank", { token }),
 
   // ── creators: studio designs (promo graphics gallery) ─────────────
   myDesigns: (token: string) =>
