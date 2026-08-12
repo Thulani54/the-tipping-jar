@@ -33,6 +33,9 @@ import {
   Trophy,
   Download,
   UserRound,
+  MapPin,
+  Building2,
+  ShieldCheck,
   Megaphone,
   Copy,
   Check,
@@ -2743,6 +2746,50 @@ async function compressImage(file: File, maxSide: number, quality = 0.82): Promi
   });
 }
 
+// SA banks with universal branch codes — mirrors onboarding so users
+// see the same list when editing here.
+const PROFILE_SA_BANKS: { name: string; code: string }[] = [
+  { name: "Absa", code: "632005" },
+  { name: "African Bank", code: "430000" },
+  { name: "Bank Zero", code: "888000" },
+  { name: "Capitec Bank", code: "470010" },
+  { name: "Discovery Bank", code: "679000" },
+  { name: "First National Bank (FNB)", code: "250655" },
+  { name: "Investec", code: "580105" },
+  { name: "Nedbank", code: "198765" },
+  { name: "Standard Bank", code: "051001" },
+  { name: "TymeBank", code: "678910" },
+  { name: "Other", code: "" },
+];
+const PROFILE_ACCOUNT_TYPES = [
+  { id: "cheque", label: "Cheque / Current" },
+  { id: "savings", label: "Savings" },
+  { id: "transmission", label: "Transmission" },
+];
+const PROFILE_COUNTRIES: { code: string; name: string }[] = [
+  { code: "ZA", name: "South Africa" },
+  { code: "NA", name: "Namibia" },
+  { code: "BW", name: "Botswana" },
+  { code: "ZW", name: "Zimbabwe" },
+  { code: "MZ", name: "Mozambique" },
+  { code: "LS", name: "Lesotho" },
+  { code: "SZ", name: "Eswatini" },
+  { code: "KE", name: "Kenya" },
+  { code: "NG", name: "Nigeria" },
+  { code: "GH", name: "Ghana" },
+  { code: "UK", name: "United Kingdom" },
+  { code: "US", name: "United States" },
+  { code: "OT", name: "Elsewhere" },
+];
+const PROFILE_ORG_TYPES = [
+  { id: "", label: "— pick one —" },
+  { id: "ngo", label: "NGO / non-profit" },
+  { id: "church", label: "Church / faith community" },
+  { id: "school", label: "School / educator" },
+  { id: "business", label: "Social enterprise" },
+  { id: "other", label: "Something else" },
+];
+
 function ProfileTab({
   token,
   creator,
@@ -2770,11 +2817,16 @@ function ProfileTab({
   });
   const [bank, setBank] = useState<Record<string, string>>({});
   const [theme, setTheme] = useState(creator?.theme ?? "");
+  const [country, setCountry] = useState(creator?.country ?? "ZA");
+  const [city, setCity] = useState(creator?.city ?? "");
+  const [orgType, setOrgType] = useState(creator?.org_type ?? "");
+  const [regNumber, setRegNumber] = useState(creator?.registration_number ?? "");
   useEffect(() => {
     if (token) api.myBankDetails(token).then((b) => setBank(b as Record<string, string>)).catch(() => null);
   }, [token]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const avatarRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
 
@@ -2784,8 +2836,38 @@ function ProfileTab({
     );
   }
 
+  const isOrg = (creator.profile_type || "individual") === "organisation";
   const avatarPreview = avatar ?? creator.avatar_url;
   const coverPreview = cover ?? creator.cover_url;
+  const publicUrl = `https://tippingjar.co.za/creator/${creator.slug}`;
+
+  // Bank verification status derived from the presence of the essential
+  // fields (holder + bank + account no). We treat all-3 as "verified" for
+  // the badge — the actual bank-verification happens against the payout
+  // gateway before the first cash-out.
+  const bankReady =
+    !!(bank.account_name?.trim() && bank.bank?.trim() && bank.account_no?.trim());
+
+  // Profile completion — 10 items, all things fans (or the ops team) can
+  // see or act on. The strip surfaces what's left.
+  const checklist: { key: string; label: string; done: boolean; href?: string }[] = [
+    { key: "name", label: "Display name", done: displayName.trim().length > 0 },
+    { key: "tagline", label: "Tagline", done: tagline.trim().length > 0 },
+    { key: "avatar", label: "Avatar photo", done: !!avatarPreview },
+    { key: "cover", label: "Cover photo", done: !!coverPreview },
+    { key: "category", label: "Category", done: category.trim().length > 0 },
+    { key: "goal", label: "Monthly goal", done: goal.trim().length > 0 && Number(goal) > 0 },
+    { key: "presets", label: "Tip preset amounts", done: presets.trim().length > 0 },
+    { key: "thanks", label: "Thank-you note", done: thanksNote.trim().length > 0 },
+    { key: "social", label: "At least one social link", done: Object.values(links).some((v) => (v || "").trim().length > 0) },
+    { key: "location", label: "Country + city", done: country.length > 0 && city.trim().length > 0 },
+    { key: "bank", label: "Payout bank details", done: bankReady },
+  ];
+  if (isOrg) {
+    checklist.push({ key: "reg", label: "Registration number", done: regNumber.trim().length > 0 });
+  }
+  const doneCount = checklist.filter((c) => c.done).length;
+  const pct = Math.round((doneCount / checklist.length) * 100);
 
   async function save() {
     if (!token) return;
@@ -2809,11 +2891,16 @@ function ProfileTab({
         links,
         bank_details: bank,
         theme,
+        country,
+        city: city.trim() || undefined,
+        org_type: isOrg ? (orgType as "ngo" | "church" | "school" | "business" | "other" | "" | undefined) : undefined,
+        registration_number: isOrg ? regNumber.trim() || undefined : undefined,
       });
       onSaved(updated);
       setAvatar(null);
       setCover(null);
       setNote("Profile saved — your public page is updated.");
+      window.setTimeout(() => setNote(null), 4000);
     } catch (e) {
       setNote(e instanceof Error ? e.message : "Could not save your profile.");
     } finally {
@@ -2823,149 +2910,460 @@ function ProfileTab({
 
   const inputCls =
     "w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none";
+  const sectionCls = "card space-y-4 !p-5";
+
+  const kyc = (creator.kyc_status || "").toLowerCase();
+  const verifiedBadge = kyc === "verified" || (bankReady && pct >= 70);
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <h2 className="text-xl font-medium tracking-tight text-ink">Your public profile</h2>
-        <p className="body-muted mt-1">What fans see on tippingjar.co.za/creator/{creator.slug}</p>
-      </div>
-
-      {/* Cover + avatar */}
-      <div className="card overflow-hidden !p-0">
-        <button
-          onClick={() => coverRef.current?.click()}
-          className="relative block h-36 w-full bg-navy transition hover:opacity-90"
-          title="Change cover photo"
-        >
-          {coverPreview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverPreview} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="absolute inset-0 grid place-items-center text-sm text-white/70">
-              Click to add a cover photo
+    <div className="space-y-6">
+      {/* ── Header — verification + public URL ─────────────────────── */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-medium tracking-tight text-ink">Your public profile</h2>
+          <p className="body-muted mt-1">This is what fans see on your Tipping Jar page.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+              verifiedBadge
+                ? "bg-green/10 text-green"
+                : "bg-amber-500/15 text-amber-700"
+            }`}
+          >
+            {verifiedBadge ? <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.6} /> : <Lock className="h-3.5 w-3.5" strokeWidth={2.6} />}
+            {verifiedBadge ? "Verified" : "Complete your profile"}
+          </span>
+          {isOrg && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <Building2 className="h-3.5 w-3.5" strokeWidth={2.4} /> Organisation
             </span>
           )}
+        </div>
+      </div>
+
+      {/* Public URL card — always visible, one-click copy + view. */}
+      <div className="card flex flex-wrap items-center gap-3 !p-4">
+        <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-muted">
+          <Link2 className="h-3.5 w-3.5" strokeWidth={2.2} /> Your page
+        </span>
+        <span className="min-w-0 flex-1 truncate rounded-lg bg-darker/40 px-3 py-1.5 font-mono text-xs text-ink">
+          tippingjar.co.za/creator/{creator.slug}
+        </span>
+        <button
+          onClick={() => {
+            navigator.clipboard?.writeText(publicUrl);
+            setLinkCopied(true);
+            window.setTimeout(() => setLinkCopied(false), 2000);
+          }}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+            linkCopied ? "border-teal bg-teal text-white" : "border-border text-muted hover:border-teal hover:text-teal"
+          }`}
+        >
+          {linkCopied ? <><Check className="h-3.5 w-3.5" strokeWidth={2.6} /> Copied</> : <><Copy className="h-3.5 w-3.5" strokeWidth={2.4} /> Copy link</>}
         </button>
-        <div className="flex items-end gap-4 px-6 pb-5">
-          <button
-            onClick={() => avatarRef.current?.click()}
-            className="-mt-10 h-20 w-20 shrink-0 overflow-hidden rounded-3xl bg-white ring-4 ring-white transition hover:opacity-90"
-            title="Change avatar"
-          >
-            {avatarPreview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <span className="grid h-full w-full place-items-center bg-primary text-xl font-bold text-white">
-                {(creator.display_name || "T").charAt(0)}
-              </span>
-            )}
-          </button>
-          <p className="pb-1 text-xs text-muted">Click the cover or avatar to change it. Images are compressed automatically.</p>
-        </div>
-        <input ref={avatarRef} type="file" accept="image/*" className="hidden"
-          onChange={async (e) => { const fl = e.target.files?.[0]; if (fl) setAvatar(await compressImage(fl, 500)); e.target.value = ""; }} />
-        <input ref={coverRef} type="file" accept="image/*" className="hidden"
-          onChange={async (e) => { const fl = e.target.files?.[0]; if (fl) setCover(await compressImage(fl, 1400)); e.target.value = ""; }} />
+        <Link
+          href={`/creator/${creator.slug}`}
+          target="_blank"
+          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+        >
+          <ExternalLink className="h-3.5 w-3.5" strokeWidth={2.4} /> View page
+        </Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-xs font-medium text-muted">
-          Display name
-          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className={`${inputCls} mt-1.5`} />
-        </label>
-        <label className="block text-xs font-medium text-muted">
-          Category
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className={`${inputCls} mt-1.5`}>
-            {["", "Music", "Art", "Writing", "Streaming", "Podcasts", "Photography", "Comedy", "Food", "Fitness", "Education"].map((c) => (
-              <option key={c} value={c}>{c || "— none —"}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <label className="block text-xs font-medium text-muted">
-        Tagline
-        <input value={tagline} onChange={(e) => setTagline(e.target.value)} maxLength={140} placeholder="One line about what you make" className={`${inputCls} mt-1.5`} />
-      </label>
-      <label className="block text-xs font-medium text-muted">
-        Monthly tip goal (R) — powers the jar on your page
-        <input value={goal} onChange={(e) => setGoal(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" placeholder="e.g. 3000" className={`${inputCls} mt-1.5 max-w-[200px]`} />
-      </label>
-
-      <div className="space-y-4">
-        <div>
-          <p className="text-sm font-medium text-ink">Tip page</p>
-          <div className="mt-2 grid gap-4 sm:grid-cols-2">
-            <label className="block text-xs font-medium text-muted">
-              Preset amounts (2–6, comma separated)
-              <input value={presets} onChange={(e) => setPresets(e.target.value.replace(/[^0-9,.\s]/g, ""))} placeholder="20, 50, 100, 250 (min R10 each)" className={`${inputCls} mt-1.5`} />
-            </label>
-            <label className="block text-xs font-medium text-muted">
-              Thank-you note (shown after a fan pays)
-              <input value={thanksNote} onChange={(e) => setThanksNote(e.target.value.slice(0, 300))} placeholder="You're amazing — this keeps the lights on! 💚" className={`${inputCls} mt-1.5`} />
-            </label>
-          </div>
-        </div>
-
-        <div>
-          <p className="text-sm font-medium text-ink">Social links</p>
-          <div className="mt-2 grid gap-4 sm:grid-cols-2">
-            {(["instagram", "twitter", "youtube", "website"] as const).map((k) => (
-              <label key={k} className="block text-xs font-medium capitalize text-muted">
-                {k === "twitter" ? "X / Twitter" : k}
-                <input
-                  value={links[k] ?? ""}
-                  onChange={(e) => setLinks((l) => ({ ...l, [k]: e.target.value }))}
-                  placeholder={k === "website" ? "https://…" : "@handle"}
-                  className={`${inputCls} mt-1.5`}
-                />
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="text-sm font-medium text-ink">Page accent colour</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {["", "#12A25C", "#7C3AED", "#E0A536", "#EC4899", "#2563EB", "#DC2626", "#0F766E"].map((c) => (
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        {/* ── Left column — form ───────────────────────────────────── */}
+        <div className="space-y-6">
+          {/* Cover + avatar */}
+          <div className="card overflow-hidden !p-0">
+            <button
+              onClick={() => coverRef.current?.click()}
+              className="relative block h-40 w-full bg-navy transition hover:opacity-90"
+              title="Change cover photo"
+            >
+              {coverPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={coverPreview} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="absolute inset-0 grid place-items-center text-sm text-white/70">
+                  Click to add a cover photo
+                </span>
+              )}
+              {cover && (
+                <span className="absolute right-3 top-3 rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                  Unsaved
+                </span>
+              )}
+            </button>
+            <div className="flex items-end gap-4 px-6 pb-5">
               <button
-                key={c || "default"}
-                onClick={() => setTheme(c)}
-                className={`h-8 w-8 rounded-full border-2 transition ${theme === c ? "border-ink scale-110" : "border-border"}`}
-                style={{ background: c || "#0F2439" }}
-                title={c || "Default"}
-              />
-            ))}
+                onClick={() => avatarRef.current?.click()}
+                className="relative -mt-10 h-20 w-20 shrink-0 overflow-hidden rounded-3xl bg-white ring-4 ring-white transition hover:opacity-90"
+                title="Change avatar"
+              >
+                {avatarPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="grid h-full w-full place-items-center bg-primary text-xl font-bold text-white">
+                    {(creator.display_name || "T").charAt(0)}
+                  </span>
+                )}
+                {avatar && (
+                  <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-amber-500" title="Unsaved" />
+                )}
+              </button>
+              <p className="pb-1 text-xs text-muted">
+                Click the cover or avatar to change it. JPEG / PNG / WebP — images are compressed on upload.
+              </p>
+            </div>
+            <input ref={avatarRef} type="file" accept="image/*" className="hidden"
+              onChange={async (e) => { const fl = e.target.files?.[0]; if (fl) setAvatar(await compressImage(fl, 500)); e.target.value = ""; }} />
+            <input ref={coverRef} type="file" accept="image/*" className="hidden"
+              onChange={async (e) => { const fl = e.target.files?.[0]; if (fl) setCover(await compressImage(fl, 1400)); e.target.value = ""; }} />
           </div>
-        </div>
 
-        <div>
-          <p className="text-sm font-medium text-ink">Payout bank account</p>
-          <p className="text-xs text-muted">Used by the team when settling your payout requests. Never shown publicly.</p>
-          <div className="mt-2 grid gap-4 sm:grid-cols-3">
-            {([["bank", "Bank"], ["account_name", "Account holder"], ["account_no", "Account number"]] as const).map(([k, label]) => (
-              <label key={k} className="block text-xs font-medium text-muted">
-                {label}
+          {/* Identity */}
+          <div className={sectionCls}>
+            <div className="flex items-center gap-2">
+              <UserRound className="h-4 w-4 text-primary" strokeWidth={2.4} />
+              <p className="text-sm font-semibold text-ink">Identity</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-xs font-medium text-muted">
+                {isOrg ? "Organisation name" : "Display name"}
+                <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className={`${inputCls} mt-1.5`} />
+              </label>
+              <label className="block text-xs font-medium text-muted">
+                Category
+                <select value={category} onChange={(e) => setCategory(e.target.value)} className={`${inputCls} mt-1.5`}>
+                  {["", "Music", "Art", "Writing", "Streaming", "Podcasts", "Photography", "Comedy", "Food", "Fitness", "Education"].map((c) => (
+                    <option key={c} value={c}>{c || "— none —"}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label className="block text-xs font-medium text-muted">
+              Tagline
+              <input value={tagline} onChange={(e) => setTagline(e.target.value)} maxLength={140}
+                placeholder={isOrg ? "One line about your mission" : "One line about what you make"} className={`${inputCls} mt-1.5`} />
+              <span className="mt-1 block text-[10px] text-muted/70">{tagline.length}/140</span>
+            </label>
+            <label className="block text-xs font-medium text-muted">
+              Monthly {isOrg ? "fundraising" : "tip"} goal (R) — powers the jar on your page
+              <input value={goal} onChange={(e) => setGoal(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" placeholder="e.g. 3000" className={`${inputCls} mt-1.5 max-w-[200px]`} />
+            </label>
+          </div>
+
+          {/* Location */}
+          <div className={sectionCls}>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" strokeWidth={2.4} />
+              <p className="text-sm font-semibold text-ink">Location</p>
+              <span className="text-xs text-muted">— shown on your public page, helps local fans find you</span>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-xs font-medium text-muted">
+                Country
+                <select value={country} onChange={(e) => setCountry(e.target.value)} className={`${inputCls} mt-1.5`}>
+                  {PROFILE_COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-xs font-medium text-muted">
+                City / town
+                <input value={city} maxLength={80} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Cape Town" className={`${inputCls} mt-1.5`} />
+              </label>
+            </div>
+          </div>
+
+          {/* Organisation details — only for org accounts */}
+          {isOrg && (
+            <div className={sectionCls}>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-primary" strokeWidth={2.4} />
+                <p className="text-sm font-semibold text-ink">Organisation details</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-xs font-medium text-muted">
+                  Organisation type
+                  <select value={orgType} onChange={(e) => setOrgType(e.target.value)} className={`${inputCls} mt-1.5`}>
+                    {PROFILE_ORG_TYPES.map((t) => (
+                      <option key={t.id} value={t.id}>{t.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-xs font-medium text-muted">
+                  Registration number
+                  <input value={regNumber} maxLength={60} onChange={(e) => setRegNumber(e.target.value)}
+                    placeholder="e.g. NPO 123-456 or 2024/012345/08" className={`${inputCls} mt-1.5`} />
+                  <span className="mt-1 block text-[10px] text-muted/70">
+                    Displayed as a small trust badge on your public page.
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Tip page */}
+          <div className={sectionCls}>
+            <div className="flex items-center gap-2">
+              <HandCoins className="h-4 w-4 text-primary" strokeWidth={2.4} />
+              <p className="text-sm font-semibold text-ink">Tip page</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-xs font-medium text-muted">
+                Preset amounts (2–6, comma separated)
+                <input value={presets} onChange={(e) => setPresets(e.target.value.replace(/[^0-9,.\s]/g, ""))} placeholder="20, 50, 100, 250" className={`${inputCls} mt-1.5`} />
+                <span className="mt-1 block text-[10px] text-muted/70">Min R10 each · fans see these as quick-tip buttons.</span>
+              </label>
+              <label className="block text-xs font-medium text-muted">
+                Thank-you note (shown after a fan pays)
+                <input value={thanksNote} onChange={(e) => setThanksNote(e.target.value.slice(0, 300))}
+                  placeholder="You're amazing — this keeps the lights on! 💚" className={`${inputCls} mt-1.5`} />
+                <span className="mt-1 block text-[10px] text-muted/70">{thanksNote.length}/300</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Social links */}
+          <div className={sectionCls}>
+            <div className="flex items-center gap-2">
+              <Send className="h-4 w-4 text-primary" strokeWidth={2.4} />
+              <p className="text-sm font-semibold text-ink">Social links</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(["instagram", "twitter", "youtube", "website"] as const).map((k) => (
+                <label key={k} className="block text-xs font-medium capitalize text-muted">
+                  {k === "twitter" ? "X / Twitter" : k}
+                  <input
+                    value={links[k] ?? ""}
+                    onChange={(e) => setLinks((l) => ({ ...l, [k]: e.target.value }))}
+                    placeholder={k === "website" ? "https://…" : "@handle"}
+                    className={`${inputCls} mt-1.5`}
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Theme */}
+          <div className={sectionCls}>
+            <div className="flex items-center gap-2">
+              <Palette className="h-4 w-4 text-primary" strokeWidth={2.4} />
+              <p className="text-sm font-semibold text-ink">Page accent colour</p>
+              <span className="text-xs text-muted">— tints buttons + highlights on your public page</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {["", "#12A25C", "#7C3AED", "#E0A536", "#EC4899", "#2563EB", "#DC2626", "#0F766E"].map((c) => (
+                <button
+                  key={c || "default"}
+                  onClick={() => setTheme(c)}
+                  className={`h-9 w-9 rounded-full border-2 transition ${theme === c ? "border-ink scale-110" : "border-border"}`}
+                  style={{ background: c || "#0F2439" }}
+                  title={c || "Default"}
+                />
+              ))}
+              <span className="ml-2 text-[11px] font-mono text-muted">{theme || "default"}</span>
+            </div>
+          </div>
+
+          {/* Payout bank — the extended 5-field form we now capture at signup */}
+          <div className={sectionCls}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-primary" strokeWidth={2.4} />
+                <p className="text-sm font-semibold text-ink">Payout bank account</p>
+              </div>
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                  bankReady ? "bg-green/10 text-green" : "bg-amber-500/15 text-amber-700"
+                }`}
+              >
+                <ShieldCheck className="h-3 w-3" strokeWidth={2.6} /> {bankReady ? "Ready for payout" : "Incomplete"}
+              </span>
+            </div>
+            <p className="text-xs text-muted">
+              Where we send your tips. Encrypted &amp; only shown to the payout team — never on your public page.
+            </p>
+
+            <div>
+              <label className="block text-xs font-medium text-muted">
+                Account holder
                 <input
-                  value={bank[k] ?? ""}
-                  onChange={(e) => setBank((b) => ({ ...b, [k]: e.target.value }))}
+                  value={bank.account_name ?? ""}
+                  onChange={(e) => setBank((b) => ({ ...b, account_name: e.target.value }))}
+                  placeholder="Exactly as it appears on the account"
                   className={`${inputCls} mt-1.5`}
                 />
               </label>
-            ))}
+              <p className="mt-1 text-[10px] text-muted/70">Must match the name on the account or payouts may be rejected.</p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-xs font-medium text-muted">
+                Bank
+                <select
+                  value={bank.bank ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setBank((b) => {
+                      const next: Record<string, string> = { ...b, bank: v };
+                      const found = PROFILE_SA_BANKS.find((x) => x.name === v);
+                      if (found && found.code && !(b.branch_code || "").trim()) next.branch_code = found.code;
+                      return next;
+                    });
+                  }}
+                  className={`${inputCls} mt-1.5`}
+                >
+                  <option value="">Select your bank…</option>
+                  {PROFILE_SA_BANKS.map((b) => (
+                    <option key={b.name} value={b.name}>{b.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-xs font-medium text-muted">
+                Account type
+                <select
+                  value={bank.account_type ?? "cheque"}
+                  onChange={(e) => setBank((b) => ({ ...b, account_type: e.target.value }))}
+                  className={`${inputCls} mt-1.5`}
+                >
+                  {PROFILE_ACCOUNT_TYPES.map((t) => (
+                    <option key={t.id} value={t.id}>{t.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
+              <label className="block text-xs font-medium text-muted">
+                Account number
+                <input
+                  value={bank.account_no ?? ""}
+                  inputMode="numeric"
+                  maxLength={20}
+                  onChange={(e) => setBank((b) => ({ ...b, account_no: e.target.value.replace(/[^\d\s]/g, "") }))}
+                  placeholder="e.g. 12345678901"
+                  className={`${inputCls} mt-1.5`}
+                />
+              </label>
+              <label className="block text-xs font-medium text-muted">
+                Branch code
+                <input
+                  value={bank.branch_code ?? ""}
+                  inputMode="numeric"
+                  maxLength={10}
+                  onChange={(e) => setBank((b) => ({ ...b, branch_code: e.target.value.replace(/[^\d\s]/g, "") }))}
+                  placeholder="Universal"
+                  className={`${inputCls} mt-1.5`}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right column — completion + live preview ─────────────── */}
+        <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+          {/* Completion meter */}
+          <div className="card !p-4">
+            <div className="flex items-baseline justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Profile complete</p>
+              <span className={`text-lg font-extrabold ${pct >= 80 ? "text-green" : pct >= 40 ? "text-amber-600" : "text-muted"}`}>
+                {pct}%
+              </span>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-darker/40">
+              <div
+                className="h-full rounded-full bg-green transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <ul className="mt-4 space-y-1.5 text-xs">
+              {checklist.map((c) => (
+                <li key={c.key} className="flex items-center gap-2">
+                  {c.done ? (
+                    <CircleCheck className="h-3.5 w-3.5 shrink-0 text-green" strokeWidth={2.6} />
+                  ) : (
+                    <span className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-border" />
+                  )}
+                  <span className={c.done ? "text-ink" : "text-muted"}>{c.label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Live preview */}
+          <div className="card overflow-hidden !p-0">
+            <p className="border-b border-border px-4 py-2 text-[10px] font-mono uppercase tracking-wide text-muted">
+              Live preview
+            </p>
+            <div className="relative h-16" style={{ background: theme || "#0F2439" }}>
+              {coverPreview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={coverPreview} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              )}
+            </div>
+            <div className="flex items-start gap-3 px-4 pb-4">
+              <div className="-mt-6 h-12 w-12 shrink-0 overflow-hidden rounded-2xl ring-2 ring-white">
+                {avatarPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="grid h-full w-full place-items-center bg-primary text-sm font-bold text-white">
+                    {(displayName || creator.display_name || "T").charAt(0)}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 pt-1">
+                <p className="truncate text-sm font-bold text-ink">{displayName || "Your name"}</p>
+                {(category || city) && (
+                  <p className="mt-0.5 truncate text-[11px] text-muted">
+                    {[category, city].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+                <p className="mt-1.5 line-clamp-2 text-xs text-muted">{tagline || "Your tagline will appear here."}</p>
+              </div>
+            </div>
+            {Object.values(links).some((v) => (v || "").trim().length > 0) && (
+              <div className="flex flex-wrap gap-1 border-t border-border px-4 py-2">
+                {(Object.entries(links) as [string, string][])
+                  .filter(([, v]) => (v || "").trim().length > 0)
+                  .slice(0, 4)
+                  .map(([k]) => (
+                    <span key={k} className="rounded-full bg-darker/40 px-2 py-0.5 text-[10px] font-medium capitalize text-muted">
+                      {k === "twitter" ? "X" : k}
+                    </span>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          {/* Danger-ish hints */}
+          <div className="rounded-2xl border border-border/60 bg-primary/5 p-3 text-[11px] text-muted">
+            <p className="font-semibold text-ink">Tip</p>
+            <p className="mt-1">
+              A complete profile with cover, avatar, tagline and preset amounts earns 2–3× more per visit than a barebones one.
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* ── Sticky save bar ──────────────────────────────────────────── */}
+      <div className="sticky bottom-4 z-30 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-white/95 p-3 shadow-lift backdrop-blur">
         <button onClick={save} disabled={busy} className="btn-primary !px-6 !py-2.5 text-sm disabled:opacity-50">
           {busy ? "Saving…" : "Save profile"}
         </button>
-        <Link href={`/creator/${creator.slug}`} className="text-sm text-muted hover:text-ink">
+        <Link href={`/creator/${creator.slug}`} target="_blank" className="text-sm text-muted hover:text-ink">
           View public page <ArrowUpRight className="inline h-3.5 w-3.5" strokeWidth={2.4} />
         </Link>
-        {note && <p className="text-sm text-teal">{note}</p>}
+        {(avatar || cover) && (
+          <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+            Unsaved image changes
+          </span>
+        )}
+        {note && <p className="ml-auto text-sm text-teal">{note}</p>}
       </div>
     </div>
   );
