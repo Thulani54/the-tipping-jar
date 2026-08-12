@@ -178,7 +178,14 @@ export default function DashboardPage() {
         <main className="flex-1 px-4 py-7 md:px-8">
           <div key={tab} className="pop-in mx-auto max-w-[1180px]">
             {tab === "overview" && (
-              <OverviewTab tips={tips} loading={loading} stats={stats} slug={myCreator?.slug ?? null} />
+              <OverviewTab
+                tips={tips}
+                loading={loading}
+                stats={stats}
+                slug={myCreator?.slug ?? null}
+                creator={myCreator}
+                onTab={setTab}
+              />
             )}
             {tab === "tips" && <TipsTab tips={tips} loading={loading} token={token} />}
             {tab === "supporters" && (
@@ -572,15 +579,44 @@ function OverviewTab({
   loading,
   stats,
   slug,
+  creator,
+  onTab,
 }: {
   tips: Tip[];
   loading: boolean;
   stats: CreatorStats | null;
   slug: string | null;
+  creator: Creator | null;
+  onTab: (t: Tab) => void;
 }) {
   const netEarned = stats ? Number(stats.creator_net_total) || 0 : 0;
   const thisMonth = stats ? Number(stats.this_month_amount) || 0 : 0;
   const shareUrl = slug ? `https://tippingjar.co.za/creator/${slug}` : null;
+
+  // Monthly goal push
+  const goal = creator?.tip_goal ? Number(creator.tip_goal) : 0;
+  const goalPct = goal > 0 ? Math.min(100, Math.round((thisMonth / goal) * 100)) : 0;
+  const goalGap = Math.max(0, goal - thisMonth);
+
+  // 7-day tip volume sparkline (from the tips prop)
+  const completed = tips.filter((t) => t.status === "completed");
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const week: { day: string; amount: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(startOfToday.getTime() - i * 86400000);
+    const next = new Date(d.getTime() + 86400000);
+    const amount = completed
+      .filter((t) => {
+        const td = new Date(t.created_at);
+        return td >= d && td < next;
+      })
+      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    week.push({ day: d.toLocaleDateString("en-ZA", { weekday: "short" }).charAt(0), amount });
+  }
+  const weekMax = Math.max(...week.map((w) => w.amount), 1);
+  const weekTotal = week.reduce((s, w) => s + w.amount, 0);
+
   return (
     <div className="space-y-8">
       <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -588,6 +624,106 @@ function OverviewTab({
         <StatCard label="This month" value={`R${money(thisMonth)}`} icon={Calendar} accent="#2563EB" />
         <StatCard label="Supporters" value={String(stats?.supporter_count ?? 0)} icon={Users} accent="#E0A536" />
         <StatCard label="Total tips" value={String(stats?.tip_count ?? 0)} icon={Heart} accent="#EC4899" />
+      </div>
+
+      {/* Quick actions — the four things a creator does most, one click away */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { icon: Megaphone,  label: "Message supporters", tab: "supporters" as Tab, accent: "#12A25C" },
+          { icon: Lock,       label: "Publish exclusive",  tab: "exclusive"  as Tab, accent: "#7C3AED" },
+          { icon: Milk,       label: "Create a jar",        tab: "jars"       as Tab, accent: "#E0A536" },
+          { icon: Palette,    label: "Design a promo",      tab: "studio"     as Tab, accent: "#EC4899" },
+        ].map((a) => (
+          <button
+            key={a.label}
+            onClick={() => onTab(a.tab)}
+            className="card group flex items-center gap-3 !p-4 text-left transition hover:border-teal/40"
+          >
+            <span
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full transition group-hover:scale-105"
+              style={{ backgroundColor: a.accent + "22" }}
+            >
+              <a.icon className="h-[18px] w-[18px]" style={{ color: a.accent }} strokeWidth={2.2} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ink">{a.label}</p>
+              <p className="mt-0.5 text-[11px] text-muted">Jump to the {a.tab} tab</p>
+            </span>
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-muted transition group-hover:text-teal" strokeWidth={2.4} />
+          </button>
+        ))}
+      </div>
+
+      {/* Monthly goal + 7-day momentum, side by side */}
+      <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
+        <div className="card !p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">This month vs your goal</p>
+            {goal > 0 && (
+              <span className="text-xs font-semibold text-teal">
+                {goalPct}%
+              </span>
+            )}
+          </div>
+          {goal > 0 ? (
+            <>
+              <p className="mt-3 font-display text-3xl font-extrabold tracking-tight text-ink">
+                R{money(thisMonth)}
+                <span className="ml-2 text-base font-medium text-muted">of R{money(goal)}</span>
+              </p>
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-border/60">
+                <div
+                  className="h-full rounded-full bg-teal transition-all duration-700"
+                  style={{ width: `${Math.max(3, goalPct)}%` }}
+                />
+              </div>
+              <p className="mt-3 text-xs text-muted">
+                {goalPct >= 100 ? (
+                  <span className="font-semibold text-teal">🎉 You smashed it. Push the next stretch goal!</span>
+                ) : (
+                  <>Need <span className="font-semibold text-ink">R{money(goalGap)}</span> more to hit your monthly goal.</>
+                )}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="body-muted mt-3">
+                Set a monthly tip goal to unlock a live progress bar on your page and here.
+              </p>
+              <button
+                onClick={() => onTab("profile")}
+                className="btn-primary mt-4 !px-5 !py-2 text-sm"
+              >
+                Set a goal
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="card !p-5">
+          <div className="flex items-baseline justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Last 7 days</p>
+            <p className="text-sm font-bold text-ink">R{money(weekTotal)}</p>
+          </div>
+          <div className="mt-4 flex h-24 items-end gap-2">
+            {week.map((w, i) => (
+              <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
+                <div
+                  className="w-full rounded-t bg-teal/70 transition hover:bg-teal"
+                  style={{ height: `${Math.max(4, (w.amount / weekMax) * 80)}px` }}
+                  title={`R${money(w.amount)}`}
+                />
+                <span className="font-mono text-[10px] uppercase text-muted">{w.day}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => onTab("analytics")}
+            className="mt-3 text-xs font-medium text-teal hover:underline"
+          >
+            See full analytics →
+          </button>
+        </div>
       </div>
 
       {/* Achievements */}
@@ -622,17 +758,18 @@ function OverviewTab({
         </p>
         {shareUrl && slug ? (
           <>
-            <p className="relative mt-3 break-all font-mono text-sm text-white/90">{shareUrl}</p>
+            <p className="mt-3 break-all rounded-lg bg-darker px-3 py-2 font-mono text-sm text-ink">{shareUrl}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
                 href={`/creator/${slug}`}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-primary transition hover:opacity-90"
+                target="_blank"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-navy"
               >
                 View your page <ArrowUpRight className="h-4 w-4" strokeWidth={2.4} />
               </Link>
               <button
                 onClick={() => downloadQrPoster(slug)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-5 py-2.5 text-sm font-medium text-ink transition hover:bg-white/25"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-5 py-2.5 text-sm font-medium text-muted transition hover:border-teal hover:text-teal"
               >
                 <QrCode className="h-4 w-4" strokeWidth={2.2} /> QR poster
               </button>
@@ -641,7 +778,7 @@ function OverviewTab({
                   navigator.clipboard?.writeText(`https://www.tippingjar.co.za/overlay/${slug}`);
                   window.alert("Overlay URL copied — add it as a Browser Source in OBS/Streamlabs (transparent, shows live tip alerts + your goal bar).");
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-5 py-2.5 text-sm font-medium text-ink transition hover:bg-white/25"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-5 py-2.5 text-sm font-medium text-muted transition hover:border-teal hover:text-teal"
               >
                 <Tv className="h-4 w-4" strokeWidth={2.2} /> OBS overlay
               </button>
@@ -652,7 +789,7 @@ function OverviewTab({
                   );
                   window.alert("Embed code copied — paste it into your website.");
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-5 py-2.5 text-sm font-medium text-ink transition hover:bg-white/25"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-5 py-2.5 text-sm font-medium text-muted transition hover:border-teal hover:text-teal"
               >
                 <Code2 className="h-4 w-4" strokeWidth={2.2} /> Embed widget
               </button>
