@@ -39,6 +39,17 @@ export function HeroDemo() {
 
   return (
     <div className="relative mx-auto w-full max-w-sm lg:mx-0 lg:ml-auto">
+      {/* Soft navy radial glow behind the jar — keeps text legible on top
+          of the hero photo without reintroducing a visible card. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(60% 55% at 50% 50%, rgba(15,36,57,0.55) 0%, rgba(15,36,57,0.28) 55%, transparent 82%)",
+          filter: "blur(4px)",
+        }}
+      />
       <div className="!bg-transparent p-2">
         <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.18em] text-white/60">
           <span>Try a tip</span>

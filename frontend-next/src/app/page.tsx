@@ -149,7 +149,7 @@ export default async function LandingPage() {
         <span aria-hidden className="sparkle pointer-events-none absolute left-[18%] bottom-16 h-3 w-3 rounded-full bg-gold/80" />
         <span aria-hidden className="sparkle pointer-events-none absolute right-[30%] top-16 h-2.5 w-2.5 rounded-full bg-mint/80" style={{ animationDelay: "0.9s" }} />
 
-        <div className="container-content relative grid items-center gap-14 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
+        <div className="container-content relative grid items-center gap-10 py-12 sm:gap-14 sm:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
           <div>
             {/* Live activity pill — a tiny bit of proof-of-life the moment
                 the page loads. Falls back cleanly when there's no ticker. */}
@@ -213,7 +213,7 @@ export default async function LandingPage() {
             {/* Social proof — real numbers from the platform + creator
                 avatar stack. Replaces the previous single line of chips
                 with something creators can actually see themselves in. */}
-            <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4 rise-in" style={{ animationDelay: "0.25s" }}>
+            <div className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-6 sm:gap-y-4 rise-in" style={{ animationDelay: "0.25s" }}>
               {creators.length > 0 && (
                 <div className="flex items-center gap-3">
                   <div className="flex -space-x-2.5">
