@@ -2395,6 +2395,19 @@ const POST_TEMPLATES: { label: string; title: string; body: string }[] = [
   },
 ];
 
+// Extract a YouTube video id from a URL, then build the thumbnail URL.
+function youtubeThumb(url: string): string | null {
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{6,})/);
+  return m ? `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg` : null;
+}
+
+const KIND_META: Record<string, { emoji: string; label: string; color: string }> = {
+  post:    { emoji: "📝", label: "Post",    color: "#2563EB" },
+  video:   { emoji: "🎥", label: "Video",   color: "#DC2626" },
+  audio:   { emoji: "🎧", label: "Audio",   color: "#7C3AED" },
+  gallery: { emoji: "🖼", label: "Gallery", color: "#E0A536" },
+};
+
 function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasProfile: boolean; slug: string | null }) {
   const [posts, setPosts] = useState<ExclusivePost[] | null>(null);
   const [tiers, setTiers] = useState<SupportTier[]>([]);
@@ -2406,14 +2419,56 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
   const [access, setAccess] = useState<"monthly_tip" | "subscription" | "public">("monthly_tip");
   const [minTip, setMinTip] = useState("10");
   const [tierId, setTierId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [scope, setScope] = useState<"all" | "month">("all");
+  const [kindFilter, setKindFilter] = useState<"all" | "post" | "video" | "audio" | "gallery">("all");
+  const [accessFilter, setAccessFilter] = useState<"all" | "monthly_tip" | "subscription" | "public">("all");
+  const [sortNewest, setSortNewest] = useState(true);
   const [dragOver, setDragOver] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const imgRef = useRef<HTMLInputElement>(null);
+
+  function resetDraft() {
+    setTitle(""); setBody(""); setImage(null); setMediaUrl("");
+    setKind("post"); setAccess("monthly_tip"); setMinTip("10"); setTierId(null);
+    setEditingId(null);
+  }
+  function startEdit(p: ExclusivePost) {
+    setEditingId(p.id);
+    setTitle(p.title);
+    setBody(p.body);
+    setImage(p.image_url || null);
+    setKind((p.kind as typeof kind) || "post");
+    setMediaUrl(p.media_url || "");
+    setAccess((p.access === "one_tip" ? "monthly_tip" : (p.access as typeof access)) || "monthly_tip");
+    setMinTip(String(Number(p.min_tip) || 10));
+    setTierId(p.tier_id ?? null);
+    document.getElementById("exclusive-title")?.focus();
+    document.getElementById("exclusive-title")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  async function duplicate(p: ExclusivePost) {
+    if (!token) return;
+    try {
+      await api.createPost(token, {
+        title: `${p.title} (copy)`,
+        body: p.body,
+        image_url: p.image_url || undefined,
+        kind: p.kind as "post" | "video" | "audio" | "gallery",
+        media_url: p.media_url || undefined,
+        access: p.access as "monthly_tip" | "subscription" | "one_tip" | "public",
+        min_tip: Number(p.min_tip) || 10,
+        tier_id: p.tier_id ?? undefined,
+      });
+      load();
+      setNote(`Duplicated "${p.title}".`);
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Could not duplicate.");
+    }
+  }
 
   const load = useCallback(() => {
     if (!token) return;
@@ -2431,28 +2486,27 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
     setBusy(true);
     setNote(null);
     try {
-      await api.createPost(token, {
+      const body_data = {
         title: title.trim(),
-        body: body.trim() || undefined,
-        image_url: image ?? undefined,
+        body: body.trim(),
+        image_url: image ?? "",
         kind,
-        media_url: mediaUrl.trim() || undefined,
+        media_url: mediaUrl.trim(),
         access,
-        min_tip: access === "monthly_tip" ? Math.max(10, Number(minTip) || 10) : undefined,
-        tier_id: access === "subscription" ? tierId ?? undefined : undefined,
-      });
-      setTitle("");
-      setBody("");
-      setImage(null);
-      setMediaUrl("");
-      setKind("post");
-      setAccess("monthly_tip");
-      setMinTip("10");
-      setTierId(null);
-      setNote("Published — supporters with matching access can see it now.");
+        min_tip: access === "monthly_tip" ? Math.max(10, Number(minTip) || 10) : 10,
+        tier_id: access === "subscription" ? (tierId ?? undefined) : undefined,
+      };
+      if (editingId) {
+        await api.updatePost(token, editingId, body_data);
+        setNote("Updated — supporters see the new version now.");
+      } else {
+        await api.createPost(token, body_data);
+        setNote("Published — supporters with matching access can see it now.");
+      }
+      resetDraft();
       load();
     } catch (e) {
-      setNote(e instanceof Error ? e.message : "Could not publish.");
+      setNote(e instanceof Error ? e.message : "Could not save.");
     } finally {
       setBusy(false);
     }
@@ -2467,14 +2521,18 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
 
   const now = Date.now();
   const monthAgo = now - 30 * 86400000;
-  const filtered = (posts ?? []).filter((p) => {
-    if (scope === "month" && +new Date(p.created_at) < monthAgo) return false;
-    if (q) {
-      const needle = q.toLowerCase();
-      if (!p.title.toLowerCase().includes(needle) && !(p.body || "").toLowerCase().includes(needle)) return false;
-    }
-    return true;
-  });
+  const filtered = (posts ?? [])
+    .filter((p) => {
+      if (scope === "month" && +new Date(p.created_at) < monthAgo) return false;
+      if (kindFilter !== "all" && p.kind !== kindFilter) return false;
+      if (accessFilter !== "all" && p.access !== accessFilter) return false;
+      if (q) {
+        const needle = q.toLowerCase();
+        if (!p.title.toLowerCase().includes(needle) && !(p.body || "").toLowerCase().includes(needle)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => (sortNewest ? +new Date(b.created_at) - +new Date(a.created_at) : +new Date(a.created_at) - +new Date(b.created_at)));
 
   const total = posts?.length ?? 0;
   const thisMonth = (posts ?? []).filter((p) => +new Date(p.created_at) >= monthAgo).length;
@@ -2535,8 +2593,18 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
         </div>
       )}
 
+      {/* Composer + live preview side-by-side on xl+ */}
+      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
       {/* Composer */}
       <div className="card space-y-4 !p-5">
+        {editingId && (
+          <div className="flex items-center gap-3 rounded-xl border border-teal/40 bg-teal/5 px-4 py-2 text-xs">
+            <span className="font-semibold text-teal">Editing existing post</span>
+            <button onClick={resetDraft} className="ml-auto text-muted hover:text-red-500">
+              Cancel edit
+            </button>
+          </div>
+        )}
         {/* Template chips */}
         <div className="flex flex-wrap gap-2">
           <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted">Templates</span>
@@ -2749,10 +2817,55 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
             disabled={busy || !title.trim() || (access === "subscription" && !tierId)}
             className="btn-primary ml-auto !px-6 !py-2.5 text-sm disabled:opacity-50"
           >
-            {busy ? "Publishing…" : "Publish to the vault"}
+            {busy ? "Saving…" : editingId ? "Update post" : "Publish to the vault"}
           </button>
         </div>
         {note && <p className="text-sm text-teal">{note}</p>}
+      </div>
+
+      {/* Live preview */}
+      <div className="card !p-0 xl:sticky xl:top-24 xl:self-start">
+        <div className="border-b border-border px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Vault preview</p>
+        </div>
+        <div className="p-4">
+          {!title.trim() && !body.trim() && !mediaUrl && !image ? (
+            <p className="body-muted text-sm">Fill in the composer to see how supporters will see this.</p>
+          ) : (
+            <article>
+              <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-muted">
+                {KIND_META[kind].emoji} {KIND_META[kind].label}
+                {access === "monthly_tip" && Number(minTip) > 10 && <> · min tip R{Math.max(10, Number(minTip) || 10)}</>}
+                {access === "subscription" && tierId && <> · Subscribers of {tiers.find((t) => t.id === tierId)?.name}</>}
+                {access === "public" && <> · Public</>}
+              </p>
+              <h3 className="mt-1 font-display text-lg font-bold text-ink">{title || "Post title"}</h3>
+              {kind === "video" && (() => {
+                const thumb = youtubeThumb(mediaUrl);
+                return thumb ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={thumb} alt="" className="mt-3 aspect-video w-full rounded-lg object-cover" />
+                ) : mediaUrl ? (
+                  <div className="mt-3 grid aspect-video w-full place-items-center rounded-lg bg-black/90 text-4xl text-white">🎥</div>
+                ) : (
+                  <div className="mt-3 grid aspect-video w-full place-items-center rounded-lg border-2 border-dashed border-border text-xs text-muted">Paste a video URL</div>
+                );
+              })()}
+              {kind === "audio" && (
+                <div className="mt-3 flex items-center gap-3 rounded-lg bg-darker/50 px-4 py-3">
+                  <span className="text-2xl">🎧</span>
+                  <p className="min-w-0 flex-1 truncate text-xs text-muted">{mediaUrl || "Paste an audio URL"}</p>
+                </div>
+              )}
+              {image && (kind === "post" || kind === "gallery") && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={image} alt="" className="mt-3 max-h-64 w-full rounded-lg object-cover" />
+              )}
+              {body && <p className="mt-3 whitespace-pre-wrap text-xs text-muted line-clamp-6">{body}</p>}
+            </article>
+          )}
+        </div>
+      </div>
       </div>
 
       {/* Filter row */}
@@ -2764,7 +2877,7 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
             placeholder="Search posts…"
             className="w-full max-w-xs rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
           />
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {(["all", "month"] as const).map((s) => (
               <button
                 key={s}
@@ -2777,6 +2890,41 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
               </button>
             ))}
           </div>
+          <span className="mx-1 h-5 w-px bg-border" />
+          <div className="flex flex-wrap gap-1.5">
+            {(["all", "post", "video", "audio", "gallery"] as const).map((k) => (
+              <button
+                key={k}
+                onClick={() => setKindFilter(k)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  kindFilter === k ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+                }`}
+              >
+                {k === "all" ? "Any kind" : `${KIND_META[k].emoji} ${KIND_META[k].label}`}
+              </button>
+            ))}
+          </div>
+          <span className="mx-1 h-5 w-px bg-border" />
+          <div className="flex flex-wrap gap-1.5">
+            {(["all", "monthly_tip", "subscription", "public"] as const).map((a) => (
+              <button
+                key={a}
+                onClick={() => setAccessFilter(a)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  accessFilter === a ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+                }`}
+              >
+                {a === "all" ? "Any access" : a === "monthly_tip" ? "💚 Tippers" : a === "subscription" ? "⭐ Subs" : "🌍 Public"}
+              </button>
+            ))}
+          </div>
+          <span className="mx-1 h-5 w-px bg-border" />
+          <button
+            onClick={() => setSortNewest((v) => !v)}
+            className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted transition hover:text-ink"
+          >
+            Sort · {sortNewest ? "Newest" : "Oldest"}
+          </button>
           <span className="ml-auto text-xs text-muted">Showing {filtered.length} of {posts.length}</span>
         </div>
       )}
@@ -2793,11 +2941,24 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
           {filtered.map((p) => {
             const isOpen = expanded === p.id;
             return (
-            <div key={p.id} className="card overflow-hidden !p-0">
-              {p.image_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.image_url} alt="" className="h-40 w-full object-cover" />
-              )}
+            <div key={p.id} className={`card overflow-hidden !p-0 ${editingId === p.id ? "!border-teal ring-2 ring-teal/20" : ""}`}>
+              {(() => {
+                const cover = p.image_url || (p.kind === "video" ? youtubeThumb(p.media_url) : null);
+                return cover ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <div className="relative">
+                    <img src={cover} alt="" className="h-40 w-full object-cover" />
+                    {p.kind === "video" && (
+                      <span className="absolute inset-0 grid place-items-center bg-black/30 text-3xl text-white">▶</span>
+                    )}
+                  </div>
+                ) : p.kind === "audio" ? (
+                  <div className="flex h-24 items-center gap-3 bg-gradient-to-r from-purple-500/10 to-purple-500/5 px-5">
+                    <span className="text-2xl">🎧</span>
+                    <p className="min-w-0 flex-1 truncate text-xs text-muted">{p.media_url || "No source URL"}</p>
+                  </div>
+                ) : null;
+              })()}
               <div className="space-y-2 p-5">
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-medium text-ink">{p.title}</p>
@@ -2827,6 +2988,20 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
                     {new Date(p.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
                   </p>
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => startEdit(p)}
+                      className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted hover:border-teal hover:text-teal"
+                      title="Edit post"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => duplicate(p)}
+                      className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted hover:border-teal hover:text-teal"
+                      title="Duplicate"
+                    >
+                      <Copy className="inline h-3 w-3" strokeWidth={2.4} />
+                    </button>
                     {slug && (
                       <button
                         onClick={() => {
@@ -2837,7 +3012,7 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
                         className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted hover:border-teal hover:text-teal"
                         title="Copy a link to this post"
                       >
-                        <Copy className="inline h-3 w-3" strokeWidth={2.4} /> Link
+                        Link
                       </button>
                     )}
                     <button
