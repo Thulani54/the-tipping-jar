@@ -514,10 +514,15 @@ async fn checkout(
     // Only honour a client return_url that points at our own frontend
     // (open-redirect guard); otherwise use the default callback.
     let default_return = format!("{}/payment/callback", st.web_base_url.trim_end_matches('/'));
-    let return_url = req
+    let base_return = req
         .return_url
         .filter(|u| u.starts_with(&st.web_base_url))
         .unwrap_or(default_return);
+    // Always inject the merchant_order_no as `ref` on the return URL so the
+    // callback page can identify the transaction even when PayCloud drops
+    // its own query params on the redirect.
+    let sep = if base_return.contains('?') { '&' } else { '?' };
+    let return_url = format!("{base_return}{sep}ref={merchant_order_no}");
 
     // Persist a pending transaction first so the notify webhook can match it.
     let row: Transaction = sqlx::query_as(&format!(

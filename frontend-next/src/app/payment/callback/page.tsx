@@ -13,10 +13,12 @@ function CallbackInner() {
   const creatorSlug = searchParams.get("creator_slug");
   const forcedStatus = searchParams.get("status"); // testing override
 
-  // PayCloud returns our order id under one of several names; also scan any
-  // value that looks like one of our references (tj… / rf…).
+  // PayCloud returns our order id under one of several names; we also always
+  // inject it ourselves as `ref` on the return URL (server-side, in checkout)
+  // — plus scan any value that looks like one of our references (tj… / rf…).
   const reference = useMemo(() => {
     const known = [
+      "ref",
       "reference",
       "trxref",
       "merchant_order_no",
@@ -81,11 +83,15 @@ function CallbackInner() {
         }
       }
       tries += 1;
-      if (tries >= 8) {
+      // Poll for ~60s total — 3D-Secure OTP + gateway settlement can eat 30s+
+      // before the notify arrives. Backoff: 2s, 2s, 3s, 3s, 4s, 5s, 6s, 8s,
+      // 10s, 15s → ~58s cumulative.
+      if (tries >= 10) {
         if (alive) setStatus("pending");
         return;
       }
-      window.setTimeout(poll, 2500);
+      const delays = [2000, 2000, 3000, 3000, 4000, 5000, 6000, 8000, 10000, 15000];
+      window.setTimeout(poll, delays[tries - 1] ?? 5000);
     }
     setStatus("loading");
     poll();
