@@ -918,6 +918,10 @@ function exportTipsCsv(tips: Tip[]) {
 
 function TipsTab({ tips, loading, token }: { tips: Tip[]; loading: boolean; token?: string | null }) {
   const [period, setPeriod] = useState<TipPeriod>("all");
+  const [status, setStatus] = useState<"all" | "completed" | "pending" | "failed">("all");
+  const [minAmount, setMinAmount] = useState(""); // empty = any
+  const [q, setQ] = useState("");
+
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const cutoff =
@@ -928,38 +932,181 @@ function TipsTab({ tips, loading, token }: { tips: Tip[]; loading: boolean; toke
         : period === "month"
           ? new Date(now.getFullYear(), now.getMonth(), 1)
           : null;
-  const filtered = cutoff ? tips.filter((t) => new Date(t.created_at) >= cutoff) : tips;
-  const total = filtered.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+
+  const minA = parseFloat(minAmount);
+  const filtered = tips.filter((t) => {
+    if (cutoff && new Date(t.created_at) < cutoff) return false;
+    if (status !== "all" && t.status !== status) return false;
+    if (!Number.isNaN(minA) && Number(t.amount) < minA) return false;
+    if (q) {
+      const needle = q.toLowerCase();
+      if (
+        !(t.tipper_name || "").toLowerCase().includes(needle) &&
+        !(t.message || "").toLowerCase().includes(needle) &&
+        !(t.tipper_email || "").toLowerCase().includes(needle) &&
+        !(t.reference || "").toLowerCase().includes(needle)
+      ) return false;
+    }
+    return true;
+  });
+
+  const completed = filtered.filter((t) => t.status === "completed");
+  const total = completed.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const avg = completed.length ? total / completed.length : 0;
+  const biggest = completed.reduce((m, t) => Math.max(m, Number(t.amount) || 0), 0);
+  const withMessages = filtered.filter((t) => t.message).length;
+  const unthanked = filtered.filter((t) => t.status === "completed" && t.tipper_email && !t.thanked_at).length;
+
+  // Daily activity strip — 14 days of completed-tip counts
+  const days: { day: string; count: number; amount: number }[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(startOfToday.getTime() - i * 86400000);
+    const next = new Date(d.getTime() + 86400000);
+    const rows = completed.filter((t) => {
+      const td = new Date(t.created_at);
+      return td >= d && td < next;
+    });
+    days.push({
+      day: d.toLocaleDateString("en-ZA", { weekday: "short" }).charAt(0),
+      count: rows.length,
+      amount: rows.reduce((s, t) => s + (Number(t.amount) || 0), 0),
+    });
+  }
+  const maxCount = Math.max(...days.map((d) => d.count), 1);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-base font-medium text-ink">All tips</h3>
-        <span className="inline-flex items-center gap-3 text-sm text-muted">
-          {filtered.length} tip{filtered.length === 1 ? "" : "s"} · Total: R{money(total)}
-          <button
-            onClick={() => exportTipsCsv(filtered)}
-            disabled={filtered.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted transition hover:border-teal hover:text-teal disabled:opacity-40"
-          >
-            <Download className="h-3.5 w-3.5" strokeWidth={2.2} /> CSV
-          </button>
-        </span>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-medium tracking-tight text-ink">Tips</h2>
+          <p className="body-muted mt-1 text-sm">Everything you&apos;ve been sent — search, filter, thank, export.</p>
+        </div>
+        <button
+          onClick={() => exportTipsCsv(filtered)}
+          disabled={filtered.length === 0}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-4 py-2 text-xs font-medium text-muted transition hover:border-teal hover:text-teal disabled:opacity-40"
+        >
+          <Download className="h-3.5 w-3.5" strokeWidth={2.2} /> Export CSV
+        </button>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {TIP_PERIODS.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setPeriod(p.id)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
-              period === p.id ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
+
+      {/* KPI header — the numbers for the current filter, not lifetime */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Tips shown" value={String(filtered.length)} icon={HandCoins} accent="#12A25C" />
+        <StatCard label="Completed volume" value={`R${money(total)}`} icon={Banknote} accent="#2563EB" />
+        <StatCard label="Average tip" value={`R${money(avg)}`} icon={Percent} accent="#E0A536" />
+        <StatCard label="Biggest tip" value={`R${money(biggest)}`} icon={Trophy} accent="#EC4899" />
       </div>
-      <RecentTips tips={filtered} loading={loading} token={token} />
+
+      {/* Callouts row: unthanked + messages */}
+      {filtered.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className={`card flex items-center gap-3 !p-4 ${unthanked > 0 ? "!border-teal/40" : ""}`}>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-teal/15 text-teal">
+              <Send className="h-4 w-4" strokeWidth={2.4} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ink">
+                {unthanked > 0
+                  ? `${unthanked} supporter${unthanked === 1 ? "" : "s"} not yet thanked`
+                  : "All supporters thanked ✨"}
+              </p>
+              <p className="text-xs text-muted">Reply personally under any tip below.</p>
+            </div>
+          </div>
+          <div className="card flex items-center gap-3 !p-4">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-mint/20 text-green">
+              <Heart className="h-4 w-4" strokeWidth={2.4} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ink">
+                {withMessages} tip{withMessages === 1 ? "" : "s"} with a message
+              </p>
+              <p className="text-xs text-muted">
+                {filtered.length ? Math.round((withMessages / filtered.length) * 100) : 0}% of the current filter left a note.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 14-day activity strip */}
+      <div className="card !p-5">
+        <div className="flex items-baseline justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Activity · last 14 days</p>
+          <p className="text-sm font-bold text-ink">{days.reduce((s, d) => s + d.count, 0)} completed</p>
+        </div>
+        <div className="mt-4 flex h-20 items-end gap-1.5">
+          {days.map((d, i) => (
+            <div key={i} className="flex flex-1 flex-col items-center gap-1">
+              <div
+                className="w-full rounded-t bg-teal/70 transition hover:bg-teal"
+                style={{ height: `${Math.max(4, (d.count / maxCount) * 68)}px` }}
+                title={`${d.count} tip${d.count === 1 ? "" : "s"} · R${money(d.amount)}`}
+              />
+              <span className="font-mono text-[10px] uppercase text-muted">{d.day}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Filter toolbar */}
+      <div className="card flex flex-wrap items-center gap-3 !p-4">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search name, email, message or reference…"
+          className="w-full max-w-xs rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
+        />
+        <input
+          value={minAmount}
+          onChange={(e) => setMinAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+          inputMode="decimal"
+          placeholder="Min R"
+          className="w-24 rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
+        />
+        <div className="flex flex-wrap gap-1.5">
+          {(["all", "completed", "pending", "failed"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatus(s)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                status === s ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <span className="mx-1 h-5 w-px bg-border" />
+        <div className="flex flex-wrap gap-1.5">
+          {TIP_PERIODS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setPeriod(p.id)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                period === p.id ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {(q || status !== "all" || minAmount || period !== "all") && (
+          <button
+            onClick={() => { setQ(""); setStatus("all"); setMinAmount(""); setPeriod("all"); }}
+            className="ml-auto text-xs font-medium text-muted hover:text-ink"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {filtered.length === 0 && !loading ? (
+        <EmptyState icon={HandCoins} title="No tips match those filters" body="Try widening the period, dropping the min amount, or clearing your search." />
+      ) : (
+        <RecentTips tips={filtered} loading={loading} token={token} />
+      )}
     </div>
   );
 }
