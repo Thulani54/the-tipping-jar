@@ -33,6 +33,8 @@ import {
   Download,
   UserRound,
   Megaphone,
+  Copy,
+  Check,
   BarChart3,
   Lock,
   Milk,
@@ -165,40 +167,13 @@ export default function DashboardPage() {
 
       {/* Content */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-white/85 px-4 backdrop-blur-xl md:px-7">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="grid h-10 w-10 place-items-center rounded-xl text-ink transition-colors hover:bg-ink/5 lg:hidden"
-            aria-label="Open menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <div className="min-w-0">
-            <p className="text-[11px] font-medium text-muted">{greeting()},</p>
-            <h1 className="truncate text-base font-medium leading-tight tracking-tight text-ink">
-              {name}
-            </h1>
-          </div>
-          <div className="ml-auto flex items-center gap-2.5">
-            <LiveClock />
-            <span className="hidden items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-muted lg:inline-flex">
-              <active.icon className="h-3.5 w-3.5 text-teal" strokeWidth={2.4} />
-              {active.label}
-            </span>
-            <Link
-              href="/"
-              className="hidden items-center gap-1.5 rounded-full border border-border bg-white px-3.5 py-1.5 text-xs font-medium text-ink transition-colors hover:border-teal hover:text-teal sm:inline-flex"
-            >
-              View site <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.4} />
-            </Link>
-            <span
-              title={name}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-sm font-medium text-white shadow-soft ring-2 ring-white"
-            >
-              {name.charAt(0).toUpperCase()}
-            </span>
-          </div>
-        </header>
+        <DashboardHeader
+          name={name}
+          creator={myCreator}
+          netEarned={stats ? Number(stats.creator_net_total) || 0 : 0}
+          active={active}
+          onOpenMobile={() => setMobileOpen(true)}
+        />
 
         <main className="flex-1 px-4 py-7 md:px-8">
           <div key={tab} className="pop-in mx-auto max-w-[1180px]">
@@ -226,6 +201,118 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+// ─── Top app bar ─────────────────────────────────────────────────────────────
+function DashboardHeader({
+  name,
+  creator,
+  netEarned,
+  active,
+  onOpenMobile,
+}: {
+  name: string;
+  creator: Creator | null;
+  netEarned: number;
+  active: { id: string; label: string; icon: LucideIcon };
+  onOpenMobile: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const tipUrl = creator?.slug ? `https://www.tippingjar.co.za/creator/${creator.slug}` : "";
+  const money = (n: number) =>
+    n.toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+  return (
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-white/90 px-4 backdrop-blur-xl md:px-7">
+      <button
+        onClick={onOpenMobile}
+        className="grid h-10 w-10 place-items-center rounded-xl text-ink transition-colors hover:bg-ink/5 lg:hidden"
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {/* Section indicator — big, visible, no wasted space */}
+      <div className="min-w-0 hidden sm:flex sm:items-center sm:gap-2.5">
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-mint/20 text-teal">
+          <active.icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted">
+            Dashboard
+          </p>
+          <p className="truncate text-sm font-bold leading-tight text-ink">{active.label}</p>
+        </div>
+      </div>
+      <p className="min-w-0 truncate text-sm font-medium text-ink sm:hidden">{name}</p>
+
+      <div className="ml-auto flex items-center gap-2">
+        {/* Net earned pill — always-on money snapshot */}
+        <span
+          className="hidden items-center gap-1.5 rounded-full border border-teal/30 bg-teal/8 px-3 py-1.5 text-xs font-semibold text-teal md:inline-flex"
+          title="Lifetime net earnings"
+        >
+          <Banknote className="h-3.5 w-3.5" strokeWidth={2.4} />
+          R{money(netEarned)}
+        </span>
+
+        {/* Live clock */}
+        <span className="hidden lg:inline-flex">
+          <LiveClock />
+        </span>
+
+        {/* One-click tip-link copy — the single most-used action */}
+        {tipUrl && (
+          <button
+            onClick={() => {
+              navigator.clipboard?.writeText(tipUrl);
+              setCopied(true);
+              window.setTimeout(() => setCopied(false), 1800);
+            }}
+            className={`hidden items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors sm:inline-flex ${
+              copied
+                ? "border-teal bg-teal text-white"
+                : "border-border bg-white text-ink hover:border-teal hover:text-teal"
+            }`}
+            title={tipUrl}
+          >
+            {copied ? (
+              <><Check className="h-3.5 w-3.5" strokeWidth={2.6} /> Copied!</>
+            ) : (
+              <><Copy className="h-3.5 w-3.5" strokeWidth={2.4} /> Copy tip link</>
+            )}
+          </button>
+        )}
+
+        {/* Public page shortcut */}
+        <Link
+          href={creator?.slug ? `/creator/${creator.slug}` : "/"}
+          target={creator?.slug ? "_blank" : undefined}
+          className="hidden items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-navy sm:inline-flex"
+        >
+          View page <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.4} />
+        </Link>
+
+        {/* Avatar chip (uses uploaded avatar if the creator has one) */}
+        {creator?.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={creator.avatar_url}
+            alt={name}
+            title={name}
+            className="h-9 w-9 shrink-0 rounded-full object-cover shadow-soft ring-2 ring-white"
+          />
+        ) : (
+          <span
+            title={name}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-sm font-medium text-white shadow-soft ring-2 ring-white"
+          >
+            {name.charAt(0).toUpperCase()}
+          </span>
+        )}
+      </div>
+    </header>
   );
 }
 
@@ -331,11 +418,11 @@ function DashboardSidebar({
           }`}
         >
           <Link href="/" className={`flex items-center gap-2.5 ${collapsed ? "lg:hidden" : ""}`}>
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-mint text-navy">
-              <Palette className="h-[18px] w-[18px]" strokeWidth={2.4} />
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-mint text-navy shadow-lift">
+              <span aria-hidden className="text-lg leading-none">🫙</span>
             </span>
             <span className="font-display text-lg font-medium tracking-tight">
-              Creator<span className="text-mint">Hub</span>
+              Tipping<span className="text-mint">Jar</span>
             </span>
           </Link>
 
