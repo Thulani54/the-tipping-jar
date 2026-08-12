@@ -232,7 +232,9 @@ function DashboardInner() {
             {tab === "analytics" && (
               <AnalyticsTab token={token} creatorId={myCreator?.id ?? null} tips={tips} />
             )}
-            {tab === "exclusive" && <ExclusiveTab token={token} hasProfile={!!myCreator} />}
+            {tab === "exclusive" && (
+              <ExclusiveTab token={token} hasProfile={!!myCreator} slug={myCreator?.slug ?? null} />
+            )}
             {tab === "jars" && <JarsTab token={token} creator={myCreator} />}
             {tab === "transactions" && (
               <TransactionsTab token={token} creatorId={myCreator?.id ?? null} />
@@ -2360,13 +2362,47 @@ function ProfileTab({
 
 
 // ─── Exclusive posts ─────────────────────────────────────────────────────────
-function ExclusiveTab({ token, hasProfile }: { token: string | null; hasProfile: boolean }) {
+// Ready-to-remix post ideas so creators aren't staring at a blank field.
+const POST_TEMPLATES: { label: string; title: string; body: string }[] = [
+  {
+    label: "🎁 Behind the scenes",
+    title: "Behind the scenes: what I've been working on",
+    body: "A quick peek at what's been happening this month — the wins, the mess, the surprises. Thanks for making it possible 💚",
+  },
+  {
+    label: "🎵 Unreleased track",
+    title: "Unreleased track — supporter preview",
+    body: "This one's been on my mind for weeks. Not out yet, but you get to hear it first.\n\nDownload link: [paste here]\nPassword: [optional]",
+  },
+  {
+    label: "📸 Photo dump",
+    title: "Photo dump — this month's outtakes",
+    body: "The photos that didn't make the grid — but I love them all. Enjoy!",
+  },
+  {
+    label: "🎟️ Early access",
+    title: "Early access: [event / product / drop]",
+    body: "You're on the list. Redemption code: [XXXX-XXXX]\nExpires: [date]\n\nThanks for backing me — this is the smallest way I can say it.",
+  },
+  {
+    label: "📝 Long form",
+    title: "A note from me…",
+    body: "I wanted to write this properly, just for you. Here's what's been on my mind…",
+  },
+];
+
+function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasProfile: boolean; slug: string | null }) {
   const [posts, setPosts] = useState<ExclusivePost[] | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [scope, setScope] = useState<"all" | "month">("all");
+  const [dragOver, setDragOver] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const imgRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
@@ -2397,82 +2433,285 @@ function ExclusiveTab({ token, hasProfile }: { token: string | null; hasProfile:
     }
   }
 
+  async function onDropFile(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    const fl = e.dataTransfer.files?.[0];
+    if (fl && fl.type.startsWith("image/")) setImage(await compressImage(fl, 1200));
+  }
+
+  const now = Date.now();
+  const monthAgo = now - 30 * 86400000;
+  const filtered = (posts ?? []).filter((p) => {
+    if (scope === "month" && +new Date(p.created_at) < monthAgo) return false;
+    if (q) {
+      const needle = q.toLowerCase();
+      if (!p.title.toLowerCase().includes(needle) && !(p.body || "").toLowerCase().includes(needle)) return false;
+    }
+    return true;
+  });
+
+  const total = posts?.length ?? 0;
+  const thisMonth = (posts ?? []).filter((p) => +new Date(p.created_at) >= monthAgo).length;
+  const withImage = (posts ?? []).filter((p) => p.image_url).length;
+  const latest = posts?.[0]?.created_at;
+  const daysSinceLast = latest ? Math.floor((now - +new Date(latest)) / 86400000) : null;
+  const vaultUrl = slug ? `https://www.tippingjar.co.za/creator/${slug}` : "";
+
   return (
-    <div className="max-w-3xl space-y-6">
-      <div>
-        <h2 className="text-xl font-medium tracking-tight text-ink">Exclusive content</h2>
-        <p className="body-muted mt-1">
-          Only fans who tipped you <span className="font-medium text-ink">this month</span> (R10+, with their email)
-          can unlock these on your page. A fresh reason to tip, every month.
-        </p>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-medium tracking-tight text-ink">Exclusive content</h2>
+          <p className="body-muted mt-1">
+            Fans who tipped you <span className="font-medium text-ink">this month</span> (R10+, with their email) unlock these on your page.
+            A fresh reason to tip, every month.
+          </p>
+        </div>
+        {slug && (
+          <button
+            onClick={() => {
+              navigator.clipboard?.writeText(vaultUrl);
+              setLinkCopied(true);
+              window.setTimeout(() => setLinkCopied(false), 1800);
+            }}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium transition ${
+              linkCopied ? "border-teal bg-teal text-white" : "border-border bg-white text-muted hover:border-teal hover:text-teal"
+            }`}
+          >
+            {linkCopied ? <><Check className="h-3.5 w-3.5" strokeWidth={2.6} /> Vault link copied</> : <><Copy className="h-3.5 w-3.5" strokeWidth={2.2} /> Copy vault link</>}
+          </button>
+        )}
       </div>
 
-      <div className="card space-y-3 !p-5">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Post title — e.g. Unreleased demo: 'Midnight'"
-          className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
+      {/* KPIs */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Total posts" value={String(total)} icon={Lock} accent="#7C3AED" />
+        <StatCard label="Published this month" value={String(thisMonth)} icon={Calendar} accent="#12A25C" />
+        <StatCard label="With image" value={String(withImage)} icon={QrCode} accent="#E0A536" />
+        <StatCard
+          label="Days since last post"
+          value={daysSinceLast === null ? "—" : String(daysSinceLast)}
+          icon={Zap}
+          accent={daysSinceLast !== null && daysSinceLast > 30 ? "#DC2626" : "#2563EB"}
         />
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          rows={5}
-          placeholder="The content — behind-the-scenes notes, download links, early access codes…"
-          className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
-        />
-        <div className="flex flex-wrap items-center gap-3">
-          <button onClick={() => imgRef.current?.click()} className="btn-ghost !px-4 !py-2 text-xs">
-            {image ? "Change image" : "Add image"}
-          </button>
-          {image && (
-            <>
+      </div>
+
+      {/* Nudge if it's been a while */}
+      {daysSinceLast !== null && daysSinceLast > 30 && (
+        <div className="card flex items-center gap-3 !p-4 !border-amber-500/40 bg-amber-500/5">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-500/15 text-amber-600">
+            <Zap className="h-4 w-4" strokeWidth={2.4} />
+          </span>
+          <p className="text-sm text-ink">
+            It&apos;s been <span className="font-semibold">{daysSinceLast} days</span> since your last post. Fresh drops keep supporters coming back —
+            {" "}<button onClick={() => (document.getElementById("exclusive-title") as HTMLInputElement | null)?.focus()} className="font-semibold text-teal hover:underline">write a quick update</button>.
+          </p>
+        </div>
+      )}
+
+      {/* Composer */}
+      <div className="card space-y-4 !p-5">
+        {/* Template chips */}
+        <div className="flex flex-wrap gap-2">
+          <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted">Templates</span>
+          {POST_TEMPLATES.map((t) => (
+            <button
+              key={t.label}
+              onClick={() => { setTitle(t.title); setBody(t.body); }}
+              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted transition hover:border-teal hover:text-teal"
+            >
+              {t.label}
+            </button>
+          ))}
+          {(title || body) && (
+            <button
+              onClick={() => { setTitle(""); setBody(""); setImage(null); }}
+              className="ml-auto text-xs font-medium text-muted hover:text-red-500"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        <div>
+          <input
+            id="exclusive-title"
+            value={title}
+            maxLength={120}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Post title — e.g. Unreleased demo: 'Midnight'"
+            className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
+          />
+          <p className="mt-1 text-right font-mono text-[10px] text-muted">{title.length}/120</p>
+        </div>
+
+        <div>
+          <textarea
+            value={body}
+            maxLength={5000}
+            onChange={(e) => setBody(e.target.value)}
+            rows={6}
+            placeholder="The content — behind-the-scenes notes, download links, early-access codes…"
+            className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-ink focus:border-primary/40 focus:outline-none"
+          />
+          <p className="mt-1 text-right font-mono text-[10px] text-muted">{body.length.toLocaleString()}/5,000</p>
+        </div>
+
+        {/* Drag-and-drop image */}
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDropFile}
+          onClick={() => imgRef.current?.click()}
+          className={`grid cursor-pointer place-items-center rounded-xl border-2 border-dashed p-4 text-center transition ${
+            dragOver ? "border-teal bg-teal/5" : "border-border bg-darker/40 hover:border-teal/50"
+          }`}
+        >
+          {image ? (
+            <div className="flex w-full items-center gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={image} alt="" className="h-10 w-10 rounded-lg object-cover" />
-              <button onClick={() => setImage(null)} className="text-xs text-muted hover:text-red-500">remove</button>
+              <img src={image} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover" />
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-sm font-medium text-ink">Image attached</p>
+                <p className="text-xs text-muted">Click to swap · drop a new one to replace</p>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); setImage(null); }}
+                className="text-xs font-medium text-muted hover:text-red-500"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <>
+              <QrCode className="h-6 w-6 text-muted" strokeWidth={2} />
+              <p className="mt-2 text-sm font-medium text-ink">Drop an image, or click to choose one</p>
+              <p className="text-xs text-muted">JPEG / PNG · auto-compressed to fit</p>
             </>
           )}
-          <button onClick={publish} disabled={busy || !title.trim()} className="btn-primary ml-auto !px-6 !py-2.5 text-sm disabled:opacity-50">
-            {busy ? "Publishing…" : "Publish"}
+          <input
+            ref={imgRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (e) => { const fl = e.target.files?.[0]; if (fl) setImage(await compressImage(fl, 1200)); e.target.value = ""; }}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+          <p className="text-xs text-muted">
+            <Lock className="mr-1 inline-block h-3 w-3" strokeWidth={2.4} />
+            Locked to fans who tipped this month
+          </p>
+          <button
+            onClick={publish}
+            disabled={busy || !title.trim()}
+            className="btn-primary ml-auto !px-6 !py-2.5 text-sm disabled:opacity-50"
+          >
+            {busy ? "Publishing…" : "Publish to the vault"}
           </button>
         </div>
         {note && <p className="text-sm text-teal">{note}</p>}
-        <input ref={imgRef} type="file" accept="image/*" className="hidden"
-          onChange={async (e) => { const fl = e.target.files?.[0]; if (fl) setImage(await compressImage(fl, 1200)); e.target.value = ""; }} />
       </div>
 
+      {/* Filter row */}
+      {posts && posts.length > 0 && (
+        <div className="card flex flex-wrap items-center gap-3 !p-4">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search posts…"
+            className="w-full max-w-xs rounded-full border border-border bg-white px-4 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
+          />
+          <div className="flex gap-1.5">
+            {(["all", "month"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setScope(s)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  scope === s ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+                }`}
+              >
+                {s === "all" ? "All time" : "This month"}
+              </button>
+            ))}
+          </div>
+          <span className="ml-auto text-xs text-muted">Showing {filtered.length} of {posts.length}</span>
+        </div>
+      )}
+
+      {/* Posts grid */}
       {!posts ? (
         <p className="body-muted">Loading…</p>
       ) : posts.length === 0 ? (
-        <EmptyState icon={Lock} title="Nothing in the vault yet" body="Publish your first exclusive post above." />
+        <EmptyState icon={Lock} title="Nothing in the vault yet" body="Pick a template above and publish your first exclusive post." />
+      ) : filtered.length === 0 ? (
+        <EmptyState icon={Lock} title="No posts match" body="Try clearing your search or widening the scope." />
       ) : (
-        <div className="space-y-3">
-          {posts.map((p) => (
-            <div key={p.id} className="card flex items-start gap-4 !p-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {filtered.map((p) => {
+            const isOpen = expanded === p.id;
+            return (
+            <div key={p.id} className="card overflow-hidden !p-0">
               {p.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.image_url} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                <img src={p.image_url} alt="" className="h-40 w-full object-cover" />
               )}
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-ink">{p.title}</p>
-                {p.body && <p className="body-muted mt-1 line-clamp-2 text-sm">{p.body}</p>}
-                <p className="mt-1.5 font-mono text-[11px] text-muted">
-                  {new Date(p.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
-                </p>
+              <div className="space-y-2 p-5">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium text-ink">{p.title}</p>
+                  <span className="shrink-0 rounded-full bg-mint/15 px-2 py-0.5 text-[10px] font-medium text-green">
+                    <Lock className="mr-1 inline h-2.5 w-2.5" strokeWidth={2.6} />
+                    Vault
+                  </span>
+                </div>
+                {p.body && (
+                  <p className={`text-sm text-muted whitespace-pre-wrap ${isOpen ? "" : "line-clamp-3"}`}>{p.body}</p>
+                )}
+                {p.body && p.body.length > 160 && (
+                  <button
+                    onClick={() => setExpanded(isOpen ? null : p.id)}
+                    className="text-[11px] font-medium text-teal hover:underline"
+                  >
+                    {isOpen ? "Show less" : "Read more"}
+                  </button>
+                )}
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <p className="font-mono text-[11px] text-muted">
+                    {new Date(p.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    {slug && (
+                      <button
+                        onClick={() => {
+                          navigator.clipboard?.writeText(`${vaultUrl}?post=${p.id}`);
+                          setNote("Post link copied — supporters see it after unlocking the vault.");
+                          window.setTimeout(() => setNote(null), 2000);
+                        }}
+                        className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted hover:border-teal hover:text-teal"
+                        title="Copy a link to this post"
+                      >
+                        <Copy className="inline h-3 w-3" strokeWidth={2.4} /> Link
+                      </button>
+                    )}
+                    <button
+                      onClick={async () => {
+                        if (!token || !window.confirm(`Delete "${p.title}"?`)) return;
+                        await api.deletePost(token, p.id).catch(() => null);
+                        load();
+                      }}
+                      className="rounded-full border border-red-200 px-2.5 py-1 text-[11px] font-medium text-red-500 hover:bg-red-50"
+                      title="Delete post"
+                    >
+                      <X className="inline h-3 w-3" strokeWidth={2.4} />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={async () => {
-                  if (!token || !window.confirm(`Delete "${p.title}"?`)) return;
-                  await api.deletePost(token, p.id).catch(() => null);
-                  load();
-                }}
-                className="shrink-0 text-muted transition hover:text-red-500"
-                title="Delete post"
-              >
-                <X className="h-4 w-4" strokeWidth={2.2} />
-              </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
