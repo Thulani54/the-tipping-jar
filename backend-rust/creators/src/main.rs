@@ -453,6 +453,12 @@ struct UpdateMeReq {
     city: Option<String>,
     org_type: Option<String>,
     registration_number: Option<String>,
+    /// Data URL of the creator's government-issued ID document. Kept off the
+    /// public profile — only admins see it.
+    id_document_url: Option<String>,
+    /// Data URL of a bank-issued proof of account (statement / confirmation
+    /// letter). Also admin-only.
+    proof_of_account_url: Option<String>,
 }
 
 /// Creator edits their own profile (partial update; images as data URLs).
@@ -475,6 +481,21 @@ async fn update_me(
             }
             if !v.is_empty() && !v.starts_with("data:image/") {
                 return Err(AppError::BadRequest(format!("{label} must be an image data URL")));
+            }
+        }
+    }
+    // Verification documents — larger cap since they might be full-page
+    // scans; PDFs go in as data:application/pdf.
+    for (label, doc) in [
+        ("id document", &req.id_document_url),
+        ("proof of account", &req.proof_of_account_url),
+    ] {
+        if let Some(v) = doc {
+            if v.len() > 2_000_000 {
+                return Err(AppError::BadRequest(format!("{label} is too large (2MB max)")));
+            }
+            if !v.is_empty() && !(v.starts_with("data:image/") || v.starts_with("data:application/pdf")) {
+                return Err(AppError::BadRequest(format!("{label} must be an image or PDF data URL")));
             }
         }
     }
@@ -510,7 +531,15 @@ async fn update_me(
             country      = COALESCE($12, country),
             city         = COALESCE($13, city),
             org_type     = COALESCE($14, org_type),
-            registration_number = COALESCE($15, registration_number)
+            registration_number = COALESCE($15, registration_number),
+            id_document_url      = COALESCE($17, id_document_url),
+            proof_of_account_url = COALESCE($18, proof_of_account_url),
+            kyc_status           = CASE
+                WHEN COALESCE(NULLIF($17, ''), NULLIF(id_document_url, '')) <> ''
+                 AND COALESCE(NULLIF($18, ''), NULLIF(proof_of_account_url, '')) <> ''
+                 AND kyc_status = 'not_started' THEN 'pending'
+                ELSE kyc_status
+            END
          WHERE user_id = $16 RETURNING {CREATOR_COLUMNS}"
     ))
     .bind(req.display_name.map(|d| d.trim().to_string()))
@@ -529,6 +558,8 @@ async fn update_me(
     .bind(req.org_type.filter(|v| matches!(v.as_str(), "" | "ngo" | "church" | "school" | "business" | "other")))
     .bind(req.registration_number.map(|r| r.chars().take(60).collect::<String>()))
     .bind(user_id)
+    .bind(req.id_document_url)
+    .bind(req.proof_of_account_url)
     .fetch_optional(&st.pool)
     .await?;
     row.map(Json)
@@ -665,9 +696,14 @@ async fn set_featured_internal(
 #[derive(Deserialize)]
 struct SetKycReq {
     status: String,
+    /// Optional admin note stored alongside the decision. When present it
+    /// replaces the existing verification_notes; when absent, notes stay.
+    notes: Option<String>,
 }
 
-/// Internal (admin portal): set a creator's KYC status.
+/// Internal (admin portal): set a creator's KYC status. Optionally attaches
+/// a note that surfaces on the creator's profile ("we couldn't read your
+/// ID — please re-upload").
 async fn set_kyc_internal(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -681,15 +717,58 @@ async fn set_kyc_internal(
     ) {
         return Err(AppError::BadRequest("invalid kyc status".into()));
     }
-    let res = sqlx::query("UPDATE creator_profiles SET kyc_status = $1 WHERE id = $2")
-        .bind(&req.status)
-        .bind(id)
-        .execute(&st.pool)
-        .await?;
+    let res = sqlx::query(
+        "UPDATE creator_profiles
+         SET kyc_status = $1,
+             verification_notes = COALESCE($2, verification_notes)
+         WHERE id = $3",
+    )
+    .bind(&req.status)
+    .bind(req.notes.map(|n| n.chars().take(500).collect::<String>()))
+    .bind(id)
+    .execute(&st.pool)
+    .await?;
     if res.rows_affected() == 0 {
         return Err(AppError::NotFound("creator not found".into()));
     }
     Ok(Json(json!({ "id": id, "kyc_status": req.status })))
+}
+
+/// Internal (admin portal): fetch a creator's verification documents +
+/// current status + notes + how many days they've been on the platform
+/// (so the admin knows how much grace they've had).
+async fn get_verification_internal(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    use sqlx::Row;
+    let row = sqlx::query(
+        "SELECT id, display_name, slug, kyc_status,
+                id_document_url, proof_of_account_url, verification_notes,
+                created_at
+         FROM creator_profiles WHERE id = $1",
+    )
+    .bind(id)
+    .fetch_optional(&st.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("creator not found".into()))?;
+
+    let created_at: chrono::DateTime<chrono::Utc> = row.try_get("created_at").unwrap_or_else(|_| chrono::Utc::now());
+    let days_since_signup = (chrono::Utc::now() - created_at).num_days();
+    Ok(Json(json!({
+        "id": row.try_get::<Uuid, _>("id").unwrap_or_default(),
+        "display_name": row.try_get::<String, _>("display_name").unwrap_or_default(),
+        "slug": row.try_get::<String, _>("slug").unwrap_or_default(),
+        "kyc_status": row.try_get::<String, _>("kyc_status").unwrap_or_default(),
+        "id_document_url": row.try_get::<String, _>("id_document_url").unwrap_or_default(),
+        "proof_of_account_url": row.try_get::<String, _>("proof_of_account_url").unwrap_or_default(),
+        "verification_notes": row.try_get::<String, _>("verification_notes").unwrap_or_default(),
+        "created_at": created_at,
+        "days_since_signup": days_since_signup,
+        "grace_days_remaining": (31 - days_since_signup).max(0),
+    })))
 }
 
 /// Internal (admin portal): delete a creator profile and everything it owns.
@@ -1310,6 +1389,16 @@ async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::query("ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT FALSE")
         .execute(pool)
         .await?;
+    // KYC document storage — data URLs of the two files the creator submits
+    // for vetting (ID + proof of account). Plus the admin's notes when they
+    // approve or reject.
+    for stmt in [
+        "ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS id_document_url TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS proof_of_account_url TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS verification_notes TEXT NOT NULL DEFAULT ''",
+    ] {
+        sqlx::query(stmt).execute(pool).await?;
+    }
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS exclusive_posts (
             id         UUID PRIMARY KEY,
@@ -1475,6 +1564,7 @@ async fn main() {
         .route("/internal/creators/by-user/:user_id", get(get_by_user_id_internal))
         .route("/internal/creators/:id/active", post(set_active_internal))
         .route("/internal/creators/:id/kyc", post(set_kyc_internal))
+        .route("/internal/creators/:id/verification", get(get_verification_internal))
         .route("/internal/creators/:id/featured", post(set_featured_internal))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);

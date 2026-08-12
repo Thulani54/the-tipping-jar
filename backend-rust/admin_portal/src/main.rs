@@ -279,6 +279,18 @@ async fn set_creator_kyc(
     forward(&st, reqwest::Method::POST, format!("{}/internal/creators/{id}/kyc", st.creators_url), Some(&body)).await
 }
 
+/// GET a creator's verification submission — docs + notes + grace-window
+/// stats. Admin-only, audited.
+async fn get_creator_verification(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<Value>, AppError> {
+    let (_, email) = require_admin(&st, &headers).await?;
+    audit(&st, &email, "creator.view_verification", &id, "").await;
+    forward(&st, reqwest::Method::GET, format!("{}/internal/creators/{id}/verification", st.creators_url), None).await
+}
+
 async fn delete_creator(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -505,6 +517,7 @@ async fn main() {
         .route("/creators/:id", axum::routing::delete(delete_creator))
         .route("/creators/:id/active", post(set_creator_active))
         .route("/creators/:id/kyc", post(set_creator_kyc))
+        .route("/creators/:id/verification", get(get_creator_verification))
         .route("/tips", get(tips))
         .route("/analytics/daily", get(analytics_daily))
         .route("/transactions", get(transactions))

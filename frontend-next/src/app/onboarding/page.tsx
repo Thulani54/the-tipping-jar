@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
-// Individual flow: profile-type → platforms → niche → audience-size → age → gender → location → identity → bank  (9)
-// Organisation flow: profile-type → org-type → causes/focus → registration → location → identity → bank  (7)
-// The final "bank" step is a payout-verification form; users can skip it and
-// add banking details later from Dashboard → Bank.
-const INDIVIDUAL_STEPS = 9;
-const ORG_STEPS = 7;
+// Individual flow: profile-type → platforms → niche → audience-size → age → gender → location → identity → bank → verify  (10)
+// Organisation flow: profile-type → org-type → causes/focus → registration → location → identity → bank → verify  (8)
+// The last two steps — bank and verify — are both skippable. Creators get
+// 31 days from signup to upload their ID + proof of account before their
+// verified badge is at risk; the admin portal shows the countdown.
+const INDIVIDUAL_STEPS = 10;
+const ORG_STEPS = 8;
+const KYC_GRACE_DAYS = 31;
 
 const PROFILE_TYPES = [
   {
@@ -184,6 +186,13 @@ export default function OnboardingPage() {
   const [branchCode, setBranchCode] = useState("");
   const [accountType, setAccountType] = useState("cheque");
 
+  // Verification documents (final step). Both stored as data URLs and
+  // sent up as part of the profile update after the create call.
+  const [idDoc, setIdDoc] = useState<string | null>(null);
+  const [poaDoc, setPoaDoc] = useState<string | null>(null);
+  const [idDocName, setIdDocName] = useState<string>("");
+  const [poaDocName, setPoaDocName] = useState<string>("");
+
   const isOrg = profileType === "organisation";
   const TOTAL_STEPS = isOrg ? ORG_STEPS : profileType === "individual" ? INDIVIDUAL_STEPS : 1;
 
@@ -214,6 +223,7 @@ export default function OnboardingPage() {
         case 4: return country.length > 0 && city.trim().length > 0;
         case 5: return displayName.trim().length > 0 && tagline.trim().length > 0;
         case 6: return !bankFilled || bankValid; // bank step — skippable
+        case 7: return true; // verification step — skippable
       }
     } else {
       switch (step) {
@@ -225,10 +235,45 @@ export default function OnboardingPage() {
         case 6: return country.length > 0 && city.trim().length > 0;
         case 7: return displayName.trim().length > 0 && tagline.trim().length > 0;
         case 8: return !bankFilled || bankValid; // bank step — skippable
+        case 9: return true; // verification step — skippable
       }
     }
     return false;
   })();
+
+  // Read a file (image or PDF) as a data URL. Image files get compressed
+  // via canvas to stay under the 2MB backend cap; PDFs pass through as-is.
+  async function readAsDataUrl(file: File): Promise<string> {
+    const isPdf = file.type === "application/pdf";
+    if (isPdf) {
+      return await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result as string);
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+      });
+    }
+    // Compress images to fit within the 2MB server cap comfortably.
+    return await new Promise<string>((resolve, reject) => {
+      const img = new Image();
+      const fr = new FileReader();
+      fr.onload = () => {
+        img.onload = () => {
+          const max = 1600;
+          const k = Math.min(1, max / Math.max(img.width, img.height));
+          const c = document.createElement("canvas");
+          c.width = Math.round(img.width * k);
+          c.height = Math.round(img.height * k);
+          c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL("image/jpeg", 0.82));
+        };
+        img.onerror = reject;
+        img.src = fr.result as string;
+      };
+      fr.onerror = reject;
+      fr.readAsDataURL(file);
+    });
+  }
 
   function toggleCause(c: string) {
     setOrgCauses((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -281,22 +326,23 @@ export default function OnboardingPage() {
         country,
         city: city.trim() || undefined,
       });
-      // If bank fields were provided, persist them as a follow-up PUT. The
-      // create endpoint doesn't accept bank_details; the profile-update one
-      // does. Errors here don't block the dashboard redirect — the user can
-      // fix them from Dashboard → Bank.
+      // Follow-up PUT for anything the create endpoint doesn't accept —
+      // bank details and verification documents. Errors here don't block
+      // the dashboard redirect; they can fix them from Dashboard → Profile.
+      const followUp: Parameters<typeof api.updateMyCreatorProfile>[1] = {};
       if (bankFilled && bankValid) {
-        await api
-          .updateMyCreatorProfile(token, {
-            bank_details: {
-              bank: bankName,
-              account_name: accountHolder.trim(),
-              account_no: accountNo.replace(/\s+/g, ""),
-              branch_code: branchCode.replace(/\s+/g, "") || undefined,
-              account_type: accountType,
-            },
-          })
-          .catch(() => null);
+        followUp.bank_details = {
+          bank: bankName,
+          account_name: accountHolder.trim(),
+          account_no: accountNo.replace(/\s+/g, ""),
+          branch_code: branchCode.replace(/\s+/g, "") || undefined,
+          account_type: accountType,
+        };
+      }
+      if (idDoc) followUp.id_document_url = idDoc;
+      if (poaDoc) followUp.proof_of_account_url = poaDoc;
+      if (Object.keys(followUp).length > 0) {
+        await api.updateMyCreatorProfile(token, followUp).catch(() => null);
       }
       router.push("/dashboard");
     } catch (e) {
@@ -656,6 +702,107 @@ export default function OnboardingPage() {
             </StepShell>
           )}
 
+          {/* ─── SHARED: Verification documents (step 7 for org, 9 for individual) ─ */}
+          {profileType && ((isOrg && step === 7) || (!isOrg && step === 9)) && (
+            <StepShell
+              title="Verify your account"
+              subtitle={`Upload your ID and proof of account so we can send you the verified badge. You have ${KYC_GRACE_DAYS} days from today — you can skip this now and add it later from Dashboard → Profile.`}
+            >
+              <div className="space-y-5">
+                {/* Trust panel */}
+                <div className="flex items-start gap-3 rounded-2xl border border-teal/30 bg-primary/5 p-4">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-teal/15 text-teal">
+                    <i className="bi bi-shield-check" aria-hidden />
+                  </span>
+                  <div className="text-xs text-muted">
+                    <p className="font-semibold text-ink">Kept private, reviewed by our team</p>
+                    <p className="mt-0.5">
+                      Documents are encrypted, never shown on your public page, and only used to confirm you're the account holder before your first payout.
+                    </p>
+                  </div>
+                </div>
+
+                {/* ID document */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-ink">
+                    Government-issued ID
+                  </label>
+                  <p className="mb-2 text-xs text-muted">
+                    A photo or scan of your South-African ID, passport, driver's licence, or {isOrg ? "an authorised officer's ID for the organisation" : "any govt-issued photo ID"}.
+                  </p>
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border bg-card px-4 py-3 text-sm text-muted hover:border-teal/50">
+                    <i className={`bi ${idDoc ? "bi-check-circle-fill text-teal" : "bi-upload"}`} aria-hidden />
+                    <span className="flex-1 truncate">
+                      {idDoc ? (idDocName || "ID uploaded — click to replace") : "Click to upload (JPG, PNG or PDF · max 2MB)"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="sr-only"
+                      onChange={async (e) => {
+                        const fl = e.target.files?.[0];
+                        if (!fl) return;
+                        try {
+                          setIdDoc(await readAsDataUrl(fl));
+                          setIdDocName(fl.name);
+                        } catch { /* ignore — keep previous */ }
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {/* Proof of account */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-ink">
+                    Proof of bank account
+                  </label>
+                  <p className="mb-2 text-xs text-muted">
+                    A recent bank statement, stamped confirmation letter, or a screenshot showing the account holder name + account number.
+                  </p>
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border bg-card px-4 py-3 text-sm text-muted hover:border-teal/50">
+                    <i className={`bi ${poaDoc ? "bi-check-circle-fill text-teal" : "bi-upload"}`} aria-hidden />
+                    <span className="flex-1 truncate">
+                      {poaDoc ? (poaDocName || "Proof uploaded — click to replace") : "Click to upload (JPG, PNG or PDF · max 2MB)"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="sr-only"
+                      onChange={async (e) => {
+                        const fl = e.target.files?.[0];
+                        if (!fl) return;
+                        try {
+                          setPoaDoc(await readAsDataUrl(fl));
+                          setPoaDocName(fl.name);
+                        } catch { /* ignore */ }
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {/* Grace-period reminder + skip affordance */}
+                <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-800">
+                  <i className="bi bi-clock-history mt-0.5 shrink-0" aria-hidden />
+                  <p>
+                    You have <span className="font-semibold">{KYC_GRACE_DAYS} days</span> from today to upload these — after that, payouts may be paused until verification is complete. You can skip now and upload later from the dashboard.
+                  </p>
+                </div>
+
+                {(idDoc || poaDoc) && (
+                  <button
+                    type="button"
+                    onClick={() => { setIdDoc(null); setPoaDoc(null); setIdDocName(""); setPoaDocName(""); }}
+                    className="text-xs font-medium text-muted underline underline-offset-2 hover:text-ink"
+                  >
+                    Clear uploaded documents
+                  </button>
+                )}
+              </div>
+            </StepShell>
+          )}
+
           {/* ─── SHARED: Identity (step 5 for org, 7 for individual) ──────── */}
           {profileType && ((isOrg && step === 5) || (!isOrg && step === 7)) && (
             <StepShell
@@ -741,8 +888,8 @@ export default function OnboardingPage() {
               {saving
                 ? "Saving…"
                 : step === TOTAL_STEPS - 1
-                  ? bankFilled && bankValid
-                    ? "Verify & finish →"
+                  ? (idDoc || poaDoc)
+                    ? "Submit for review & finish →"
                     : "Skip and go to dashboard →"
                   : "Continue"}
             </button>

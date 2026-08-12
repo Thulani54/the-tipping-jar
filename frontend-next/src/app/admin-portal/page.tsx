@@ -329,12 +329,21 @@ function CreatorsTab({ token }: { token: string }) {
   const [rows, setRows] = useState<AdminCreator[] | null>(null);
   const [err, setErr] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [vetting, setVetting] = useState<AdminCreator | null>(null);
+  // Which KYC statuses to show. Pending sits at the top by default so vetting
+  // work is one click away.
+  const [kycFilter, setKycFilter] = useState<"all" | "pending" | "not_started" | "verified" | "rejected">("all");
   const load = useCallback(() => {
     api.adminCreators(token).then(setRows).catch(() => setErr(true));
   }, [token]);
   useEffect(load, [load]);
   if (err) return <LoadError />;
   if (!rows) return <Loading />;
+  const filtered = rows.filter((c) => kycFilter === "all" || c.kyc_status === kycFilter);
+  const kycCounts = rows.reduce<Record<string, number>>((acc, c) => {
+    acc[c.kyc_status] = (acc[c.kyc_status] || 0) + 1;
+    return acc;
+  }, {});
 
   async function toggle(c: AdminCreator) {
     setBusy(c.id);
@@ -375,8 +384,29 @@ function CreatorsTab({ token }: { token: string }) {
   }
 
   return (
+    <div className="space-y-3">
+      {/* KYC filter chips + counts — makes 'creators awaiting review' one click. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Vet</span>
+        {(["all", "pending", "not_started", "verified", "rejected"] as const).map((s) => {
+          const count = s === "all" ? rows.length : (kycCounts[s] || 0);
+          const active = kycFilter === s;
+          return (
+            <button
+              key={s}
+              onClick={() => setKycFilter(s)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                active ? "bg-primary text-white" : "border border-border text-muted hover:text-ink"
+              }`}
+            >
+              {s === "not_started" ? "not started" : s} · {count}
+            </button>
+          );
+        })}
+      </div>
+
     <Table head={["Creator", "Category", "KYC", "Media", "Joined", "Status", ""]}>
-      {rows.map((c) => (
+      {filtered.map((c) => (
         <tr key={c.id} className="border-b border-border/60 last:border-0">
           <td className="px-5 py-3">
             <Link href={`/creator/${c.slug}`} className="font-semibold text-ink hover:text-green">
@@ -406,6 +436,14 @@ function CreatorsTab({ token }: { token: string }) {
           <td className="px-5 py-3"><StatusPill status={c.is_active ? "active" : "inactive"} /></td>
           <td className="px-5 py-3 text-right">
             <span className="inline-flex items-center gap-2">
+              <button
+                onClick={() => setVetting(c)}
+                disabled={busy === c.id}
+                title="Review verification documents"
+                className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:border-teal hover:text-teal disabled:opacity-50"
+              >
+                <i className="bi bi-shield-check" /> Vet
+              </button>
               <button
                 onClick={() => setFeatured(c)}
                 disabled={busy === c.id}
@@ -440,6 +478,208 @@ function CreatorsTab({ token }: { token: string }) {
         </tr>
       ))}
     </Table>
+    {vetting && (
+      <VerifyCreatorModal
+        token={token}
+        creator={vetting}
+        onClose={() => setVetting(null)}
+        onDecided={() => { setVetting(null); load(); }}
+      />
+    )}
+    </div>
+  );
+}
+
+// Verification modal — loads the creator's docs (ID + proof-of-account), shows
+// them inline, and lets the admin approve / reject with a note. Both docs are
+// data URLs so no extra fetch beyond the /admin/creators/:id/verification call.
+function VerifyCreatorModal({
+  token,
+  creator,
+  onClose,
+  onDecided,
+}: {
+  token: string;
+  creator: AdminCreator;
+  onClose: () => void;
+  onDecided: () => void;
+}) {
+  const [data, setData] = useState<Awaited<ReturnType<typeof api.adminCreatorVerification>> | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .adminCreatorVerification(token, creator.id)
+      .then((d) => { setData(d); setNotes(d.verification_notes || ""); })
+      .catch(() => setErr("Could not load verification details."));
+  }, [token, creator.id]);
+
+  async function decide(status: "verified" | "rejected" | "pending" | "not_started") {
+    setBusy(status);
+    setErr(null);
+    try {
+      await api.adminSetCreatorKyc(token, creator.id, status, notes);
+      onDecided();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not update status.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const gracePct = data
+    ? Math.max(0, Math.min(100, Math.round((data.grace_days_remaining / 31) * 100)))
+    : 0;
+  const graceColor = data
+    ? (data.grace_days_remaining <= 0 ? "text-red-500" : data.grace_days_remaining <= 7 ? "text-amber-600" : "text-teal")
+    : "text-muted";
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 border-b border-border p-5">
+          <div className="min-w-0">
+            <p className="text-xs font-mono uppercase tracking-wide text-muted">Vetting</p>
+            <h2 className="mt-1 truncate text-lg font-bold text-ink">
+              {creator.display_name} <span className="ml-1 text-sm font-mono text-muted">@{creator.slug}</span>
+            </h2>
+            {data && (
+              <p className="mt-1 text-xs text-muted">
+                Current KYC status:{" "}
+                <span className="font-semibold text-ink">{data.kyc_status}</span> · Joined {when(data.created_at)} ({data.days_since_signup} days ago)
+              </p>
+            )}
+          </div>
+          <button onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-darker" aria-label="Close">
+            <i className="bi bi-x-lg" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="space-y-5 p-5">
+          {err && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">{err}</div>}
+          {!data && !err && <p className="text-sm text-muted">Loading documents…</p>}
+
+          {data && (
+            <>
+              {/* Grace-period meter */}
+              <div className="rounded-2xl border border-border/60 p-4">
+                <div className="flex items-baseline justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                    31-day grace window
+                  </p>
+                  <span className={`text-lg font-extrabold ${graceColor}`}>
+                    {data.grace_days_remaining > 0 ? `${data.grace_days_remaining}d left` : "Expired"}
+                  </span>
+                </div>
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-darker/40">
+                  <div
+                    className={`h-full rounded-full transition-all ${data.grace_days_remaining <= 0 ? "bg-red-500" : data.grace_days_remaining <= 7 ? "bg-amber-500" : "bg-teal"}`}
+                    style={{ width: `${gracePct}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Documents */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <DocViewer label="Government-issued ID" src={data.id_document_url} />
+                <DocViewer label="Proof of bank account" src={data.proof_of_account_url} />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
+                  Notes (visible to the creator)
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value.slice(0, 500))}
+                  rows={3}
+                  placeholder={"e.g. \"Your ID photo was blurry — please re-upload a clearer scan.\""}
+                  className="mt-1.5 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-ink focus:border-primary/40 focus:outline-none"
+                />
+                <p className="mt-1 text-[10px] text-muted">{notes.length}/500</p>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Actions */}
+        {data && (
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border p-5">
+            <button
+              onClick={() => decide("rejected")}
+              disabled={!!busy}
+              className="rounded-full border border-red-300 px-4 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+            >
+              {busy === "rejected" ? "Rejecting…" : "Reject"}
+            </button>
+            <button
+              onClick={() => decide("pending")}
+              disabled={!!busy}
+              className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-muted hover:text-ink disabled:opacity-50"
+            >
+              {busy === "pending" ? "Saving…" : "Mark pending"}
+            </button>
+            <button
+              onClick={() => decide("verified")}
+              disabled={!!busy || !data.id_document_url || !data.proof_of_account_url}
+              className="rounded-full bg-teal px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              title={(!data.id_document_url || !data.proof_of_account_url) ? "Creator has not uploaded both documents yet" : ""}
+            >
+              {busy === "verified" ? "Approving…" : "✅ Approve as verified"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Inline viewer for a data-URL doc — image if it's an image, PDF via <embed>,
+// or an empty state when nothing was uploaded.
+function DocViewer({ label, src }: { label: string; src: string }) {
+  const isPdf = (src || "").startsWith("data:application/pdf");
+  const isImg = (src || "").startsWith("data:image/");
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border">
+      <div className="flex items-center justify-between border-b border-border bg-darker/40 px-3 py-2 text-xs">
+        <span className="font-semibold text-ink">{label}</span>
+        {src && (
+          <a
+            href={src}
+            download={label.toLowerCase().replace(/\W+/g, "-") + (isPdf ? ".pdf" : ".jpg")}
+            className="font-medium text-teal hover:underline"
+          >
+            <i className="bi bi-download" /> Download
+          </a>
+        )}
+      </div>
+      <div className="grid min-h-[240px] place-items-center bg-white">
+        {isImg && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt={label} className="max-h-[300px] w-full object-contain" />
+        )}
+        {isPdf && (
+          <embed src={src} type="application/pdf" className="h-[300px] w-full" />
+        )}
+        {!src && (
+          <div className="p-6 text-center text-xs text-muted">
+            <i className="bi bi-file-earmark-x mb-1 block text-2xl" />
+            Not uploaded yet
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

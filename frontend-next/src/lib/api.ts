@@ -191,12 +191,25 @@ export const api = {
     }),
   adminDeleteUser: (token: string, id: string) =>
     request<{ deleted: string }>(`/admin/users/${id}`, { method: "DELETE", token }),
-  adminSetCreatorKyc: (token: string, id: string, status: string) =>
+  adminSetCreatorKyc: (token: string, id: string, status: string, notes?: string) =>
     request<{ id: string; kyc_status: string }>(`/admin/creators/${id}/kyc`, {
       method: "POST",
-      body: { status },
+      body: notes !== undefined ? { status, notes } : { status },
       token,
     }),
+  adminCreatorVerification: (token: string, id: string) =>
+    request<{
+      id: string;
+      display_name: string;
+      slug: string;
+      kyc_status: string;
+      id_document_url: string;
+      proof_of_account_url: string;
+      verification_notes: string;
+      created_at: string;
+      days_since_signup: number;
+      grace_days_remaining: number;
+    }>(`/admin/creators/${id}/verification`, { token }),
   adminDeleteCreator: (token: string, id: string) =>
     request<{ deleted: string }>(`/admin/creators/${id}`, { method: "DELETE", token }),
   adminDailyStats: (token: string) =>
@@ -297,6 +310,9 @@ export const api = {
       city?: string;
       org_type?: string;
       registration_number?: string;
+      /// Data URLs — persisted server-side, admin-only visibility.
+      id_document_url?: string;
+      proof_of_account_url?: string;
     },
   ) => request<Creator>("/creators/creators/me", { method: "PUT", body, token }),
   myPosts: (token: string) =>
