@@ -256,6 +256,27 @@ details.faq-item summary::-webkit-details-marker {
 .stagger > *:nth-child(5) { animation-delay: 0.22s; }
 .stagger > *:nth-child(6) { animation-delay: 0.27s; }
 
+/* Skeleton shimmer — light sweep over a neutral block while data loads. */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: #eef1ef;
+  border-radius: 12px;
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  animation: shimmerSweep 1.4s ease-in-out infinite;
+}
+@keyframes shimmerSweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
 /* Collapsed-sidebar tooltip */
 .nav-tip {
   position: absolute;

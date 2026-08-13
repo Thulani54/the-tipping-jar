@@ -550,6 +550,51 @@ function DashboardSidebar({
 }
 
 // ─── Overview ────────────────────────────────────────────────────────────────
+// Animates the numeric part of a stat value from 0 to its target on mount,
+// preserving the original prefix/suffix and formatting (separators +
+// decimals). Non-numeric values ("—") render as-is; reduced-motion users
+// get the final value immediately.
+function CountUpValue({ value }: { value: string }) {
+  const [display, setDisplay] = useState(value);
+  useEffect(() => {
+    const m = value.match(/^([^0-9-]*)(-?[\d\s,.]*\d)(.*)$/);
+    if (!m) {
+      setDisplay(value);
+      return;
+    }
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setDisplay(value);
+      return;
+    }
+    const [, prefix, numRaw, suffix] = m;
+    const target = parseFloat(numRaw.replace(/[\s,]/g, ""));
+    if (!Number.isFinite(target)) {
+      setDisplay(value);
+      return;
+    }
+    const decimals = numRaw.includes(".") ? (numRaw.split(".")[1] || "").length : 0;
+    const sep = numRaw.includes(",") ? "," : numRaw.includes(" ") ? " " : "";
+    const fmt = (n: number) => {
+      let s = n.toFixed(decimals);
+      if (sep) s = s.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+      return `${prefix}${s}${suffix}`;
+    };
+    const start = performance.now();
+    const dur = 650;
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(fmt(target * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else setDisplay(value);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{display}</>;
+}
+
 function StatCard({
   label,
   value,
@@ -563,17 +608,47 @@ function StatCard({
 }) {
   const c = accent ?? "#12A25C";
   return (
-    <div className="card !p-5">
+    <div className="card group relative overflow-hidden !p-5 transition duration-300 hover:-translate-y-0.5 hover:shadow-lift">
       <div
-        className="grid h-10 w-10 place-items-center rounded-xl"
+        className="grid h-10 w-10 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-110"
         style={{ backgroundColor: c + "22" }}
       >
         <Icon className="h-5 w-5" style={{ color: c }} strokeWidth={2.2} />
       </div>
       <p className="mt-4 text-2xl font-extrabold tracking-tight text-ink">
-        {value}
+        <CountUpValue value={value} />
       </p>
       <p className="mt-1 text-xs font-medium text-muted">{label}</p>
+      {/* accent strip — creeps in on hover */}
+      <span
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 transition-transform duration-300 group-hover:scale-x-100"
+        style={{ backgroundColor: c }}
+      />
+    </div>
+  );
+}
+
+// Shimmer placeholders shown while a tab's data loads — a KPI-shaped row
+// plus a few table-ish lines, so the page keeps its layout instead of
+// collapsing to a one-line "Loading…".
+function TabSkeleton({ kpis = 4, rows = 5 }: { kpis?: number; rows?: number }) {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-label="Loading">
+      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: kpis }).map((_, i) => (
+          <div key={i} className="card !p-5">
+            <span className="shimmer block h-10 w-10 !rounded-xl" />
+            <span className="shimmer mt-4 block h-7 w-24" />
+            <span className="shimmer mt-2 block h-3 w-16" />
+          </div>
+        ))}
+      </div>
+      <div className="card space-y-3 !p-5">
+        {Array.from({ length: rows }).map((_, i) => (
+          <span key={i} className="shimmer block h-9 w-full" style={{ opacity: 1 - i * 0.14 }} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -932,7 +1007,7 @@ function RecentTips({ tips, loading, token }: { tips: Tip[]; loading: boolean; t
     <div>
       <h3 className="mb-4 text-base font-medium text-ink">Recent tips</h3>
       {loading ? (
-        <p className="body-muted">Loading…</p>
+        <TabSkeleton kpis={0} rows={4} />
       ) : tips.length === 0 ? (
         <EmptyState icon={HandCoins} title="No tips yet" body="Share your tip link to start receiving support from your fans." />
       ) : (
@@ -1082,7 +1157,7 @@ function TipsTab({ tips, loading, token }: { tips: Tip[]; loading: boolean; toke
       </div>
 
       {/* KPI header — the numbers for the current filter, not lifetime */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Tips shown" value={String(filtered.length)} icon={HandCoins} accent="#12A25C" />
         <StatCard label="Completed volume" value={`R${money(total)}`} icon={Banknote} accent="#2563EB" />
         <StatCard label="Average tip" value={`R${money(avg)}`} icon={Percent} accent="#E0A536" />
@@ -1247,7 +1322,7 @@ function SupportersTab({ token, creatorId }: { token: string | null; creatorId: 
   }, [token, creatorId]);
 
   if (err) return <EmptyState icon={Trophy} title="Couldn't load supporters" body="Try refreshing the page." />;
-  if (!rows) return <p className="body-muted">Loading…</p>;
+  if (!rows) return <TabSkeleton />;
   if (rows.length === 0)
     return <EmptyState icon={Trophy} title="No supporters yet" body="When fans tip you, your biggest supporters appear here." />;
 
@@ -1311,7 +1386,7 @@ function SupportersTab({ token, creatorId }: { token: string | null; creatorId: 
       </div>
 
       {/* KPI cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Supporters" value={String(rows.length)} icon={Users} accent="#12A25C" />
         <StatCard label="Lifetime volume" value={`R${money(total)}`} icon={Banknote} accent="#2563EB" />
         <StatCard label="Average per supporter" value={`R${money(avgSupport)}`} icon={Percent} accent="#E0A536" />
@@ -1604,7 +1679,7 @@ function ReferralsTab({
       </div>
 
       {/* KPI row */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Commission earned" value={`R${money(totalEarned)}`} icon={Banknote} accent="#12A25C" />
         <StatCard label="Last 30 days" value={`R${money(earned30d)}`} icon={Zap} accent="#E0A536" />
         <StatCard label="Commission events" value={String(referralsCount)} icon={Users} accent="#2563EB" />
@@ -1769,7 +1844,7 @@ function ReferralsTab({
       {/* How it works — richer with icons */}
       <div>
         <h3 className="mb-4 text-base font-medium text-ink">How it works</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((s, i) => (
             <div key={s.title} className="card !p-5">
               <div className="flex items-center gap-2">
@@ -1900,7 +1975,7 @@ function TransactionsTab({ token, creatorId }: { token: string | null; creatorId
       </div>
     );
   }
-  if (loading) return <p className="body-muted">Loading…</p>;
+  if (loading) return <TabSkeleton rows={6} />;
 
   // Filtering
   const now = Date.now();
@@ -2237,7 +2312,7 @@ function GalleryPreview({ token }: { token: string | null }) {
   return (
     <div className="space-y-6">
       {/* KPIs */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Designs saved" value={String(total)} icon={Palette} accent="#EC4899" />
         <StatCard label="This month" value={String(thisMonth)} icon={Calendar} accent="#12A25C" />
         <StatCard label="Days since last save" value={daysSince === null ? "—" : String(daysSince)} icon={Zap} accent={daysSince !== null && daysSince > 30 ? "#DC2626" : "#2563EB"} />
@@ -3654,7 +3729,7 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
       </div>
 
       {/* KPIs */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total posts" value={String(total)} icon={Lock} accent="#7C3AED" />
         <StatCard label="Published this month" value={String(thisMonth)} icon={Calendar} accent="#12A25C" />
         <StatCard label="With image" value={String(withImage)} icon={QrCode} accent="#E0A536" />
@@ -4017,7 +4092,7 @@ function ExclusiveTab({ token, hasProfile, slug }: { token: string | null; hasPr
 
       {/* Posts grid */}
       {!posts ? (
-        <p className="body-muted">Loading…</p>
+        <TabSkeleton kpis={0} rows={4} />
       ) : posts.length === 0 ? (
         <EmptyState icon={Lock} title="Nothing in the vault yet" body="Pick a template above and publish your first exclusive post." />
       ) : filtered.length === 0 ? (
@@ -4276,7 +4351,7 @@ function JarsTab({ token, creator }: { token: string | null; creator: Creator | 
       </div>
 
       {/* KPIs */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total jars" value={String(rows.length)} icon={Milk} accent="#12A25C" />
         <StatCard label="Raised across jars" value={`R${money(totalRaised)}`} icon={Banknote} accent="#2563EB" />
         <StatCard label="Tips into jars" value={String(totalCount)} icon={HandCoins} accent="#E0A536" />
@@ -4345,7 +4420,7 @@ function JarsTab({ token, creator }: { token: string | null; creator: Creator | 
       )}
 
       {!jars ? (
-        <p className="body-muted">Loading…</p>
+        <TabSkeleton kpis={0} rows={4} />
       ) : jars.length === 0 ? (
         <EmptyState icon={Milk} title="No jars yet" body="Pick a template above or write your own to start." />
       ) : filteredActive.length === 0 && !showCompleted ? (
@@ -4477,7 +4552,7 @@ function SubscribersTab({ token, slug }: { token: string | null; slug: string | 
     api.myTiers(token).then(setTiers).catch(() => setTiers([]));
   }, [token]);
 
-  if (!subs) return <p className="body-muted">Loading…</p>;
+  if (!subs) return <TabSkeleton />;
 
   const filtered = subs.filter((s) => {
     if (tierFilter !== "all" && s.tier_id !== tierFilter) return false;
@@ -4518,7 +4593,7 @@ function SubscribersTab({ token, slug }: { token: string | null; slug: string | 
         </button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total subscribers" value={String(subs.length)} icon={Users} accent="#7C3AED" />
         <StatCard label="Active" value={String(active)} icon={CircleCheck} accent="#12A25C" />
         <StatCard label="Estimated MRR" value={`R${money(monthlyRev)}`} icon={Banknote} accent="#E0A536" />
