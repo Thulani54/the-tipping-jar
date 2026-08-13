@@ -137,6 +137,14 @@ export default async function LandingPage() {
           className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[70%_center] opacity-30"
         />
         <span aria-hidden className="pointer-events-none absolute inset-0 bg-navy/20" />
+        {/* Depth: a green-tinted vignette at the base + a mint glow behind
+            the demo column so the navy stage doesn't read as one flat slab. */}
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#0b2b26]/70 to-transparent" />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-24 top-1/4 h-[26rem] w-[26rem] rounded-full opacity-25"
+          style={{ background: "radial-gradient(circle, var(--mint) 0%, transparent 65%)" }}
+        />
         <span aria-hidden className="blob pointer-events-none absolute -left-10 top-24 h-40 w-40 rounded-full bg-mint/20" />
         <span aria-hidden className="blob pointer-events-none absolute -bottom-16 right-[38%] h-48 w-48 rounded-full bg-green/20" style={{ animationDelay: "-8s" }} />
         {/* floating coins + sparkles */}
@@ -281,13 +289,31 @@ export default async function LandingPage() {
             <HeroDemo />
           </div>
         </div>
+
+        {/* Wave hand-off into the white content below — softens the hard
+            navy/white seam. Rendered last so it sits above the photo. */}
+        <svg
+          aria-hidden
+          viewBox="0 0 1440 64"
+          preserveAspectRatio="none"
+          className="relative block h-10 w-full text-white sm:h-14"
+        >
+          <path
+            fill="currentColor"
+            d="M0,40 C240,64 480,8 720,20 C960,32 1200,60 1440,28 L1440,64 L0,64 Z"
+          />
+        </svg>
       </section>
 
       {/* ── Live activity ───────────────────────────────────────────────── */}
-      <section className="border-b border-border bg-white py-4">
+      <section className="border-b border-border bg-white pb-4 pt-1">
         <div className="container-content flex items-center gap-4">
-          <span className="hidden shrink-0 items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-green sm:inline-flex">
-            <i className="bi bi-broadcast" /> live tips
+          <span className="hidden shrink-0 items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-green sm:inline-flex">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green/50" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-green" />
+            </span>
+            live tips
           </span>
           <div className="min-w-0 flex-1">
             <LiveTicker items={ticker} />
@@ -309,18 +335,18 @@ export default async function LandingPage() {
                 subscriptions, no setup costs, nothing hidden in the fine
                 print — you only ever pay when you get paid.
               </p>
-              <ul className="mt-7 space-y-3 font-mono text-sm">
-                <li className="flex items-center gap-3">
+              <ul className="mt-7 space-y-2.5 font-mono text-sm">
+                <li className="flex items-center gap-3 rounded-2xl border border-mint/40 bg-mint/10 px-4 py-3">
                   <span className="h-3 w-3 shrink-0 rounded-full bg-mint" />
                   <span className="font-semibold text-ink">R94.00</span>
                   <span className="text-muted">— yours, paid to your bank</span>
                 </li>
-                <li className="flex items-center gap-3">
+                <li className="flex items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3">
                   <span className="h-3 w-3 shrink-0 rounded-full bg-primary" />
                   <span className="font-semibold text-ink">R3.00</span>
                   <span className="text-muted">— platform fee (3%)</span>
                 </li>
-                <li className="flex items-center gap-3">
+                <li className="flex items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3">
                   <span className="h-3 w-3 shrink-0 rounded-full bg-gold" />
                   <span className="font-semibold text-ink">R3.00</span>
                   <span className="text-muted">— card &amp; service (3%)</span>
@@ -328,19 +354,30 @@ export default async function LandingPage() {
               </ul>
             </div>
             <div>
-              <div className="flex h-24 overflow-hidden rounded-[20px] ring-1 ring-border">
-                <div className="grow-x grid place-items-center bg-mint" style={{ width: "94%" }}>
+              <div className="relative flex h-28 overflow-hidden rounded-[22px] shadow-soft ring-1 ring-border">
+                {/* quarter tick marks over the whole bar */}
+                {[25, 50, 75].map((t) => (
+                  <span
+                    key={t}
+                    aria-hidden
+                    className="absolute inset-y-0 z-10 w-px bg-navy/10"
+                    style={{ left: `${t}%` }}
+                  />
+                ))}
+                <div className="grow-x grid place-items-center bg-gradient-to-r from-mint to-[#7fe0a9]" style={{ width: "94%" }}>
                   <div className="text-center">
-                    <p className="font-display text-2xl font-extrabold text-navy">R94</p>
+                    <p className="font-display text-3xl font-extrabold text-navy">R94</p>
                     <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-navy/70">creator keeps</p>
                   </div>
                 </div>
-                <div className="bg-primary" style={{ width: "3%" }} />
-                <div className="bg-gold" style={{ width: "3%" }} />
+                <div className="grow-x bg-primary" style={{ width: "3%", animationDelay: "0.2s" }} />
+                <div className="grow-x bg-gold" style={{ width: "3%", animationDelay: "0.35s" }} />
               </div>
-              <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
-                a R100 tip, split exactly to scale
-              </p>
+              <div className="mt-3 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
+                <span>R0</span>
+                <span>a R100 tip, split exactly to scale</span>
+                <span>R100</span>
+              </div>
             </div>
           </Reveal>
         </div>
@@ -360,19 +397,33 @@ export default async function LandingPage() {
               someone wants to back you.
             </p>
           </Reveal>
-          <ol className="mt-14 grid gap-6 md:grid-cols-3">
+          <ol className="relative mt-14 grid gap-6 md:grid-cols-3">
+            {/* Dashed route line linking the three steps — visible in the
+                gaps between cards on desktop, hidden when stacked. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute left-[8%] right-[8%] top-[52px] hidden border-t-2 border-dashed border-green/30 md:block"
+            />
             {FLOW.map((s, i) => {
               const Icon = s.icon;
               return (
-                <Reveal as="li" key={s.n} delay={i * 90}>
+                <Reveal as="li" key={s.n} delay={i * 90} className="relative">
                   <div className="glass-card group h-full p-7">
-                    <span className="absolute right-6 top-6 font-mono text-xs font-bold text-green/50">{s.n}</span>
+                    <span className="absolute right-6 top-5 font-display text-4xl font-extrabold text-green/15 transition group-hover:text-green/30">{s.n}</span>
                     <span className="glass-tile h-12 w-12">
                       <Icon />
                     </span>
                     <h3 className="mt-6 font-display text-xl font-bold text-ink">{s.title}</h3>
                     <p className="body-muted mt-2">{s.body}</p>
                   </div>
+                  {i < FLOW.length - 1 && (
+                    <span
+                      aria-hidden
+                      className="absolute -right-[22px] top-[44px] z-10 hidden h-7 w-7 place-items-center rounded-full border border-green/30 bg-white text-xs text-green shadow-soft md:grid"
+                    >
+                      <i className="bi bi-arrow-right" />
+                    </span>
+                  )}
                 </Reveal>
               );
             })}
@@ -491,7 +542,15 @@ export default async function LandingPage() {
       {/* ── CTA ─────────────────────────────────────────────────────────── */}
       <section className="container-content py-24">
         <Reveal>
-          <div className="relative overflow-hidden rounded-[28px] bg-navy px-8 py-14 md:px-16">
+          <div
+            className="relative overflow-hidden rounded-[28px] px-8 py-14 ring-1 ring-white/10 md:px-16"
+            style={{ background: "linear-gradient(140deg, #0f2439 0%, #12324f 55%, #0b2b26 100%)" }}
+          >
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full opacity-30"
+              style={{ background: "radial-gradient(circle, var(--mint) 0%, transparent 65%)" }}
+            />
             <span aria-hidden className="float-y pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-mint/10" />
             <span aria-hidden className="sparkle pointer-events-none absolute bottom-8 right-[30%] h-6 w-6 rounded-full bg-gold/60" />
             <span aria-hidden className="sparkle pointer-events-none absolute left-10 top-10 h-3 w-3 rounded-full bg-mint/70" style={{ animationDelay: "0.6s" }} />
