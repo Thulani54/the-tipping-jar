@@ -139,6 +139,8 @@ export const api = {
   // ── referrals ─────────────────────────────────────────────────────
   myReferralCode: (token: string) =>
     request<ReferralCode>("/referrals/codes", { method: "POST", token }),
+  lookupReferralCode: (code: string) =>
+    request<ReferralCode>(`/referrals/codes/${encodeURIComponent(code)}`),
 
   // ── support ───────────────────────────────────────────────────────
   contact: (body: { name: string; email: string; subject?: string; message: string }) =>
