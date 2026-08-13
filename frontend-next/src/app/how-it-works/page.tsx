@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { PageHero, PageCta } from "@/components/PageHero";
 import { Aurora } from "@/components/Aurora";
+import { Reveal } from "@/components/Reveal";
 
 interface Step {
   icon: string;
@@ -136,13 +137,13 @@ export default function HowItWorksPage() {
             </div>
           </div>
 
-          <div key={tab} className="relative mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div key={tab} className="stagger relative mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <span
               aria-hidden
               className="pointer-events-none absolute left-[6%] right-[6%] top-[54px] hidden border-t-2 border-dashed border-green/30 lg:block"
             />
             {steps.map((s, i) => (
-              <div key={s.title} className="glass-card group h-full p-6">
+              <div key={s.title} className="glass-card pop-in group h-full p-6">
                 <div className="flex items-center justify-between">
                   <span className="glass-tile h-12 w-12 text-xl">
                     <i className={`bi ${s.icon}`} />
@@ -170,7 +171,7 @@ export default function HowItWorksPage() {
           </div>
           <div className="mx-auto mt-12 max-w-xl">
             {TIMELINE.map((label, i) => (
-              <div key={label} className="flex gap-4">
+              <Reveal key={label} delay={i * 90} className="flex gap-4">
                 <div className="flex flex-col items-center">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-mint text-sm text-navy shadow-soft">
                     <i className="bi bi-check-lg" />
@@ -184,7 +185,7 @@ export default function HowItWorksPage() {
                     {label}
                   </div>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -198,16 +199,17 @@ export default function HowItWorksPage() {
           All payments are secured end-to-end. We never see your card number.
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
-          {SECURITY_BADGES.map(([icon, label]) => (
-            <div
+          {SECURITY_BADGES.map(([icon, label], i) => (
+            <Reveal
               key={label}
+              delay={i * 70}
               className="flex items-center gap-3 rounded-2xl border border-border bg-white px-5 py-3.5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift"
             >
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-mint/15 text-base text-green">
                 <i className={`bi ${icon}`} />
               </span>
               <span className="text-sm font-semibold text-ink">{label}</span>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>

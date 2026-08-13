@@ -2,6 +2,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { PageHero } from "@/components/PageHero";
 import { Aurora } from "@/components/Aurora";
+import { Reveal } from "@/components/Reveal";
 import type { BlogPost } from "@/types";
 
 export const metadata = {
@@ -105,6 +106,7 @@ export default async function BlogPage() {
 
             {/* Featured */}
             {featured && (
+              <Reveal>
               <Link
                 href={`/blog/${featured.slug}`}
                 className="glass-card group mt-5 block p-8"
@@ -132,6 +134,7 @@ export default async function BlogPage() {
                   </div>
                 </div>
               </Link>
+              </Reveal>
             )}
 
             {/* More articles */}
@@ -142,13 +145,13 @@ export default async function BlogPage() {
                   More articles
                 </p>
                 <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {rest.map((post) => {
+                  {rest.map((post, i) => {
                     const color = catColor(post.category);
                     return (
+                      <Reveal key={post.id} delay={(i % 3) * 80}>
                       <Link
-                        key={post.id}
                         href={`/blog/${post.slug}`}
-                        className="glass-card flex flex-col p-6"
+                        className="glass-card flex h-full flex-col p-6"
                       >
                         <div className="flex items-center justify-between">
                           <Tag label={catLabel(post.category)} color={color} />
@@ -164,6 +167,7 @@ export default async function BlogPage() {
                           <span className="ml-auto shrink-0">{formatDate(post.created_at)}</span>
                         </div>
                       </Link>
+                      </Reveal>
                     );
                   })}
                 </div>

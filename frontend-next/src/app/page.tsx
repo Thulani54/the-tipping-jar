@@ -142,7 +142,7 @@ export default async function LandingPage() {
         <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#0b2b26]/70 to-transparent" />
         <span
           aria-hidden
-          className="pointer-events-none absolute -right-24 top-1/4 h-[26rem] w-[26rem] rounded-full opacity-25"
+          className="glow-pulse pointer-events-none absolute -right-24 top-1/4 h-[26rem] w-[26rem] rounded-full"
           style={{ background: "radial-gradient(circle, var(--mint) 0%, transparent 65%)" }}
         />
         <span aria-hidden className="blob pointer-events-none absolute -left-10 top-24 h-40 w-40 rounded-full bg-mint/20" />
@@ -548,7 +548,7 @@ export default async function LandingPage() {
           >
             <span
               aria-hidden
-              className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full opacity-30"
+              className="glow-pulse pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full"
               style={{ background: "radial-gradient(circle, var(--mint) 0%, transparent 65%)" }}
             />
             <span aria-hidden className="float-y pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-mint/10" />

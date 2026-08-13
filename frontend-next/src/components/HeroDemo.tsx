@@ -47,7 +47,6 @@ export function HeroDemo() {
         style={{
           background:
             "radial-gradient(60% 55% at 50% 50%, rgba(15,36,57,0.55) 0%, rgba(15,36,57,0.28) 55%, transparent 82%)",
-          filter: "blur(4px)",
         }}
       />
       <div className="!bg-transparent p-2">

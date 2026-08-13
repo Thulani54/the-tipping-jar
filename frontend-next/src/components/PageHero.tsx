@@ -72,7 +72,7 @@ export function PageCta({
       >
         <span
           aria-hidden
-          className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full opacity-30"
+          className="glow-pulse pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full"
           style={{ background: "radial-gradient(circle, var(--mint) 0%, transparent 65%)" }}
         />
         <span aria-hidden className="sparkle pointer-events-none absolute right-[22%] top-10 h-3 w-3 rounded-full bg-gold/70" />

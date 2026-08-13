@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { PageHero, PageCta } from "@/components/PageHero";
 import { Aurora } from "@/components/Aurora";
+import { Reveal } from "@/components/Reveal";
 import type { FeeQuote } from "@/types";
 
 // Everything is included for every creator — pricing is one flat cut per
@@ -92,7 +93,7 @@ export default function PricingPage() {
         <Aurora />
         <div className="container-content relative py-16 md:py-20">
           <div className="grid items-center gap-12 lg:grid-cols-[0.95fr_1.05fr]">
-            <div>
+            <Reveal>
               <p className="eyebrow">The whole model</p>
               <h2 className="heading-xl mt-3 text-4xl md:text-5xl">6% flat. Nothing else.</h2>
               <p className="body-muted mt-5 max-w-md">
@@ -116,10 +117,10 @@ export default function PricingPage() {
                   <span className="text-muted">— card &amp; service</span>
                 </li>
               </ul>
-            </div>
+            </Reveal>
 
             {/* Live calculator — drag a tip, see the real split */}
-            <div className="glass-card p-6 md:p-8">
+            <Reveal delay={100} className="glass-card p-6 md:p-8">
               <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
                 <span>Fee calculator</span>
                 <span className="inline-flex items-center gap-1 text-green">
@@ -174,7 +175,7 @@ export default function PricingPage() {
                   R{net.toFixed(2)}
                 </span>
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -191,21 +192,22 @@ export default function PricingPage() {
             </p>
           </div>
           <div className="mx-auto mt-10 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {INCLUDED.map(([icon, label]) => (
-              <div
+            {INCLUDED.map(([icon, label], i) => (
+              <Reveal
                 key={label}
+                delay={(i % 3) * 70}
                 className="flex items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3.5 shadow-soft"
               >
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-mint/15 text-base text-green">
                   <i className={`bi ${icon}`} />
                 </span>
                 <span className="text-sm font-semibold text-ink">{label}</span>
-              </div>
+              </Reveal>
             ))}
           </div>
 
           {/* Organisations */}
-          <div className="mx-auto mt-10 max-w-3xl">
+          <Reveal className="mx-auto mt-10 max-w-3xl">
             <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-border bg-white p-6 shadow-soft">
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-xl text-primary">
                 <i className="bi bi-building-fill-check" />
@@ -221,7 +223,7 @@ export default function PricingPage() {
                 Talk to us
               </Link>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 

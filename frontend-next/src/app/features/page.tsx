@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { PageHero, PageCta } from "@/components/PageHero";
 import { Aurora } from "@/components/Aurora";
+import { Reveal } from "@/components/Reveal";
 
 interface Feature {
   icon: string;
@@ -158,10 +159,10 @@ export default function FeaturesPage() {
             </div>
           </div>
 
-          <div key={tab} className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((f, i) => (
-              <div key={f.title} className={f.big ? "md:col-span-2 lg:col-span-2" : ""}>
-                <div className="glass-card group h-full p-6" style={{ animationDelay: `${i * 60}ms` }}>
+          <div key={tab} className="stagger mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {features.map((f) => (
+              <div key={f.title} className={`pop-in ${f.big ? "md:col-span-2 lg:col-span-2" : ""}`}>
+                <div className="glass-card group h-full p-6">
                   <span className="glass-tile h-12 w-12 text-xl">
                     <i className={`bi ${f.icon}`} />
                   </span>
@@ -178,15 +179,18 @@ export default function FeaturesPage() {
       <section className="relative overflow-hidden border-y border-border bg-[#f3f9f5]">
         <Aurora />
         <div className="container-content relative py-16 text-center md:py-20">
-          <p className="eyebrow">Works with everything</p>
-          <h2 className="heading-xl mt-3 text-3xl md:text-4xl">Paste your link. Done.</h2>
-          <p className="body-muted mx-auto mt-3 max-w-md">
-            No integrations to configure. One link works everywhere your audience already is.
-          </p>
+          <Reveal>
+            <p className="eyebrow">Works with everything</p>
+            <h2 className="heading-xl mt-3 text-3xl md:text-4xl">Paste your link. Done.</h2>
+            <p className="body-muted mx-auto mt-3 max-w-md">
+              No integrations to configure. One link works everywhere your audience already is.
+            </p>
+          </Reveal>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
-            {INTEGRATIONS.map(([icon, name, sub]) => (
-              <div
+            {INTEGRATIONS.map(([icon, name, sub], i) => (
+              <Reveal
                 key={name}
+                delay={i * 70}
                 className="flex items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift"
               >
                 <span className="grid h-9 w-9 place-items-center rounded-lg bg-mint/15 text-base text-green">
@@ -196,7 +200,7 @@ export default function FeaturesPage() {
                   <p className="text-sm font-semibold text-ink">{name}</p>
                   <p className="text-xs text-muted">{sub}</p>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
