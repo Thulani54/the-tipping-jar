@@ -2,6 +2,8 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { JarMeter } from "@/components/JarMeter";
 import { ExclusiveVault } from "@/components/ExclusiveVault";
+import { UnavailableTips } from "@/components/UnavailableTips";
+import { isReadyForTips } from "@/lib/creator-complete";
 import type { Creator, SupportTier, Tip } from "@/types";
 
 async function load(slug: string): Promise<{ creator: Creator | null; tips: Tip[]; exclusiveCount: number; tiers: SupportTier[] }> {
@@ -115,6 +117,12 @@ export default async function CreatorPage({
         </div>
       </section>
     );
+  }
+
+  // Gate — a profile must be fully set up before it can accept tips.
+  // Fans see a warm placeholder rather than a half-built page.
+  if (!isReadyForTips(creator)) {
+    return <UnavailableTips creator={creator} />;
   }
 
   const completed = tips.filter((t) => t.status === "completed");

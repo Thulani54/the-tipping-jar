@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import type { Creator, FeeQuote, Jar } from "@/types";
+import { isReadyForTips } from "@/lib/creator-complete";
+import { UnavailableTips } from "@/components/UnavailableTips";
 
 const DEFAULT_PRESETS = [10, 20, 50, 100, 200, 500];
 
@@ -154,6 +156,13 @@ export default function TipPage({
         <Link href="/creators" className="btn-primary mt-8">Explore creators</Link>
       </section>
     );
+  }
+
+  // Same gate as the public creator page — a half-finished profile
+  // shouldn't be able to take money. Applied here too so a direct
+  // link to /tip/<slug> can't slip past the check on /creator/<slug>.
+  if (!isReadyForTips(creator)) {
+    return <UnavailableTips creator={creator} />;
   }
 
   const inputCls =

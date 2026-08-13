@@ -2897,8 +2897,16 @@ function ProfileTab({
   const bankReady =
     !!(bank.account_name?.trim() && bank.bank?.trim() && bank.account_no?.trim());
 
-  // Profile completion — 10 items, all things fans (or the ops team) can
-  // see or act on. The strip surfaces what's left.
+  // Profile completion — every item here is a public field a fan (or
+  // the ops team) can see. When ALL are green, the creator's public
+  // page opens for tips at /creator/<slug>. Bank details are tracked
+  // separately (their own status pill below) because they gate PAYOUTS,
+  // not receiving tips — matches src/lib/creator-complete.ts on the
+  // public side so 100% here means the tip page is live.
+  const presetsNumsAll = presets
+    .split(/[\s,;]+/)
+    .map((v) => Number(v))
+    .filter((n) => n >= 10 && n <= 100000);
   const checklist: { key: string; label: string; done: boolean; href?: string }[] = [
     { key: "name", label: "Display name", done: displayName.trim().length > 0 },
     { key: "tagline", label: "Tagline", done: tagline.trim().length > 0 },
@@ -2906,17 +2914,17 @@ function ProfileTab({
     { key: "cover", label: "Cover photo", done: !!coverPreview },
     { key: "category", label: "Category", done: category.trim().length > 0 },
     { key: "goal", label: "Monthly goal", done: goal.trim().length > 0 && Number(goal) > 0 },
-    { key: "presets", label: "Tip preset amounts", done: presets.trim().length > 0 },
+    { key: "presets", label: "At least two preset tip amounts", done: presetsNumsAll.length >= 2 },
     { key: "thanks", label: "Thank-you note", done: thanksNote.trim().length > 0 },
     { key: "social", label: "At least one social link", done: Object.values(links).some((v) => (v || "").trim().length > 0) },
     { key: "location", label: "Country + city", done: country.length > 0 && city.trim().length > 0 },
-    { key: "bank", label: "Payout bank details", done: bankReady },
   ];
   if (isOrg) {
     checklist.push({ key: "reg", label: "Registration number", done: regNumber.trim().length > 0 });
   }
   const doneCount = checklist.filter((c) => c.done).length;
   const pct = Math.round((doneCount / checklist.length) * 100);
+  const publicPageLive = pct >= 100;
 
   async function save() {
     if (!token) return;
@@ -3319,7 +3327,7 @@ function ProfileTab({
           <div className="card !p-4">
             <div className="flex items-baseline justify-between">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">Profile complete</p>
-              <span className={`text-lg font-extrabold ${pct >= 80 ? "text-green" : pct >= 40 ? "text-amber-600" : "text-muted"}`}>
+              <span className={`text-lg font-extrabold ${publicPageLive ? "text-green" : pct >= 40 ? "text-amber-600" : "text-muted"}`}>
                 {pct}%
               </span>
             </div>
@@ -3329,6 +3337,30 @@ function ProfileTab({
                 style={{ width: `${pct}%` }}
               />
             </div>
+
+            {/* Public-page gate status — 100% opens the tip page. */}
+            <div
+              className={`mt-3 rounded-xl border px-3 py-2 text-[11px] ${
+                publicPageLive
+                  ? "border-green/30 bg-green/10 text-green"
+                  : "border-amber-500/30 bg-amber-500/10 text-amber-700"
+              }`}
+            >
+              {publicPageLive ? (
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <CircleCheck className="h-3.5 w-3.5" strokeWidth={2.6} /> Your tip page is live at{" "}
+                  <span className="font-mono">/creator/{creator.slug}</span>
+                </span>
+              ) : (
+                <span className="flex items-start gap-1.5">
+                  <Lock className="mt-[1px] h-3 w-3 shrink-0" strokeWidth={2.6} />
+                  <span>
+                    Your tip page opens for fans once this reaches <span className="font-semibold">100%</span>.
+                  </span>
+                </span>
+              )}
+            </div>
+
             <ul className="mt-4 space-y-1.5 text-xs">
               {checklist.map((c) => (
                 <li key={c.key} className="flex items-center gap-2">
