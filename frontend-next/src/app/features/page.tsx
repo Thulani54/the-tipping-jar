@@ -2,50 +2,47 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { PageHero, PageCta } from "@/components/PageHero";
+import { Aurora } from "@/components/Aurora";
 
 interface Feature {
   icon: string;
   title: string;
   body: string;
-  accent: string; // tailwind text color class
+  big?: boolean;
 }
 
 const CREATOR_FEATURES: Feature[] = [
   {
     icon: "bi-link-45deg",
-    title: "Shareable tip link",
-    body: "Your personal URL works everywhere — bio, YouTube, Twitch, email. Zero setup beyond copy & paste.",
-    accent: "text-teal",
+    title: "One shareable tip link",
+    body: "Your personal URL works everywhere — bio, YouTube, Twitch, WhatsApp, email. Zero setup beyond copy & paste. Every visit is a potential tip.",
+    big: true,
   },
   {
     icon: "bi-bar-chart-fill",
-    title: "Live dashboard",
-    body: "See every tip the instant it arrives. Filter by date, amount, or tipper. Export your history as CSV.",
-    accent: "text-teal",
+    title: "Live dashboard & analytics",
+    body: "Every tip the instant it arrives — charts, heatmaps, supporter segments, CSV exports.",
   },
   {
     icon: "bi-bullseye",
-    title: "Monthly goal",
-    body: "Set a public tip goal and watch a live progress bar motivate your fans to push you over the line.",
-    accent: "text-blue",
+    title: "Goals & campaign jars",
+    body: "A public monthly goal plus separate jars for specific things — new mic, studio day, tour fund — each with its own QR poster.",
+  },
+  {
+    icon: "bi-lock-fill",
+    title: "Exclusive content",
+    body: "Posts, video, audio and galleries behind a monthly tip or a subscription tier. Your supporters get more.",
   },
   {
     icon: "bi-palette-fill",
-    title: "Page customisation",
-    body: "Cover image, avatar, tagline, bio — make your page unmistakably yours. Changes go live in seconds.",
-    accent: "text-teal",
+    title: "Creator Studio",
+    body: "Design share-ready promo graphics in the browser — templates, brand fonts, stickers, your tip-link QR baked in.",
   },
   {
-    icon: "bi-bank",
-    title: "Fast payouts",
-    body: "Your money arrives in your bank account quickly after each tip. No holding periods — straight to your bank.",
-    accent: "text-teal",
-  },
-  {
-    icon: "bi-bell-fill",
-    title: "Instant notifications",
-    body: "Get an email the moment a fan tips you. Never miss a kind word.",
-    accent: "text-blue",
+    icon: "bi-people-fill",
+    title: "Referrals that pay",
+    body: "Refer another creator and earn a commission on their tips — paid straight into your balance.",
   },
 ];
 
@@ -53,77 +50,67 @@ const FAN_FEATURES: Feature[] = [
   {
     icon: "bi-rocket-takeoff-fill",
     title: "No account required",
-    body: "Send a tip in under 30 seconds without registering. We only ask for a card — nothing else.",
-    accent: "text-teal",
+    body: "Send a tip in under 30 seconds without registering. Pick an amount, pay by card, done — no app, no signup, no password.",
+    big: true,
   },
   {
     icon: "bi-chat-heart-fill",
     title: "Personal messages",
-    body: "Every tip can include a message up to 500 characters. Say what you've been meaning to tell that creator.",
-    accent: "text-teal",
+    body: "Every tip can carry a message. Say the thing you've been meaning to tell that creator.",
   },
   {
-    icon: "bi-clock-history",
-    title: "Tip history",
-    body: "Create a free fan account to see every tip you've sent and follow your favourite creators.",
-    accent: "text-blue",
+    icon: "bi-unlock-fill",
+    title: "Unlock exclusive content",
+    body: "Tip monthly or subscribe to a tier and their vault opens — early drops, unreleased tracks, behind the scenes.",
   },
   {
-    icon: "bi-emoji-smile-fill",
-    title: "Reaction emojis",
-    body: "Add a reaction alongside your tip — flames for fire content, a heart for love, confetti for milestones.",
-    accent: "text-teal",
+    icon: "bi-piggy-bank-fill",
+    title: "Back a specific goal",
+    body: "Tip into a campaign jar — the new laptop, the music video — and watch the bar move because of you.",
   },
   {
     icon: "bi-receipt",
     title: "Instant receipts",
-    body: "An email receipt lands in your inbox within seconds of every tip.",
-    accent: "text-teal",
+    body: "An email receipt lands in your inbox seconds after every tip.",
   },
   {
     icon: "bi-globe-americas",
-    title: "South Africa focused",
-    body: "Built specifically for South African creators. Accept tips from fans locally and abroad.",
-    accent: "text-blue",
+    title: "Built for South Africa",
+    body: "Rand in, rand out. Tips from home or abroad reach South African creators.",
   },
 ];
 
 const PLATFORM_FEATURES: Feature[] = [
   {
     icon: "bi-shield-lock-fill",
-    title: "PCI-DSS Level 1",
-    body: "All card data is tokenised and encrypted before it leaves your browser. We never touch raw card numbers.",
-    accent: "text-teal",
+    title: "Card-safe by design",
+    body: "Payments run through PayCloud's PCI-DSS compliant gateway. Card details never touch our servers — tokenised and encrypted end to end.",
+    big: true,
   },
   {
     icon: "bi-lightning-charge-fill",
-    title: "Sub-second payments",
-    body: "Our payment integration processes tips in under 800 ms on average. No spinners, no waiting.",
-    accent: "text-teal",
+    title: "Fast under pressure",
+    body: "Load-tested to 1,000 simultaneous tippers with zero failures. Viral moments welcome.",
   },
   {
     icon: "bi-phone-fill",
     title: "Responsive everywhere",
-    body: "The Tipping Jar works perfectly on desktop, tablet, and mobile. Adapts to any screen size.",
-    accent: "text-blue",
+    body: "Desktop, tablet, mobile — the whole experience adapts to any screen.",
   },
   {
     icon: "bi-puzzle-fill",
     title: "REST API",
-    body: "Our documented REST API lets you embed tips in your own apps and websites.",
-    accent: "text-teal",
+    body: "A documented REST API for embedding tips into your own apps and sites.",
   },
   {
     icon: "bi-geo-alt-fill",
     title: "Proudly South African",
     body: "Built and hosted in South Africa, for South African creators. Local support, local understanding.",
-    accent: "text-teal",
   },
   {
     icon: "bi-headset",
     title: "Real support",
-    body: "Reach a human within 4 hours via email. We are here to help you grow.",
-    accent: "text-blue",
+    body: "Reach a human within 4 hours by email. We're here to help you grow.",
   },
 ];
 
@@ -135,6 +122,7 @@ const INTEGRATIONS: [string, string, string][] = [
   ["bi-instagram", "Instagram", "Bio link"],
   ["bi-twitter-x", "Twitter / X", "Pinned tweet"],
   ["bi-twitch", "Twitch", "Panel link"],
+  ["bi-whatsapp", "WhatsApp", "Status & groups"],
   ["bi-envelope-fill", "Newsletter", "Footer CTA"],
 ];
 
@@ -144,70 +132,64 @@ export default function FeaturesPage() {
 
   return (
     <>
-      {/* Hero */}
-      <section className="border-b border-border bg-darker">
-        <div className="container-content py-20 text-center md:py-24">
-          <span className="inline-block rounded-full border border-teal/30 bg-teal/10 px-4 py-1.5 text-sm font-semibold text-teal">
-            Features
-          </span>
-          <h1 className="heading-xl mx-auto mt-6 max-w-2xl">
-            Built for creators who mean business.
-          </h1>
-          <p className="body-muted mx-auto mt-5 max-w-xl text-lg">
-            Every feature exists for one reason: to get more money into creators&apos; hands
-            with less friction.
-          </p>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Features"
+        title="Built for creators who mean business."
+        sub="Every feature exists for one reason: to get more money into creators' hands with less friction."
+      />
 
       {/* Feature tabs */}
-      <section className="container-content py-16 md:py-20">
-        <div className="flex justify-center">
-          <div className="inline-flex rounded-full border border-border bg-card p-1.5">
-            {TABS.map((t, i) => (
-              <button
-                key={t}
-                onClick={() => setTab(i)}
-                className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                  tab === i ? "bg-brand-gradient text-ink" : "text-muted hover:text-ink"
-                }`}
-              >
-                {t}
-              </button>
+      <section className="relative overflow-hidden bg-white">
+        <Aurora />
+        <div className="container-content relative py-16 md:py-20">
+          <div className="flex justify-center">
+            <div className="inline-flex rounded-full border border-border bg-white p-1.5 shadow-soft">
+              {TABS.map((t, i) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(i)}
+                  className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                    tab === i ? "bg-primary text-white shadow-soft" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div key={tab} className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {features.map((f, i) => (
+              <div key={f.title} className={f.big ? "md:col-span-2 lg:col-span-2" : ""}>
+                <div className="glass-card group h-full p-6" style={{ animationDelay: `${i * 60}ms` }}>
+                  <span className="glass-tile h-12 w-12 text-xl">
+                    <i className={`bi ${f.icon}`} />
+                  </span>
+                  <h3 className="mt-5 font-display text-lg font-bold text-ink">{f.title}</h3>
+                  <p className="body-muted mt-2 max-w-lg text-sm leading-relaxed">{f.body}</p>
+                </div>
+              </div>
             ))}
           </div>
-        </div>
-
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {features.map((f) => (
-            <div key={f.title} className="card transition hover:border-teal">
-              <div className={`grid h-11 w-11 place-items-center rounded-xl bg-teal/10 text-xl ${f.accent}`}>
-                <i className={`bi ${f.icon}`} />
-              </div>
-              <h3 className="mt-4 font-semibold text-ink">{f.title}</h3>
-              <p className="body-muted mt-2 text-sm">{f.body}</p>
-            </div>
-          ))}
         </div>
       </section>
 
       {/* Integrations */}
-      <section className="border-y border-border bg-dark">
-        <div className="container-content py-16 md:py-20 text-center">
-          <span className="inline-block rounded-full border border-teal/30 bg-teal/10 px-4 py-1.5 text-sm font-semibold text-teal">
-            Works with everything
-          </span>
-          <h2 className="mt-4 text-3xl font-extrabold tracking-tight">Paste your link. Done.</h2>
-          <p className="body-muted mt-3">
-            No integrations to configure. One link works everywhere.
+      <section className="relative overflow-hidden border-y border-border bg-[#f3f9f5]">
+        <Aurora />
+        <div className="container-content relative py-16 text-center md:py-20">
+          <p className="eyebrow">Works with everything</p>
+          <h2 className="heading-xl mt-3 text-3xl md:text-4xl">Paste your link. Done.</h2>
+          <p className="body-muted mx-auto mt-3 max-w-md">
+            No integrations to configure. One link works everywhere your audience already is.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             {INTEGRATIONS.map(([icon, name, sub]) => (
               <div
                 key={name}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
+                className="flex items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift"
               >
-                <span className="grid h-9 w-9 place-items-center rounded-lg bg-teal/10 text-base text-teal">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-mint/15 text-base text-green">
                   <i className={`bi ${icon}`} />
                 </span>
                 <div className="text-left">
@@ -220,24 +202,20 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="container-content py-20">
-        <div className="rounded-3xl bg-brand-gradient p-12 text-center md:p-16">
-          <h2 className="heading-xl text-ink">Ready to start earning?</h2>
-          <p className="mx-auto mt-4 max-w-md text-white/85">
-            Create your free page in under a minute.
-          </p>
-          <Link
-            href="/register"
-            className="mt-8 inline-flex rounded-full bg-white px-8 py-3 font-semibold text-primary transition hover:opacity-90"
-          >
-            Create your free page →
-          </Link>
-          <p className="mt-4 text-xs text-white/60">
-            No credit card · Free forever · Cancel anytime
-          </p>
-        </div>
-      </section>
+      <PageCta title="Ready to start earning?" sub="Create your page in under a minute — free to start, 6% flat when a tip lands.">
+        <Link
+          href="/register"
+          className="inline-flex rounded-full bg-white px-8 py-3.5 font-semibold !text-primary shadow-lift transition hover:-translate-y-0.5"
+        >
+          Create your jar →
+        </Link>
+        <Link
+          href="/how-it-works"
+          className="inline-flex rounded-full border border-white/25 px-8 py-3.5 font-semibold transition hover:border-white/60 hover:bg-white/10"
+        >
+          How it works
+        </Link>
+      </PageCta>
     </>
   );
 }

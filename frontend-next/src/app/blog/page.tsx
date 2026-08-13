@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { PageHero } from "@/components/PageHero";
+import { Aurora } from "@/components/Aurora";
 import type { BlogPost } from "@/types";
 
 export const metadata = {
@@ -83,21 +85,16 @@ export default async function BlogPage() {
 
   return (
     <>
-      {/* Hero */}
-      <section className="border-b border-border bg-dark">
-        <div className="container-content py-20 text-center md:py-28">
-          <span className="inline-block rounded-full border border-teal/30 bg-teal/10 px-4 py-1.5 text-xs font-semibold text-teal">
-            Blog
-          </span>
-          <h1 className="heading-xl mx-auto mt-6 max-w-3xl">Stories, tips &amp; insights</h1>
-          <p className="body-muted mx-auto mt-4 max-w-xl text-lg">
-            Creator guides, product news, and the economics of tipping.
-          </p>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Blog"
+        title="Stories, tips & insights"
+        sub="Creator guides, product news, and the economics of tipping."
+      />
 
       {/* Body */}
-      <section className="container-content py-16">
+      <section className="relative overflow-hidden bg-white">
+        <Aurora />
+        <div className="container-content relative py-16">
         {posts.length === 0 ? (
           <div className="mx-auto max-w-lg py-24 text-center">
             <p className="body-muted text-base">No blog posts yet. Check back soon!</p>
@@ -110,12 +107,12 @@ export default async function BlogPage() {
             {featured && (
               <Link
                 href={`/blog/${featured.slug}`}
-                className="group mt-5 block rounded-3xl border border-border bg-card p-8 transition hover:border-teal/40"
+                className="glass-card group mt-5 block p-8"
               >
                 <div className="flex items-center justify-between">
                   <Tag label={catLabel(featured.category)} color={catColor(featured.category)} />
-                  <span className="rounded-full bg-dark px-3 py-1 text-[11px] text-muted">
-                    Featured
+                  <span className="rounded-full bg-gold/15 px-3 py-1 text-[11px] font-semibold text-gold">
+                    ★ Featured
                   </span>
                 </div>
                 <h2 className="mt-5 text-2xl font-extrabold tracking-tight text-ink md:text-3xl">
@@ -151,7 +148,7 @@ export default async function BlogPage() {
                       <Link
                         key={post.id}
                         href={`/blog/${post.slug}`}
-                        className="flex flex-col rounded-2xl border border-border bg-card p-6 transition hover:border-teal/40"
+                        className="glass-card flex flex-col p-6"
                       >
                         <div className="flex items-center justify-between">
                           <Tag label={catLabel(post.category)} color={color} />
@@ -174,6 +171,7 @@ export default async function BlogPage() {
             )}
           </div>
         )}
+        </div>
       </section>
     </>
   );

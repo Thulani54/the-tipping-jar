@@ -543,7 +543,7 @@ export default async function LandingPage() {
       <section className="container-content py-24">
         <Reveal>
           <div
-            className="relative overflow-hidden rounded-[28px] px-8 py-14 ring-1 ring-white/10 md:px-16"
+            className="relative overflow-hidden rounded-[28px] bg-navy px-8 py-14 ring-1 ring-white/10 md:px-16"
             style={{ background: "linear-gradient(140deg, #0f2439 0%, #12324f 55%, #0b2b26 100%)" }}
           >
             <span
