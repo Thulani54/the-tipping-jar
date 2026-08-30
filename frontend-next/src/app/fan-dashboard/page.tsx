@@ -11,8 +11,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
-import { CreatorCard } from "@/components/CreatorCard";
-import type { Creator, Tip } from "@/types";
+import type { Tip } from "@/types";
 
 type Tab = "home" | "activity" | "settings";
 
@@ -33,7 +32,6 @@ export default function FanDashboardPage() {
   const { user, token, isAuthenticated, initialized, logout } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("home");
-  const [creators, setCreators] = useState<Creator[]>([]);
   const [myTips, setMyTips] = useState<Tip[]>([]);
 
   useEffect(() => {
@@ -42,10 +40,8 @@ export default function FanDashboardPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    api
-      .listCreators()
-      .then((c) => setCreators(c.slice(0, 8)))
-      .catch(() => setCreators([]));
+    // Creator directory is hidden during private beta — no listCreators
+    // fetch here; the HomeTab shows a waitlist pointer instead.
     if (user?.email) {
       api
         .tipsForFan(user.email)
@@ -97,7 +93,6 @@ export default function FanDashboardPage() {
         {tab === "home" && (
           <HomeTab
             name={name}
-            creators={creators}
             tipsCount={myTips.length}
             totalGiven={totalGiven}
             creatorsSupported={creatorsSupported}
@@ -125,13 +120,11 @@ function StatCard({ label, value, icon }: { label: string; value: string; icon: 
 // ─── Home ──────────────────────────────────────────────────────────────────────
 function HomeTab({
   name,
-  creators,
   tipsCount,
   totalGiven,
   creatorsSupported,
 }: {
   name: string;
-  creators: Creator[];
   tipsCount: number;
   totalGiven: number;
   creatorsSupported: number;
@@ -157,22 +150,24 @@ function HomeTab({
         <StatCard label="Creators supported" value={String(creatorsSupported)} icon="bi-people-fill" />
       </div>
 
-      <div>
-        <div className="mb-5 flex items-end justify-between">
-          <h3 className="text-base font-bold text-ink">Discover creators</h3>
-          <Link href="/creators" className="text-sm text-teal hover:underline">
-            See all →
-          </Link>
+      {/* Discover-creators grid hidden during private beta — the public
+          directory is behind a waitlist and unvetted profiles shouldn't
+          be surfaced here either. Replaced with a small pointer card
+          so the section slot still guides the fan forward. */}
+      <div className="card flex flex-col items-start gap-3 !p-5 sm:flex-row sm:items-center">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-mint/20 text-teal">
+          <i className="bi bi-envelope-heart-fill text-lg" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-ink">Creator directory — opening soon</p>
+          <p className="body-muted mt-0.5 text-sm">
+            Every listed creator will be vetted. Join the waitlist to get an
+            email the moment browsing opens.
+          </p>
         </div>
-        {creators.length === 0 ? (
-          <p className="body-muted">No creators to show yet.</p>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {creators.map((c) => (
-              <CreatorCard key={c.id} creator={c} />
-            ))}
-          </div>
-        )}
+        <Link href="/creators" className="btn-primary shrink-0 !px-5 !py-2.5 text-sm">
+          Join waitlist →
+        </Link>
       </div>
     </div>
   );
