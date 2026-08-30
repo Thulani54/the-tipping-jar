@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { CreatorCard } from "@/components/CreatorCard";
 import { HeroDemo } from "@/components/HeroDemo";
 import { LiveTicker, type TickerItem } from "@/components/LiveTicker";
 import { Reveal } from "@/components/Reveal";
@@ -115,12 +114,6 @@ export default async function LandingPage() {
     getTicker(),
     getHeroStats(),
   ]);
-  const categories = Array.from(
-    new Set(creators.map((c) => c.category).filter(Boolean)),
-  ).slice(0, 6);
-  const chips = categories.length
-    ? categories
-    : ["Music", "Art", "Writing", "Streaming", "Podcasts", "Photography"];
   // Latest tip for the hero's live-activity pill — pulled from the same
   // ticker feed we already fetched.
   const latestTip = ticker[0];
@@ -473,37 +466,12 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── Featured creators ───────────────────────────────────────────── */}
-      {creators.length > 0 && (
-        <section className="relative overflow-hidden border-b border-border bg-[#f3f9f5]">
-          <Aurora />
-          <div className="container-content relative py-24">
-            <Reveal className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="eyebrow">On the platform</p>
-                <h2 className="heading-xl mt-3 text-4xl md:text-5xl">Creators filling their jars</h2>
-              </div>
-              <Link href="/creators" className="text-sm font-semibold text-green hover:underline">
-                View all →
-              </Link>
-            </Reveal>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {chips.map((c) => (
-                <span key={c} className="rounded-full border border-border bg-white px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
-                  {c}
-                </span>
-              ))}
-            </div>
-            <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {creators.map((c, i) => (
-                <Reveal key={c.id} delay={(i % 3) * 80}>
-                  <CreatorCard creator={c} />
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* ── Featured creators ─────────────────────────────────────────────
+         Hidden during private beta — the /creators directory is behind a
+         waitlist, and surfacing half-set-up profiles on the landing page
+         undercuts the 'every listed creator is vetted' promise on
+         /creators. Section kept in source so it's easy to re-enable once
+         the curated directory launches. */}
 
       {/* ── FAQ ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-b border-border bg-white">
