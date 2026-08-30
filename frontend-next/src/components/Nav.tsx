@@ -6,7 +6,7 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/lib/auth";
 
 const LINKS = [
-  { href: "/creators", label: "Creators" },
+  // Creators directory hidden during private beta — see src/app/creators/page.tsx.
   { href: "/features", label: "Features" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/pricing", label: "Pricing" },

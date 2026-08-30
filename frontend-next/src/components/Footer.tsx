@@ -8,7 +8,7 @@ const COLS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/features", label: "Features" },
       { href: "/how-it-works", label: "How it works" },
       { href: "/pricing", label: "Pricing" },
-      { href: "/creators", label: "Creators" },
+      // Creators directory hidden during private beta.
     ],
   },
   {
