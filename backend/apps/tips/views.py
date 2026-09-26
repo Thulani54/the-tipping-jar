@@ -82,6 +82,13 @@ class InitiateTipView(APIView):
                 {"detail": "Creator not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
+        # ── Block if Paystack not configured ──────────────────────────
+        if settings.PAYSTACK_SECRET_KEY and not creator.paystack_subaccount_code:
+            return Response(
+                {"detail": "This creator has not configured their payment details yet. Tips are currently unavailable."},
+                status=status.HTTP_402_PAYMENT_REQUIRED,
+            )
+
         # ── Resolve optional jar ──────────────────────────────────────
         jar = None
         jar_id = data.get("jar_id")

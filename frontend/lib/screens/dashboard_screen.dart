@@ -2542,6 +2542,44 @@ class _ContentPageState extends State<_ContentPage> {
   String? _liveRoomName;
   bool _liveLoading = false;
   static int _jitsiViewCounter = 0;
+  // We store the container *ID* rather than the element reference because the
+  // factory runs lazily during Flutter's build phase — the element doesn't
+  // exist yet when _LiveStreamCard is constructed, so passing the reference
+  // would always be null.  We look it up fresh each time via getElementById.
+  String? _jitsiContainerId;
+
+  // ── Iframe overlay fix ─────────────────────────────────────────────────────
+  // Flutter Web: HTML platform-view wrappers always sit above the canvas layer,
+  // so route-based overlays (showDialog, BottomSheet) appear *behind* the
+  // Jitsi iframe and can't receive pointer events.
+  // Fix: before opening any overlay we (a) hide our container element and
+  // (b) walk up the ancestor chain setting pointer-events:none on every
+  // Flutter platform-view wrapper until we reach flt-glass-pane / body.
+  void _hideJitsiForDialog() {
+    final id = _jitsiContainerId;
+    if (id == null) return;
+    final el = html.document.getElementById(id);
+    if (el == null) return;
+    (el as html.HtmlElement).style.display = 'none';
+    html.Element? p = el.parent;
+    for (var i = 0; i < 8 && p != null && p != html.document.body; i++) {
+      if (p is html.HtmlElement) p.style.pointerEvents = 'none';
+      p = p.parent;
+    }
+  }
+
+  void _showJitsiAfterDialog() {
+    final id = _jitsiContainerId;
+    if (id == null) return;
+    final el = html.document.getElementById(id);
+    if (el == null) return;
+    (el as html.HtmlElement).style.removeProperty('display');
+    html.Element? p = el.parent;
+    for (var i = 0; i < 8 && p != null && p != html.document.body; i++) {
+      if (p is html.HtmlElement) p.style.removeProperty('pointer-events');
+      p = p.parent;
+    }
+  }
 
   @override
   void initState() {
@@ -2678,32 +2716,83 @@ class _ContentPageState extends State<_ContentPage> {
       final auth = context.read<AuthProvider>();
       final data = await auth.api.startLiveStream(titleCtrl.text.trim());
       final roomName = data['room_name'] as String;
-      // Jitsi URL parser JSON.parses every value — strings must be JSON-quoted
-      final creatorUsername = auth.user?.username ?? 'Host';
-      final creatorName = Uri.encodeComponent('"$creatorUsername"');
-      // Register the Jitsi iframe as a platform view
+      final creatorUsername = (auth.user?.username ?? 'Host')
+          .replaceAll("'", "\\'").replaceAll('"', '\\"');
+
+      // Use Jitsi External API so we can pin the creator to the main stage
       _jitsiViewCounter++;
       final viewId = 'jitsi-host-$_jitsiViewCounter';
+      final containerId = '$viewId-container';
+
+      _jitsiContainerId = containerId; // store ID before build so callbacks work
+
       ui_web.platformViewRegistry.registerViewFactory(viewId, (_) {
-        final iframe = html.IFrameElement()
-          ..src = 'https://meet.tippingjar.co.za/$roomName'
-              '#config.prejoinConfig.enabled=false'
-              '&config.prejoinPageEnabled=false'
-              '&config.hideConferenceSubject=true'
-              '&config.hideConferenceTimer=true'
-              '&config.remoteVideoMenu.disableKick=true'
-              '&config.disableModeratorIndicator=true'
-              '&interfaceConfig.SHOW_JITSI_WATERMARK=false'
-              '&interfaceConfig.SHOW_WATERMARK_FOR_GUESTS=false'
-              '&interfaceConfig.SHOW_BRAND_WATERMARK=false'
-              '&userInfo.displayName=$creatorName'
-              '&config.toolbarButtons=["microphone","camera","desktop","fullscreen","fodeviceselection","hangup","tileview"]'
-          ..style.border = 'none'
+        final container = html.DivElement()
+          ..id = containerId
           ..style.width = '100%'
           ..style.height = '100%'
-          ..allow = 'camera; microphone; fullscreen; display-capture; autoplay';
-        return iframe;
+          ..style.background = '#000';
+
+        // Inline JS: load Jitsi External API then create the meeting and
+        // immediately pin the creator (local participant) to the main stage.
+        final js = '''
+(function() {
+  function initMeeting() {
+    var el = document.getElementById('$containerId');
+    if (!el) { setTimeout(initMeeting, 150); return; }
+    var api = new JitsiMeetExternalAPI('meet.tippingjar.co.za', {
+      roomName: '$roomName',
+      parentNode: el,
+      width: '100%',
+      height: '100%',
+      configOverwrite: {
+        prejoinConfig: { enabled: false },
+        prejoinPageEnabled: false,
+        hideConferenceSubject: true,
+        hideConferenceTimer: true,
+        disableTileView: true,
+        remoteVideoMenu: { disableKick: true },
+        disableModeratorIndicator: true,
+        toolbarButtons: ['microphone','camera','desktop','fullscreen',
+                         'fodeviceselection','hangup']
+      },
+      interfaceConfigOverwrite: {
+        SHOW_JITSI_WATERMARK: false,
+        SHOW_WATERMARK_FOR_GUESTS: false,
+        SHOW_BRAND_WATERMARK: false,
+        FILM_STRIP_ENABLED: true
+      },
+      userInfo: { displayName: '$creatorUsername' }
+    });
+    // Pin the creator (local participant) as the main stage video
+    api.addEventListener('videoConferenceJoined', function(ev) {
+      api.executeCommand('pinParticipant', ev.id);
+    });
+    // Re-pin if a new participant tries to take stage
+    api.addEventListener('dominantSpeakerChanged', function(ev) {
+      // Only switch away from creator if they explicitly click another tile
+    });
+    window['_jitsiApi_$viewId'] = api;
+  }
+
+  if (typeof JitsiMeetExternalAPI !== 'undefined') {
+    initMeeting();
+  } else {
+    var s = document.createElement('script');
+    s.src = 'https://meet.tippingjar.co.za/external_api.js';
+    s.async = true;
+    s.onload = initMeeting;
+    document.head.appendChild(s);
+  }
+})();
+''';
+        final script = html.ScriptElement()
+          ..type = 'text/javascript'
+          ..text = js;
+        html.document.head!.append(script);
+        return container;
       });
+
       if (mounted) setState(() {
         _isLive = true;
         _liveRoomName = roomName;
@@ -2780,6 +2869,8 @@ class _ContentPageState extends State<_ContentPage> {
                       creatorSlug: _creatorSlug,
                       onGoLive: _goLive,
                       onEnd: _endStream,
+                      onHideJitsi: _hideJitsiForDialog,
+                      onShowJitsi: _showJitsiAfterDialog,
                     ),
                     const SizedBox(height: 24),
 
@@ -2888,6 +2979,7 @@ class _ContentPageState extends State<_ContentPage> {
   Future<void> _showPostDialog(BuildContext context, {CreatorPostModel? post}) async {
     await showDialog(
       context: context,
+      barrierColor: Colors.black87,
       builder: (_) => _PostFormDialog(
         post: post,
         onSaved: _load,
@@ -2904,6 +2996,8 @@ class _LiveStreamCard extends StatefulWidget {
   final String? creatorSlug;
   final VoidCallback onGoLive;
   final VoidCallback onEnd;
+  final VoidCallback? onHideJitsi;
+  final VoidCallback? onShowJitsi;
 
   const _LiveStreamCard({
     required this.isLive,
@@ -2912,6 +3006,8 @@ class _LiveStreamCard extends StatefulWidget {
     required this.creatorSlug,
     required this.onGoLive,
     required this.onEnd,
+    this.onHideJitsi,
+    this.onShowJitsi,
   });
 
   @override
@@ -2924,20 +3020,55 @@ class _LiveStreamCardState extends State<_LiveStreamCard> {
   final _commentCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   Timer? _commentPollTimer;
+  Timer? _goalPollTimer;
+  Timer? _pollTimer;
+  Timer? _statsTimer;
+  Map<String, dynamic>? _liveGoal;
+  Map<String, dynamic>? _livePoll;
+  List<Map<String, dynamic>> _topTippers = [];
+  int _viewerCount = 0;
+  String _totalTipsEarned = '0.00';
+
+  // ── Jitsi iframe overlay fix ──────────────────────────────────────────────
+  // Delegates to _ContentPageState which does the actual DOM work:
+  // hides the platform-view container + disables pointer-events on every
+  // ancestor up to flt-glass-pane so Flutter overlay routes can receive clicks.
+  void _hideJitsi() => widget.onHideJitsi?.call();
+  void _showJitsi() => widget.onShowJitsi?.call();
+
+  // Quick reply presets
+  static const _quickReplies = [
+    'Thank you! 🙏', 'Love you all! ❤️', 'More coming!', 'You\'re amazing! 🌟',
+    'Welcome! 👋', 'Stay tuned 🎵',
+  ];
 
   @override
   void didUpdateWidget(_LiveStreamCard old) {
     super.didUpdateWidget(old);
-    if (widget.isLive && !old.isLive) _startCommentPoll();
+    if (widget.isLive && !old.isLive) {
+      _startCommentPoll();
+      _startGoalPoll();
+      _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _fetchPoll());
+      _statsTimer = Timer.periodic(const Duration(seconds: 15), (_) => _fetchStats());
+    }
     if (!widget.isLive && old.isLive) {
       _commentPollTimer?.cancel();
-      setState(() { _comments.clear(); _lastCommentId = 0; });
+      _goalPollTimer?.cancel();
+      _pollTimer?.cancel();
+      _statsTimer?.cancel();
+      setState(() {
+        _comments.clear(); _lastCommentId = 0; _liveGoal = null;
+        _livePoll = null; _viewerCount = 0; _totalTipsEarned = '0.00';
+      });
     }
   }
 
   @override
   void dispose() {
     _commentPollTimer?.cancel();
+    _goalPollTimer?.cancel();
+    _pollTimer?.cancel();
+    _statsTimer?.cancel();
     _commentCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
@@ -2947,6 +3078,132 @@ class _LiveStreamCardState extends State<_LiveStreamCard> {
     _commentPollTimer?.cancel();
     _commentPollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _pollComments());
     _pollComments();
+  }
+
+  void _startGoalPoll() {
+    _goalPollTimer?.cancel();
+    _goalPollTimer = Timer.periodic(const Duration(seconds: 10), (_) => _fetchGoal());
+    _fetchGoal();
+    _fetchTopTippers();
+  }
+
+  Future<void> _fetchPoll() async {
+    final slug = widget.creatorSlug;
+    if (slug == null) return;
+    try {
+      final p = await ApiService().getLivePoll(slug);
+      if (mounted) setState(() => _livePoll = p);
+    } catch (_) {}
+  }
+
+  Future<void> _fetchStats() async {
+    final slug = widget.creatorSlug;
+    if (slug == null) return;
+    try {
+      final s = await ApiService().getLiveStats(slug);
+      if (mounted) setState(() {
+        _viewerCount = s['viewer_count'] as int? ?? _viewerCount;
+        _totalTipsEarned = s['total_tips'] as String? ?? _totalTipsEarned;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _fetchGoal() async {
+    final slug = widget.creatorSlug;
+    if (slug == null) return;
+    try {
+      final g = await ApiService().getLiveGoal(slug);
+      if (mounted) setState(() => _liveGoal = g);
+    } catch (_) {}
+  }
+
+  Future<void> _fetchTopTippers() async {
+    final slug = widget.creatorSlug;
+    if (slug == null) return;
+    try {
+      final t = await ApiService().getLiveTopTippers(slug);
+      if (mounted) setState(() => _topTippers = t);
+    } catch (_) {}
+  }
+
+  Future<void> _showSetGoalDialog() async {
+    final titleCtrl = TextEditingController();
+    final amountCtrl = TextEditingController();
+    final slug = widget.creatorSlug;
+    if (slug == null) return;
+    _hideJitsi();
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kCardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Set a live goal', style: GoogleFonts.dmSans(
+            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('Give your fans a target to tip towards. The progress bar appears in the chat.',
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, height: 1.5)),
+          const SizedBox(height: 16),
+          TextField(controller: titleCtrl,
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: 'e.g. "New camera gear" or "Exclusive dance"',
+              hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
+              filled: true, fillColor: kDarker,
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: kBorder)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: kPrimary, width: 2)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(controller: amountCtrl, keyboardType: TextInputType.number,
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: 'Target amount (e.g. 500)',
+              prefixText: 'R ',
+              prefixStyle: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+              hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
+              filled: true, fillColor: kDarker,
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: kBorder)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: kPrimary, width: 2)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted))),
+          ElevatedButton(
+            onPressed: () async {
+              final title = titleCtrl.text.trim();
+              final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
+              if (title.isEmpty || amount <= 0) return;
+              final auth = context.read<AuthProvider>();
+              await ApiService(authToken: auth.accessToken)
+                  .setLiveGoal(slug, title, amount);
+              if (ctx.mounted) Navigator.pop(ctx);
+              await _fetchGoal();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimary,
+                foregroundColor: Colors.white, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+            child: Text('Set goal', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    _showJitsi();
+  }
+
+  Future<void> _clearGoal() async {
+    final slug = widget.creatorSlug;
+    if (slug == null) return;
+    final auth = context.read<AuthProvider>();
+    await ApiService(authToken: auth.accessToken).clearLiveGoal(slug);
+    await _fetchGoal();
   }
 
   Future<void> _pollComments() async {
@@ -2978,8 +3235,150 @@ class _LiveStreamCardState extends State<_LiveStreamCard> {
     final name = auth.user?.username ?? 'Creator';
     _commentCtrl.clear();
     try {
-      await ApiService().postLiveComment(widget.creatorSlug!, name, msg);
+      await ApiService(authToken: auth.accessToken)
+          .postLiveComment(widget.creatorSlug!, name, msg);
     } catch (_) {}
+  }
+
+  Future<void> _pinComment(int commentId) async {
+    final slug = widget.creatorSlug;
+    if (slug == null) return;
+    final auth = context.read<AuthProvider>();
+    await ApiService(authToken: auth.accessToken).pinComment(slug, commentId);
+    // Toggle locally
+    setState(() {
+      for (final c in _comments) {
+        if (c['id'] == commentId) {
+          c['is_pinned'] = !(c['is_pinned'] as bool? ?? false);
+        } else {
+          c['is_pinned'] = false;
+        }
+      }
+    });
+  }
+
+  Future<void> _deleteComment(int commentId) async {
+    final slug = widget.creatorSlug;
+    if (slug == null) return;
+    final auth = context.read<AuthProvider>();
+    await ApiService(authToken: auth.accessToken).deleteComment(slug, commentId);
+    setState(() => _comments.removeWhere((c) => c['id'] == commentId));
+  }
+
+  Future<void> _showCreatePollDialog() async {
+    final slug = widget.creatorSlug;
+    if (slug == null) return;
+    final questionCtrl = TextEditingController();
+    final opt1 = TextEditingController();
+    final opt2 = TextEditingController();
+    final opt3 = TextEditingController();
+    final opt4 = TextEditingController();
+    _hideJitsi();
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kCardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          const Icon(Icons.poll_rounded, color: kPrimary, size: 18),
+          const SizedBox(width: 8),
+          Text('Create a Poll', style: GoogleFonts.dmSans(
+              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+        ]),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          _pollField(questionCtrl, 'Poll question e.g. "What song next?"'),
+          const SizedBox(height: 10),
+          _pollField(opt1, 'Option 1'),
+          const SizedBox(height: 8),
+          _pollField(opt2, 'Option 2'),
+          const SizedBox(height: 8),
+          _pollField(opt3, 'Option 3 (optional)'),
+          const SizedBox(height: 8),
+          _pollField(opt4, 'Option 4 (optional)'),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: GoogleFonts.dmSans(color: kMuted))),
+          ElevatedButton(
+            onPressed: () async {
+              final q = questionCtrl.text.trim();
+              final opts = [opt1, opt2, opt3, opt4]
+                  .map((c) => c.text.trim()).where((s) => s.isNotEmpty).toList();
+              if (q.isEmpty || opts.length < 2) return;
+              final auth = context.read<AuthProvider>();
+              final p = await ApiService(authToken: auth.accessToken)
+                  .createLivePoll(slug, q, opts);
+              if (p != null && mounted) setState(() => _livePoll = p);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36))),
+            child: Text('Launch poll', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    _showJitsi();
+  }
+
+  Widget _pollField(TextEditingController ctrl, String hint) => TextField(
+    controller: ctrl,
+    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
+    decoration: InputDecoration(
+      hintText: hint,
+      hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 12),
+      filled: true, fillColor: kDarker,
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: kBorder)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: kPrimary)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      isDense: true,
+    ),
+  );
+
+  Future<void> _closePoll() async {
+    final slug = widget.creatorSlug;
+    if (slug == null) return;
+    final auth = context.read<AuthProvider>();
+    await ApiService(authToken: auth.accessToken).closeLivePoll(slug);
+    if (mounted) setState(() => _livePoll = null);
+  }
+
+  void _showCommentOptions(BuildContext ctx, int commentId, bool isPinned) {
+    _hideJitsi();
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: kCardBg,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 36, height: 3,
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(color: kBorder, borderRadius: BorderRadius.circular(2))),
+        ListTile(
+          leading: Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded,
+              color: Colors.blue, size: 20),
+          title: Text(isPinned ? 'Unpin message' : 'Pin message',
+              style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14)),
+          onTap: () {
+            Navigator.pop(ctx);
+            _pinComment(commentId);
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+          title: Text('Delete message',
+              style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 14)),
+          onTap: () {
+            Navigator.pop(ctx);
+            _deleteComment(commentId);
+          },
+        ),
+        const SizedBox(height: 8),
+      ])),
+    ).whenComplete(_showJitsi);
   }
 
   @override
@@ -3107,71 +3506,317 @@ class _LiveStreamCardState extends State<_LiveStreamCard> {
   }
 
   Widget _commentPanel() {
+    final pinnedComment = _comments.where((c) => c['is_pinned'] == true).lastOrNull;
+
     return Column(children: [
-      // Header
+      // ── Stats bar ────────────────────────────────────────────────────
+      if (_viewerCount > 0 || _totalTipsEarned != '0.00')
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: kBorder)),
+          ),
+          child: Row(children: [
+            if (_viewerCount > 0) ...[
+              const Icon(Icons.remove_red_eye_rounded, color: kMuted, size: 11),
+              const SizedBox(width: 4),
+              Text('$_viewerCount watching',
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 10)),
+              const SizedBox(width: 12),
+            ],
+            if (_totalTipsEarned != '0.00') ...[
+              const Text('💰', style: TextStyle(fontSize: 10)),
+              const SizedBox(width: 4),
+              Text('R$_totalTipsEarned earned',
+                  style: GoogleFonts.dmSans(
+                      color: const Color(0xFFD4A017),
+                      fontWeight: FontWeight.w700, fontSize: 10)),
+            ],
+          ]),
+        ),
+
+      // ── Header with goal + poll controls ─────────────────────────────
       Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
         child: Row(children: [
-          const Icon(Icons.chat_bubble_outline_rounded, color: kMuted, size: 14),
-          const SizedBox(width: 6),
-          Text('Fan Messages', style: GoogleFonts.dmSans(
-              color: kMuted, fontWeight: FontWeight.w600, fontSize: 12)),
+          const Icon(Icons.chat_bubble_outline_rounded, color: kMuted, size: 13),
+          const SizedBox(width: 5),
+          Text('Live Chat', style: GoogleFonts.dmSans(color: kMuted, fontWeight: FontWeight.w600, fontSize: 11)),
           const Spacer(),
-          if (_comments.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
-              child: Text('${_comments.length}', style: GoogleFonts.dmSans(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w700)),
+          GestureDetector(
+            onTap: _showSetGoalDialog,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              margin: const EdgeInsets.only(right: 6),
+              decoration: BoxDecoration(
+                color: kPrimary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Text('🎯', style: TextStyle(fontSize: 10)),
+                const SizedBox(width: 3),
+                Text('Goal', style: GoogleFonts.dmSans(
+                    color: kPrimary, fontSize: 10, fontWeight: FontWeight.w700)),
+              ]),
             ),
+          ),
+          GestureDetector(
+            onTap: _livePoll == null ? _showCreatePollDialog : _closePoll,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              decoration: BoxDecoration(
+                color: _livePoll != null
+                    ? Colors.orange.withValues(alpha: 0.15)
+                    : const Color(0xFF34D399).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Text('📊', style: TextStyle(fontSize: 10)),
+                const SizedBox(width: 3),
+                Text(_livePoll != null ? 'End poll' : 'Poll',
+                    style: GoogleFonts.dmSans(
+                        color: _livePoll != null ? Colors.orange : const Color(0xFF34D399),
+                        fontSize: 10, fontWeight: FontWeight.w700)),
+              ]),
+            ),
+          ),
         ]),
       ),
+
+      // ── Top tippers strip ─────────────────────────────────────────────
+      if (_topTippers.isNotEmpty)
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+          child: Row(
+            children: _topTippers.asMap().entries.map((e) {
+              const medals = ['🥇', '🥈', '🥉'];
+              return Expanded(child: Container(
+                margin: const EdgeInsets.only(right: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4A017).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFD4A017).withValues(alpha: 0.3)),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(medals[e.key], style: const TextStyle(fontSize: 10)),
+                  Text(e.value['name'] as String,
+                      style: GoogleFonts.dmSans(color: Colors.white70, fontSize: 9),
+                      overflow: TextOverflow.ellipsis),
+                  Text('R${e.value['total']}',
+                      style: GoogleFonts.dmSans(color: const Color(0xFFD4A017),
+                          fontWeight: FontWeight.w700, fontSize: 10)),
+                ]),
+              ));
+            }).toList(),
+          ),
+        ),
+
+      // ── Goal bar ──────────────────────────────────────────────────────
+      if (_liveGoal != null)
+        _CreatorGoalBar(goal: _liveGoal!, onClear: _clearGoal),
+
+      // ── Active poll results ────────────────────────────────────────────
+      if (_livePoll != null) _CreatorPollResults(poll: _livePoll!),
+
+      // ── Pinned message ────────────────────────────────────────────────
+      if (pinnedComment != null)
+        Container(
+          margin: const EdgeInsets.fromLTRB(10, 4, 10, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.blue.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.push_pin_rounded, color: Colors.blue, size: 11),
+            const SizedBox(width: 5),
+            Text('Pinned: ', style: GoogleFonts.dmSans(color: Colors.blue, fontSize: 10)),
+            Expanded(child: Text(
+                '${pinnedComment['username']}: ${pinnedComment['message']}',
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 10),
+                overflow: TextOverflow.ellipsis)),
+          ]),
+        ),
+
       Container(height: 1, color: kBorder),
-      // Comment feed
+
+      // ── Comment feed ──────────────────────────────────────────────────
       Expanded(
         child: _comments.isEmpty
-            ? Center(child: Text('No messages yet', style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)))
+            ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text('💬', style: TextStyle(fontSize: 24)),
+                const SizedBox(height: 8),
+                Text('Waiting for messages...', style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+              ]))
             : ListView.builder(
                 controller: _scrollCtrl,
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
                 itemCount: _comments.length,
                 itemBuilder: (_, i) {
                   final c = _comments[i];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Container(
-                        width: 26, height: 26,
-                        decoration: BoxDecoration(color: kPrimary.withValues(alpha: 0.15), shape: BoxShape.circle),
-                        child: Center(child: Text(
-                          (c['username'] as String).isNotEmpty
-                              ? (c['username'] as String)[0].toUpperCase() : '?',
-                          style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11),
-                        )),
+                  final isCreator = c['is_creator'] == true;
+                  final msgType   = c['msg_type'] as String? ?? 'text';
+                  final giftType  = c['gift_type'] as String? ?? '';
+                  final nameColor = isCreator ? const Color(0xFFD4A017) : kPrimary;
+                  final isPinned  = c['is_pinned'] == true;
+                  final commentId = c['id'] as int? ?? 0;
+
+                  if (msgType == 'gift') {
+                    const giftEmojis = {
+                      'heart': '❤️', 'star': '⭐', 'crown': '👑',
+                      'fire': '🔥', 'diamond': '💎',
+                    };
+                    final emoji = giftEmojis[giftType] ?? '🎁';
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 5),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.amber.withValues(alpha: 0.25)),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(c['username'] as String,
-                            style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 11)),
-                        Text(c['message'] as String,
-                            style: GoogleFonts.dmSans(color: Colors.white70, fontSize: 12, height: 1.4)),
-                      ])),
-                    ]),
+                      child: Row(children: [
+                        Text(emoji, style: const TextStyle(fontSize: 14)),
+                        const SizedBox(width: 5),
+                        Expanded(child: Text('${c['username']} sent a gift!',
+                            style: GoogleFonts.dmSans(color: Colors.amber.shade400, fontSize: 11))),
+                      ]),
+                    );
+                  }
+
+                  return GestureDetector(
+                    onLongPress: () => _showCommentOptions(context, commentId, isPinned),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 5),
+                      padding: isCreator || isPinned
+                          ? const EdgeInsets.symmetric(horizontal: 7, vertical: 4)
+                          : EdgeInsets.zero,
+                      decoration: BoxDecoration(
+                        color: isCreator
+                            ? const Color(0xFFD4A017).withValues(alpha: 0.07)
+                            : isPinned ? Colors.blue.withValues(alpha: 0.05) : Colors.transparent,
+                        borderRadius: (isCreator || isPinned) ? BorderRadius.circular(8) : null,
+                        border: isPinned
+                            ? Border.all(color: Colors.blue.withValues(alpha: 0.15))
+                            : null,
+                      ),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Container(
+                          width: 24, height: 24,
+                          decoration: BoxDecoration(
+                            color: nameColor.withValues(alpha: 0.15), shape: BoxShape.circle),
+                          child: Center(child: Text(
+                            (c['username'] as String).isNotEmpty
+                                ? (c['username'] as String)[0].toUpperCase() : '?',
+                            style: GoogleFonts.dmSans(color: nameColor,
+                                fontWeight: FontWeight.w700, fontSize: 10),
+                          )),
+                        ),
+                        const SizedBox(width: 7),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(children: [
+                            Text(c['username'] as String,
+                                style: GoogleFonts.dmSans(color: nameColor,
+                                    fontWeight: FontWeight.w700, fontSize: 11)),
+                            if (isCreator) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD4A017),
+                                  borderRadius: BorderRadius.circular(20)),
+                                child: Text('YOU', style: GoogleFonts.dmSans(
+                                    color: Colors.white, fontWeight: FontWeight.w800, fontSize: 7)),
+                              ),
+                            ],
+                            if (isPinned) ...[
+                              const SizedBox(width: 4),
+                              const Icon(Icons.push_pin_rounded, color: Colors.blue, size: 10),
+                            ],
+                          ]),
+                          if ((c['message'] as String).isNotEmpty)
+                            Text(c['message'] as String,
+                                style: GoogleFonts.dmSans(color: Colors.white70,
+                                    fontSize: 11, height: 1.4)),
+                          if ((c['image_url'] as String? ?? '').isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(c['image_url'] as String,
+                                    height: 120, fit: BoxFit.cover),
+                              ),
+                            ),
+                        ])),
+                        // Message options icon
+                        GestureDetector(
+                          onTap: () => _showCommentOptions(context, commentId, isPinned),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: Icon(Icons.more_vert_rounded, color: kMuted.withValues(alpha: 0.4), size: 14),
+                          ),
+                        ),
+                      ]),
+                    ),
                   );
                 },
               ),
       ),
-      // Message input (creator can reply)
+
+      // ── Quick replies ─────────────────────────────────────────────────
+      Container(height: 1, color: kBorder),
+      SizedBox(
+        height: 38,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          children: _quickReplies.map((r) => GestureDetector(
+            onTap: () {
+              _commentCtrl.text = r;
+              _sendComment();
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: kPrimary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: kPrimary.withValues(alpha: 0.2)),
+              ),
+              child: Text(r, style: GoogleFonts.dmSans(
+                  color: kPrimary, fontSize: 10, fontWeight: FontWeight.w600)),
+            ),
+          )).toList(),
+        ),
+      ),
+
+
+      // ── Message input (creator) ────────────────────────────────────────
       Container(height: 1, color: kBorder),
       Padding(
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 10),
         child: Row(children: [
+          // Image upload
+          GestureDetector(
+            onTap: _pickAndSendImage,
+            child: Container(
+              width: 32, height: 32, margin: const EdgeInsets.only(right: 6),
+              decoration: BoxDecoration(
+                color: kDarker, borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: kBorder),
+              ),
+              child: const Icon(Icons.image_outlined, color: kMuted, size: 16),
+            ),
+          ),
           Expanded(
             child: TextField(
               controller: _commentCtrl,
               style: GoogleFonts.dmSans(fontSize: 12, color: Colors.white),
               onSubmitted: (_) => _sendComment(),
               decoration: InputDecoration(
-                hintText: 'Reply to your fans...',
+                hintText: 'Reply or say thank you...',
                 hintStyle: GoogleFonts.dmSans(fontSize: 12, color: kMuted),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 isDense: true,
@@ -3179,7 +3824,8 @@ class _LiveStreamCardState extends State<_LiveStreamCard> {
                 enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
                 focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kPrimary, width: 1.5)),
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
               ),
             ),
           ),
@@ -3187,14 +3833,30 @@ class _LiveStreamCardState extends State<_LiveStreamCard> {
           GestureDetector(
             onTap: _sendComment,
             child: Container(
-              width: 34, height: 34,
-              decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.send_rounded, color: Colors.white, size: 16),
+              width: 32, height: 32,
+              decoration: BoxDecoration(
+                  color: const Color(0xFFD4A017), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.send_rounded, color: Colors.white, size: 15),
             ),
           ),
         ]),
       ),
     ]);
+  }
+
+  Future<void> _pickAndSendImage() async {
+    final slug = widget.creatorSlug;
+    if (slug == null) return;
+    // Use file_picker already imported
+    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    if (result == null || result.files.isEmpty) return;
+    // For now, show a snackbar — full image upload would require signed URL from backend
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Image sharing coming soon — use the tip thank you note for now.'),
+        backgroundColor: Color(0xFFD4A017),
+      ));
+    }
   }
 }
 
@@ -3289,7 +3951,35 @@ class _PostCard extends StatelessWidget {
   );
 }
 
-// ─── Post create/edit dialog ──────────────────────────────────────────────────
+// ─── Post composer (split-panel, Meta-style) ──────────────────────────────────
+
+/// A single attached media file (local, not yet uploaded).
+class _AttachedFile {
+  final String name;
+  final String ext;
+  final Uint8List bytes;
+  final String objectUrl; // blob URL for preview inside the iframe/img
+
+  _AttachedFile({required this.name, required this.bytes})
+      : ext = name.contains('.') ? name.split('.').last.toLowerCase() : '',
+        objectUrl = html.Url.createObjectUrlFromBlob(
+            html.Blob([bytes], _mime(name)));
+
+  static String _mime(String name) {
+    final e = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].contains(e)) return 'image/$e';
+    if (['mp4', 'webm', 'ogg', 'mov'].contains(e)) return 'video/$e';
+    if (e == 'pdf') return 'application/pdf';
+    return 'application/octet-stream';
+  }
+
+  bool get isImage => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].contains(ext);
+  bool get isVideo => ['mp4', 'webm', 'ogg', 'mov'].contains(ext);
+  bool get isPdf   => ext == 'pdf';
+
+  void revoke() => html.Url.revokeObjectUrl(objectUrl);
+}
+
 class _PostFormDialog extends StatefulWidget {
   final CreatorPostModel? post;
   final VoidCallback onSaved;
@@ -3306,8 +3996,10 @@ class _PostFormDialogState extends State<_PostFormDialog> {
   late bool _isPublished;
   bool _saving = false;
   String? _error;
-  String? _pickedFileName;
-  List<int>? _pickedFileBytes;
+
+  // Multi-file attachments
+  final List<_AttachedFile> _files = [];
+  int _previewIndex = 0; // which attached file is shown in preview
 
   @override
   void initState() {
@@ -3318,26 +4010,69 @@ class _PostFormDialogState extends State<_PostFormDialog> {
     _videoUrlCtrl = TextEditingController(text: p?.videoUrl ?? '');
     _postType     = p?.postType ?? 'text';
     _isPublished  = p?.isPublished ?? true;
+    _titleCtrl.addListener(() => setState(() {}));
+    _bodyCtrl.addListener(() => setState(() {}));
+    _videoUrlCtrl.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
+    for (final f in _files) { f.revoke(); }
     _titleCtrl.dispose();
     _bodyCtrl.dispose();
     _videoUrlCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(withData: true);
-    if (result != null && result.files.single.bytes != null) {
-      setState(() {
-        _pickedFileName = result.files.single.name;
-        _pickedFileBytes = result.files.single.bytes!.toList();
-      });
+  // ── file picking ──────────────────────────────────────────────────────────
+  Future<void> _pickFiles() async {
+    FileType type;
+    List<String>? allowed;
+    switch (_postType) {
+      case 'image':
+        type = FileType.image;
+        allowed = null;
+        break;
+      case 'video':
+        type = FileType.video;
+        allowed = null;
+        break;
+      default:
+        type = FileType.custom;
+        allowed = ['jpg','jpeg','png','gif','webp','mp4','webm','mov',
+                   'pdf','doc','docx','xls','xlsx','ppt','pptx','zip','txt'];
     }
+    final result = await FilePicker.platform.pickFiles(
+      type: type, allowedExtensions: type == FileType.custom ? allowed : null,
+      allowMultiple: true, withData: true,
+    );
+    if (result == null) return;
+    setState(() {
+      for (final f in result.files) {
+        if (f.bytes != null) {
+          _files.add(_AttachedFile(name: f.name, bytes: f.bytes!));
+        }
+      }
+      // auto-detect post type from first file
+      if (_files.isNotEmpty && _postType == 'text') {
+        final f = _files.first;
+        if (f.isImage) _postType = 'image';
+        else if (f.isVideo) _postType = 'video';
+        else _postType = 'file';
+      }
+      if (_previewIndex >= _files.length) _previewIndex = math.max(0, _files.length - 1);
+    });
   }
 
+  void _removeFile(int i) {
+    setState(() {
+      _files[i].revoke();
+      _files.removeAt(i);
+      if (_previewIndex >= _files.length) _previewIndex = math.max(0, _files.length - 1);
+    });
+  }
+
+  // ── save ──────────────────────────────────────────────────────────────────
   Future<void> _save() async {
     if (_titleCtrl.text.trim().isEmpty) {
       setState(() => _error = 'Title is required.');
@@ -3353,211 +4088,699 @@ class _PostFormDialogState extends State<_PostFormDialog> {
       'is_published': _isPublished.toString(),
     };
 
+    // Use first attached file as the primary media
+    final primary = _files.isNotEmpty ? _files.first : null;
+
     try {
       final api = context.read<AuthProvider>().api;
       if (widget.post == null) {
-        await api.createPost(
-          fields,
-          fileBytes: _pickedFileBytes != null
-              ? Uint8List.fromList(_pickedFileBytes!) : null,
-          fileName: _pickedFileName,
-        );
+        await api.createPost(fields,
+            fileBytes: primary?.bytes, fileName: primary?.name);
       } else {
-        await api.updatePost(
-          widget.post!.id,
-          fields,
-          fileBytes: _pickedFileBytes != null
-              ? Uint8List.fromList(_pickedFileBytes!) : null,
-          fileName: _pickedFileName,
-        );
+        await api.updatePost(widget.post!.id, fields,
+            fileBytes: primary?.bytes, fileName: primary?.name);
       }
-      if (mounted) {
-        Navigator.pop(context);
-        widget.onSaved();
-      }
+      if (mounted) { Navigator.pop(context); widget.onSaved(); }
     } catch (e) {
       if (mounted) setState(() { _error = 'Failed to save. Try again.'; _saving = false; });
     }
   }
 
-  InputDecoration _deco(String hint) => InputDecoration(
+  // ── helpers ───────────────────────────────────────────────────────────────
+  InputDecoration _deco(String hint, {Widget? suffix}) => InputDecoration(
     hintText: hint,
-    hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
-    filled: true, fillColor: kDark,
-    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+    hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 13),
+    filled: true, fillColor: const Color(0xFF111118),
+    suffixIcon: suffix,
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: kBorder)),
-    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: kPrimary, width: 2)),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: kPrimary, width: 1.5)),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
   );
 
+  static const _typeOptions = [
+    ('text',  'Text',     Icons.article_rounded,          Color(0xFF60A5FA)),
+    ('image', 'Image',    Icons.image_rounded,            Color(0xFF34D399)),
+    ('video', 'Video',    Icons.videocam_rounded,         Color(0xFFF472B6)),
+    ('file',  'Document', Icons.attach_file_rounded,      Color(0xFFFBBF24)),
+  ];
+
+  Color get _accentColor {
+    for (final t in _typeOptions) { if (t.$1 == _postType) return t.$4; }
+    return kPrimary;
+  }
+
+  // ── build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final isEdit = widget.post != null;
+    final isEdit   = widget.post != null;
+    final screenW  = MediaQuery.of(context).size.width;
+    final narrow   = screenW < 900;
+
     return Dialog(
-      backgroundColor: kCardBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Header
-              Row(children: [
-                Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(
-                      color: kPrimary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.photo_library_outlined, color: kPrimary, size: 18),
-                ),
-                const SizedBox(width: 12),
-                Text(isEdit ? 'Edit post' : 'New post', style: GoogleFonts.dmSans(
-                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded, color: kMuted),
-                ),
-              ]),
-              const SizedBox(height: 24),
-
-              // Title
-              Text('Title *', style: GoogleFonts.dmSans(
-                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _titleCtrl,
-                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
-                decoration: _deco('Post title'),
-              ),
-              const SizedBox(height: 16),
-
-              // Post type
-              Text('Post type', style: GoogleFonts.dmSans(
-                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _postType,
-                dropdownColor: kCardBg,
-                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
-                decoration: _deco(''),
-                items: const [
-                  DropdownMenuItem(value: 'text',  child: Text('Text')),
-                  DropdownMenuItem(value: 'image', child: Text('Image')),
-                  DropdownMenuItem(value: 'video', child: Text('Video')),
-                  DropdownMenuItem(value: 'file',  child: Text('File')),
-                ],
-                onChanged: (v) => setState(() => _postType = v ?? _postType),
-              ),
-              const SizedBox(height: 16),
-
-              // Body
-              Text('Body (optional)', style: GoogleFonts.dmSans(
-                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _bodyCtrl,
-                maxLines: 4,
-                style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
-                decoration: _deco('Write your exclusive content here…'),
-              ),
-              const SizedBox(height: 16),
-
-              // Video URL (only for video type)
-              if (_postType == 'video') ...[
-                Text('Video URL (YouTube / Vimeo)', style: GoogleFonts.dmSans(
-                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _videoUrlCtrl,
-                  style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
-                  decoration: _deco('https://youtube.com/watch?v=...'),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // File picker (for image/file types)
-              if (_postType == 'image' || _postType == 'file') ...[
-                Text('Upload file', style: GoogleFonts.dmSans(
-                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: _pickFile,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: kDark, borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _pickedFileName != null ? kPrimary : kBorder),
-                    ),
-                    child: Row(children: [
-                      Icon(
-                        _pickedFileName != null ? Icons.check_circle_rounded : Icons.upload_file_rounded,
-                        color: _pickedFileName != null ? kPrimary : kMuted, size: 18,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(child: Text(
-                        _pickedFileName ?? (widget.post?.mediaUrl != null
-                            ? 'Current file — tap to replace'
-                            : 'Tap to choose a file'),
-                        style: GoogleFonts.dmSans(
-                            color: _pickedFileName != null ? kPrimary : kMuted, fontSize: 13),
-                        overflow: TextOverflow.ellipsis,
-                      )),
-                    ]),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Published toggle
-              Row(children: [
-                Expanded(child: Text('Published', style: GoogleFonts.dmSans(
-                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13))),
-                Switch(
-                  value: _isPublished,
-                  onChanged: (v) => setState(() => _isPublished = v),
-                  activeThumbColor: kPrimary,
-                ),
-              ]),
-
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 13)),
-              ],
-              const SizedBox(height: 24),
-
-              Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: GoogleFonts.dmSans(
-                      color: kMuted, fontWeight: FontWeight.w600)),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimary, foregroundColor: Colors.white, elevation: 0,
-                    disabledBackgroundColor: kPrimary.withValues(alpha: 0.4),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-                  ),
-                  child: _saving
-                      ? const SizedBox(width: 16, height: 16,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text(isEdit ? 'Save changes' : 'Publish post',
-                          style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
-                ),
-              ]),
-            ]),
+      backgroundColor: Colors.transparent,
+      insetPadding: narrow
+          ? const EdgeInsets.all(12)
+          : const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D0D14),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: kBorder),
           ),
+          child: narrow
+              ? _narrowLayout(isEdit)
+              : _wideLayout(isEdit),
         ),
       ),
     );
   }
+
+  // ── Wide: side-by-side ────────────────────────────────────────────────────
+  Widget _wideLayout(bool isEdit) => IntrinsicHeight(
+    child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      // LEFT — editor
+      Expanded(flex: 55, child: _editorPanel(isEdit)),
+      // Divider
+      Container(width: 1, color: kBorder),
+      // RIGHT — preview
+      Expanded(flex: 45, child: _previewPanel()),
+    ]),
+  );
+
+  // ── Narrow: stacked ───────────────────────────────────────────────────────
+  Widget _narrowLayout(bool isEdit) => SingleChildScrollView(
+    child: Column(children: [
+      _editorPanel(isEdit),
+      Container(height: 1, color: kBorder),
+      SizedBox(height: 380, child: _previewPanel()),
+    ]),
+  );
+
+  // ════════════════════════════════════════════════════════════════════
+  // EDITOR PANEL
+  // ════════════════════════════════════════════════════════════════════
+  Widget _editorPanel(bool isEdit) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(28),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // ── Header ────────────────────────────────────────────────────
+        Row(children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              color: _accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.edit_note_rounded, color: _accentColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Text(isEdit ? 'Edit post' : 'Create post',
+              style: GoogleFonts.dmSans(
+                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17)),
+          const Spacer(),
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.close_rounded, color: kMuted, size: 20),
+          ),
+        ]),
+        const SizedBox(height: 22),
+
+        // ── Post type chips ───────────────────────────────────────────
+        Wrap(spacing: 8, children: _typeOptions.map((t) {
+          final sel = _postType == t.$1;
+          return GestureDetector(
+            onTap: () => setState(() => _postType = t.$1),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: sel ? t.$4.withValues(alpha: 0.15) : const Color(0xFF111118),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: sel ? t.$4 : kBorder, width: sel ? 1.5 : 1),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(t.$3, color: sel ? t.$4 : kMuted, size: 14),
+                const SizedBox(width: 6),
+                Text(t.$2, style: GoogleFonts.dmSans(
+                    color: sel ? t.$4 : kMuted,
+                    fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 12)),
+              ]),
+            ),
+          );
+        }).toList()),
+        const SizedBox(height: 20),
+
+        // ── Title ─────────────────────────────────────────────────────
+        _label('Title'),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _titleCtrl,
+          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14),
+          decoration: _deco('Give your post a title…'),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Body ──────────────────────────────────────────────────────
+        _label('Content'),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _bodyCtrl,
+          maxLines: 5,
+          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13, height: 1.6),
+          decoration: _deco('Write your exclusive content here…'),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Video URL ─────────────────────────────────────────────────
+        if (_postType == 'video') ...[
+          _label('Video URL (YouTube / Vimeo / direct)'),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _videoUrlCtrl,
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 13),
+            decoration: _deco('https://youtube.com/watch?v=…',
+                suffix: const Icon(Icons.link_rounded, color: kMuted, size: 16)),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // ── Attachments drop-zone ─────────────────────────────────────
+        _label('Attachments'),
+        const SizedBox(height: 8),
+        // Thumbnail strip
+        if (_files.isNotEmpty) ...[
+          SizedBox(
+            height: 72,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _files.length + 1, // +1 for the "add more" tile
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) {
+                if (i == _files.length) {
+                  // "Add more" button
+                  return GestureDetector(
+                    onTap: _pickFiles,
+                    child: Container(
+                      width: 72, height: 72,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF111118),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: kBorder, style: BorderStyle.solid),
+                      ),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.add_rounded, color: kMuted, size: 20),
+                        const SizedBox(height: 2),
+                        Text('Add', style: GoogleFonts.dmSans(color: kMuted, fontSize: 10)),
+                      ]),
+                    ),
+                  );
+                }
+                final f = _files[i];
+                final selected = i == _previewIndex;
+                return GestureDetector(
+                  onTap: () => setState(() => _previewIndex = i),
+                  child: Stack(children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 120),
+                      width: 72, height: 72,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF111118),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: selected ? _accentColor : kBorder,
+                          width: selected ? 2 : 1,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(9),
+                        child: f.isImage
+                            ? Image.memory(f.bytes, fit: BoxFit.cover,
+                                width: 72, height: 72)
+                            : Center(child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center, children: [
+                                  Icon(_fileIcon(f.ext),
+                                      color: _accentColor.withValues(alpha: 0.7), size: 24),
+                                  const SizedBox(height: 2),
+                                  Text(f.ext.toUpperCase(),
+                                      style: GoogleFonts.dmSans(
+                                          color: kMuted, fontSize: 9, fontWeight: FontWeight.w700)),
+                                ])),
+                      ),
+                    ),
+                    // Remove button
+                    Positioned(top: 3, right: 3,
+                      child: GestureDetector(
+                        onTap: () => _removeFile(i),
+                        child: Container(
+                          width: 18, height: 18,
+                          decoration: BoxDecoration(
+                              color: Colors.black87, shape: BoxShape.circle),
+                          child: const Icon(Icons.close_rounded,
+                              color: Colors.white, size: 12),
+                        ),
+                      ),
+                    ),
+                  ]),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        // Drop zone
+        GestureDetector(
+          onTap: _pickFiles,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            decoration: BoxDecoration(
+              color: const Color(0xFF111118),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: kBorder),
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.cloud_upload_outlined,
+                  color: _accentColor.withValues(alpha: 0.6), size: 28),
+              const SizedBox(height: 6),
+              Text('Click to browse files',
+                  style: GoogleFonts.dmSans(color: Colors.white70,
+                      fontWeight: FontWeight.w600, fontSize: 13)),
+              const SizedBox(height: 3),
+              Text('Images, videos, PDFs, documents, ZIP…',
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // ── Published toggle ──────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF111118),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: kBorder),
+          ),
+          child: Row(children: [
+            const Icon(Icons.visibility_outlined, color: kMuted, size: 16),
+            const SizedBox(width: 10),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Publish immediately',
+                  style: GoogleFonts.dmSans(color: Colors.white,
+                      fontWeight: FontWeight.w600, fontSize: 13)),
+              Text('Turn off to save as draft',
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+            ])),
+            Switch(
+              value: _isPublished,
+              onChanged: (v) => setState(() => _isPublished = v),
+              activeColor: _accentColor,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ]),
+        ),
+
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 15),
+              const SizedBox(width: 8),
+              Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
+            ]),
+          ),
+        ],
+        const SizedBox(height: 24),
+
+        // ── Actions ───────────────────────────────────────────────────
+        Row(children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => Navigator.pop(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kMuted,
+                side: const BorderSide(color: kBorder),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text('Cancel', style: GoogleFonts.dmSans(
+                  fontWeight: FontWeight.w600, fontSize: 13)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: ElevatedButton(
+              onPressed: _saving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accentColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                disabledBackgroundColor: _accentColor.withValues(alpha: 0.4),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: _saving
+                  ? const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(isEdit ? Icons.save_rounded : Icons.send_rounded, size: 15),
+                      const SizedBox(width: 8),
+                      Text(isEdit ? 'Save changes' : 'Publish post',
+                          style: GoogleFonts.dmSans(
+                              fontWeight: FontWeight.w700, fontSize: 13)),
+                    ]),
+            ),
+          ),
+        ]),
+      ]),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  // PREVIEW PANEL
+  // ════════════════════════════════════════════════════════════════════
+  Widget _previewPanel() {
+    return Container(
+      color: const Color(0xFF080810),
+      child: Column(children: [
+        // Preview header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: kBorder)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.smartphone_rounded, color: kMuted, size: 14),
+            const SizedBox(width: 8),
+            Text('Preview', style: GoogleFonts.dmSans(
+                color: kMuted, fontWeight: FontWeight.w600, fontSize: 12)),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _isPublished
+                    ? const Color(0xFF34D399).withValues(alpha: 0.12)
+                    : kBorder.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                _isPublished ? '● Published' : '○ Draft',
+                style: GoogleFonts.dmSans(
+                  color: _isPublished ? const Color(0xFF34D399) : kMuted,
+                  fontSize: 10, fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ]),
+        ),
+
+        // Phone-frame preview
+        Expanded(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: _phoneFrame(_postPreviewCard()),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _phoneFrame(Widget child) => Container(
+    width: 300,
+    decoration: BoxDecoration(
+      color: const Color(0xFF0A0A12),
+      borderRadius: BorderRadius.circular(32),
+      border: Border.all(color: const Color(0xFF2A2A3A), width: 2),
+      boxShadow: [
+        BoxShadow(color: _accentColor.withValues(alpha: 0.08),
+            blurRadius: 40, spreadRadius: 0),
+      ],
+    ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(30),
+      child: Column(children: [
+        // Notch bar
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          decoration: const BoxDecoration(
+            color: Color(0xFF0A0A12),
+            border: Border(bottom: BorderSide(color: Color(0xFF1A1A28))),
+          ),
+          child: Row(children: [
+            Container(width: 6, height: 6,
+                decoration: const BoxDecoration(color: Color(0xFF2A2A3A), shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            Expanded(child: Center(child: Container(
+              width: 60, height: 5,
+              decoration: BoxDecoration(color: const Color(0xFF2A2A3A),
+                  borderRadius: BorderRadius.circular(10)),
+            ))),
+            const Icon(Icons.wifi_rounded, color: Color(0xFF2A2A3A), size: 12),
+          ]),
+        ),
+        // App header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+          child: Row(children: [
+            Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(
+                  color: kPrimary.withValues(alpha: 0.15), shape: BoxShape.circle),
+              child: const Icon(Icons.person_rounded, color: kPrimary, size: 16),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Your Name', style: GoogleFonts.dmSans(
+                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 10)),
+              Text('Just now', style: GoogleFonts.dmSans(color: kMuted, fontSize: 8)),
+            ])),
+          ]),
+        ),
+        // Post content
+        child,
+        const SizedBox(height: 12),
+      ]),
+    ),
+  );
+
+  Widget _postPreviewCard() {
+    final title = _titleCtrl.text.trim();
+    final body  = _bodyCtrl.text.trim();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Media preview
+        if (_files.isNotEmpty) _mediaPreview(_files[math.min(_previewIndex, _files.length - 1)])
+        else if (_postType == 'video' && _videoUrlCtrl.text.trim().isNotEmpty)
+          _videoUrlPreview(_videoUrlCtrl.text.trim())
+        else if (_postType != 'text')
+          Container(
+            height: 140, width: double.infinity,
+            decoration: BoxDecoration(
+              color: _accentColor.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+            ),
+            child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(_typeIconFor(_postType), color: _accentColor.withValues(alpha: 0.5), size: 32),
+              const SizedBox(height: 6),
+              Text('${_postType[0].toUpperCase()}${_postType.substring(1)} preview',
+                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 10)),
+            ])),
+          ),
+
+        const SizedBox(height: 10),
+
+        // Title
+        if (title.isNotEmpty)
+          Text(title, style: GoogleFonts.dmSans(
+              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+              maxLines: 2, overflow: TextOverflow.ellipsis),
+
+        if (title.isNotEmpty && body.isNotEmpty) const SizedBox(height: 4),
+
+        // Body snippet
+        if (body.isNotEmpty)
+          Text(body, style: GoogleFonts.dmSans(
+              color: Colors.white70, fontSize: 11, height: 1.5),
+              maxLines: 4, overflow: TextOverflow.ellipsis),
+
+        if (title.isEmpty && body.isEmpty)
+          Text('Your post will appear here…',
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
+
+        // Multiple file chips
+        if (_files.length > 1) ...[
+          const SizedBox(height: 8),
+          Wrap(spacing: 5, runSpacing: 5, children: _files.asMap().entries.map((e) {
+            final sel = e.key == _previewIndex;
+            return GestureDetector(
+              onTap: () => setState(() => _previewIndex = e.key),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                decoration: BoxDecoration(
+                  color: sel ? _accentColor.withValues(alpha: 0.15)
+                             : const Color(0xFF1A1A28),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: sel ? _accentColor : kBorder, width: sel ? 1.5 : 1),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(_fileIcon(e.value.ext),
+                      color: sel ? _accentColor : kMuted, size: 10),
+                  const SizedBox(width: 4),
+                  Text(e.value.name.length > 12
+                      ? '${e.value.name.substring(0, 10)}…' : e.value.name,
+                      style: GoogleFonts.dmSans(
+                          color: sel ? _accentColor : kMuted, fontSize: 9)),
+                ]),
+              ),
+            );
+          }).toList()),
+        ],
+
+        // Lock badge (if locked / unlockable via tier)
+        const SizedBox(height: 8),
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: _accentColor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(_typeIconFor(_postType), color: _accentColor, size: 9),
+              const SizedBox(width: 4),
+              Text(_postType.toUpperCase(),
+                  style: GoogleFonts.dmSans(
+                      color: _accentColor, fontSize: 8, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+          const SizedBox(width: 6),
+          if (!_isPublished)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text('DRAFT',
+                  style: GoogleFonts.dmSans(
+                      color: Colors.amber, fontSize: 8, fontWeight: FontWeight.w700)),
+            ),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _mediaPreview(_AttachedFile f) {
+    if (f.isImage) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.memory(f.bytes, height: 160, width: double.infinity, fit: BoxFit.cover),
+      );
+    }
+    if (f.isVideo) {
+      return Container(
+        height: 140, width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kBorder),
+        ),
+        child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.play_circle_fill_rounded,
+              color: _accentColor.withValues(alpha: 0.8), size: 40),
+          const SizedBox(height: 6),
+          Text(f.name, style: GoogleFonts.dmSans(color: kMuted, fontSize: 9),
+              overflow: TextOverflow.ellipsis, maxLines: 1),
+        ])),
+      );
+    }
+    // Document
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _accentColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+      ),
+      child: Row(children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(
+            color: _accentColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(_fileIcon(f.ext), color: _accentColor, size: 18),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(f.name, style: GoogleFonts.dmSans(
+              color: Colors.white, fontWeight: FontWeight.w600, fontSize: 10),
+              overflow: TextOverflow.ellipsis),
+          Text('${(f.bytes.length / 1024).toStringAsFixed(0)} KB · ${f.ext.toUpperCase()}',
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 9)),
+        ])),
+        Icon(Icons.download_rounded, color: kMuted, size: 14),
+      ]),
+    );
+  }
+
+  Widget _videoUrlPreview(String url) => Container(
+    height: 130, width: double.infinity,
+    decoration: BoxDecoration(
+      color: Colors.black,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: kBorder),
+    ),
+    child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Icon(Icons.play_circle_fill_rounded,
+          color: const Color(0xFFF472B6).withValues(alpha: 0.7), size: 36),
+      const SizedBox(height: 6),
+      Text(url.length > 36 ? '${url.substring(0, 33)}…' : url,
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 9)),
+    ])),
+  );
+
+  Widget _label(String text) => Text(text,
+      style: GoogleFonts.dmSans(
+          color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 12));
+
+  static IconData _fileIcon(String ext) {
+    if (['jpg','jpeg','png','gif','webp','svg'].contains(ext)) return Icons.image_rounded;
+    if (['mp4','webm','ogg','mov'].contains(ext)) return Icons.videocam_rounded;
+    if (ext == 'pdf') return Icons.picture_as_pdf_rounded;
+    if (['doc','docx'].contains(ext)) return Icons.description_rounded;
+    if (['xls','xlsx'].contains(ext)) return Icons.table_chart_rounded;
+    if (['ppt','pptx'].contains(ext)) return Icons.slideshow_rounded;
+    if (ext == 'zip') return Icons.folder_zip_rounded;
+    return Icons.attach_file_rounded;
+  }
+
+  static IconData _typeIconFor(String t) => switch (t) {
+    'image' => Icons.image_rounded,
+    'video' => Icons.videocam_rounded,
+    'file'  => Icons.attach_file_rounded,
+    _       => Icons.article_rounded,
+  };
 }
 
 // ─── Jars page ────────────────────────────────────────────────────────────────
@@ -5958,5 +7181,127 @@ class _QrInfo extends StatelessWidget {
         ),
       ),
     ]);
+  }
+}
+
+// ─── Creator goal bar ─────────────────────────────────────────────────────────
+class _CreatorGoalBar extends StatelessWidget {
+  final Map<String, dynamic> goal;
+  final VoidCallback onClear;
+  const _CreatorGoalBar({required this.goal, required this.onClear});
+
+  @override
+  Widget build(BuildContext context) {
+    final title      = goal['title'] as String? ?? 'Goal';
+    final target     = (goal['target_amount'] as num?)?.toDouble() ?? 1.0;
+    final current    = (goal['current_amount'] as num?)?.toDouble() ?? 0.0;
+    final pct        = (goal['progress_pct'] as num?)?.toInt() ?? 0;
+    final filled     = (current / target).clamp(0.0, 1.0);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 4, 10, 6),
+      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: kPrimary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: kPrimary.withValues(alpha: 0.25)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('🎯', style: TextStyle(fontSize: 11)),
+          const SizedBox(width: 5),
+          Expanded(child: Text(title,
+              style: GoogleFonts.dmSans(
+                  color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis)),
+          Text('R${current.toStringAsFixed(0)} / R${target.toStringAsFixed(0)}',
+              style: GoogleFonts.dmSans(
+                  color: kPrimary, fontSize: 10, fontWeight: FontWeight.w700)),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: onClear,
+            child: const Icon(Icons.close_rounded, color: kMuted, size: 14),
+          ),
+        ]),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: LinearProgressIndicator(
+            value: filled,
+            minHeight: 5,
+            backgroundColor: kBorder,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              pct >= 100 ? Colors.greenAccent.shade400 : kPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text('$pct% reached',
+            style: GoogleFonts.dmSans(color: kMuted, fontSize: 9)),
+      ]),
+    );
+  }
+}
+
+// ─── Creator poll results (live) ──────────────────────────────────────────────
+class _CreatorPollResults extends StatelessWidget {
+  final Map<String, dynamic> poll;
+  const _CreatorPollResults({required this.poll});
+
+  @override
+  Widget build(BuildContext context) {
+    final question = poll['question'] as String? ?? '';
+    final options  = (poll['options'] as List? ?? []).cast<Map<String, dynamic>>();
+    final total    = (poll['total_votes'] as int? ?? 0);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 4, 10, 6),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF34D399).withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF34D399).withValues(alpha: 0.2)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('📊', style: TextStyle(fontSize: 11)),
+          const SizedBox(width: 5),
+          Expanded(child: Text(question,
+              style: GoogleFonts.dmSans(
+                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11),
+              overflow: TextOverflow.ellipsis)),
+          Text('$total votes',
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 9)),
+        ]),
+        const SizedBox(height: 6),
+        ...options.map((opt) {
+          final pct = total > 0
+              ? ((opt['vote_count'] as int? ?? 0) / total * 100).round()
+              : 0;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 4),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text(opt['text'] as String,
+                    style: GoogleFonts.dmSans(color: Colors.white70, fontSize: 10))),
+                Text('$pct%', style: GoogleFonts.dmSans(
+                    color: const Color(0xFF34D399),
+                    fontWeight: FontWeight.w700, fontSize: 10)),
+              ]),
+              const SizedBox(height: 2),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: pct / 100,
+                  minHeight: 4,
+                  backgroundColor: kBorder,
+                  valueColor: const AlwaysStoppedAnimation(Color(0xFF34D399)),
+                ),
+              ),
+            ]),
+          );
+        }),
+      ]),
+    );
   }
 }

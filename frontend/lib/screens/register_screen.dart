@@ -39,6 +39,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _otpMethod = 'email';
   final _otpCtrl = TextEditingController();
 
+  // ── Referral ──────────────────────────────────────────────────────
+  final _referralCtrl = TextEditingController();
+  bool _referralValidating = false;
+  bool _referralValid = false;
+  String? _referralError;
+  String? _referrerName;
+
+  // ── Minor / guardian ──────────────────────────────────────────────
+  bool _isMinor = false;
+  final _guardianNameCtrl = TextEditingController();
+  final _guardianEmailCtrl = TextEditingController();
+  final _guardianPhoneCtrl = TextEditingController();
+
+  // ── Post-registration invite step ─────────────────────────────────
+  bool _showInvite = false;
+  final List<TextEditingController> _inviteCtrls =
+      List.generate(5, (_) => TextEditingController());
+  bool _inviteSending = false;
+
   @override
   void initState() {
     super.initState();
@@ -132,6 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _form(BuildContext ctx) {
+    if (_showInvite) return _inviteStep(ctx);
     if (_showOtp) return _otpStep(ctx);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Create your account',
@@ -268,6 +288,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _genderSelector(),
           const SizedBox(height: 14),
           _dobPicker(),
+          const SizedBox(height: 14),
+          _referralField(),
+          const SizedBox(height: 14),
+          _minorSection(),
           if (_error != null) ...[
             const SizedBox(height: 14),
             Container(
@@ -513,9 +537,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       try { await auth.api.updateUserProfile(profileData); } catch (_) {}
     }
     if (!mounted) return;
+    // Creators get the "invite friends" step before continuing
     if (_role == 'creator') {
-      context.go('/onboarding');
-    } else if (_role == 'enterprise') {
+      setState(() { _showOtp = false; _showInvite = true; });
+      return;
+    }
+    if (_role == 'enterprise') {
       context.go('/enterprise-portal');
     } else {
       context.go('/fan-dashboard');
@@ -722,6 +749,256 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  // ── Referral code field ────────────────────────────────────────────────────
+  Widget _referralField() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Referral code (optional)',
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+      const SizedBox(height: 8),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+          child: TextFormField(
+            controller: _referralCtrl,
+            textCapitalization: TextCapitalization.characters,
+            style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14, letterSpacing: 1.5),
+            decoration: InputDecoration(
+              hintText: 'e.g. JANE4F2A',
+              hintStyle: GoogleFonts.dmSans(color: kMuted, fontSize: 14),
+              prefixIcon: const Icon(Icons.card_giftcard_rounded, color: kMuted, size: 18),
+              suffixIcon: _referralValid
+                  ? const Icon(Icons.check_circle_rounded, color: kPrimary, size: 18)
+                  : _referralError != null
+                      ? const Icon(Icons.cancel_rounded, color: Colors.redAccent, size: 18)
+                      : null,
+              filled: true, fillColor: kCardBg,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: _referralValid ? kPrimary : _referralError != null ? Colors.redAccent : kBorder,
+                  width: _referralValid || _referralError != null ? 2 : 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kPrimary, width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        SizedBox(
+          height: 52,
+          child: ElevatedButton(
+            onPressed: _referralValidating ? null : _validateReferral,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kCardBg,
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: kBorder),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: _referralValidating
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: kPrimary, strokeWidth: 2))
+                : Text('Apply', style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+        ),
+      ]),
+      if (_referralValid && _referrerName != null) ...[
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: kPrimary.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: kPrimary.withOpacity(0.3)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.volunteer_activism_rounded, color: kPrimary, size: 14),
+            const SizedBox(width: 8),
+            Text('Referred by $_referrerName — welcome!',
+                style: GoogleFonts.dmSans(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+      ],
+      if (_referralError != null) ...[
+        const SizedBox(height: 6),
+        Text(_referralError!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
+      ],
+    ]);
+  }
+
+  Future<void> _validateReferral() async {
+    final code = _referralCtrl.text.trim();
+    if (code.isEmpty) return;
+    setState(() { _referralValidating = true; _referralError = null; _referralValid = false; _referrerName = null; });
+    try {
+      final auth = context.read<AuthProvider>();
+      final data = await auth.api.validateReferralCode(code);
+      setState(() {
+        _referralValid = true;
+        _referrerName = data['referrer_name'] as String?;
+      });
+    } catch (_) {
+      setState(() => _referralError = 'Invalid referral code. Check and try again.');
+    } finally {
+      setState(() => _referralValidating = false);
+    }
+  }
+
+  // ── Minor / guardian section ───────────────────────────────────────────────
+  Widget _minorSection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      GestureDetector(
+        onTap: () => setState(() => _isMinor = !_isMinor),
+        child: Row(children: [
+          AnimatedContainer(
+            duration: 150.ms,
+            width: 20, height: 20,
+            decoration: BoxDecoration(
+              color: _isMinor ? kPrimary : Colors.transparent,
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(color: _isMinor ? kPrimary : kMuted, width: 1.5),
+            ),
+            child: _isMinor
+                ? const Icon(Icons.check_rounded, color: Colors.white, size: 13)
+                : null,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text('This account is for someone under 18 (managed by a parent/guardian)',
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 12, height: 1.5)),
+          ),
+        ]),
+      ),
+      if (_isMinor) ...[
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: kCardBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kBorder),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const Icon(Icons.shield_outlined, color: kPrimary, size: 16),
+              const SizedBox(width: 8),
+              Text('Parent / Guardian Details',
+                  style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+            ]),
+            const SizedBox(height: 4),
+            Text('Required — all account communications will go to the guardian.',
+                style: GoogleFonts.dmSans(color: kMuted, fontSize: 11, height: 1.5)),
+            const SizedBox(height: 14),
+            _field(ctrl: _guardianNameCtrl, label: 'Guardian full name', hint: 'Jane Smith',
+                icon: Icons.person_outline_rounded,
+                validator: (v) => _isMinor && (v?.trim().isEmpty ?? true) ? 'Required' : null),
+            const SizedBox(height: 12),
+            _field(ctrl: _guardianEmailCtrl, label: 'Guardian email', hint: 'parent@example.com',
+                icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress,
+                validator: (v) => _isMinor && !(v?.contains('@') ?? false) ? 'Enter a valid email' : null),
+            const SizedBox(height: 12),
+            _field(ctrl: _guardianPhoneCtrl, label: 'Guardian phone (optional)', hint: '0821234567',
+                icon: Icons.phone_outlined, keyboardType: TextInputType.phone,
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+]'))]),
+          ]),
+        ),
+      ],
+    ]);
+  }
+
+  // ── Invite friends step (shown after OTP) ──────────────────────────────────
+  Widget _inviteStep(BuildContext ctx) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Center(
+        child: Container(
+          width: 64, height: 64,
+          decoration: BoxDecoration(color: kPrimary.withOpacity(0.12), shape: BoxShape.circle),
+          child: const Icon(Icons.group_add_rounded, color: kPrimary, size: 30),
+        ),
+      ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.8, 0.8)),
+      const SizedBox(height: 24),
+      Text('Invite 5 creators you know',
+          style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
+              fontSize: 26, letterSpacing: -0.8))
+          .animate().fadeIn(delay: 80.ms),
+      const SizedBox(height: 8),
+      Text('Earn 1% of their tips for 6 months for every creator you refer who signs up.',
+          style: GoogleFonts.dmSans(color: kMuted, fontSize: 14, height: 1.5))
+          .animate().fadeIn(delay: 120.ms),
+      const SizedBox(height: 8),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: kPrimary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: kPrimary.withOpacity(0.25)),
+        ),
+        child: Row(children: [
+          const Icon(Icons.info_outline_rounded, color: kPrimary, size: 14),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text('Your referral code will be on your dashboard — share it anytime.',
+                style: GoogleFonts.dmSans(color: kPrimary, fontSize: 12, height: 1.4)),
+          ),
+        ]),
+      ).animate().fadeIn(delay: 160.ms),
+      const SizedBox(height: 24),
+      ...List.generate(5, (i) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: _field(
+          ctrl: _inviteCtrls[i],
+          label: 'Creator ${i + 1}',
+          hint: 'friend@example.com',
+          icon: Icons.alternate_email_rounded,
+          keyboardType: TextInputType.emailAddress,
+        ),
+      )).animate().fadeIn(delay: 200.ms),
+      const SizedBox(height: 6),
+      SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton(
+          onPressed: _inviteSending ? null : _sendInvites,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimary,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: kPrimary.withOpacity(0.4),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+            elevation: 0,
+          ),
+          child: _inviteSending
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : Text('Send invites & continue',
+                  style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
+        ),
+      ),
+      const SizedBox(height: 14),
+      Center(
+        child: GestureDetector(
+          onTap: _inviteSending ? null : () => _finishRegistration(context.read<AuthProvider>()),
+          child: Text('Skip for now',
+              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13, decoration: TextDecoration.underline)),
+        ),
+      ),
+    ]);
+  }
+
+  Future<void> _sendInvites() async {
+    final emails = _inviteCtrls
+        .map((c) => c.text.trim())
+        .where((e) => e.isNotEmpty && e.contains('@'))
+        .toList();
+    setState(() => _inviteSending = true);
+    try {
+      final auth = context.read<AuthProvider>();
+      if (emails.isNotEmpty) await auth.api.sendReferralInvites(emails);
+    } catch (_) {}
+    finally { setState(() => _inviteSending = false); }
+    if (mounted) await _finishRegistration(context.read<AuthProvider>());
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_acceptTerms) {
@@ -740,7 +1017,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           role: _role,
           phoneNumber: _phoneCtrl.text.trim(),
           firstName: _firstNameCtrl.text.trim(),
-          lastName: _lastNameCtrl.text.trim());
+          lastName: _lastNameCtrl.text.trim(),
+          referralCode: _referralCtrl.text.trim(),
+          isMinor: _isMinor,
+          guardianName: _guardianNameCtrl.text.trim(),
+          guardianEmail: _guardianEmailCtrl.text.trim(),
+          guardianPhone: _guardianPhoneCtrl.text.trim());
       // Auto-login to get auth token
       await auth.login(email, password);
       if (!mounted) return;
@@ -768,6 +1050,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _confirmPasswordCtrl.dispose();
     _phoneCtrl.dispose();
     _otpCtrl.dispose();
+    _referralCtrl.dispose();
+    _guardianNameCtrl.dispose();
+    _guardianEmailCtrl.dispose();
+    _guardianPhoneCtrl.dispose();
+    for (final c in _inviteCtrls) { c.dispose(); }
     super.dispose();
   }
 }

@@ -798,19 +798,19 @@ function OverviewTab({
       )}
 
       <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Net earned" value={`R${money(netEarned)}`} icon={Banknote} accent="#12A25C" />
-        <StatCard label="This month" value={`R${money(thisMonth)}`} icon={Calendar} accent="#2563EB" />
-        <StatCard label="Supporters" value={String(stats?.supporter_count ?? 0)} icon={Users} accent="#E0A536" />
-        <StatCard label="Total tips" value={String(stats?.tip_count ?? 0)} icon={Heart} accent="#EC4899" />
+        <StatCard label="Net earned" value={`R${money(netEarned)}`} icon={Banknote} accent="#0a2e50" />
+        <StatCard label="This month" value={`R${money(thisMonth)}`} icon={Calendar} accent="#507a9e" />
+        <StatCard label="Supporters" value={String(stats?.supporter_count ?? 0)} icon={Users} accent="#c17a0c" />
+        <StatCard label="Total tips" value={String(stats?.tip_count ?? 0)} icon={Heart} accent="#0a2e50" />
       </div>
 
       {/* Quick actions — the four things a creator does most, one click away */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { icon: Megaphone,  label: "Message supporters", tab: "supporters" as Tab, accent: "#12A25C" },
-          { icon: Lock,       label: "Publish exclusive",  tab: "exclusive"  as Tab, accent: "#7C3AED" },
+          { icon: Megaphone,  label: "Message supporters", tab: "supporters" as Tab, accent: "#0a2e50" },
+          { icon: Lock,       label: "Publish exclusive",  tab: "exclusive"  as Tab, accent: "#507a9e" },
           { icon: Milk,       label: "Create a jar",        tab: "jars"       as Tab, accent: "#E0A536" },
-          { icon: Palette,    label: "Design a promo",      tab: "studio"     as Tab, accent: "#EC4899" },
+          { icon: Palette,    label: "Design a promo",      tab: "studio"     as Tab, accent: "#0a2e50" },
         ].map((a) => (
           <button
             key={a.label}
@@ -1684,7 +1684,7 @@ function ReferralsTab({
 
       {/* KPI row */}
       <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Commission earned" value={`R${money(totalEarned)}`} icon={Banknote} accent="#12A25C" />
+        <StatCard label="Commission earned" value={`R${money(totalEarned)}`} icon={Banknote} accent="#0a2e50" />
         <StatCard label="Last 30 days" value={`R${money(earned30d)}`} icon={Zap} accent="#E0A536" />
         <StatCard label="Commission events" value={String(referralsCount)} icon={Users} accent="#2563EB" />
         <StatCard label={code ? `Rate · ${(rate * 100).toFixed(1)}%` : "Rate"} value={code ? `${codeAge}d code` : "—"} icon={Percent} accent="#7C3AED" />

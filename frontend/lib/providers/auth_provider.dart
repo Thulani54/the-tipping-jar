@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_user.dart';
@@ -11,6 +14,7 @@ class AuthProvider extends ChangeNotifier {
   bool _otpVerified = false;
   bool _initialized = false;
   String? _otpSendError;
+  Timer? _refreshTimer;
 
   AppUser? get user => _user;
   String? get accessToken => _accessToken;
@@ -37,6 +41,7 @@ class AuthProvider extends ChangeNotifier {
         _user = await ApiService(authToken: _accessToken).getMe();
         // Persistent session — skip OTP on reload
         _otpVerified = true;
+        _scheduleRefresh(_accessToken!);
       } catch (_) {
         await _tryRefresh();
       }
@@ -52,7 +57,10 @@ class AuthProvider extends ChangeNotifier {
     try {
       final data = await ApiService().login(email, password);
       _user = AppUser.fromJson(data['user'] as Map<String, dynamic>);
-      await _saveTokens(data['access'] as String, data['refresh'] as String);
+      final access  = data['access']  as String;
+      final refresh = data['refresh'] as String;
+      await _saveTokens(access, refresh);
+      _scheduleRefresh(access);
       if (_user!.twoFaEnabled) {
         _otpVerified = false;
         _otpSendError = null;
@@ -89,6 +97,11 @@ class AuthProvider extends ChangeNotifier {
     String phoneNumber = '',
     String firstName = '',
     String lastName = '',
+    String referralCode = '',
+    bool isMinor = false,
+    String guardianName = '',
+    String guardianEmail = '',
+    String guardianPhone = '',
   }) async {
     _loading = true;
     notifyListeners();
@@ -101,6 +114,11 @@ class AuthProvider extends ChangeNotifier {
         phoneNumber: phoneNumber,
         firstName: firstName,
         lastName: lastName,
+        referralCode: referralCode,
+        isMinor: isMinor,
+        guardianName: guardianName,
+        guardianEmail: guardianEmail,
+        guardianPhone: guardianPhone,
       );
     } finally {
       _loading = false;
@@ -117,6 +135,8 @@ class AuthProvider extends ChangeNotifier {
 
   // ── Logout ────────────────────────────────────────────────────────
   Future<void> logout() async {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
@@ -129,6 +149,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ── Internals ─────────────────────────────────────────────────────
+
   Future<void> _saveTokens(String access, String refresh) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('access_token', access);
@@ -150,9 +171,61 @@ class AuthProvider extends ChangeNotifier {
       _user = await ApiService(authToken: _accessToken).getMe();
       // Restored session via refresh — skip OTP just like the direct init() path
       _otpVerified = true;
+      _scheduleRefresh(newAccess);
+      notifyListeners();
     } catch (_) {
-      // Refresh also failed — clear everything
+      // Refresh also failed — clear everything and boot to login
       await logout();
     }
+  }
+
+  // ── Proactive token refresh ───────────────────────────────────────
+  // Decodes the JWT expiry claim and schedules a refresh 60 seconds before
+  // the access token expires, so in-flight requests never hit a 401.
+
+  void _scheduleRefresh(String token) {
+    _refreshTimer?.cancel();
+
+    final expiry = _jwtExpiry(token);
+    if (expiry == null) {
+      // Can't decode expiry — fall back to refreshing after 55 minutes
+      // (backend access token lifetime is 1 hour)
+      _refreshTimer = Timer(const Duration(minutes: 55), _tryRefresh);
+      return;
+    }
+
+    final now     = DateTime.now();
+    final cushion = const Duration(seconds: 60);
+    final delay   = expiry.subtract(cushion).difference(now);
+
+    if (delay <= Duration.zero) {
+      // Already expired (or within the cushion) — refresh immediately
+      _tryRefresh();
+      return;
+    }
+
+    _refreshTimer = Timer(delay, _tryRefresh);
+  }
+
+  /// Decodes the `exp` claim from a JWT without verifying the signature.
+  DateTime? _jwtExpiry(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      // JWT uses base64url; pad to a multiple of 4
+      final payload = base64Url.decode(base64Url.normalize(parts[1]));
+      final data    = jsonDecode(utf8.decode(payload)) as Map<String, dynamic>;
+      final exp     = data['exp'];
+      if (exp == null) return null;
+      return DateTime.fromMillisecondsSinceEpoch((exp as int) * 1000);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 }

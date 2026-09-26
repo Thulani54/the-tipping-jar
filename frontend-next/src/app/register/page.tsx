@@ -10,37 +10,91 @@ import { AuthShell } from "@/components/AuthShell";
 type Role = "fan" | "creator" | "enterprise";
 
 const ROLES: { value: Role; label: string; sub: string; icon: string }[] = [
-  { value: "creator", label: "Creator", sub: "Receive tips for your work", icon: "bi-star-fill" },
-  { value: "fan", label: "Tipper", sub: "Support creators you love", icon: "bi-emoji-smile-fill" },
-  { value: "enterprise", label: "Enterprise", sub: "Tipping for your platform", icon: "bi-building" },
+  {
+    value: "creator",
+    label: "Creator",
+    sub: "Receive tips for your work",
+    icon: "bi-star-fill",
+  },
+  {
+    value: "fan",
+    label: "Tipper",
+    sub: "Support creators you love",
+    icon: "bi-emoji-smile-fill",
+  },
+  {
+    value: "enterprise",
+    label: "Enterprise",
+    sub: "Tipping for your platform",
+    icon: "bi-building",
+  },
 ];
 
-const PANEL: Record<Role, { heading: string; sub: string; perks: [string, string, string][] }> = {
+const PANEL: Record<
+  Role,
+  { heading: string; sub: string; perks: [string, string, string][] }
+> = {
   fan: {
     heading: "Support creators you love.",
     sub: "Tip your favourite creators instantly — pay by card in seconds.",
     perks: [
-      ["bi-lightning-charge-fill", "Instant tips", "Support your favourite creators in seconds."],
-      ["bi-chat-heart-fill", "Say it with a message", "Every tip can carry the words you've been meaning to send."],
-      ["bi-unlock-fill", "Unlock exclusive content", "Tip monthly or subscribe and their vault opens for you."],
+      [
+        "bi-lightning-charge-fill",
+        "Instant tips",
+        "Support your favourite creators in seconds.",
+      ],
+      [
+        "bi-chat-heart-fill",
+        "Say it with a message",
+        "Every tip can carry the words you've been meaning to send.",
+      ],
+      [
+        "bi-unlock-fill",
+        "Unlock exclusive content",
+        "Tip monthly or subscribe and their vault opens for you.",
+      ],
     ],
   },
   creator: {
     heading: "Your next chapter starts with a jar.",
     sub: "Create your account, tell your story and bring your community closer.",
     perks: [
-      ["bi-rocket-takeoff-fill", "Live in minutes", "Finish your profile and your page opens for tips."],
-      ["bi-bank", "Real payouts", "Balance to your South African bank account, on request."],
-      ["bi-bar-chart-fill", "Real-time analytics", "Watch tips roll in on your dashboard as they happen."],
+      [
+        "bi-rocket-takeoff-fill",
+        "Live in minutes",
+        "Finish your profile and your page opens for tips.",
+      ],
+      [
+        "bi-bank",
+        "Real payouts",
+        "Balance to your South African bank account, on request.",
+      ],
+      [
+        "bi-bar-chart-fill",
+        "Real-time analytics",
+        "Watch tips roll in on your dashboard as they happen.",
+      ],
     ],
   },
   enterprise: {
     heading: "Scale tipping for your platform.",
     sub: "White-label tipping for teams, agencies and platforms.",
     perks: [
-      ["bi-puzzle-fill", "White-label ready", "Embed tipping directly into your product."],
-      ["bi-headset", "Dedicated support", "Priority onboarding and a dedicated manager."],
-      ["bi-people-fill", "Custom contracts", "Revenue share and SLA terms available."],
+      [
+        "bi-puzzle-fill",
+        "White-label ready",
+        "Embed tipping directly into your product.",
+      ],
+      [
+        "bi-headset",
+        "Dedicated support",
+        "Priority onboarding and a dedicated manager.",
+      ],
+      [
+        "bi-people-fill",
+        "Custom contracts",
+        "Revenue share and SLA terms available.",
+      ],
     ],
   },
 };
@@ -64,7 +118,10 @@ function slugify(s: string): string {
 const PW_RULES: { label: string; test: (pw: string) => boolean }[] = [
   { label: "At least 6 characters", test: (pw) => pw.length >= 6 },
   { label: "Contains a number", test: (pw) => /[0-9]/.test(pw) },
-  { label: "Contains a special character", test: (pw) => /[^a-zA-Z0-9\s]/.test(pw) },
+  {
+    label: "Contains a special character",
+    test: (pw) => /[^a-zA-Z0-9\s]/.test(pw),
+  },
   { label: "Contains an uppercase letter", test: (pw) => /[A-Z]/.test(pw) },
 ];
 
@@ -98,7 +155,9 @@ function RegisterInner() {
   const [gender, setGender] = useState("");
   const [dob, setDob] = useState("");
   const [referral, setReferral] = useState("");
-  const [refStatus, setRefStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
+  const [refStatus, setRefStatus] = useState<
+    "idle" | "checking" | "valid" | "invalid"
+  >("idle");
   const [isMinor, setIsMinor] = useState(false);
   const [guardianName, setGuardianName] = useState("");
   const [guardianEmail, setGuardianEmail] = useState("");
@@ -134,20 +193,27 @@ function RegisterInner() {
     };
   }, [referral]);
 
-  const score = useMemo(() => PW_RULES.filter((r) => r.test(password)).length, [password]);
+  const score = useMemo(
+    () => PW_RULES.filter((r) => r.test(password)).length,
+    [password],
+  );
   const level = score > 0 ? STRENGTH[score - 1] : null;
-  const slug = slugify(username || [firstName, lastName].filter(Boolean).join(" "));
+  const slug = slugify(
+    username || [firstName, lastName].filter(Boolean).join(" "),
+  );
   const panel = PANEL[role];
 
   function validateStep(s: number): string | null {
     if (s === 0) {
-      if (username.trim().length < 3) return "Username must be at least 3 characters";
+      if (username.trim().length < 3)
+        return "Username must be at least 3 characters";
       if (!email.includes("@")) return "Enter a valid email";
       return null;
     }
     if (s === 1) {
       for (const rule of PW_RULES.slice(0, 3)) {
-        if (!rule.test(password)) return `Password: ${rule.label.toLowerCase()}`;
+        if (!rule.test(password))
+          return `Password: ${rule.label.toLowerCase()}`;
       }
       if (password !== confirm) return "Passwords do not match";
       return null;
@@ -158,7 +224,8 @@ function RegisterInner() {
     if (isMinor && (!guardianName.trim() || !guardianEmail.includes("@"))) {
       return "Add the parent/guardian's name and a valid email.";
     }
-    if (!acceptTerms) return "Please accept the Terms of Service and Privacy Policy to continue.";
+    if (!acceptTerms)
+      return "Please accept the Terms of Service and Privacy Policy to continue.";
     return null;
   }
 
@@ -192,9 +259,17 @@ function RegisterInner() {
       // Creators go straight into the onboarding wizard (profile type,
       // location, identity, bank, verification). Everyone else lands on
       // the dashboard.
-      router.push(createdUser.role === "creator" ? "/onboarding" : createdUser.role === "enterprise" ? "/enterprise-portal" : "/fan-dashboard");
+      router.push(
+        createdUser.role === "creator"
+          ? "/onboarding"
+          : createdUser.role === "enterprise"
+            ? "/enterprise-portal"
+            : "/fan-dashboard",
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed. Try again.");
+      setError(
+        err instanceof Error ? err.message : "Registration failed. Try again.",
+      );
     }
   }
 
@@ -204,14 +279,19 @@ function RegisterInner() {
       <div className="tj-auth-form tj-register-form">
         <div className="tj-register-card">
           <div className="flex items-baseline justify-between">
-            <h2 className="text-2xl font-extrabold tracking-tight text-ink">Create your account</h2>
+            <h2 className="text-2xl font-extrabold tracking-tight text-ink">
+              Create your account
+            </h2>
             <span className="font-mono text-[11px] uppercase tracking-wide text-muted">
               {step + 1}/{STEPS.length}
             </span>
           </div>
           <p className="body-muted mt-2 text-sm">
             Already have an account?{" "}
-            <Link href="/login" className="font-semibold text-teal hover:underline">
+            <Link
+              href="/login"
+              className="font-semibold text-teal hover:underline"
+            >
               Sign in
             </Link>
           </p>
@@ -256,11 +336,20 @@ function RegisterInner() {
                             : "border-border bg-white text-muted hover:border-teal/50"
                         }`}
                       >
-                        <span className={`text-lg ${active ? "text-green" : "text-muted"}`} aria-hidden>
+                        <span
+                          className={`text-lg ${active ? "text-green" : "text-muted"}`}
+                          aria-hidden
+                        >
                           <i className={`bi ${r.icon}`} />
                         </span>
-                        <span className={`text-sm font-bold ${active ? "text-ink" : "text-muted"}`}>{r.label}</span>
-                        <span className="text-[11px] leading-tight text-muted">{r.sub}</span>
+                        <span
+                          className={`text-sm font-bold ${active ? "text-ink" : "text-muted"}`}
+                        >
+                          {r.label}
+                        </span>
+                        <span className="text-[11px] leading-tight text-muted">
+                          {r.sub}
+                        </span>
                       </button>
                     );
                   })}
@@ -268,18 +357,37 @@ function RegisterInner() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-ink">First name</label>
-                    <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" className={inputClass()} />
+                    <label className="mb-2 block text-sm font-semibold text-ink">
+                      First name
+                    </label>
+                    <input
+                      aria-label="First name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Jane"
+                      className={inputClass()}
+                    />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-ink">Last name</label>
-                    <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe" className={inputClass()} />
+                    <label className="mb-2 block text-sm font-semibold text-ink">
+                      Last name
+                    </label>
+                    <input
+                      aria-label="Last name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Doe"
+                      className={inputClass()}
+                    />
                   </div>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-ink">Username</label>
+                  <label className="mb-2 block text-sm font-semibold text-ink">
+                    Username
+                  </label>
                   <input
+                    aria-label="Username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="yourname"
@@ -288,14 +396,20 @@ function RegisterInner() {
                   />
                   {role === "creator" && slug && (
                     <p className="mt-1.5 font-mono text-[11px] text-muted">
-                      Your page: <span className="text-green">tippingjar.co.za/creator/{slug}</span>
+                      Your page:{" "}
+                      <span className="text-green">
+                        tippingjar.co.za/creator/{slug}
+                      </span>
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-ink">Email address</label>
+                  <label className="mb-2 block text-sm font-semibold text-ink">
+                    Email address
+                  </label>
                   <input
+                    aria-label="Email address"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -312,12 +426,19 @@ function RegisterInner() {
               <>
                 <div>
                   <div className="mb-2 flex items-center justify-between">
-                    <label className="block text-sm font-semibold text-ink">Password</label>
-                    <button type="button" onClick={() => setShowPassword((s) => !s)} className="text-xs text-muted hover:text-ink">
+                    <label className="block text-sm font-semibold text-ink">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      className="text-xs text-muted hover:text-ink"
+                    >
                       {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
                   <input
+                    aria-label="Password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -332,12 +453,18 @@ function RegisterInner() {
                           <span
                             key={i}
                             className="h-1 flex-1 rounded-full bg-border"
-                            style={{ backgroundColor: i < score && level ? level.color : undefined }}
+                            style={{
+                              backgroundColor:
+                                i < score && level ? level.color : undefined,
+                            }}
                           />
                         ))}
                       </div>
                       {level && (
-                        <p className="mt-1.5 text-xs font-semibold" style={{ color: level.color }}>
+                        <p
+                          className="mt-1.5 text-xs font-semibold"
+                          style={{ color: level.color }}
+                        >
                           {level.label}
                         </p>
                       )}
@@ -348,10 +475,20 @@ function RegisterInner() {
                       const ok = r.test(password);
                       const optional = i === 3;
                       return (
-                        <li key={r.label} className={`flex items-center gap-2 text-xs ${ok ? "text-green" : "text-muted"}`}>
-                          <i className={`bi ${ok ? "bi-check-circle-fill" : "bi-circle"}`} aria-hidden />
+                        <li
+                          key={r.label}
+                          className={`flex items-center gap-2 text-xs ${ok ? "text-green" : "text-muted"}`}
+                        >
+                          <i
+                            className={`bi ${ok ? "bi-check-circle-fill" : "bi-circle"}`}
+                            aria-hidden
+                          />
                           {r.label}
-                          {optional && <span className="text-[10px] text-muted/70">(recommended)</span>}
+                          {optional && (
+                            <span className="text-[10px] text-muted/70">
+                              (recommended)
+                            </span>
+                          )}
                         </li>
                       );
                     })}
@@ -359,8 +496,11 @@ function RegisterInner() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-ink">Confirm password</label>
+                  <label className="mb-2 block text-sm font-semibold text-ink">
+                    Confirm password
+                  </label>
                   <input
+                    aria-label="Confirm password"
                     type={showPassword ? "text" : "password"}
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
@@ -369,15 +509,29 @@ function RegisterInner() {
                     className={inputClass()}
                   />
                   {confirm && (
-                    <p className={`mt-1.5 text-xs font-semibold ${confirm === password ? "text-green" : "text-red-500"}`}>
-                      {confirm === password ? "Passwords match" : "Passwords don't match yet"}
+                    <p
+                      className={`mt-1.5 text-xs font-semibold ${confirm === password ? "text-green" : "text-red-500"}`}
+                    >
+                      {confirm === password
+                        ? "Passwords match"
+                        : "Passwords don't match yet"}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-ink">Phone number (optional)</label>
-                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0821234567" autoComplete="tel" className={inputClass()} />
+                  <label className="mb-2 block text-sm font-semibold text-ink">
+                    Phone number (optional)
+                  </label>
+                  <input
+                    aria-label="Phone number"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="0821234567"
+                    autoComplete="tel"
+                    className={inputClass()}
+                  />
                 </div>
               </>
             )}
@@ -386,84 +540,164 @@ function RegisterInner() {
             {step === 2 && (
               <>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-ink">Referral code (optional)</label>
+                  <label className="mb-2 block text-sm font-semibold text-ink">
+                    Referral code (optional)
+                  </label>
                   <div className="relative">
                     <input
+                      aria-label="Referral code"
                       value={referral}
-                      onChange={(e) => setReferral(e.target.value.toUpperCase())}
+                      onChange={(e) =>
+                        setReferral(e.target.value.toUpperCase())
+                      }
                       placeholder="e.g. JANE4F2A"
                       className={inputClass("pr-10 tracking-widest")}
                     />
                     {refStatus !== "idle" && (
-                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-base" aria-hidden>
-                        {refStatus === "checking" && <i className="bi bi-three-dots text-muted" />}
-                        {refStatus === "valid" && <i className="bi bi-check-circle-fill text-green" />}
-                        {refStatus === "invalid" && <i className="bi bi-x-circle-fill text-red-500" />}
+                      <span
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-base"
+                        aria-hidden
+                      >
+                        {refStatus === "checking" && (
+                          <i className="bi bi-three-dots text-muted" />
+                        )}
+                        {refStatus === "valid" && (
+                          <i className="bi bi-check-circle-fill text-green" />
+                        )}
+                        {refStatus === "invalid" && (
+                          <i className="bi bi-x-circle-fill text-red-500" />
+                        )}
                       </span>
                     )}
                   </div>
                   {refStatus === "valid" && (
                     <p className="mt-1.5 text-xs font-semibold text-green">
-                      Valid code — your referrer earns commission on your tips, at no cost to you.
+                      Valid code — your referrer earns commission on your tips,
+                      at no cost to you.
                     </p>
                   )}
                   {refStatus === "invalid" && (
                     <p className="mt-1.5 text-xs font-semibold text-red-500">
-                      That code doesn&apos;t exist — double-check it or clear the field.
+                      That code doesn&apos;t exist — double-check it or clear
+                      the field.
                     </p>
                   )}
                 </div>
 
                 <details className="rounded-xl border border-border bg-white">
                   <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink">
-                    Optional details <span className="font-normal text-muted">(gender, date of birth)</span>
+                    Optional details{" "}
+                    <span className="font-normal text-muted">
+                      (gender, date of birth)
+                    </span>
                   </summary>
                   <div className="grid grid-cols-2 gap-3 px-4 pb-4">
                     <div>
-                      <label className="mb-2 block text-xs font-semibold text-muted">Gender</label>
-                      <select value={gender} onChange={(e) => setGender(e.target.value)} className={inputClass()}>
+                      <label className="mb-2 block text-xs font-semibold text-muted">
+                        Gender
+                      </label>
+                      <select
+                        aria-label="Gender"
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value)}
+                        className={inputClass()}
+                      >
                         {GENDERS.map((g) => (
-                          <option key={g.value} value={g.value}>{g.label}</option>
+                          <option key={g.value} value={g.value}>
+                            {g.label}
+                          </option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-semibold text-muted">Date of birth</label>
-                      <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} className={inputClass()} />
+                      <label className="mb-2 block text-xs font-semibold text-muted">
+                        Date of birth
+                      </label>
+                      <input
+                        aria-label="Date of birth"
+                        type="date"
+                        value={dob}
+                        onChange={(e) => setDob(e.target.value)}
+                        className={inputClass()}
+                      />
                     </div>
                   </div>
                 </details>
 
                 <label className="flex cursor-pointer items-start gap-3">
-                  <input type="checkbox" checked={isMinor} onChange={(e) => setIsMinor(e.target.checked)} className="mt-0.5 h-4 w-4 accent-teal" />
+                  <input
+                    type="checkbox"
+                    checked={isMinor}
+                    onChange={(e) => setIsMinor(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-teal"
+                  />
                   <span className="text-xs leading-relaxed text-muted">
-                    This account is for someone under 18 (managed by a parent/guardian)
+                    This account is for someone under 18 (managed by a
+                    parent/guardian)
                   </span>
                 </label>
 
                 {isMinor && (
                   <div className="space-y-3 rounded-xl border border-teal/30 bg-primary/5 p-4">
-                    <p className="text-sm font-bold text-teal">Parent / Guardian details</p>
-                    <p className="text-xs text-muted">All account communications will go to the guardian.</p>
-                    <input value={guardianName} onChange={(e) => setGuardianName(e.target.value)} placeholder="Guardian full name" className={inputClass()} />
-                    <input type="email" value={guardianEmail} onChange={(e) => setGuardianEmail(e.target.value)} placeholder="parent@example.com" className={inputClass()} />
+                    <p className="text-sm font-bold text-teal">
+                      Parent / Guardian details
+                    </p>
+                    <p className="text-xs text-muted">
+                      All account communications will go to the guardian.
+                    </p>
+                    <input
+                      aria-label="Guardian full name"
+                      value={guardianName}
+                      onChange={(e) => setGuardianName(e.target.value)}
+                      placeholder="Guardian full name"
+                      className={inputClass()}
+                    />
+                    <input
+                      aria-label="Guardian email"
+                      type="email"
+                      value={guardianEmail}
+                      onChange={(e) => setGuardianEmail(e.target.value)}
+                      placeholder="parent@example.com"
+                      className={inputClass()}
+                    />
                   </div>
                 )}
 
                 <label className="flex cursor-pointer items-start gap-3">
-                  <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="mt-0.5 h-4 w-4 accent-teal" />
+                  <input
+                    type="checkbox"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-teal"
+                  />
                   <span className="text-xs leading-relaxed text-muted">
                     I agree to the{" "}
-                    <Link href="/terms" className="font-semibold text-teal hover:underline">Terms of Service</Link> and{" "}
-                    <Link href="/privacy" className="font-semibold text-teal hover:underline">Privacy Policy</Link>
+                    <Link
+                      href="/terms"
+                      className="font-semibold text-teal hover:underline"
+                    >
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link
+                      href="/privacy"
+                      className="font-semibold text-teal hover:underline"
+                    >
+                      Privacy Policy
+                    </Link>
                   </span>
                 </label>
               </>
             )}
 
             {error && (
-              <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500">
-                <span aria-hidden><i className="bi bi-exclamation-triangle-fill" /></span>
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500"
+              >
+                <span aria-hidden>
+                  <i className="bi bi-exclamation-triangle-fill" />
+                </span>
                 <span>{error}</span>
               </div>
             )}
@@ -473,18 +707,29 @@ function RegisterInner() {
               {step > 0 && (
                 <button
                   type="button"
-                  onClick={() => { setError(null); setStep((s) => s - 1); }}
+                  onClick={() => {
+                    setError(null);
+                    setStep((s) => s - 1);
+                  }}
                   className="btn-ghost !px-5 !py-2.5 text-sm"
                 >
                   Back
                 </button>
               )}
               {step < STEPS.length - 1 ? (
-                <button type="button" onClick={next} className="btn-primary ml-auto !px-7 text-sm">
+                <button
+                  type="button"
+                  onClick={next}
+                  className="btn-primary ml-auto !px-7 text-sm"
+                >
                   Continue →
                 </button>
               ) : (
-                <button type="submit" disabled={loading} className="btn-primary ml-auto !px-7 text-sm disabled:opacity-50">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-primary ml-auto !px-7 text-sm disabled:opacity-50"
+                >
                   {loading
                     ? "Creating account…"
                     : role === "creator"

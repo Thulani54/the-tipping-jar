@@ -5,8 +5,11 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.users.jwt import TippingJarTokenView
 from core.admin_site import admin_site
+from core.cron_views import DailyReportView
 
 urlpatterns = [
+    # ── Internal cron endpoints (protected by X-Cron-Secret header) ──────────
+    path("api/cron/daily-report/", DailyReportView.as_view(), name="cron-daily-report"),
     path("admin/", admin_site.urls),
     # Auth
     path("api/auth/token/", TippingJarTokenView.as_view(), name="token_obtain_pair"),
@@ -22,5 +25,6 @@ urlpatterns = [
     path("api/blog/",      include("apps.blog.urls")),
     path("api/careers/",   include("apps.careers.urls")),
     path("api/admin/",     include("apps.admin_portal.urls")),
+    path("api/referrals/", include("apps.referrals.urls")),
     path("summernote/",    include("django_summernote.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

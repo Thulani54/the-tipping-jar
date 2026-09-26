@@ -638,6 +638,107 @@ def send_tipping_summary_email(creator, period_label: str, tips) -> None:
         logger.error("send_tipping_summary_email: FAILED creator=%s error=%s", creator.id, exc)
 
 
+def send_daily_report_email(creator, date_label: str, tips) -> None:
+    """
+    Nightly daily-transaction report.
+    Sent at midnight to every creator who received at least one completed tip
+    during the previous calendar day (in SAST / Africa/Johannesburg).
+
+    `tips` – ordered queryset/list of completed Tip objects for that day.
+    """
+    from zoneinfo import ZoneInfo
+    tz = ZoneInfo("Africa/Johannesburg")
+    dashboard_url = f"{_BASE_URL}/dashboard"
+    total   = sum(float(t.amount) for t in tips)
+    net     = sum(float(t.creator_net) for t in tips)
+    count   = len(tips)
+
+    # Build one row per transaction (all of them – no cap)
+    rows_html = ""
+    rows_plain = ""
+    for t in tips:
+        local_time = t.created_at.astimezone(tz).strftime("%H:%M")
+        name    = t.tipper_name or "Anonymous"
+        message = t.message[:80] + ("…" if len(t.message) > 80 else "") if t.message else "—"
+        jar     = t.jar.name if t.jar else "—"
+        ref     = t.paystack_reference or "—"
+        rows_html += f"""
+<tr>
+  <td style="padding:9px 6px;font-size:12px;color:#E2E8F0;border-bottom:1px solid #1E2E26;white-space:nowrap;">{local_time}</td>
+  <td style="padding:9px 6px;font-size:12px;color:#E2E8F0;border-bottom:1px solid #1E2E26;">{name}</td>
+  <td style="padding:9px 6px;font-size:12px;color:#00C896;font-weight:700;text-align:right;border-bottom:1px solid #1E2E26;white-space:nowrap;">R{float(t.amount):.2f}</td>
+  <td style="padding:9px 6px;font-size:12px;color:#7A9088;border-bottom:1px solid #1E2E26;">{jar}</td>
+  <td style="padding:9px 6px;font-size:11px;color:#7A9088;border-bottom:1px solid #1E2E26;">{message}</td>
+</tr>"""
+        rows_plain += f"  {local_time}  {name:<20}  R{float(t.amount):.2f}  {jar}  {message}\n"
+
+    inner = f"""
+<h2 style="color:#00C896;margin:0 0 2px;font-size:20px;">Daily transactions report</h2>
+<p style="color:#7A9088;margin:0 0 24px;font-size:13px;">{date_label}</p>
+
+<div style="display:flex;gap:12px;margin-bottom:24px;">
+  <div style="flex:1;background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:16px;text-align:center;">
+    <p style="margin:0;font-size:11px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Total received</p>
+    <p style="margin:4px 0 0;font-size:26px;font-weight:800;color:#00C896;">R{total:.2f}</p>
+  </div>
+  <div style="flex:1;background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:16px;text-align:center;">
+    <p style="margin:0;font-size:11px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Your net</p>
+    <p style="margin:4px 0 0;font-size:26px;font-weight:800;color:#E2E8F0;">R{net:.2f}</p>
+  </div>
+  <div style="flex:1;background:#111A16;border:1px solid #1E2E26;border-radius:10px;padding:16px;text-align:center;">
+    <p style="margin:0;font-size:11px;color:#7A9088;text-transform:uppercase;letter-spacing:.8px;">Transactions</p>
+    <p style="margin:4px 0 0;font-size:26px;font-weight:800;color:#E2E8F0;">{count}</p>
+  </div>
+</div>
+
+<div style="background:#111A16;border:1px solid #1E2E26;border-radius:10px;overflow:hidden;margin-bottom:24px;">
+  <table style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr style="background:#0D1A12;">
+        <th style="padding:10px 6px;text-align:left;font-size:10px;color:#7A9088;text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;">Time</th>
+        <th style="padding:10px 6px;text-align:left;font-size:10px;color:#7A9088;text-transform:uppercase;letter-spacing:.7px;">Tipper</th>
+        <th style="padding:10px 6px;text-align:right;font-size:10px;color:#7A9088;text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;">Amount</th>
+        <th style="padding:10px 6px;text-align:left;font-size:10px;color:#7A9088;text-transform:uppercase;letter-spacing:.7px;">Jar</th>
+        <th style="padding:10px 6px;text-align:left;font-size:10px;color:#7A9088;text-transform:uppercase;letter-spacing:.7px;">Message</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows_html}
+    </tbody>
+  </table>
+</div>
+
+{_btn("View full dashboard →", dashboard_url)}
+"""
+
+    html = _creator_email_wrapper(inner)
+
+    plain = (
+        f"TippingJar — Daily transactions report for {creator.display_name}\n"
+        f"{'=' * 60}\n"
+        f"Date: {date_label}\n"
+        f"Total received: R{total:.2f}  |  Your net: R{net:.2f}  |  Transactions: {count}\n\n"
+        f"{'Time':<8}  {'Tipper':<20}  {'Amount':>9}  Jar  Message\n"
+        f"{'-' * 70}\n"
+        f"{rows_plain}\n"
+        f"Dashboard: {dashboard_url}\n\n"
+        f"— The TippingJar Team"
+    )
+
+    msg = EmailMultiAlternatives(
+        subject=f"[TippingJar] Daily report — R{total:.2f} in {count} tip{'s' if count != 1 else ''} · {date_label}",
+        body=plain,
+        from_email=_no_reply(),
+        to=[creator.user.email],
+    )
+    msg.attach_alternative(html, "text/html")
+    try:
+        msg.send(fail_silently=False)
+        logger.info("send_daily_report_email: sent to %s", creator.user.email)
+    except Exception as exc:
+        logger.error("send_daily_report_email: FAILED creator=%s error=%s", creator.id, exc)
+
+
 def send_banking_confirmed(creator) -> None:
     """Email to creator when their banking details are saved and subaccount is created."""
     dashboard_url = f"{_BASE_URL}/dashboard"

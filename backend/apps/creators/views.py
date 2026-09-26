@@ -2,6 +2,7 @@ import datetime
 import logging
 
 from django.conf import settings
+from django.db import models
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -21,17 +22,29 @@ from .models import (
     CreatorPost,
     CreatorProfile,
     Jar,
+    LiveStream,
+    LiveStreamComment,
+    LiveStreamGoal,
+    LiveStreamPoll,
+    LiveStreamPollOption,
+    LiveStreamReaction,
     MilestoneGoal,
     SupportTier,
 )
 from .serializers import (
     CommissionRequestSerializer,
     CommissionSlotSerializer,
+    CreatorPostFeedSerializer,
     CreatorPostPublicSerializer,
     CreatorPostSerializer,
     CreatorProfileSerializer,
     JarSerializer,
     KycDocumentSerializer,
+    LiveStreamCommentSerializer,
+    LiveStreamGoalSerializer,
+    LiveStreamPollSerializer,
+    LiveStreamSerializer,
+    LiveStreamWithCreatorSerializer,
     MilestoneGoalSerializer,
     SupportTierSerializer,
 )
@@ -130,7 +143,10 @@ class ValidateBankAccountView(APIView):
 
 
 class CreatorListView(generics.ListAPIView):
-    queryset = CreatorProfile.objects.filter(is_active=True).order_by("-created_at")
+    """Only return creators with a Paystack subaccount (i.e. bank verified & ready to receive tips)."""
+    queryset = CreatorProfile.objects.filter(
+        is_active=True,
+    ).exclude(paystack_subaccount_code="").order_by("-created_at")
     serializer_class = CreatorProfileSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -697,3 +713,375 @@ class CreatorIncomingPledgesView(generics.ListAPIView):
         except CreatorProfile.DoesNotExist:
             from apps.tips.models import Pledge
             return Pledge.objects.none()
+
+
+# ── Live streaming ────────────────────────────────────────────────────────────
+
+class StartLiveStreamView(APIView):
+    """Creator starts a live stream. Returns the Jitsi room name."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        profile = get_object_or_404(CreatorProfile, user=request.user)
+        # End any previously active stream for this creator
+        LiveStream.objects.filter(creator=profile, is_live=True).update(
+            is_live=False, ended_at=timezone.now()
+        )
+        title = request.data.get('title', 'Live Stream')
+        import uuid
+        room_name = f"{profile.slug}-{uuid.uuid4().hex[:8]}"
+        stream = LiveStream.objects.create(creator=profile, room_name=room_name, title=title)
+        return Response(LiveStreamSerializer(stream).data, status=status.HTTP_201_CREATED)
+
+
+class EndLiveStreamView(APIView):
+    """Creator ends their active live stream."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        profile = get_object_or_404(CreatorProfile, user=request.user)
+        updated = LiveStream.objects.filter(creator=profile, is_live=True).update(
+            is_live=False, ended_at=timezone.now()
+        )
+        if updated == 0:
+            return Response({'detail': 'No active stream.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'detail': 'Stream ended.'})
+
+
+class GetLiveStreamView(APIView):
+    """Public: returns the active live stream for a creator slug, or 404."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, slug):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if stream is None:
+            return Response({'detail': 'No active stream.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(LiveStreamSerializer(stream).data)
+
+
+class LiveStreamCommentsView(APIView):
+    """
+    GET  /api/creators/<slug>/live/comments/?since=<id>  — poll for new comments
+    POST /api/creators/<slug>/live/comments/             — post a comment
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, slug):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if stream is None:
+            return Response([])
+        since = request.query_params.get('since', 0)
+        try:
+            since = int(since)
+        except (ValueError, TypeError):
+            since = 0
+        comments = LiveStreamComment.objects.filter(
+            stream=stream, id__gt=since
+        ).order_by('created_at')[:50]
+        return Response(LiveStreamCommentSerializer(comments, many=True).data)
+
+    def post(self, request, slug):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if stream is None:
+            return Response({'error': 'No active stream.'}, status=status.HTTP_404_NOT_FOUND)
+        data = request.data.copy()
+        # Auto-detect creator: authenticated user who owns this profile
+        is_creator = (
+            request.user.is_authenticated
+            and hasattr(request.user, 'creator_profile')
+            and request.user.creator_profile.slug == slug
+        )
+        serializer = LiveStreamCommentSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(creator=profile, stream=stream, is_creator=is_creator)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LiveTopTippersView(APIView):
+    """GET /api/creators/<slug>/live/top-tippers/ — top 3 tippers for the current live session."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, slug):
+        from django.db.models import Sum
+        from apps.payments.models import Tip
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if stream is None:
+            return Response([])
+        top = (
+            Tip.objects.filter(
+                creator=profile,
+                status='completed',
+                created_at__gte=stream.started_at,
+            )
+            .values('tipper_name', 'tipper_email')
+            .annotate(total=Sum('amount'))
+            .order_by('-total')[:3]
+        )
+        return Response([
+            {'name': t['tipper_name'] or t['tipper_email'].split('@')[0], 'total': str(t['total'])}
+            for t in top
+        ])
+
+
+class LiveStreamGoalsView(APIView):
+    """
+    GET  /api/creators/<slug>/live/goals/  — active goal (public)
+    POST /api/creators/<slug>/live/goals/  — set a new goal (creator only)
+    DELETE /api/creators/<slug>/live/goals/<pk>/ — deactivate goal (creator only)
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, slug):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if stream is None:
+            return Response(None)
+        goal = LiveStreamGoal.objects.filter(stream=stream, is_active=True).first()
+        if not goal:
+            return Response(None)
+        return Response(LiveStreamGoalSerializer(goal).data)
+
+    def post(self, request, slug):
+        if not request.user.is_authenticated:
+            return Response({'error': 'Authentication required'}, status=401)
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        if not hasattr(request.user, 'creator_profile') or request.user.creator_profile.slug != slug:
+            return Response({'error': 'Forbidden'}, status=403)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if stream is None:
+            return Response({'error': 'No active stream.'}, status=404)
+        # Deactivate existing active goals for this stream
+        LiveStreamGoal.objects.filter(stream=stream, is_active=True).update(is_active=False)
+        serializer = LiveStreamGoalSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(creator=profile, stream=stream)
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, slug):
+        if not request.user.is_authenticated:
+            return Response({'error': 'Authentication required'}, status=401)
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        if not hasattr(request.user, 'creator_profile') or request.user.creator_profile.slug != slug:
+            return Response({'error': 'Forbidden'}, status=403)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if stream:
+            LiveStreamGoal.objects.filter(stream=stream, is_active=True).update(is_active=False)
+        return Response(status=204)
+
+
+class HasTippedView(APIView):
+    """Authenticated: returns whether the logged-in user has tipped this creator."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, slug):
+        creator = get_object_or_404(CreatorProfile, slug=slug)
+        has_tipped = Tip.objects.filter(
+            creator=creator,
+            tipper_email__iexact=request.user.email,
+            status=Tip.Status.COMPLETED,
+        ).exists()
+        return Response({'has_tipped': has_tipped})
+
+
+class AllLiveStreamsView(APIView):
+    """Public: list all currently live streams across all creators."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        streams = LiveStream.objects.filter(is_live=True).select_related('creator', 'creator__user')
+        return Response(LiveStreamWithCreatorSerializer(streams, many=True, context={'request': request}).data)
+
+
+class GlobalFeedView(generics.ListAPIView):
+    """Public: 50 most recent published posts across all creators."""
+    serializer_class = CreatorPostFeedSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        return CreatorPost.objects.filter(
+            is_published=True
+        ).select_related('creator').order_by('-created_at')[:50]
+
+
+# ─── Advanced live-stream views ───────────────────────────────────────────────
+
+class JoinLiveStreamView(APIView):
+    """POST: fan joins stream → increments viewer_count. Returns viewer_count."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, slug):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if not stream:
+            return Response({'error': 'No active stream.'}, status=404)
+        LiveStream.objects.filter(pk=stream.pk).update(
+            viewer_count=models.F('viewer_count') + 1
+        )
+        stream.refresh_from_db()
+        return Response({'viewer_count': stream.viewer_count})
+
+
+class LiveStreamStatsView(APIView):
+    """GET: live stream stats — viewer count, total tips this session, comment count."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, slug):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if not stream:
+            return Response({'viewer_count': 0, 'total_tips': '0.00', 'comment_count': 0})
+        total_tips = (
+            Tip.objects.filter(creator=profile, status='completed',
+                               created_at__gte=stream.started_at)
+            .aggregate(total=Sum('amount'))['total'] or 0
+        )
+        comment_count = LiveStreamComment.objects.filter(
+            stream=stream, is_deleted=False
+        ).count()
+        return Response({
+            'viewer_count': stream.viewer_count,
+            'total_tips': str(total_tips),
+            'comment_count': comment_count,
+        })
+
+
+class LiveStreamReactionView(APIView):
+    """
+    GET  <slug>/live/reactions/ — reaction counts for the last 10 seconds
+    POST <slug>/live/reactions/ — send a reaction {"reaction_type": "heart"}
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, slug):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if not stream:
+            return Response({})
+        since = timezone.now() - datetime.timedelta(seconds=10)
+        counts = {}
+        for r in LiveStreamReaction.objects.filter(stream=stream, created_at__gte=since):
+            counts[r.reaction_type] = counts.get(r.reaction_type, 0) + 1
+        return Response(counts)
+
+    def post(self, request, slug):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if not stream:
+            return Response({'error': 'No active stream.'}, status=404)
+        reaction_type = request.data.get('reaction_type', 'heart')
+        valid = [c[0] for c in LiveStreamReaction.TYPES]
+        if reaction_type not in valid:
+            return Response({'error': 'Invalid reaction type.'}, status=400)
+        LiveStreamReaction.objects.create(stream=stream, reaction_type=reaction_type)
+        return Response({'ok': True}, status=201)
+
+
+class PinCommentView(APIView):
+    """POST: toggle pin on a comment (creator only)."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, slug, pk):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        if not hasattr(request.user, 'creator_profile') or request.user.creator_profile.slug != slug:
+            return Response({'error': 'Forbidden'}, status=403)
+        comment = get_object_or_404(LiveStreamComment, pk=pk, creator=profile)
+        # Unpin all others, then toggle this one
+        if not comment.is_pinned:
+            LiveStreamComment.objects.filter(creator=profile, is_pinned=True).update(is_pinned=False)
+        comment.is_pinned = not comment.is_pinned
+        comment.save(update_fields=['is_pinned'])
+        return Response({'is_pinned': comment.is_pinned})
+
+
+class DeleteCommentView(APIView):
+    """DELETE: soft-delete a comment (creator only)."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, slug, pk):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        if not hasattr(request.user, 'creator_profile') or request.user.creator_profile.slug != slug:
+            return Response({'error': 'Forbidden'}, status=403)
+        comment = get_object_or_404(LiveStreamComment, pk=pk, creator=profile)
+        comment.is_deleted = True
+        comment.save(update_fields=['is_deleted'])
+        return Response(status=204)
+
+
+class LiveStreamPollView(APIView):
+    """
+    GET  <slug>/live/poll/ — active poll + options + vote counts
+    POST <slug>/live/poll/ — creator creates a poll {"question": "...", "options": ["A","B","C"]}
+    DELETE <slug>/live/poll/ — creator closes active poll
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def _is_creator(self, request, slug):
+        return (
+            request.user.is_authenticated
+            and hasattr(request.user, 'creator_profile')
+            and request.user.creator_profile.slug == slug
+        )
+
+    def get(self, request, slug):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if not stream:
+            return Response(None)
+        poll = LiveStreamPoll.objects.filter(stream=stream, is_active=True).first()
+        if not poll:
+            return Response(None)
+        return Response(LiveStreamPollSerializer(poll).data)
+
+    def post(self, request, slug):
+        if not self._is_creator(request, slug):
+            return Response({'error': 'Forbidden'}, status=403)
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if not stream:
+            return Response({'error': 'No active stream.'}, status=404)
+        question = request.data.get('question', '').strip()
+        options = [o.strip() for o in request.data.get('options', []) if str(o).strip()]
+        if not question or len(options) < 2:
+            return Response({'error': 'question and at least 2 options are required.'}, status=400)
+        # Deactivate any existing poll
+        LiveStreamPoll.objects.filter(stream=stream, is_active=True).update(is_active=False)
+        poll = LiveStreamPoll.objects.create(stream=stream, question=question)
+        for text in options:
+            LiveStreamPollOption.objects.create(poll=poll, text=text)
+        return Response(LiveStreamPollSerializer(poll).data, status=201)
+
+    def delete(self, request, slug):
+        if not self._is_creator(request, slug):
+            return Response({'error': 'Forbidden'}, status=403)
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if stream:
+            LiveStreamPoll.objects.filter(stream=stream, is_active=True).update(is_active=False)
+        return Response(status=204)
+
+
+class VotePollView(APIView):
+    """POST <slug>/live/poll/vote/ — fan votes {"option_id": 3}."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, slug):
+        profile = get_object_or_404(CreatorProfile, slug=slug)
+        stream = LiveStream.objects.filter(creator=profile, is_live=True).first()
+        if not stream:
+            return Response({'error': 'No active stream.'}, status=404)
+        poll = LiveStreamPoll.objects.filter(stream=stream, is_active=True).first()
+        if not poll:
+            return Response({'error': 'No active poll.'}, status=404)
+        option_id = request.data.get('option_id')
+        option = get_object_or_404(LiveStreamPollOption, pk=option_id, poll=poll)
+        LiveStreamPollOption.objects.filter(pk=option.pk).update(
+            vote_count=models.F('vote_count') + 1
+        )
+        poll.refresh_from_db()
+        return Response(LiveStreamPollSerializer(poll).data)

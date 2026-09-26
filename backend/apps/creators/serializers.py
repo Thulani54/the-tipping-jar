@@ -13,6 +13,11 @@ from .models import (
     CreatorPost,
     CreatorProfile,
     Jar,
+    LiveStream,
+    LiveStreamComment,
+    LiveStreamGoal,
+    LiveStreamPoll,
+    LiveStreamPollOption,
     MilestoneGoal,
     SupportTier,
 )
@@ -72,6 +77,7 @@ class CreatorProfileSerializer(serializers.ModelSerializer):
     has_bank_connected = serializers.SerializerMethodField()
     bank_account_number_masked = serializers.SerializerMethodField()
     kyc_documents = KycDocumentSerializer(many=True, read_only=True)
+    paystack_configured = serializers.SerializerMethodField()
 
     class Meta:
         model = CreatorProfile
@@ -86,6 +92,8 @@ class CreatorProfileSerializer(serializers.ModelSerializer):
             "bank_account_number_masked",
             "bank_routing_number", "bank_account_type", "bank_country",
             "has_bank_connected",
+            # Paystack
+            "paystack_configured",
             # KYC
             "kyc_status", "kyc_decline_reason", "kyc_documents",
         )
@@ -97,6 +105,9 @@ class CreatorProfileSerializer(serializers.ModelSerializer):
 
     def get_has_bank_connected(self, obj):
         return bool(obj.bank_name and obj.bank_account_number)
+
+    def get_paystack_configured(self, obj):
+        return bool(obj.paystack_subaccount_code)
 
     def get_bank_account_number_masked(self, obj):
         n = obj.bank_account_number
@@ -216,6 +227,91 @@ class CommissionSlotSerializer(serializers.ModelSerializer):
             "turnaround_days", "max_active_requests",
         )
         read_only_fields = ("id",)
+
+
+class LiveStreamCommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = LiveStreamComment
+        fields = ("id", "username", "message", "is_creator", "msg_type",
+                  "gift_type", "image_url", "is_pinned", "is_deleted", "created_at")
+        read_only_fields = ("id", "is_pinned", "is_deleted", "created_at")
+
+
+class LiveStreamGoalSerializer(serializers.ModelSerializer):
+    progress_pct = serializers.SerializerMethodField()
+
+    def get_progress_pct(self, obj):
+        if obj.target_amount <= 0:
+            return 0
+        return min(100, int((obj.current_amount / obj.target_amount) * 100))
+
+    class Meta:
+        model  = LiveStreamGoal
+        fields = ("id", "title", "target_amount", "current_amount", "progress_pct", "is_active", "created_at")
+        read_only_fields = ("id", "current_amount", "created_at")
+
+
+class LiveStreamSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = LiveStream
+        fields = ("id", "room_name", "title", "is_live", "viewer_count", "started_at", "ended_at")
+        read_only_fields = ("id", "room_name", "viewer_count", "started_at", "ended_at")
+
+
+class LiveStreamWithCreatorSerializer(serializers.ModelSerializer):
+    creator_slug = serializers.CharField(source="creator.slug", read_only=True)
+    creator_display_name = serializers.CharField(source="creator.display_name", read_only=True)
+    creator_avatar = serializers.SerializerMethodField()
+
+    def get_creator_avatar(self, obj):
+        request = self.context.get("request")
+        if obj.creator.user.avatar:
+            url = obj.creator.user.avatar.url
+            return request.build_absolute_uri(url) if request else url
+        return None
+
+    class Meta:
+        model  = LiveStream
+        fields = ("id", "room_name", "title", "is_live", "started_at",
+                  "creator_slug", "creator_display_name", "creator_avatar")
+        read_only_fields = ("id", "room_name", "started_at")
+
+
+class LiveStreamPollOptionSerializer(serializers.ModelSerializer):
+    pct = serializers.SerializerMethodField()
+
+    def get_pct(self, obj):
+        total = sum(o.vote_count for o in obj.poll.options.all())
+        if total == 0:
+            return 0
+        return round((obj.vote_count / total) * 100)
+
+    class Meta:
+        model  = LiveStreamPollOption
+        fields = ("id", "text", "vote_count", "pct")
+        read_only_fields = ("id", "vote_count")
+
+
+class LiveStreamPollSerializer(serializers.ModelSerializer):
+    options = LiveStreamPollOptionSerializer(many=True, read_only=True)
+    total_votes = serializers.SerializerMethodField()
+
+    def get_total_votes(self, obj):
+        return sum(o.vote_count for o in obj.options.all())
+
+    class Meta:
+        model  = LiveStreamPoll
+        fields = ("id", "question", "is_active", "options", "total_votes", "created_at")
+        read_only_fields = ("id", "is_active", "created_at")
+
+
+class CreatorPostFeedSerializer(serializers.ModelSerializer):
+    creator_slug = serializers.CharField(source="creator.slug", read_only=True)
+    creator_display_name = serializers.CharField(source="creator.display_name", read_only=True)
+
+    class Meta:
+        model  = CreatorPost
+        fields = ["id", "title", "post_type", "created_at", "creator_slug", "creator_display_name"]
 
 
 class CommissionRequestSerializer(serializers.ModelSerializer):

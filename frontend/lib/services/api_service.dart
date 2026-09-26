@@ -128,6 +128,11 @@ class ApiService {
     String phoneNumber = '',
     String firstName = '',
     String lastName = '',
+    String referralCode = '',
+    bool isMinor = false,
+    String guardianName = '',
+    String guardianEmail = '',
+    String guardianPhone = '',
   }) async {
     final body = <String, dynamic>{
       'username': username,
@@ -138,6 +143,13 @@ class ApiService {
     if (phoneNumber.isNotEmpty) body['phone_number'] = phoneNumber;
     if (firstName.isNotEmpty) body['first_name'] = firstName;
     if (lastName.isNotEmpty) body['last_name'] = lastName;
+    if (referralCode.isNotEmpty) body['referral_code'] = referralCode.toUpperCase();
+    if (isMinor) {
+      body['is_minor'] = true;
+      if (guardianName.isNotEmpty) body['guardian_name'] = guardianName;
+      if (guardianEmail.isNotEmpty) body['guardian_email'] = guardianEmail;
+      if (guardianPhone.isNotEmpty) body['guardian_phone'] = guardianPhone;
+    }
     final res = await http.post(
       Uri.parse('$_baseUrl/users/register/'),
       headers: _headers,
@@ -147,6 +159,62 @@ class ApiService {
       return AppUser.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
     }
     throw Exception(_parseApiError(res.body, 'Registration failed. Please try again.'));
+  }
+
+  // ── Referrals ────────────────────────────────────────────────────────────────
+
+  /// Validate a referral code before signup.
+  Future<Map<String, dynamic>> validateReferralCode(String code) async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/referrals/validate/${code.toUpperCase()}/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception('Invalid referral code.');
+  }
+
+  /// Fetch the authenticated user's referral stats.
+  Future<Map<String, dynamic>> getMyReferrals() async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/referrals/me/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to load referral data.');
+  }
+
+  /// Send invite emails to a list of addresses.
+  Future<void> sendReferralInvites(List<String> emails) async {
+    await http.post(
+      Uri.parse('$_baseUrl/referrals/invite/'),
+      headers: _headers,
+      body: jsonEncode({'emails': emails}),
+    );
+  }
+
+  /// Submit bank details for a referral commission payout.
+  Future<void> submitReferralBankDetails({
+    required int referralId,
+    required String bankName,
+    required String accountName,
+    required String accountNumber,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/referrals/$referralId/bank-details/'),
+      headers: _headers,
+      body: jsonEncode({
+        'bank_name': bankName,
+        'bank_account_name': accountName,
+        'bank_account_number': accountNumber,
+      }),
+    );
+    if (res.statusCode != 200) {
+      throw Exception(_parseApiError(res.body, 'Failed to save bank details.'));
+    }
   }
 
   /// Send a one-time verification code for new-user email/phone confirmation.
@@ -720,6 +788,270 @@ class ApiService {
       throw Exception('no_tip');
     }
     throw Exception('Failed to unlock posts: ${res.body}');
+  }
+
+  // ── Live streaming ────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> startLiveStream(String title) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/creators/me/live/start/'),
+      headers: _headers,
+      body: jsonEncode({'title': title}),
+    );
+    if (res.statusCode == 201) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to start live stream: ${res.body}');
+  }
+
+  Future<void> endLiveStream() async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/creators/me/live/end/'),
+      headers: _headers,
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Failed to end live stream: ${res.body}');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getLiveComments(String slug, {int since = 0}) async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/creators/$slug/live/comments/?since=$since'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<void> postLiveComment(String slug, String username, String message, {
+    String msgType = 'text',
+    String giftType = '',
+    String imageUrl = '',
+  }) async {
+    await http.post(
+      Uri.parse('$_baseUrl/creators/$slug/live/comments/'),
+      headers: _headers,
+      body: jsonEncode({
+        'username': username,
+        'message': message,
+        'msg_type': msgType,
+        if (giftType.isNotEmpty) 'gift_type': giftType,
+        if (imageUrl.isNotEmpty) 'image_url': imageUrl,
+      }),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getLiveTopTippers(String slug) async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/creators/$slug/live/top-tippers/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>?> getLiveGoal(String slug) async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/creators/$slug/live/goals/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      if (data == null) return null;
+      return data as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> setLiveGoal(String slug, String title, double targetAmount) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/creators/$slug/live/goals/'),
+      headers: _headers,
+      body: jsonEncode({'title': title, 'target_amount': targetAmount}),
+    );
+    if (res.statusCode == 201) return jsonDecode(res.body) as Map<String, dynamic>;
+    return null;
+  }
+
+  Future<void> clearLiveGoal(String slug) async {
+    await http.delete(
+      Uri.parse('$_baseUrl/creators/$slug/live/goals/'),
+      headers: _headers,
+    );
+  }
+
+  Future<Map<String, dynamic>?> getActiveLiveStream(String slug) async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/creators/$slug/live/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    if (res.statusCode == 404) return null;
+    throw Exception('Failed to fetch live stream: ${res.body}');
+  }
+
+  Future<bool> hasTipped(String slug) async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/creators/$slug/has-tipped/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      return (jsonDecode(res.body) as Map<String, dynamic>)['has_tipped'] as bool? ?? false;
+    }
+    return false;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllLiveStreams() async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/creators/live/now/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  // ── Advanced live-stream ──────────────────────────────────────────────────
+
+  Future<int> joinLiveStream(String slug) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl/creators/$slug/live/join/'),
+        headers: _headers,
+      );
+      if (res.statusCode == 200) {
+        return (jsonDecode(res.body)['viewer_count'] as int? ?? 0);
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  Future<Map<String, dynamic>> getLiveStats(String slug) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$_baseUrl/creators/$slug/live/stats/'),
+        headers: _headers,
+      );
+      if (res.statusCode == 200) {
+        return (jsonDecode(res.body) as Map<String, dynamic>);
+      }
+    } catch (_) {}
+    return {'viewer_count': 0, 'total_tips': '0.00', 'comment_count': 0};
+  }
+
+  Future<void> postReaction(String slug, String reactionType) async {
+    try {
+      await http.post(
+        Uri.parse('$_baseUrl/creators/$slug/live/reactions/'),
+        headers: _headers,
+        body: jsonEncode({'reaction_type': reactionType}),
+      );
+    } catch (_) {}
+  }
+
+  Future<Map<String, int>> getReactions(String slug) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$_baseUrl/creators/$slug/live/reactions/'),
+        headers: _headers,
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        return data.map((k, v) => MapEntry(k, (v as num).toInt()));
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  Future<void> pinComment(String slug, int commentId) async {
+    try {
+      await http.post(
+        Uri.parse('$_baseUrl/creators/$slug/live/comments/$commentId/pin/'),
+        headers: _headers,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> deleteComment(String slug, int commentId) async {
+    try {
+      await http.delete(
+        Uri.parse('$_baseUrl/creators/$slug/live/comments/$commentId/'),
+        headers: _headers,
+      );
+    } catch (_) {}
+  }
+
+  Future<Map<String, dynamic>?> getLivePoll(String slug) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$_baseUrl/creators/$slug/live/poll/'),
+        headers: _headers,
+      );
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body == null) return null;
+        return body as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> createLivePoll(
+      String slug, String question, List<String> options) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl/creators/$slug/live/poll/'),
+        headers: _headers,
+        body: jsonEncode({'question': question, 'options': options}),
+      );
+      if (res.statusCode == 201) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> votePoll(String slug, int optionId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl/creators/$slug/live/poll/vote/'),
+        headers: _headers,
+        body: jsonEncode({'option_id': optionId}),
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> closeLivePoll(String slug) async {
+    try {
+      await http.delete(
+        Uri.parse('$_baseUrl/creators/$slug/live/poll/'),
+        headers: _headers,
+      );
+    } catch (_) {}
+  }
+
+  Future<List<Map<String, dynamic>>> getGlobalFeed() async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/creators/feed/'),
+      headers: _headers,
+    );
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final list = body is Map ? (body['results'] as List? ?? body['data'] as List? ?? []) : body as List;
+      return list.cast<Map<String, dynamic>>();
+    }
+    return [];
   }
 
   // ── Enterprise ────────────────────────────────────────────────────

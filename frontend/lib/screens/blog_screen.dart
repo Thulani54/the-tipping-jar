@@ -71,7 +71,7 @@ class _BlogScreenState extends State<BlogScreen> {
     color: _bgSage,
     child: Stack(children: [
       Positioned.fill(child: CustomPaint(painter: _LightDotPainter())),
-      Positioned.fill(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      SizedBox(width: double.infinity, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(

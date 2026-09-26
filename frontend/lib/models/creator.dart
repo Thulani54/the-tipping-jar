@@ -8,6 +8,7 @@ class Creator {
   final String? avatar;
   final double? tipGoal;
   final double totalTips;
+  final bool paystackConfigured;
 
   Creator({
     required this.id,
@@ -19,6 +20,7 @@ class Creator {
     this.avatar,
     this.tipGoal,
     required this.totalTips,
+    this.paystackConfigured = false,
   });
 
   factory Creator.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,7 @@ class Creator {
           ? double.tryParse(json['tip_goal'].toString())
           : null,
       totalTips: double.tryParse(json['total_tips'].toString()) ?? 0,
+      paystackConfigured: json['paystack_configured'] == true,
     );
   }
 }

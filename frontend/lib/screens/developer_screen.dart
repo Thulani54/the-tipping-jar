@@ -215,7 +215,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
       decoration: const BoxDecoration(color: _bgSage),
       child: Stack(children: [
         Positioned.fill(child: CustomPaint(painter: _LightDotPainter())),
-        Positioned.fill(child: Padding(
+        SizedBox(width: double.infinity, child: Padding(
           padding: EdgeInsets.symmetric(
               horizontal: w > 900 ? 80 : 28, vertical: 96),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [

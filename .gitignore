@@ -39,3 +39,6 @@ Thumbs.db
 .idea/
 *.swp
 backend/.env
+
+# deploy credentials (never commit)
+scripts/.deploy.env

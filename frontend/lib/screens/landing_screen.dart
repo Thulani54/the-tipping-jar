@@ -931,9 +931,9 @@ class _HeroFeatureCard extends StatelessWidget {
         const SizedBox(height: 32),
         // Mini stats row
         Row(children: [
-          _stat('R2M+', 'Paid out'),
+          _stat('R2.4M+', 'Paid out'),
           const SizedBox(width: 28),
-          _stat('< 24h', 'Average payout'),
+          _stat('1–2 days', 'Average payout'),
           const SizedBox(width: 28),
           _stat('0%', 'Hidden fees'),
         ]),
@@ -1011,108 +1011,69 @@ class _SocialProofSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final creators = [
-      ('Mia Chen', 'Illustrator & comic artist', 'R3,240 earned', _cyan, 'MC',
-          '"TippingJar changed how I think about my work. Woke up to R800 while I slept."'),
-      ('Raj Patel', 'Indie game developer', 'R1,870 earned', _violet, 'RP',
-          '"Set it up in 5 minutes. My community tipped me R600 on launch day alone."'),
-      ('Lena Torres', 'Music producer & DJ', 'R5,100 earned', _green, 'LT',
-          '"Finally a platform built for African creators. No PayPal nonsense."'),
+    final mobile = w < 680;
+
+    final stats = [
+      ('12 000+', 'Active creators'),
+      ('R 2.4M+', 'Paid out this month'),
+      ('1–2 days', 'Average payout time'),
     ];
 
     return Container(
       width: double.infinity,
       color: _bgSage,
-      padding: EdgeInsets.symmetric(vertical: 100, horizontal: w > 900 ? 60 : 24),
-      child: Column(children: [
-        _SectionHeader(
-          tag: 'Creator spotlight',
-          title: 'Creators who\'re\nalready earning',
-          sub: 'Join thousands filling their jar every day.',
+      padding: EdgeInsets.symmetric(vertical: 80, horizontal: mobile ? 16 : 32),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: Column(children: [
+            Text('Loved by creators.',
+              style: GoogleFonts.dmSans(
+                color: _ink, fontSize: mobile ? 32 : 42,
+                fontWeight: FontWeight.w800, letterSpacing: -1.2, height: 1.1),
+              textAlign: TextAlign.center,
+            ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.15, curve: Curves.easeOut),
+            const SizedBox(height: 40),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF003D1F), Color(0xFF00622E), Color(0xFF007A38)],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight,
+                ),
+                boxShadow: [BoxShadow(
+                  color: _green.withOpacity(0.25), blurRadius: 40, offset: const Offset(0, 16))],
+              ),
+              padding: EdgeInsets.symmetric(vertical: 32, horizontal: mobile ? 20 : 48),
+              child: mobile
+                ? Column(children: stats.asMap().entries.map((e) => Padding(
+                    padding: EdgeInsets.only(bottom: e.key < stats.length - 1 ? 24 : 0),
+                    child: _StatsItem(val: e.value.$1, label: e.value.$2),
+                  )).toList())
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: stats.map((s) => _StatsItem(val: s.$1, label: s.$2)).toList(),
+                  ),
+            ).animate().fadeIn(delay: 150.ms, duration: 500.ms).slideY(begin: 0.12, curve: Curves.easeOut),
+          ]),
         ),
-        const SizedBox(height: 64),
-        Wrap(
-          spacing: 20, runSpacing: 20, alignment: WrapAlignment.center,
-          children: creators.asMap().entries.map((e) {
-            final c = e.value;
-            return _TestimonialCard(
-              name: c.$1, role: c.$2, earned: c.$3,
-              color: c.$4, initials: c.$5, quote: c.$6,
-              delay: e.key * 140,
-            );
-          }).toList(),
-        ),
-      ]),
+      ),
     );
   }
 }
 
-class _TestimonialCard extends StatelessWidget {
-  final String name, role, earned, initials, quote;
-  final Color color;
-  final int delay;
-  const _TestimonialCard({required this.name, required this.role, required this.earned,
-      required this.initials, required this.quote, required this.color, required this.delay});
+class _StatsItem extends StatelessWidget {
+  final String val, label;
+  const _StatsItem({required this.val, required this.label});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 300,
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: _bgWhite, borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _border),
-        boxShadow: const [BoxShadow(color: Color(0x07000000), blurRadius: 20, offset: Offset(0, 6))],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Earned badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: color.withOpacity(0.20)),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.volunteer_activism_rounded, color: color, size: 13),
-            const SizedBox(width: 6),
-            Text(earned, style: GoogleFonts.dmSans(
-                color: color, fontSize: 12, fontWeight: FontWeight.w700)),
-          ]),
-        ),
-        const SizedBox(height: 20),
-        // Quote
-        Text(quote, style: GoogleFonts.dmSans(
-            color: _ink, fontSize: 14.5, height: 1.65, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 24),
-        const Divider(color: _border, height: 1),
-        const SizedBox(height: 20),
-        // Creator
-        Row(children: [
-          Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(
-              color: color, shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: color.withOpacity(0.28), blurRadius: 10, offset: const Offset(0, 3))],
-            ),
-            child: Center(child: Text(initials, style: GoogleFonts.dmSans(
-                color: _white, fontWeight: FontWeight.w800, fontSize: 13))),
-          ),
-          const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(name, style: GoogleFonts.dmSans(
-                color: _ink, fontWeight: FontWeight.w700, fontSize: 14)),
-            Text(role, style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12)),
-          ])),
-          Row(children: [for (int i = 0; i < 5; i++)
-              const Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 12)]),
-        ]),
-      ]),
-    )
-        .animate()
-        .fadeIn(delay: delay.ms, duration: 500.ms)
-        .slideY(begin: 0.18, curve: Curves.easeOut);
-  }
+  Widget build(BuildContext context) => Column(children: [
+    Text(val, style: GoogleFonts.dmSans(
+        color: _white, fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: -0.8)),
+    const SizedBox(height: 4),
+    Text(label, style: GoogleFonts.dmSans(
+        color: _white.withOpacity(0.65), fontSize: 13, fontWeight: FontWeight.w500)),
+  ]);
 }
 
 // ─── CTA ──────────────────────────────────────────────────────────────────────

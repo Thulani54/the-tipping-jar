@@ -9,6 +9,8 @@ environ.Env.read_env(BASE_DIR / ".env")
 
 SECRET_KEY = env("SECRET_KEY", default="dev-secret-key-change-in-prod")
 DEBUG = env("DEBUG")
+# Secret token for internal cron endpoints (GitHub Actions → /api/cron/*)
+CRON_SECRET = env("CRON_SECRET", default="")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 INSTALLED_APPS = [
@@ -34,6 +36,7 @@ INSTALLED_APPS = [
     "apps.blog",
     "apps.careers",
     "apps.admin_portal",
+    "apps.referrals",
 ]
 
 MIDDLEWARE = [

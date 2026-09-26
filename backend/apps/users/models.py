@@ -61,6 +61,30 @@ class User(AbstractUser):
         help_text="User's date of birth (YYYY-MM-DD).",
     )
 
+    # ── Minor / guardian fields ──────────────────────────────────────────────
+    is_minor = models.BooleanField(
+        default=False,
+        help_text="True when the account is managed by a parent or guardian on behalf of a minor.",
+    )
+    guardian_name = models.CharField(
+        max_length=200, blank=True,
+        help_text="Full name of parent / guardian (required when is_minor=True).",
+    )
+    guardian_email = models.EmailField(
+        blank=True,
+        help_text="Guardian's email address for account communications.",
+    )
+    guardian_phone = models.CharField(
+        max_length=20, blank=True,
+        help_text="Guardian's phone number.",
+    )
+
+    # ── Referral tracking ────────────────────────────────────────────────────
+    referral_code_used = models.CharField(
+        max_length=20, blank=True,
+        help_text="The referral code entered by this user at signup.",
+    )
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
 

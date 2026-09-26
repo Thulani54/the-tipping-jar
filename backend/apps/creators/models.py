@@ -247,6 +247,112 @@ class CreatorKycDocument(models.Model):
         return f"{self.creator.display_name} — {self.get_doc_type_display()} ({self.status})"
 
 
+class LiveStreamComment(models.Model):
+    """Real-time chat comment on a creator's live stream."""
+
+    class MsgType(models.TextChoices):
+        TEXT      = 'text',      'Text'
+        GIFT      = 'gift',      'Gift'
+        IMAGE     = 'image',     'Image'
+        THANK_YOU = 'thank_you', 'Thank You'
+        SYSTEM    = 'system',    'System'
+
+    creator    = models.ForeignKey(CreatorProfile, on_delete=models.CASCADE, related_name='live_comments')
+    stream     = models.ForeignKey('LiveStream', on_delete=models.CASCADE, related_name='comments', null=True, blank=True)
+    username   = models.CharField(max_length=60)
+    message    = models.TextField(max_length=500, blank=True, default='')
+    is_creator = models.BooleanField(default=False)
+    msg_type   = models.CharField(max_length=20, choices=MsgType.choices, default=MsgType.TEXT)
+    gift_type  = models.CharField(max_length=30, blank=True, default='')   # heart|star|crown|fire|diamond
+    image_url  = models.URLField(blank=True, default='')
+    is_pinned  = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{'[creator]' if self.is_creator else ''}{self.username}: {self.message[:40]}"
+
+
+class LiveStreamGoal(models.Model):
+    """A tip goal a creator sets during a live stream."""
+    creator        = models.ForeignKey(CreatorProfile, on_delete=models.CASCADE, related_name='live_goals')
+    stream         = models.ForeignKey('LiveStream', on_delete=models.CASCADE, related_name='goals', null=True, blank=True)
+    title          = models.CharField(max_length=200)
+    target_amount  = models.DecimalField(max_digits=10, decimal_places=2)
+    current_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    is_active      = models.BooleanField(default=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.creator.display_name} — {self.title} ({self.current_amount}/{self.target_amount})"
+
+
+class LiveStream(models.Model):
+    """Tracks an active or past live stream session for a creator."""
+
+    creator       = models.ForeignKey(CreatorProfile, on_delete=models.CASCADE, related_name='live_streams')
+    room_name     = models.CharField(max_length=200)
+    title         = models.CharField(max_length=200, blank=True, default='')
+    is_live       = models.BooleanField(default=True)
+    viewer_count  = models.PositiveIntegerField(default=0)
+    started_at    = models.DateTimeField(auto_now_add=True)
+    ended_at      = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-started_at']
+
+    def __str__(self):
+        status = 'live' if self.is_live else 'ended'
+        return f"{self.creator.display_name} — {self.room_name} ({status})"
+
+
+class LiveStreamReaction(models.Model):
+    """Lightweight floating reaction (free, no tip required)."""
+    TYPES = [
+        ('heart', 'heart'), ('fire', 'fire'), ('clap', 'clap'),
+        ('wow', 'wow'), ('100', '100'), ('laugh', 'laugh'),
+    ]
+    stream        = models.ForeignKey(LiveStream, on_delete=models.CASCADE, related_name='reactions')
+    reaction_type = models.CharField(max_length=20, choices=TYPES)
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class LiveStreamPoll(models.Model):
+    """Creator-created poll for fans to vote on during a live stream."""
+    stream     = models.ForeignKey(LiveStream, on_delete=models.CASCADE, related_name='polls')
+    question   = models.CharField(max_length=300)
+    is_active  = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Poll: {self.question[:60]}"
+
+
+class LiveStreamPollOption(models.Model):
+    """An option in a LiveStreamPoll."""
+    poll       = models.ForeignKey(LiveStreamPoll, on_delete=models.CASCADE, related_name='options')
+    text       = models.CharField(max_length=200)
+    vote_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.text} ({self.vote_count} votes)"
+
+
 class CreatorNotification(models.Model):
     """In-app notification for a creator."""
 

@@ -29,10 +29,67 @@ def _send_otp_email_bg(email: str, raw_code: str) -> None:
         logger.error("OTP email delivery failed for %s: %s", email, exc)
 
 
+def _send_referral_notification(referrer_email: str, referred_name: str, referral_id: int) -> None:
+    """Notify the referrer that their referred user signed up; prompt them to submit bank details."""
+    try:
+        send_mail(
+            subject="Someone you referred just joined TippingJar! 🎉",
+            message=(
+                f"Great news!\n\n"
+                f"{referred_name} signed up using your referral code.\n\n"
+                f"You'll earn a commission on their tips for 6 months. "
+                f"To receive your payments, please submit your bank account details:\n\n"
+                f"  https://tippingjar.co.za/dashboard?tab=referrals&action=bank-details&ref={referral_id}\n\n"
+                f"Thank you for growing TippingJar!\n\n"
+                f"— The TippingJar Team"
+            ),
+            from_email=settings.NO_REPLY_EMAIL,
+            recipient_list=[referrer_email],
+            fail_silently=True,
+        )
+    except Exception as exc:
+        logger.error("Referral notification email failed for %s: %s", referrer_email, exc)
+
+
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+
+    def perform_create(self, serializer):
+        referral_code = (self.request.data.get("referral_code") or "").strip().upper()
+        user = serializer.save()
+
+        # Store the code that was used (for audit)
+        if referral_code:
+            user.referral_code_used = referral_code
+            user.save(update_fields=["referral_code_used"])
+
+        # Create a referral code for this new user (so they can refer others)
+        from apps.referrals.models import Referral, ReferralCode
+        ReferralCode.objects.get_or_create(owner=user)
+
+        # Process the incoming referral code
+        if referral_code:
+            try:
+                code_obj = ReferralCode.objects.select_related("owner").get(
+                    code=referral_code, is_active=True
+                )
+                referral = Referral.objects.create(
+                    referrer=code_obj.owner,
+                    referred_user=user,
+                    referral_code=code_obj,
+                    commission_rate=code_obj.commission_rate,
+                )
+                # Notify referrer in background
+                referred_name = user.get_full_name() or user.username
+                threading.Thread(
+                    target=_send_referral_notification,
+                    args=(code_obj.owner.email, referred_name, referral.pk),
+                    daemon=True,
+                ).start()
+            except Exception as exc:
+                logger.warning("Could not process referral code %s: %s", referral_code, exc)
 
 
 class MeView(generics.RetrieveUpdateAPIView):

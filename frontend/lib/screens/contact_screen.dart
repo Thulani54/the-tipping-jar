@@ -107,14 +107,15 @@ class _ContactScreenState extends State<ContactScreen> {
     );
   }
 
-  Widget _hero(BuildContext context, double w) => Container(
+  Widget _hero(BuildContext context, double w) => SizedBox(
     width: double.infinity,
-    padding: EdgeInsets.symmetric(horizontal: w > 900 ? 80 : 28, vertical: 80),
+    height: 320,
+    child: ColoredBox(
     color: _bgSage,
     child: Stack(children: [
       Positioned.fill(child: CustomPaint(painter: _LightDotPainter())),
-      Positioned.fill(child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: w > 900 ? 80 : 28, vertical: 80),
+      SizedBox(width: double.infinity, child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: w > 900 ? 80 : 28, vertical: 48),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
@@ -145,7 +146,7 @@ class _ContactScreenState extends State<ContactScreen> {
         ]),
       )),
     ]),
-  );
+  ));
 
   Widget _body(BuildContext context, double w) {
     final form = _submitted ? _successCard() : _form(context);

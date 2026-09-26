@@ -805,6 +805,7 @@ class _TipFormState extends State<_TipForm> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.creator.paystackConfigured) return _blockedState();
     return AnimatedSwitcher(
       duration: 500.ms,
       child: _success
@@ -814,6 +815,37 @@ class _TipFormState extends State<_TipForm> {
               : _formState(),
     );
   }
+
+  // ── Payments not configured ────────────────────────────────────────
+  Widget _blockedState() => Container(
+    key: const ValueKey('blocked'),
+    padding: const EdgeInsets.all(32),
+    decoration: BoxDecoration(
+      color: Colors.white, borderRadius: BorderRadius.circular(24),
+      border: Border.all(color: const Color(0xFFE5E7EB)),
+    ),
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        width: 64, height: 64,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF7ED), shape: BoxShape.circle),
+        child: const Icon(Icons.lock_outline_rounded,
+            color: Color(0xFFF97316), size: 28),
+      ).animate().scale(duration: 400.ms),
+      const SizedBox(height: 20),
+      Text('Payments not available', style: GoogleFonts.dmSans(
+          color: const Color(0xFF111827), fontWeight: FontWeight.w800,
+          fontSize: 20, letterSpacing: -0.4))
+          .animate().fadeIn(delay: 80.ms),
+      const SizedBox(height: 10),
+      Text(
+        '${widget.creator.displayName} hasn\'t connected their payment details yet.\nTips will be enabled once they complete setup.',
+        style: GoogleFonts.dmSans(
+            color: const Color(0xFF6B7280), fontSize: 14, height: 1.6),
+        textAlign: TextAlign.center,
+      ).animate().fadeIn(delay: 140.ms),
+    ]),
+  ).animate().fadeIn(duration: 300.ms);
 
   // ── Awaiting Paystack payment ──────────────────────────────────────
   Widget _awaitingState() => Container(
@@ -1438,12 +1470,37 @@ class _LiveStreamBanner extends StatefulWidget {
   State<_LiveStreamBanner> createState() => _LiveStreamBannerState();
 }
 
+// Gift definitions — organised by tier
+// tier 0 = Basic (R5–R100), tier 1 = Premium (R200–R2 500), tier 2 = Elite (R5 000+)
+const _kGifts = [
+  // ── Basic ──────────────────────────────────────────────────────────────
+  {'id': 'heart',      'emoji': '❤️',  'label': 'Heart',      'amount': 5.0,      'tier': 0},
+  {'id': 'star',       'emoji': '⭐',  'label': 'Star',       'amount': 20.0,     'tier': 0},
+  {'id': 'crown',      'emoji': '👑',  'label': 'Crown',      'amount': 50.0,     'tier': 0},
+  {'id': 'fire',       'emoji': '🔥',  'label': 'Fire',       'amount': 100.0,    'tier': 0},
+  // ── Premium (>R200) ────────────────────────────────────────────────────
+  {'id': 'diamond',    'emoji': '💎',  'label': 'Diamond',    'amount': 200.0,    'tier': 1},
+  {'id': 'rocket',     'emoji': '🚀',  'label': 'Rocket',     'amount': 500.0,    'tier': 1},
+  {'id': 'trophy',     'emoji': '🏆',  'label': 'Trophy',     'amount': 1000.0,   'tier': 1},
+  {'id': 'lightning',  'emoji': '⚡',  'label': 'Lightning',  'amount': 2500.0,   'tier': 1},
+  // ── Elite (>R10 000) ───────────────────────────────────────────────────
+  {'id': 'unicorn',    'emoji': '🦄',  'label': 'Unicorn',    'amount': 5000.0,   'tier': 2},
+  {'id': 'whale',      'emoji': '🐳',  'label': 'Whale',      'amount': 10000.0,  'tier': 2},
+  {'id': 'galaxy',     'emoji': '🌌',  'label': 'Galaxy',     'amount': 25000.0,  'tier': 2},
+  {'id': 'supernova',  'emoji': '💫',  'label': 'Supernova',  'amount': 50000.0,  'tier': 2},
+];
+
 class _LiveStreamBannerState extends State<_LiveStreamBanner> {
   Map<String, dynamic>? _stream;
   bool _hasTipped = false;
   bool _checkingAccess = true;
   Timer? _streamPollTimer;
   Timer? _commentPollTimer;
+  Timer? _topTipperTimer;
+  Timer? _goalTimer;
+  Timer? _reactionTimer;
+  Timer? _pollTimer;
+  Timer? _statsTimer;
 
   final List<Map<String, dynamic>> _comments = [];
   int _lastCommentId = 0;
@@ -1453,17 +1510,40 @@ class _LiveStreamBannerState extends State<_LiveStreamBanner> {
   bool _streamEndedWhileWatching = false;
   static int _iframeCount = 0;
 
+  // Extras
+  List<Map<String, dynamic>> _topTippers = [];
+  Map<String, dynamic>? _liveGoal;
+  final List<_GiftOverlay> _activeGifts = [];
+
+  // New advanced features
+  Map<String, int> _reactions = {};                 // reaction_type → count in last 10s
+  Map<String, dynamic>? _livePoll;                  // active poll or null
+  int? _votedOptionId;                              // option the user already voted for
+  int _viewerCount = 0;
+  String _totalTipsEarned = '0.00';
+  final List<_FloatingReaction> _floatingReactions = []; // animated reactions
+
   @override
   void initState() {
     super.initState();
     _initAccess();
     _streamPollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _checkStream());
+    _topTipperTimer  = Timer.periodic(const Duration(seconds: 30), (_) => _fetchTopTippers());
+    _goalTimer       = Timer.periodic(const Duration(seconds: 10), (_) => _fetchGoal());
+    _reactionTimer   = Timer.periodic(const Duration(seconds: 3), (_) => _fetchReactions());
+    _pollTimer       = Timer.periodic(const Duration(seconds: 5), (_) => _fetchPoll());
+    _statsTimer      = Timer.periodic(const Duration(seconds: 15), (_) => _fetchStats());
   }
 
   @override
   void dispose() {
     _streamPollTimer?.cancel();
     _commentPollTimer?.cancel();
+    _topTipperTimer?.cancel();
+    _goalTimer?.cancel();
+    _reactionTimer?.cancel();
+    _pollTimer?.cancel();
+    _statsTimer?.cancel();
     _commentCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
@@ -1471,7 +1551,6 @@ class _LiveStreamBannerState extends State<_LiveStreamBanner> {
 
   Future<void> _initAccess() async {
     final auth = context.read<AuthProvider>();
-    // Check tip access for authenticated users
     if (auth.isAuthenticated) {
       try {
         final tipped = await ApiService(authToken: auth.accessToken)
@@ -1480,7 +1559,21 @@ class _LiveStreamBannerState extends State<_LiveStreamBanner> {
       } catch (_) {}
     }
     if (mounted) setState(() => _checkingAccess = false);
-    await _checkStream();
+    await Future.wait([_checkStream(), _fetchTopTippers(), _fetchGoal()]);
+  }
+
+  Future<void> _fetchTopTippers() async {
+    try {
+      final t = await ApiService().getLiveTopTippers(widget.creatorSlug);
+      if (mounted) setState(() => _topTippers = t);
+    } catch (_) {}
+  }
+
+  Future<void> _fetchGoal() async {
+    try {
+      final g = await ApiService().getLiveGoal(widget.creatorSlug);
+      if (mounted) setState(() => _liveGoal = g);
+    } catch (_) {}
   }
 
   Future<void> _checkStream() async {
@@ -1488,18 +1581,71 @@ class _LiveStreamBannerState extends State<_LiveStreamBanner> {
       final s = await ApiService().getActiveLiveStream(widget.creatorSlug);
       final wasLive = _stream != null;
       if (mounted) setState(() {
-        // If fan was watching and stream just ended, show the ended overlay
         if (wasLive && s == null && _joining) {
           _streamEndedWhileWatching = true;
           _joining = false;
         }
         _stream = s;
-        // Reset "ended" state when a new stream starts
         if (s != null && _streamEndedWhileWatching) _streamEndedWhileWatching = false;
+        if (s != null) _viewerCount = (s['viewer_count'] as int? ?? _viewerCount);
       });
-      if (!wasLive && s != null) _startCommentPoll();
+      if (!wasLive && s != null) {
+        _startCommentPoll();
+        // Join stream to increment viewer count
+        ApiService().joinLiveStream(widget.creatorSlug);
+      }
       if (wasLive && s == null) _commentPollTimer?.cancel();
     } catch (_) {}
+  }
+
+  Future<void> _fetchReactions() async {
+    if (_stream == null) return;
+    try {
+      final r = await ApiService().getReactions(widget.creatorSlug);
+      if (mounted) setState(() => _reactions = r);
+    } catch (_) {}
+  }
+
+  Future<void> _fetchPoll() async {
+    if (_stream == null) return;
+    try {
+      final p = await ApiService().getLivePoll(widget.creatorSlug);
+      if (mounted) setState(() => _livePoll = p);
+    } catch (_) {}
+  }
+
+  Future<void> _fetchStats() async {
+    if (_stream == null) return;
+    try {
+      final s = await ApiService().getLiveStats(widget.creatorSlug);
+      if (mounted) setState(() {
+        _viewerCount = s['viewer_count'] as int? ?? _viewerCount;
+        _totalTipsEarned = s['total_tips'] as String? ?? _totalTipsEarned;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _sendReaction(String type) async {
+    // Show floating animation immediately (optimistic)
+    final id = DateTime.now().millisecondsSinceEpoch;
+    const emojis = {
+      'heart': '❤️', 'fire': '🔥', 'clap': '👏',
+      'wow': '😮', '100': '💯', 'laugh': '😂',
+    };
+    setState(() => _floatingReactions.add(
+      _FloatingReaction(emoji: emojis[type] ?? '❤️', id: id)
+    ));
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _floatingReactions.removeWhere((r) => r.id == id));
+    });
+    await ApiService().postReaction(widget.creatorSlug, type);
+  }
+
+  Future<void> _votePoll(int optionId) async {
+    if (_votedOptionId != null) return; // already voted
+    setState(() => _votedOptionId = optionId);
+    final updated = await ApiService().votePoll(widget.creatorSlug, optionId);
+    if (updated != null && mounted) setState(() => _livePoll = updated);
   }
 
   void _startCommentPoll() {
@@ -1537,8 +1683,55 @@ class _LiveStreamBannerState extends State<_LiveStreamBanner> {
     final name = auth.user?.username ?? 'Guest';
     _commentCtrl.clear();
     try {
-      await ApiService().postLiveComment(widget.creatorSlug, name, msg);
+      await ApiService(authToken: auth.accessToken)
+          .postLiveComment(widget.creatorSlug, name, msg);
     } catch (_) {}
+  }
+
+  void _sendGift(Map<String, dynamic> gift) {
+    if (!widget.creator.paystackConfigured) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${widget.creator.displayName} hasn\'t connected payment details yet.',
+            style: GoogleFonts.dmSans()),
+        backgroundColor: const Color(0xFFF97316),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+    final amount = gift['amount'] as double;
+    final giftId = gift['id'] as String;
+    final emoji  = gift['emoji'] as String;
+    final label  = gift['label'] as String;
+    final tier   = gift['tier'] as int? ?? 0;
+    showDialog(
+      context: context,
+      builder: (ctx) => _GiftTipDialog(
+        creator: widget.creator,
+        giftId: giftId,
+        giftEmoji: emoji,
+        giftLabel: label,
+        amount: amount,
+        tier: tier,
+        onTipped: () async {
+          // After successful tip, post a gift comment
+          final auth = context.read<AuthProvider>();
+          final name = auth.user?.username ?? 'Fan';
+          try {
+            await ApiService(authToken: auth.accessToken).postLiveComment(
+              widget.creatorSlug, name, '',
+              msgType: 'gift', giftType: giftId,
+            );
+          } catch (_) {}
+          // Show gift animation
+          setState(() {
+            _activeGifts.add(_GiftOverlay(emoji: emoji, label: label, id: DateTime.now().millisecondsSinceEpoch));
+          });
+          Future.delayed(const Duration(seconds: 4), () {
+            if (mounted) setState(() => _activeGifts.removeWhere((g) => g.emoji == emoji));
+          });
+        },
+      ),
+    );
   }
 
   Future<void> _joinStream(String roomName) async {
@@ -1829,46 +2022,185 @@ class _LiveStreamBannerState extends State<_LiveStreamBanner> {
         ])),
       );
     }
-    return ClipRRect(
-      child: HtmlElementView(viewType: 'jitsi-fan-$_iframeCount'),
-    );
+    // Jitsi + overlays
+    return Stack(children: [
+      ClipRRect(child: HtmlElementView(viewType: 'jitsi-fan-$_iframeCount')),
+      // Viewer count (top-left)
+      if (_viewerCount > 0)
+        Positioned(
+          top: 10, left: 10,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.remove_red_eye_rounded, color: Colors.white70, size: 13),
+              const SizedBox(width: 4),
+              Text('$_viewerCount', style: GoogleFonts.dmSans(
+                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11)),
+            ]),
+          ),
+        ),
+      // Total tips earned (top-center)
+      if (_totalTipsEarned != '0.00')
+        Positioned(
+          top: 10, left: 0, right: 0,
+          child: Center(child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Text('💰', style: TextStyle(fontSize: 11)),
+              const SizedBox(width: 4),
+              Text('R$_totalTipsEarned earned', style: GoogleFonts.dmSans(
+                  color: const Color(0xFFD4A017),
+                  fontWeight: FontWeight.w700, fontSize: 11)),
+            ]),
+          )),
+        ),
+      // Top tippers overlay (top-right)
+      if (_topTippers.isNotEmpty)
+        Positioned(
+          top: 10, right: 10,
+          child: _TopTippersOverlay(tippers: _topTippers),
+        ),
+      // Floating reactions (bottom-left)
+      ..._floatingReactions.map((r) => _FloatingReactionWidget(reaction: r)),
+      // Gift animations
+      ..._activeGifts.map((g) => _GiftAnimationWidget(gift: g)),
+    ]);
   }
 
   Widget _sidePanel() {
+    // Find pinned comment
+    final pinned = _comments.where((c) => c['is_pinned'] == true && c['is_deleted'] != true).lastOrNull;
+    final visible = _comments.where((c) => c['is_deleted'] != true).toList();
+
     return Column(children: [
-      // Comment feed
+      // ── Goal bar ──────────────────────────────────────────────────────
+      if (_liveGoal != null) _LiveGoalBar(goal: _liveGoal!),
+
+      // ── Live Poll ─────────────────────────────────────────────────────
+      if (_livePoll != null) _FanPollWidget(
+        poll: _livePoll!,
+        votedOptionId: _votedOptionId,
+        onVote: _votePoll,
+      ),
+
+      // ── Pinned message ────────────────────────────────────────────────
+      if (pinned != null)
+        Container(
+          margin: const EdgeInsets.fromLTRB(10, 4, 10, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: Colors.blue.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue.withValues(alpha: 0.25)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.push_pin_rounded, color: Colors.blue, size: 11),
+            const SizedBox(width: 5),
+            Text('${pinned['username']}: ', style: GoogleFonts.dmSans(
+                color: Colors.blue, fontWeight: FontWeight.w700, fontSize: 10)),
+            Expanded(child: Text(pinned['message'] as String,
+                style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 10),
+                overflow: TextOverflow.ellipsis)),
+          ]),
+        ),
+
+      // ── Comment feed ──────────────────────────────────────────────────
       Expanded(
-        child: _comments.isEmpty
-            ? Center(child: Text('No comments yet.\nBe the first!',
+        child: visible.isEmpty
+            ? Center(child: Text('No messages yet.\nSend a gift or say hi!',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13, height: 1.5)))
             : ListView.builder(
                 controller: _scrollCtrl,
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-                itemCount: _comments.length,
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+                itemCount: visible.length,
                 itemBuilder: (_, i) {
-                  final c = _comments[i];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                  final c = visible[i];
+                  final isCreator  = c['is_creator'] == true;
+                  final msgType    = c['msg_type'] as String? ?? 'text';
+                  final giftType   = c['gift_type'] as String? ?? '';
+                  final nameColor  = isCreator ? const Color(0xFFD4A017) : _green;
+                  final bgColor    = isCreator
+                      ? const Color(0xFFD4A017).withValues(alpha: 0.08)
+                      : Colors.transparent;
+
+                  // Gift message
+                  if (msgType == 'gift') {
+                    final giftInfo = _kGifts.firstWhere(
+                      (g) => g['id'] == giftType,
+                      orElse: () => {'emoji': '🎁', 'label': 'Gift', 'amount': 0.0},
+                    );
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Text(giftInfo['emoji'] as String, style: const TextStyle(fontSize: 18)),
+                        const SizedBox(width: 6),
+                        Expanded(child: RichText(text: TextSpan(children: [
+                          TextSpan(text: c['username'] as String,
+                              style: GoogleFonts.dmSans(color: Colors.amber.shade700,
+                                  fontWeight: FontWeight.w700, fontSize: 12)),
+                          TextSpan(text: ' sent a ${giftInfo['label']}! (R${(giftInfo['amount'] as double).toStringAsFixed(0)})',
+                              style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12)),
+                        ]))),
+                      ]),
+                    );
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: isCreator
+                        ? const EdgeInsets.symmetric(horizontal: 8, vertical: 5)
+                        : EdgeInsets.zero,
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: isCreator ? BorderRadius.circular(10) : null,
+                    ),
                     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Container(
-                        width: 28, height: 28,
+                        width: 26, height: 26,
                         decoration: BoxDecoration(
-                          color: _green.withValues(alpha: 0.12), shape: BoxShape.circle),
+                          color: nameColor.withValues(alpha: 0.12), shape: BoxShape.circle),
                         child: Center(child: Text(
                           (c['username'] as String).isNotEmpty
                               ? (c['username'] as String)[0].toUpperCase() : '?',
-                          style: GoogleFonts.dmSans(
-                              color: _green, fontWeight: FontWeight.w700, fontSize: 12),
+                          style: GoogleFonts.dmSans(color: nameColor,
+                              fontWeight: FontWeight.w700, fontSize: 11),
                         )),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 7),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(c['username'] as String,
-                            style: GoogleFonts.dmSans(
-                                color: _green, fontWeight: FontWeight.w700, fontSize: 11)),
-                        Text(c['message'] as String,
-                            style: GoogleFonts.dmSans(color: _ink, fontSize: 13, height: 1.4)),
+                        Row(children: [
+                          Text(c['username'] as String,
+                              style: GoogleFonts.dmSans(color: nameColor,
+                                  fontWeight: FontWeight.w700, fontSize: 11)),
+                          if (isCreator) ...[
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD4A017), borderRadius: BorderRadius.circular(20)),
+                              child: Text('CREATOR', style: GoogleFonts.dmSans(
+                                  color: Colors.white, fontWeight: FontWeight.w800, fontSize: 8)),
+                            ),
+                          ],
+                        ]),
+                        if ((c['message'] as String).isNotEmpty)
+                          Text(c['message'] as String,
+                              style: GoogleFonts.dmSans(color: _ink, fontSize: 12, height: 1.4)),
                       ])),
                     ]),
                   );
@@ -1876,43 +2208,106 @@ class _LiveStreamBannerState extends State<_LiveStreamBanner> {
               ),
       ),
 
-      // Tip button
+      // ── Free reactions bar ────────────────────────────────────────────
+      Container(height: 1, color: _border),
       Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () {
-              Scrollable.ensureVisible(context,
-                  duration: const Duration(milliseconds: 400), curve: Curves.easeOut,
-                  alignment: 1.0);
-            },
-            icon: const Icon(Icons.favorite_rounded, size: 16),
-            label: Text('Tip ${widget.creator.displayName}',
-                style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 13)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _green, foregroundColor: Colors.white, elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-          ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            for (final r in [
+              ('heart','❤️'), ('fire','🔥'), ('clap','👏'),
+              ('wow','😮'), ('100','💯'), ('laugh','😂'),
+            ])
+              GestureDetector(
+                onTap: () => _sendReaction(r.$1),
+                child: Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: _bgSage,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _border),
+                  ),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text(r.$2, style: const TextStyle(fontSize: 16)),
+                    if ((_reactions[r.$1] ?? 0) > 0)
+                      Text('${_reactions[r.$1]}',
+                          style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 8)),
+                  ]),
+                ),
+              ),
+          ],
         ),
       ),
 
-      // Divider + comment input (no name field — uses logged-in username)
+      // ── Gift buttons (scrollable, tiered) ────────────────────────────
+      Container(height: 1, color: _border),
+      SizedBox(
+        height: 90,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          children: () {
+            final widgets = <Widget>[];
+            int? lastTier;
+            for (final g in _kGifts) {
+              final tier = g['tier'] as int;
+              if (tier != lastTier) {
+                if (lastTier != null) {
+                  widgets.add(Container(
+                    width: 1, height: 60,
+                    margin: const EdgeInsets.symmetric(horizontal: 6),
+                    color: _border,
+                  ));
+                }
+                const labels = ['Basic', 'Premium', 'Elite'];
+                const labelColors = [Colors.black54, Color(0xFF1565C0), Color(0xFFE65100)];
+                widgets.add(Padding(
+                  padding: const EdgeInsets.only(right: 4, top: 6),
+                  child: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: labelColors[tier].withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: labelColors[tier].withValues(alpha: 0.25)),
+                      ),
+                      child: Text(labels[tier],
+                          style: GoogleFonts.dmSans(
+                              fontSize: 7, fontWeight: FontWeight.w700,
+                              color: labelColors[tier], letterSpacing: 0.5)),
+                    ),
+                  ]),
+                ));
+                lastTier = tier;
+              }
+              widgets.add(_GiftButton(
+                emoji: g['emoji'] as String,
+                label: g['label'] as String,
+                amount: g['amount'] as double,
+                tier: tier,
+                onTap: () => _sendGift(g),
+              ));
+            }
+            return widgets;
+          }(),
+        ),
+      ),
+
+      // ── Comment input ─────────────────────────────────────────────────
       Container(height: 1, color: _border),
       Padding(
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+        padding: const EdgeInsets.fromLTRB(10, 7, 10, 10),
         child: Row(children: [
           Expanded(
             child: TextField(
               controller: _commentCtrl,
-              style: GoogleFonts.dmSans(fontSize: 13, color: _ink),
+              style: GoogleFonts.dmSans(fontSize: 12, color: _ink),
               onSubmitted: (_) => _sendComment(),
               decoration: InputDecoration(
                 hintText: 'Say something...',
-                hintStyle: GoogleFonts.dmSans(fontSize: 13, color: _inkMuted),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                hintStyle: GoogleFonts.dmSans(fontSize: 12, color: _inkMuted),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 isDense: true,
                 filled: true, fillColor: _bgSage,
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
@@ -1926,14 +2321,725 @@ class _LiveStreamBannerState extends State<_LiveStreamBanner> {
           GestureDetector(
             onTap: _sendComment,
             child: Container(
-              width: 38, height: 38,
+              width: 36, height: 36,
               decoration: BoxDecoration(color: _green, borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+              child: const Icon(Icons.send_rounded, color: Colors.white, size: 16),
             ),
           ),
         ]),
       ),
     ]);
+  }
+}
+
+// ─── Floating reaction data ────────────────────────────────────────────────────
+class _FloatingReaction {
+  final String emoji;
+  final int id;
+  _FloatingReaction({required this.emoji, required this.id});
+}
+
+// ─── Floating reaction widget ──────────────────────────────────────────────────
+class _FloatingReactionWidget extends StatefulWidget {
+  final _FloatingReaction reaction;
+  const _FloatingReactionWidget({required this.reaction});
+  @override
+  State<_FloatingReactionWidget> createState() => _FloatingReactionWidgetState();
+}
+
+class _FloatingReactionWidgetState extends State<_FloatingReactionWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _opacity;
+  late final Animation<double> _y;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2500))
+      ..forward();
+    _opacity = TweenSequence([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 15),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 25),
+    ]).animate(_ctrl);
+    _y = Tween(begin: 0.0, end: -80.0).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    final rand = (widget.reaction.id % 60).toDouble();
+    return Positioned(
+      bottom: 140 + rand,
+      left: 20 + rand,
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, __) => Transform.translate(
+          offset: Offset(0, _y.value),
+          child: Opacity(
+            opacity: _opacity.value.clamp(0.0, 1.0),
+            child: Text(widget.reaction.emoji,
+                style: const TextStyle(fontSize: 26)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Fan poll widget ───────────────────────────────────────────────────────────
+class _FanPollWidget extends StatelessWidget {
+  final Map<String, dynamic> poll;
+  final int? votedOptionId;
+  final void Function(int optionId) onVote;
+
+  const _FanPollWidget({
+    required this.poll,
+    required this.votedOptionId,
+    required this.onVote,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final question = poll['question'] as String? ?? '';
+    final options  = (poll['options'] as List? ?? []).cast<Map<String, dynamic>>();
+    final total    = (poll['total_votes'] as int? ?? 0);
+    final hasVoted = votedOptionId != null;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A2A1A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF1A5A3A)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.poll_rounded, color: Color(0xFF34D399), size: 13),
+          const SizedBox(width: 5),
+          Text('POLL', style: GoogleFonts.dmSans(
+              color: const Color(0xFF34D399), fontWeight: FontWeight.w800, fontSize: 9)),
+          const Spacer(),
+          Text('$total vote${total == 1 ? '' : 's'}',
+              style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 9)),
+        ]),
+        const SizedBox(height: 6),
+        Text(question, style: GoogleFonts.dmSans(
+            color: _ink, fontWeight: FontWeight.w700, fontSize: 12)),
+        const SizedBox(height: 8),
+        ...options.map((opt) {
+          final id  = opt['id'] as int;
+          final pct = (opt['pct'] as int? ?? 0);
+          final isVoted = votedOptionId == id;
+          return GestureDetector(
+            onTap: hasVoted ? null : () => onVote(id),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 5),
+              decoration: BoxDecoration(
+                color: isVoted
+                    ? const Color(0xFF34D399).withValues(alpha: 0.15)
+                    : Colors.white.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isVoted
+                      ? const Color(0xFF34D399)
+                      : Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Stack(children: [
+                if (hasVoted)
+                  FractionallySizedBox(
+                    widthFactor: pct / 100,
+                    child: Container(
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF34D399).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  child: Row(children: [
+                    Expanded(child: Text(opt['text'] as String,
+                        style: GoogleFonts.dmSans(color: _ink, fontSize: 11))),
+                    if (hasVoted)
+                      Text('$pct%', style: GoogleFonts.dmSans(
+                          color: const Color(0xFF34D399),
+                          fontWeight: FontWeight.w700, fontSize: 10)),
+                  ]),
+                ),
+              ]),
+            ),
+          );
+        }),
+      ]),
+    );
+  }
+}
+
+// ─── Gift overlay data ─────────────────────────────────────────────────────────
+class _GiftOverlay {
+  final String emoji;
+  final String label;
+  final int id;
+  _GiftOverlay({required this.emoji, required this.label, required this.id});
+}
+
+// ─── Gift animation widget ─────────────────────────────────────────────────────
+class _GiftAnimationWidget extends StatefulWidget {
+  final _GiftOverlay gift;
+  const _GiftAnimationWidget({required this.gift});
+  @override
+  State<_GiftAnimationWidget> createState() => _GiftAnimationWidgetState();
+}
+
+class _GiftAnimationWidgetState extends State<_GiftAnimationWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _opacity;
+  late Animation<double> _scale;
+  late Animation<double> _translateY;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 3));
+    _opacity = Tween(begin: 1.0, end: 0.0).animate(
+        CurvedAnimation(parent: _ctrl, curve: const Interval(0.6, 1.0, curve: Curves.easeOut)));
+    _scale = Tween(begin: 0.5, end: 1.3).animate(
+        CurvedAnimation(parent: _ctrl, curve: const Interval(0.0, 0.3, curve: Curves.elasticOut)));
+    _translateY = Tween(begin: 0.0, end: -120.0).animate(
+        CurvedAnimation(parent: _ctrl, curve: const Interval(0.2, 1.0, curve: Curves.easeOut)));
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 80, left: 20,
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, __) => Opacity(
+          opacity: _opacity.value,
+          child: Transform.translate(
+            offset: Offset(0, _translateY.value),
+            child: Transform.scale(
+              scale: _scale.value,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(40),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.6)),
+                ),
+                child: Text(widget.gift.emoji,
+                    style: const TextStyle(fontSize: 36)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Gift button ───────────────────────────────────────────────────────────────
+class _GiftButton extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final double amount;
+  final int tier;
+  final VoidCallback onTap;
+  const _GiftButton({required this.emoji, required this.label,
+      required this.amount, this.tier = 0, required this.onTap});
+
+  static const _tierColors = [
+    Color(0xFFFFB300), // Basic  – amber
+    Color(0xFF1565C0), // Premium – blue
+    Color(0xFFE65100), // Elite   – deep orange
+  ];
+  static const _tierGlow = [
+    Color(0x22FFB300),
+    Color(0x221565C0),
+    Color(0x22E65100),
+  ];
+
+  String get _amountLabel {
+    if (amount >= 1000) return 'R${(amount / 1000).toStringAsFixed(amount % 1000 == 0 ? 0 : 1)}k';
+    return 'R${amount.toStringAsFixed(0)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final col  = _tierColors[tier.clamp(0, 2)];
+    final glow = _tierGlow[tier.clamp(0, 2)];
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: glow,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: col.withValues(alpha: 0.5), width: tier > 0 ? 1.5 : 1.0),
+              boxShadow: tier >= 2 ? [BoxShadow(color: col.withValues(alpha: 0.3), blurRadius: 8, spreadRadius: 1)] : null,
+            ),
+            child: Center(child: Text(emoji, style: TextStyle(fontSize: tier >= 2 ? 22 : 20))),
+          ),
+          const SizedBox(height: 3),
+          Text(_amountLabel,
+              style: GoogleFonts.dmSans(
+                  fontSize: 9, color: col, fontWeight: FontWeight.w700)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ─── Top tippers overlay ───────────────────────────────────────────────────────
+class _TopTippersOverlay extends StatelessWidget {
+  final List<Map<String, dynamic>> tippers;
+  const _TopTippersOverlay({required this.tippers});
+
+  static const _medals = ['🥇', '🥈', '🥉'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('🏆', style: TextStyle(fontSize: 11)),
+          const SizedBox(width: 4),
+          Text('Top Tippers', style: GoogleFonts.dmSans(
+              color: Colors.amber, fontWeight: FontWeight.w700, fontSize: 10)),
+        ]),
+        const SizedBox(height: 4),
+        ...tippers.asMap().entries.map((e) => Padding(
+          padding: const EdgeInsets.only(top: 3),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text(_medals[e.key], style: const TextStyle(fontSize: 10)),
+            const SizedBox(width: 4),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 80),
+              child: Text(e.value['name'] as String,
+                  style: GoogleFonts.dmSans(color: Colors.white70, fontSize: 10),
+                  overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 4),
+            Text('R${e.value['total']}',
+                style: GoogleFonts.dmSans(color: Colors.amber, fontWeight: FontWeight.w700, fontSize: 10)),
+          ]),
+        )),
+      ]),
+    );
+  }
+}
+
+// ─── Goal progress bar ─────────────────────────────────────────────────────────
+class _LiveGoalBar extends StatelessWidget {
+  final Map<String, dynamic> goal;
+  const _LiveGoalBar({required this.goal});
+  @override
+  Widget build(BuildContext context) {
+    final pct = (goal['progress_pct'] as int? ?? 0) / 100.0;
+    final current = double.tryParse(goal['current_amount'].toString()) ?? 0;
+    final target  = double.tryParse(goal['target_amount'].toString()) ?? 1;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+      decoration: BoxDecoration(
+        color: _green.withValues(alpha: 0.06),
+        border: Border(bottom: BorderSide(color: _green.withValues(alpha: 0.15))),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('🎯', style: TextStyle(fontSize: 11)),
+          const SizedBox(width: 5),
+          Expanded(child: Text(goal['title'] as String,
+              style: GoogleFonts.dmSans(color: _ink, fontWeight: FontWeight.w700, fontSize: 11),
+              overflow: TextOverflow.ellipsis)),
+          Text('R${current.toStringAsFixed(0)} / R${target.toStringAsFixed(0)}',
+              style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 10)),
+        ]),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: pct, minHeight: 5,
+            backgroundColor: _green.withValues(alpha: 0.15),
+            valueColor: AlwaysStoppedAnimation<Color>(_green),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+// ─── Gift tip dialog (with real Paystack payment) ─────────────────────────────
+class _GiftTipDialog extends StatefulWidget {
+  final Creator creator;
+  final String giftId;
+  final String giftEmoji;
+  final String giftLabel;
+  final double amount;
+  final int tier;
+  final VoidCallback onTipped;
+
+  const _GiftTipDialog({
+    required this.creator,
+    required this.giftId,
+    required this.giftEmoji,
+    required this.giftLabel,
+    required this.amount,
+    this.tier = 0,
+    required this.onTipped,
+  });
+
+  @override
+  State<_GiftTipDialog> createState() => _GiftTipDialogState();
+}
+
+class _GiftTipDialogState extends State<_GiftTipDialog> {
+  final _nameCtrl  = TextEditingController();
+  final _emailCtrl = TextEditingController();
+
+  bool    _loading        = false;
+  bool    _awaitingPayment = false;
+  bool    _success        = false;
+  String? _error;
+  String? _reference;
+  Timer?  _pollTimer;
+
+  static const _tierAccent = [
+    Color(0xFFFFB300),  // Basic
+    Color(0xFF1565C0),  // Premium
+    Color(0xFFE65100),  // Elite
+  ];
+
+  Color get _accent => _tierAccent[widget.tier.clamp(0, 2)];
+
+  String get _amountLabel {
+    final a = widget.amount;
+    if (a >= 1000) return 'R${(a / 1000).toStringAsFixed(a % 1000 == 0 ? 0 : 1)}k';
+    return 'R${a.toStringAsFixed(0)}';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final auth = context.read<AuthProvider>();
+      if (auth.user != null) {
+        _nameCtrl.text  = auth.user!.username;
+        final email = auth.user!.email;
+        if (email.isNotEmpty) _emailCtrl.text = email;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _pay() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => _error = 'Enter a valid email to receive your receipt.');
+      return;
+    }
+    setState(() { _loading = true; _error = null; });
+    try {
+      final auth = context.read<AuthProvider>();
+      final name = _nameCtrl.text.trim().isEmpty ? 'Anonymous' : _nameCtrl.text.trim();
+      final resp = await ApiService(authToken: auth.accessToken).initiateTip(
+        creatorSlug: widget.creator.slug,
+        amount: widget.amount,
+        tipperName: name,
+        tipperEmail: email,
+        message: '${widget.giftEmoji} Sent a ${widget.giftLabel}!',
+      );
+
+      // Dev / sandbox mode — payment already completed
+      if (resp['dev_mode'] == true) {
+        widget.onTipped();
+        if (mounted) setState(() { _loading = false; _success = true; });
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) Navigator.pop(context);
+        return;
+      }
+
+      final authUrl   = resp['authorization_url'] as String?;
+      final reference = resp['reference']         as String?;
+
+      if (authUrl != null && authUrl.isNotEmpty) {
+        final uri = Uri.parse(authUrl);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+        setState(() { _reference = reference; _awaitingPayment = true; _loading = false; });
+        _startPolling(reference!);
+      } else {
+        widget.onTipped();
+        if (mounted) setState(() { _loading = false; _success = true; });
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _error = 'Something went wrong. Please try again.'; });
+    }
+  }
+
+  void _startPolling(String reference) {
+    int polls = 0;
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (t) async {
+      polls++;
+      if (polls > 36 || !mounted) { t.cancel(); return; }
+      try {
+        final result = await ApiService().verifyTip(reference);
+        final s = result['status'] as String? ?? '';
+        if (s == 'completed') {
+          t.cancel();
+          widget.onTipped();
+          if (mounted) setState(() { _success = true; _awaitingPayment = false; });
+          await Future.delayed(const Duration(milliseconds: 800));
+          if (mounted) Navigator.pop(context);
+        } else if (s == 'failed') {
+          t.cancel();
+          if (mounted) setState(() { _awaitingPayment = false; _error = 'Payment failed. Please try again.'; });
+        }
+      } catch (_) {}
+    });
+  }
+
+  Future<void> _checkNow() async {
+    if (_reference == null) return;
+    setState(() => _loading = true);
+    try {
+      final result = await ApiService().verifyTip(_reference!);
+      final s = result['status'] as String? ?? '';
+      if (s == 'completed') {
+        _pollTimer?.cancel();
+        widget.onTipped();
+        setState(() { _success = true; _awaitingPayment = false; _loading = false; });
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) Navigator.pop(context);
+      } else if (s == 'failed') {
+        _pollTimer?.cancel();
+        setState(() { _awaitingPayment = false; _loading = false; _error = 'Payment failed. Please try again.'; });
+      } else {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Payment not confirmed yet — complete it in your browser.',
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w500)),
+          backgroundColor: Colors.white,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } catch (_) { setState(() => _loading = false); }
+  }
+
+  InputDecoration _inputDec(String hint, IconData icon) => InputDecoration(
+    hintText: hint,
+    hintStyle: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13),
+    prefixIcon: Icon(icon, color: _inkMuted, size: 17),
+    filled: true, fillColor: _bgSage,
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: _border)),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: _accent, width: 1.5)),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      title: Row(children: [
+        Container(
+          width: 44, height: 44,
+          decoration: BoxDecoration(
+            color: _accent.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _accent.withValues(alpha: 0.4)),
+          ),
+          child: Center(child: Text(widget.giftEmoji, style: const TextStyle(fontSize: 22))),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Send a ${widget.giftLabel}',
+              style: GoogleFonts.dmSans(color: _ink, fontWeight: FontWeight.w800, fontSize: 15)),
+          Text('$_amountLabel to ${widget.creator.displayName}',
+              style: GoogleFonts.dmSans(color: _accent, fontWeight: FontWeight.w600, fontSize: 12)),
+        ])),
+      ]),
+      content: _success
+        // ── Success state ─────────────────────────────────────────────────
+        ? Column(mainAxisSize: MainAxisSize.min, children: [
+            const SizedBox(height: 16),
+            Text(widget.giftEmoji, style: const TextStyle(fontSize: 48)),
+            const SizedBox(height: 10),
+            Text('Gift sent! 🎉',
+                style: GoogleFonts.dmSans(color: _ink, fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 4),
+            Text('Your ${widget.giftLabel} is live on stream.',
+                style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13), textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+          ])
+        : _awaitingPayment
+          // ── Awaiting payment state ───────────────────────────────────────
+          ? Column(mainAxisSize: MainAxisSize.min, children: [
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade100),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.open_in_browser_rounded, color: Colors.blueAccent, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(
+                    'Complete the payment in your browser, then tap "I\'ve paid" below.',
+                    style: GoogleFonts.dmSans(color: Colors.blue.shade800, fontSize: 12, height: 1.5),
+                  )),
+                ]),
+              ),
+              const SizedBox(height: 10),
+              if (_error != null) ...[
+                Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
+                const SizedBox(height: 6),
+              ],
+            ])
+          // ── Default: form ────────────────────────────────────────────────
+          : Column(mainAxisSize: MainAxisSize.min, children: [
+              const SizedBox(height: 10),
+              Text(
+                '${widget.giftEmoji} will appear live on stream for everyone to see!',
+                style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12, height: 1.5),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _nameCtrl,
+                style: GoogleFonts.dmSans(fontSize: 13, color: _ink),
+                decoration: _inputDec('Your name (optional)', Icons.person_outline_rounded),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                style: GoogleFonts.dmSans(fontSize: 13, color: _ink),
+                decoration: _inputDec('Email for receipt *', Icons.email_outlined),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 8),
+                Text(_error!, style: GoogleFonts.dmSans(color: Colors.redAccent, fontSize: 12)),
+              ],
+              const SizedBox(height: 4),
+            ]),
+      actions: _success
+        ? [
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Close', style: GoogleFonts.dmSans(color: _inkMuted)),
+              ),
+            ),
+          ]
+        : _awaitingPayment
+          ? [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _checkNow,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent, foregroundColor: Colors.white, elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                  ),
+                  child: _loading
+                    ? const SizedBox(width: 18, height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text("I've paid ✓",
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () { _pollTimer?.cancel(); Navigator.pop(context); },
+                  child: Text('Cancel', style: GoogleFonts.dmSans(color: _inkMuted)),
+                ),
+              ),
+            ]
+          : [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _pay,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent, foregroundColor: Colors.white, elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                  ),
+                  child: _loading
+                    ? const SizedBox(width: 18, height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Text(widget.giftEmoji, style: const TextStyle(fontSize: 16)),
+                        const SizedBox(width: 6),
+                        Text('Pay $_amountLabel & send gift',
+                            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14)),
+                      ]),
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel', style: GoogleFonts.dmSans(color: _inkMuted)),
+                ),
+              ),
+              SizedBox(
+                width: double.infinity,
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.lock_outline_rounded, color: _inkMuted, size: 11),
+                  const SizedBox(width: 4),
+                  Text('Secured by Paystack',
+                      style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 10)),
+                ]),
+              ),
+            ],
+    );
   }
 }
 

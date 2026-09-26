@@ -120,7 +120,8 @@ class _HowItWorksScreenState extends State<HowItWorksScreen>
       color: _bgSage,
       child: Stack(children: [
         Positioned.fill(child: CustomPaint(painter: _LightDotPainter())),
-        Positioned.fill(
+        SizedBox(
+          width: double.infinity,
           child: Padding(
           padding: EdgeInsets.symmetric(vertical: mobile ? 64 : 92, horizontal: 28),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [

@@ -1,13 +1,34 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/creator.dart';
 import '../services/api_service.dart';
-import '../theme.dart';
 import '../widgets/app_nav.dart';
+import '../widgets/site_footer.dart';
 
-// ─── Mock data (shown when API is unreachable) ────────────────────────────────
+// ─── Palette ──────────────────────────────────────────────────────────────────
+const _bgWhite   = Colors.white;
+const _bgSage    = Color(0xFFF5F9F6);
+const _ink       = Color(0xFF080F0B);
+const _inkBody   = Color(0xFF38524A);
+const _inkMuted  = Color(0xFF7A9487);
+const _border    = Color(0xFFDBEAE1);
+const _green     = Color(0xFF004423);
+const _greenMid  = Color(0xFF006B3A);
+
+// ─── Creator accent colours ───────────────────────────────────────────────────
+const _accentColors = [
+  Color(0xFF004423), Color(0xFF0097B2), Color(0xFF2563EB),
+  Color(0xFF7C3AED), Color(0xFFDB2777), Color(0xFFD97706),
+  Color(0xFF059669), Color(0xFF0284C7),
+];
+
+Color _accentFor(int index) => _accentColors[index % _accentColors.length];
+
+// ─── Mock data ────────────────────────────────────────────────────────────────
 final _mockCreators = [
   Creator.fromJson({'id': 1, 'username': 'alexjohnson', 'display_name': 'Alex Johnson',
     'slug': 'alexjohnson', 'tagline': 'Illustrator & comic artist', 'cover_image': null,
@@ -35,11 +56,6 @@ final _mockCreators = [
     'avatar': null, 'tip_goal': '600.00', 'total_tips': '3780.00'}),
 ];
 
-const _categories = ['All', 'Art', 'Music', 'Code', 'Writing', 'Gaming', 'Food', 'Design'];
-
-final _creatorColors = [kPrimary, kTeal, kBlue, const Color(0xFF7C3AED),
-  const Color(0xFFDB2777), const Color(0xFFD97706), const Color(0xFF059669), const Color(0xFF0284C7)];
-
 class CreatorsScreen extends StatefulWidget {
   const CreatorsScreen({super.key});
   @override
@@ -51,7 +67,6 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
   List<Creator> _filtered = [];
   bool _loading = true;
   String _search = '';
-  String _category = 'All';
   final _searchCtrl = TextEditingController();
 
   @override
@@ -63,31 +78,26 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
   Future<void> _load() async {
     try {
       final data = await ApiService().getCreators();
-      if (mounted) {
-        setState(() {
-          _creators = data.isEmpty ? _mockCreators : data;
-          _filtered = _creators;
-          _loading = false;
-        });
-      }
+      if (mounted) setState(() {
+        _creators = data.isEmpty ? _mockCreators : data;
+        _filtered = _creators;
+        _loading = false;
+      });
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          _creators = _mockCreators;
-          _filtered = _mockCreators;
-          _loading = false;
-        });
-      }
+      if (mounted) setState(() {
+        _creators = _mockCreators;
+        _filtered = _mockCreators;
+        _loading = false;
+      });
     }
   }
 
   void _applyFilters() {
     setState(() {
       _filtered = _creators.where((c) {
-        final matchSearch = _search.isEmpty ||
+        return _search.isEmpty ||
             c.displayName.toLowerCase().contains(_search.toLowerCase()) ||
             c.tagline.toLowerCase().contains(_search.toLowerCase());
-        return matchSearch;
       }).toList();
     });
   }
@@ -100,177 +110,194 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final featured = _creators.take(3).toList();
-
     return Scaffold(
-      backgroundColor: kDark,
+      backgroundColor: _bgWhite,
       appBar: AppNav(activeRoute: '/creators'),
-      body: SingleChildScrollView(
-        child: Column(children: [
-          _hero(context),
-          _statsBar(),
-          _featuredSection(featured, context),
-          _browseSection(context),
-          _becomeCta(context),
-          _footer(),
-        ]),
+      body: ScrollConfiguration(
+        behavior: _SmoothScroll(),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: Column(children: [
+            _hero(context),
+            _statsBar(),
+            _featuredSection(context),
+            _browseSection(context),
+            _cta(context),
+            const SiteFooter(),
+          ]),
+        ),
       ),
     );
   }
 
-  // ─── Hero ──────────────────────────────────────────────────────────────────
+  // ─── Hero ────────────────────────────────────────────────────────────────────
   Widget _hero(BuildContext ctx) {
     return Container(
       width: double.infinity,
-      color: kDarker,
-      padding: const EdgeInsets.fromLTRB(24, 72, 24, 56),
-      child: Column(children: [
-        _tag('Discover creators'),
-        const SizedBox(height: 20),
-        Text('Support the people\nwho make your day.',
-            style: headingXL(ctx), textAlign: TextAlign.center)
-            .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2),
-        const SizedBox(height: 16),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: const Text(
-            'Browse creators across art, music, code, writing, and more. Drop a tip — it takes 30 seconds and means the world to them.',
-            style: kBodyStyle, textAlign: TextAlign.center,
-          ),
-        ).animate().fadeIn(delay: 150.ms, duration: 500.ms),
-        const SizedBox(height: 36),
-
-        // Search bar
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: TextField(
-            controller: _searchCtrl,
-            style: const TextStyle(color: Colors.white),
-            onChanged: (v) {
-              _search = v;
-              _applyFilters();
-            },
-            decoration: InputDecoration(
-              hintText: 'Search creators…',
-              hintStyle: const TextStyle(color: kMuted),
-              prefixIcon: const Icon(Icons.search, color: kMuted),
-              filled: true,
-              fillColor: kCardBg,
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(36),
-                borderSide: const BorderSide(color: kBorder),
+      color: _bgSage,
+      child: Stack(children: [
+        Positioned.fill(child: CustomPaint(painter: _LightDotPainter())),
+        SizedBox(width: double.infinity, child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 72, 24, 56),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: _green.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: _green.withOpacity(0.20)),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(36),
-                borderSide: const BorderSide(color: kPrimary, width: 2),
+              child: Text('Discover creators', style: GoogleFonts.dmSans(
+                  color: _greenMid, fontWeight: FontWeight.w600, fontSize: 12)),
+            ).animate().fadeIn(duration: 400.ms),
+            const SizedBox(height: 20),
+            Text('Support the people\nwho make your day.',
+                style: GoogleFonts.dmSans(
+                    color: _ink, fontWeight: FontWeight.w800,
+                    fontSize: 50, letterSpacing: -2.0, height: 1.08),
+                textAlign: TextAlign.center)
+                .animate().fadeIn(delay: 80.ms, duration: 500.ms).slideY(begin: 0.15),
+            const SizedBox(height: 16),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Text(
+                'Browse creators across art, music, code, writing, and more. Drop a tip — it takes 30 seconds and means the world to them.',
+                style: GoogleFonts.dmSans(color: _inkBody, fontSize: 16.5, height: 1.7),
+                textAlign: TextAlign.center,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            ),
-          ),
-        ).animate().fadeIn(delay: 250.ms, duration: 500.ms),
+            ).animate().fadeIn(delay: 160.ms, duration: 500.ms),
+            const SizedBox(height: 36),
+            // Search bar
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: TextField(
+                controller: _searchCtrl,
+                style: GoogleFonts.dmSans(color: _ink, fontSize: 15),
+                onChanged: (v) { _search = v; _applyFilters(); },
+                decoration: InputDecoration(
+                  hintText: 'Search creators…',
+                  hintStyle: GoogleFonts.dmSans(color: _inkMuted, fontSize: 15),
+                  prefixIcon: const Icon(Icons.search_rounded, color: _inkMuted, size: 20),
+                  filled: true,
+                  fillColor: _bgWhite,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(36),
+                    borderSide: const BorderSide(color: _border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(36),
+                    borderSide: const BorderSide(color: _green, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                ),
+              ),
+            ).animate().fadeIn(delay: 240.ms, duration: 500.ms),
+          ]),
+        )),
       ]),
     );
   }
 
-  // ─── Stats bar ─────────────────────────────────────────────────────────────
+  // ─── Stats bar ───────────────────────────────────────────────────────────────
   Widget _statsBar() {
     final stats = [
-      ('${_creators.length}', 'Active creators'),
+      ('${_creators.length}+', 'Active creators'),
       ('R3.6M+', 'Tips sent'),
-      ('48', 'Countries'),
+      ('🇿🇦', 'South Africa'),
     ];
     return Container(
-      color: kDark,
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 48, runSpacing: 16,
-        children: stats.asMap().entries.map((e) => Column(children: [
-          Text(e.value.$1, style: GoogleFonts.dmSans(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: -1))
-              .animate().fadeIn(delay: (e.key * 80).ms, duration: 400.ms),
-          Text(e.value.$2, style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
-        ])).toList(),
-      ),
+      color: _bgWhite,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+      child: Column(children: [
+        Container(height: 1, color: _border),
+        const SizedBox(height: 28),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 64, runSpacing: 20,
+          children: stats.asMap().entries.map((e) => Column(children: [
+            Text(e.value.$1, style: GoogleFonts.dmSans(
+                color: _green, fontWeight: FontWeight.w800,
+                fontSize: 30, letterSpacing: -1))
+                .animate().fadeIn(delay: (e.key * 80).ms, duration: 400.ms),
+            const SizedBox(height: 2),
+            Text(e.value.$2, style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 13)),
+          ])).toList(),
+        ),
+        const SizedBox(height: 28),
+        Container(height: 1, color: _border),
+      ]),
     );
   }
 
-  // ─── Featured ──────────────────────────────────────────────────────────────
-  Widget _featuredSection(List<Creator> featured, BuildContext ctx) {
+  // ─── Featured ─────────────────────────────────────────────────────────────────
+  Widget _featuredSection(BuildContext ctx) {
+    final featured = _creators.take(3).toList();
     if (featured.isEmpty) return const SizedBox.shrink();
     return Container(
-      color: kDarker,
-      padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
+      color: _bgSage,
+      padding: const EdgeInsets.symmetric(vertical: 72, horizontal: 24),
       child: Column(children: [
-        _tag('Featured creators'),
-        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: _green.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: _green.withOpacity(0.20)),
+          ),
+          child: Text('Featured', style: GoogleFonts.dmSans(
+              color: _greenMid, fontWeight: FontWeight.w600, fontSize: 12)),
+        ).animate().fadeIn(duration: 400.ms),
+        const SizedBox(height: 14),
         Text('Making waves this month',
-            style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
-                fontSize: 30, letterSpacing: -1),
-            textAlign: TextAlign.center),
+            style: GoogleFonts.dmSans(color: _ink, fontWeight: FontWeight.w800,
+                fontSize: 32, letterSpacing: -1.2),
+            textAlign: TextAlign.center)
+            .animate().fadeIn(delay: 60.ms, duration: 400.ms),
         const SizedBox(height: 40),
         Wrap(
           spacing: 20, runSpacing: 20, alignment: WrapAlignment.center,
           children: featured.asMap().entries.map((e) => _FeaturedCard(
             creator: e.value,
-            color: _creatorColors[e.key % _creatorColors.length],
-            delay: e.key * 120,
+            color: _accentFor(e.key),
+            delay: e.key * 100,
           )).toList(),
         ),
       ]),
     );
   }
 
-  // ─── Browse ────────────────────────────────────────────────────────────────
+  // ─── Browse ───────────────────────────────────────────────────────────────────
   Widget _browseSection(BuildContext ctx) {
     return Container(
-      color: kDark,
-      padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
+      color: _bgWhite,
+      padding: const EdgeInsets.symmetric(vertical: 72, horizontal: 24),
       child: Column(children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text('All creators',
-              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 22)),
-          Text('${_filtered.length} creators',
-              style: GoogleFonts.dmSans(color: kMuted, fontSize: 13)),
-        ]),
-        const SizedBox(height: 20),
-
-        // Category chips
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: _categories.map((cat) {
-              final active = _category == cat;
-              return GestureDetector(
-                onTap: () => setState(() => _category = cat),
-                child: AnimatedContainer(
-                  duration: 200.ms,
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: active ? kPrimary : kCardBg,
-                    borderRadius: BorderRadius.circular(36),
-                    border: Border.all(color: active ? Colors.transparent : kBorder),
-                  ),
-                  child: Text(cat, style: GoogleFonts.dmSans(
-                      color: active ? Colors.white : kMuted,
-                      fontWeight: FontWeight.w600, fontSize: 13)),
-                ),
-              );
-            }).toList(),
+              style: GoogleFonts.dmSans(color: _ink, fontWeight: FontWeight.w800,
+                  fontSize: 24, letterSpacing: -0.6)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: _bgSage, borderRadius: BorderRadius.circular(36),
+              border: Border.all(color: _border),
+            ),
+            child: Text('${_filtered.length} creators',
+                style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12, fontWeight: FontWeight.w600)),
           ),
-        ),
+        ]),
         const SizedBox(height: 32),
-
         _loading
-            ? const Center(child: CircularProgressIndicator(color: kPrimary))
+            ? const SizedBox(height: 200,
+                child: Center(child: SpinKitFadingCircle(color: _green, size: 32)))
             : _filtered.isEmpty
                 ? _emptyState()
                 : Wrap(
                     spacing: 18, runSpacing: 18, alignment: WrapAlignment.start,
                     children: _filtered.asMap().entries.map((e) => _CreatorBrowseCard(
                       creator: e.value,
-                      color: _creatorColors[e.key % _creatorColors.length],
-                      delay: (e.key * 60).clamp(0, 500),
+                      color: _accentFor(e.key),
+                      delay: (e.key * 50).clamp(0, 400),
                     )).toList(),
                   ),
       ]),
@@ -278,79 +305,91 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
   }
 
   Widget _emptyState() => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 48),
+    padding: const EdgeInsets.symmetric(vertical: 56),
     child: Column(children: [
-      const Icon(Icons.search_off_rounded, color: kMuted, size: 48),
+      const Icon(Icons.search_off_rounded, color: _inkMuted, size: 48),
       const SizedBox(height: 12),
       Text('No creators found for "$_search"',
-          style: GoogleFonts.dmSans(color: kMuted, fontSize: 15)),
+          style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 15)),
       const SizedBox(height: 8),
       TextButton(
         onPressed: () { _searchCtrl.clear(); setState(() { _search = ''; _applyFilters(); }); },
-        child: const Text('Clear search', style: TextStyle(color: kPrimary)),
+        child: Text('Clear search', style: GoogleFonts.dmSans(
+            color: _green, fontWeight: FontWeight.w600)),
       ),
     ]),
   );
 
-  // ─── Become a creator CTA ──────────────────────────────────────────────────
-  Widget _becomeCta(BuildContext ctx) {
+  // ─── CTA ──────────────────────────────────────────────────────────────────────
+  Widget _cta(BuildContext ctx) {
+    final mobile = MediaQuery.of(ctx).size.width < 680;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 72, horizontal: 40),
-        decoration: BoxDecoration(
-          color: const Color(0xFF001A12),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: kBorder),
-        ),
-        child: Column(children: [
-          Container(
-            width: 64, height: 64,
-            decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
-            child: const Icon(Icons.volunteer_activism, color: Colors.white, size: 28),
-          ),
-          const SizedBox(height: 20),
-          Text('Are you a creator?',
-              style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800,
-                  fontSize: 32, letterSpacing: -1),
-              textAlign: TextAlign.center),
-          const SizedBox(height: 10),
-          const Text('Set up your tip page in 60 seconds. It\'s completely free.',
-              style: kBodyStyle, textAlign: TextAlign.center),
-          const SizedBox(height: 28),
-          ElevatedButton(
-            onPressed: () => ctx.go('/register'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimary, foregroundColor: Colors.white,
-              shadowColor: Colors.transparent, elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
+      color: _bgSage,
+      padding: EdgeInsets.fromLTRB(mobile ? 16 : 32, 72, mobile ? 16 : 32, 72),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 860),
+          child: Container(
+            padding: EdgeInsets.fromLTRB(
+                mobile ? 28 : 56, mobile ? 48 : 60,
+                mobile ? 28 : 56, mobile ? 40 : 56),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF003D1F), Color(0xFF00622E), Color(0xFF007A38)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(color: _green.withOpacity(0.28),
+                    blurRadius: 56, offset: const Offset(0, 20)),
+              ],
             ),
-            child: Text('Create your page →',
-                style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+            child: Column(children: [
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12), shape: BoxShape.circle),
+                child: const Icon(Icons.volunteer_activism_rounded,
+                    color: Colors.white, size: 26),
+              ).animate().fadeIn(duration: 300.ms),
+              const SizedBox(height: 20),
+              Text('Are you a creator?',
+                  style: GoogleFonts.dmSans(
+                      color: Colors.white, fontWeight: FontWeight.w800,
+                      fontSize: mobile ? 32 : 46, height: 1.05, letterSpacing: -1.8),
+                  textAlign: TextAlign.center)
+                  .animate().fadeIn(delay: 80.ms),
+              const SizedBox(height: 12),
+              Text('Set up your tip page in 60 seconds. Completely free.',
+                  style: GoogleFonts.dmSans(
+                      color: Colors.white.withOpacity(0.60), fontSize: 16, height: 1.6),
+                  textAlign: TextAlign.center)
+                  .animate().fadeIn(delay: 140.ms),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: () => ctx.go('/register'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white, foregroundColor: _green,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                ),
+                child: Text('Create your page →', style: GoogleFonts.dmSans(
+                    fontWeight: FontWeight.w700, fontSize: 15, color: _green)),
+              ).animate().fadeIn(delay: 200.ms)
+                  .scale(begin: const Offset(0.94, 0.94), curve: Curves.easeOut),
+              const SizedBox(height: 16),
+              Text('No credit card · Free forever',
+                  style: GoogleFonts.dmSans(
+                      color: Colors.white.withOpacity(0.40), fontSize: 12))
+                  .animate().fadeIn(delay: 260.ms),
+            ]),
           ),
-        ]),
+        ),
       ),
     );
   }
-
-  Widget _footer() => Container(
-    color: kDark,
-    padding: const EdgeInsets.all(32),
-    child: const Text('© 2026 TippingJar. All rights reserved.',
-        style: TextStyle(color: kMuted, fontSize: 12), textAlign: TextAlign.center),
-  );
-
-  Widget _tag(String label) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-    decoration: BoxDecoration(
-      color: kPrimary.withOpacity(0.1),
-      border: Border.all(color: kPrimary.withOpacity(0.3)),
-      borderRadius: BorderRadius.circular(100),
-    ),
-    child: Text(label, style: GoogleFonts.dmSans(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
-  );
 }
 
 // ─── Featured card ────────────────────────────────────────────────────────────
@@ -362,15 +401,18 @@ class _FeaturedCard extends StatefulWidget {
   @override
   State<_FeaturedCard> createState() => _FeaturedCardState();
 }
+
 class _FeaturedCardState extends State<_FeaturedCard> {
   bool _hovered = false;
-  String get _initials => widget.creator.displayName.split(' ').map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase();
+  String get _initials => widget.creator.displayName
+      .split(' ').map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase();
 
   @override
   Widget build(BuildContext context) {
     final tips = widget.creator.totalTips;
     final goal = widget.creator.tipGoal;
     final progress = goal != null && goal > 0 ? (tips / goal).clamp(0.0, 1.0) : null;
+    final c = widget.color;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -382,77 +424,96 @@ class _FeaturedCardState extends State<_FeaturedCard> {
           width: 300,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: kCardBg,
+            color: _bgWhite,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _hovered ? widget.color.withOpacity(0.5) : kBorder),
-            boxShadow: _hovered ? [BoxShadow(color: widget.color.withOpacity(0.15), blurRadius: 40, offset: const Offset(0, 12))] : [],
+            border: Border.all(color: _hovered ? c.withOpacity(0.40) : _border),
+            boxShadow: _hovered
+                ? [BoxShadow(color: c.withOpacity(0.12), blurRadius: 36, offset: const Offset(0, 10))]
+                : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Cover
-            Container(
-              height: 80,
-              decoration: BoxDecoration(
-                color: widget.color.withOpacity(0.35),
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(children: [
+            // Mini cover strip with avatar
+            Stack(clipBehavior: Clip.none, children: [
               Container(
-                width: 48, height: 48,
+                height: 72,
                 decoration: BoxDecoration(
-                  color: widget.color,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: kCardBg, width: 3),
+                  gradient: LinearGradient(
+                    colors: [c.withOpacity(0.18), c.withOpacity(0.08)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(child: Text(_initials, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14))),
               ),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(widget.creator.displayName, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15), overflow: TextOverflow.ellipsis),
-                Text(widget.creator.tagline, style: GoogleFonts.dmSans(color: kMuted, fontSize: 12), overflow: TextOverflow.ellipsis),
-              ])),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: widget.color.withOpacity(0.12), borderRadius: BorderRadius.circular(36)),
-                child: Text('Featured', style: GoogleFonts.dmSans(color: widget.color, fontSize: 10, fontWeight: FontWeight.w700)),
+              Positioned(
+                left: 16, bottom: -20,
+                child: Container(
+                  width: 46, height: 46,
+                  decoration: BoxDecoration(
+                    color: c,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _bgWhite, width: 3),
+                  ),
+                  child: Center(child: Text(_initials, style: GoogleFonts.dmSans(
+                      color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14))),
+                ),
+              ),
+              Positioned(
+                right: 12, top: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: c.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(36),
+                    border: Border.all(color: c.withOpacity(0.30)),
+                  ),
+                  child: Text('Featured', style: GoogleFonts.dmSans(
+                      color: c, fontSize: 10, fontWeight: FontWeight.w700)),
+                ),
               ),
             ]),
+            const SizedBox(height: 28),
+            Text(widget.creator.displayName, style: GoogleFonts.dmSans(
+                color: _ink, fontWeight: FontWeight.w700, fontSize: 15),
+                overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 2),
+            Text(widget.creator.tagline, style: GoogleFonts.dmSans(
+                color: _inkMuted, fontSize: 12), overflow: TextOverflow.ellipsis),
             if (progress != null) ...[
               const SizedBox(height: 16),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text('Monthly goal', style: GoogleFonts.dmSans(color: kMuted, fontSize: 11)),
-                Text('${(progress * 100).toStringAsFixed(0)}%', style: GoogleFonts.dmSans(color: widget.color, fontWeight: FontWeight.w700, fontSize: 11)),
+                Text('Monthly goal', style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 11)),
+                Text('${(progress * 100).toStringAsFixed(0)}%',
+                    style: GoogleFonts.dmSans(color: c, fontWeight: FontWeight.w700, fontSize: 11)),
               ]),
               const SizedBox(height: 6),
               ClipRRect(
                 borderRadius: BorderRadius.circular(36),
                 child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: kBorder,
-                  valueColor: AlwaysStoppedAnimation(widget.color),
-                  minHeight: 6,
+                  value: progress, backgroundColor: _border,
+                  valueColor: AlwaysStoppedAnimation(c), minHeight: 5,
                 ),
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                  onPressed: () => context.go('/tip/${widget.creator.slug}'),
-                  icon: const Icon(Icons.volunteer_activism, size: 15),
-                  label: const Text('Send a tip'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimary, shadowColor: Colors.transparent,
-                    foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
-                  ),
+                onPressed: () => context.go('/creator/${widget.creator.slug}'),
+                icon: const Icon(Icons.volunteer_activism_rounded, size: 15),
+                label: Text('Send a tip', style: GoogleFonts.dmSans(
+                    fontWeight: FontWeight.w700, fontSize: 13)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _green, foregroundColor: Colors.white,
+                  elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                 ),
+              ),
             ),
           ]),
         ),
       ),
-    ).animate().fadeIn(delay: widget.delay.ms, duration: 500.ms).slideY(begin: 0.2, curve: Curves.easeOut);
+    ).animate().fadeIn(delay: widget.delay.ms, duration: 500.ms)
+        .slideY(begin: 0.15, curve: Curves.easeOut);
   }
 }
 
@@ -465,12 +526,15 @@ class _CreatorBrowseCard extends StatefulWidget {
   @override
   State<_CreatorBrowseCard> createState() => _CreatorBrowseCardState();
 }
+
 class _CreatorBrowseCardState extends State<_CreatorBrowseCard> {
   bool _hovered = false;
-  String get _initials => widget.creator.displayName.split(' ').map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase();
+  String get _initials => widget.creator.displayName
+      .split(' ').map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase();
 
   @override
   Widget build(BuildContext context) {
+    final c = widget.color;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit:  (_) => setState(() => _hovered = false),
@@ -481,51 +545,88 @@ class _CreatorBrowseCardState extends State<_CreatorBrowseCard> {
           width: 240,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: kCardBg,
+            color: _bgWhite,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: _hovered ? widget.color.withOpacity(0.4) : kBorder),
-            boxShadow: _hovered ? [BoxShadow(color: widget.color.withOpacity(0.1), blurRadius: 24, offset: const Offset(0, 6))] : [],
+            border: Border.all(color: _hovered ? c.withOpacity(0.40) : _border),
+            boxShadow: _hovered
+                ? [BoxShadow(color: c.withOpacity(0.10), blurRadius: 24, offset: const Offset(0, 6))]
+                : [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Container(
-                width: 40, height: 40,
+                width: 42, height: 42,
                 decoration: BoxDecoration(
-                  color: widget.color,
-                  shape: BoxShape.circle,
+                  color: c.withOpacity(0.12), shape: BoxShape.circle,
+                  border: Border.all(color: c.withOpacity(0.25)),
                 ),
-                child: Center(child: Text(_initials, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13))),
+                child: Center(child: Text(_initials, style: GoogleFonts.dmSans(
+                    color: c, fontWeight: FontWeight.w800, fontSize: 14))),
               ),
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(widget.creator.displayName, style: GoogleFonts.dmSans(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis),
-                Text(widget.creator.tagline, style: GoogleFonts.dmSans(color: kMuted, fontSize: 11), overflow: TextOverflow.ellipsis),
+                Text(widget.creator.displayName, style: GoogleFonts.dmSans(
+                    color: _ink, fontWeight: FontWeight.w700, fontSize: 13),
+                    overflow: TextOverflow.ellipsis),
+                Text(widget.creator.tagline, style: GoogleFonts.dmSans(
+                    color: _inkMuted, fontSize: 11), overflow: TextOverflow.ellipsis),
               ])),
             ]),
             const SizedBox(height: 14),
             Row(children: [
-              Icon(Icons.volunteer_activism, color: widget.color, size: 14),
+              Icon(Icons.volunteer_activism_rounded, color: c, size: 14),
               const SizedBox(width: 5),
               Text('R${widget.creator.totalTips.toStringAsFixed(0)} earned',
-                  style: GoogleFonts.dmSans(color: kMuted, fontSize: 12)),
+                  style: GoogleFonts.dmSans(color: _inkMuted, fontSize: 12)),
             ]),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () => context.go('/tip/${widget.creator.slug}'),
+                onPressed: () => context.go('/creator/${widget.creator.slug}'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: widget.color,
-                  side: BorderSide(color: widget.color.withOpacity(0.4)),
+                  foregroundColor: c,
+                  side: BorderSide(color: c.withOpacity(0.40)),
                   padding: const EdgeInsets.symmetric(vertical: 9),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(36)),
                 ),
-                child: Text('Tip', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700)),
+                child: Text('Tip', style: GoogleFonts.dmSans(
+                    fontSize: 12, fontWeight: FontWeight.w700, color: c)),
               ),
             ),
           ]),
         ),
       ),
-    ).animate().fadeIn(delay: widget.delay.ms, duration: 400.ms).slideY(begin: 0.1, curve: Curves.easeOut);
+    ).animate().fadeIn(delay: widget.delay.ms, duration: 400.ms)
+        .slideY(begin: 0.08, curve: Curves.easeOut);
   }
+}
+
+// ─── Light dot painter ────────────────────────────────────────────────────────
+class _LightDotPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF004423).withOpacity(0.06)
+      ..style = PaintingStyle.fill;
+    const spacing = 28.0;
+    for (double x = 0; x <= size.width; x += spacing)
+      for (double y = 0; y <= size.height; y += spacing)
+        canvas.drawCircle(Offset(x, y), 1.2, paint);
+  }
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+// ─── Smooth scroll ────────────────────────────────────────────────────────────
+class _SmoothScroll extends ScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+  };
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      const ClampingScrollPhysics();
 }

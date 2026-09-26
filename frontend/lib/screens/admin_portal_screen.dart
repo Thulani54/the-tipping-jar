@@ -8,14 +8,14 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 
 
-// ─── Admin-portal colour palette (light-blue DeepSeek theme) ─────────────────
-const Color _aBackground    = Color(0xFFF8FAFF);
-const Color _aBackgroundAlt = Color(0xFFEDF2FC);
+// ─── Admin-portal colour palette (white/sage TippingJar theme) ───────────────
+const Color _aBackground    = Color(0xFFF5F9F6);
+const Color _aBackgroundAlt = Color(0xFFECF4EF);
 const Color _aSurface       = Color(0xFFFFFFFF);
-const Color _aPrimary       = Color(0xFF3C5DFF);
-const Color _aTextMain      = Color(0xFF0F1A2F);
-const Color _aMuted         = Color(0xFF6E7FA3);
-const Color _aBorder        = Color(0xFFD0D9FF);
+const Color _aPrimary       = Color(0xFF004423);
+const Color _aTextMain      = Color(0xFF080F0B);
+const Color _aMuted         = Color(0xFF7A9487);
+const Color _aBorder        = Color(0xFFDBEAE1);
 
 // ─── Entry point ──────────────────────────────────────────────────────────
 
@@ -1890,7 +1890,7 @@ class _ToolbarDivider extends StatelessWidget {
 
 Color _roleColor(String role) {
   switch (role) {
-    case 'creator': return _aPrimary;
+    case 'creator': return const Color(0xFF006B3A);
     case 'enterprise': return const Color(0xFF0097B2);
     case 'admin': return const Color(0xFF818CF8);
     case 'fan': return const Color(0xFFFBBF24);

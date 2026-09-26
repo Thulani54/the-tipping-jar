@@ -9,6 +9,7 @@ payments/views.py after charge.success webhook processing.
 """
 import logging
 
+from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -33,6 +34,26 @@ def on_creator_profile_created(sender, instance, created, **kwargs):
         ),
     )
     send_creator_welcome(instance)
+
+
+@receiver(post_save, sender="tips.Tip")
+def on_tip_completed(sender, instance, created, **kwargs):
+    """When a tip is marked completed, auto-credit the creator's active live goal."""
+    if instance.status != "completed":
+        return
+    try:
+        from .models import LiveStream, LiveStreamGoal
+        stream = LiveStream.objects.filter(creator=instance.creator, is_live=True).first()
+        if stream is None:
+            return
+        goal = LiveStreamGoal.objects.filter(stream=stream, is_active=True).first()
+        if goal is None:
+            return
+        LiveStreamGoal.objects.filter(pk=goal.pk).update(
+            current_amount=models.F("current_amount") + instance.amount
+        )
+    except Exception:
+        pass
 
 
 @receiver(post_save, sender="creators.Jar")
