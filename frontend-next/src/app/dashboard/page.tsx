@@ -195,7 +195,7 @@ function DashboardInner() {
   const active = TABS.find((t) => t.id === tab)!;
 
   return (
-    <div className="app-shell flex min-h-screen bg-darker">
+    <div className="app-shell tj-workspace flex min-h-screen bg-darker">
       <DashboardSidebar
         tab={tab}
         onTab={(t) => {
@@ -220,7 +220,11 @@ function DashboardInner() {
           onOpenMobile={() => setMobileOpen(true)}
         />
 
-        <main className="flex-1 px-4 py-7 md:px-8">
+        <main className="tj-workspace-main flex-1 px-4 py-7 md:px-8">
+          <div className="tj-workspace-intro mx-auto max-w-[1180px]">
+            <div><p className="tj-workspace-eyebrow">Your creator workspace</p><h1>{tab === "overview" ? `${greeting()}, ${name}.` : active.label}</h1><p>{tab === "overview" ? "A little support. A lot of possibility. Here’s how your jar is doing." : `Manage your ${active.label.toLowerCase()} and keep your community growing.`}</p></div>
+            <Link href="/dashboard?tab=profile" className="tj-workspace-profile"><UserRound size={16}/>My profile<ArrowUpRight size={15}/></Link>
+          </div>
           <div key={tab} className="pop-in mx-auto max-w-[1180px]">
             {tab === "overview" && (
               <OverviewTab
@@ -282,7 +286,7 @@ function DashboardHeader({
     n.toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-white/90 px-4 backdrop-blur-xl md:px-7">
+    <header className="tj-workspace-header sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-white/90 px-4 backdrop-blur-xl md:px-7">
       <button
         onClick={onOpenMobile}
         className="grid h-10 w-10 place-items-center rounded-xl text-ink transition-colors hover:bg-ink/5 lg:hidden"
@@ -394,7 +398,7 @@ function NavRow({
 }) {
   // Danger variant (used by Log out) mirrors the active pill's shape/size but
   // in red-on-red-tint with white text, so it reads as a destructive action.
-  const cls = `group relative flex w-full items-center gap-3 rounded-[32px] p-1.5 transition-colors duration-200 ${
+  const cls = `tj-workspace-nav-row ${active ? "is-active" : ""} ${danger ? "is-danger" : ""} group relative flex w-full items-center gap-3 rounded-[32px] p-1.5 transition-colors duration-200 ${
     collapsed ? "lg:justify-center" : ""
   } ${danger ? "bg-red-500/20 hover:bg-red-500/30" : active ? "nav-glass" : "hover:bg-white/[0.06]"}`;
   const inner = (
@@ -429,7 +433,7 @@ function NavRow({
       {inner}
     </Link>
   ) : (
-    <button onClick={onClick} className={cls}>
+    <button onClick={onClick} className={cls} aria-current={active ? "page" : undefined}>
       {inner}
     </button>
   );
@@ -465,7 +469,7 @@ function DashboardSidebar({
       />
 
       <aside
-        className={`glass-sidebar fixed inset-y-0 left-0 z-50 flex w-[248px] flex-col text-white shadow-2xl transition-all duration-300 lg:sticky lg:top-0 lg:z-30 lg:h-screen lg:translate-x-0 lg:shadow-none ${
+        className={`tj-workspace-sidebar glass-sidebar fixed inset-y-0 left-0 z-50 flex w-[248px] flex-col text-white shadow-2xl transition-all duration-300 lg:sticky lg:top-0 lg:z-30 lg:h-screen lg:translate-x-0 lg:shadow-none ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "lg:w-[74px]" : "lg:w-[248px]"}`}
       >
@@ -476,10 +480,10 @@ function DashboardSidebar({
           }`}
         >
           <Link href="/" className={`flex items-center gap-2.5 ${collapsed ? "lg:hidden" : ""}`}>
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-mint text-navy shadow-lift">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-100 text-navy">
               <span aria-hidden className="text-lg leading-none">🫙</span>
             </span>
-            <span className="font-display text-lg font-medium tracking-tight">
+            <span className="tj-workspace-wordmark font-display text-lg font-medium tracking-tight">
               Tipping<span className="text-mint">Jar</span>
             </span>
           </Link>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
+import { AuthShell } from "@/components/AuthShell";
 
 type Role = "fan" | "creator" | "enterprise";
 
@@ -25,8 +26,8 @@ const PANEL: Record<Role, { heading: string; sub: string; perks: [string, string
     ],
   },
   creator: {
-    heading: "Start earning from day one.",
-    sub: "Your tip page, goals, jars and exclusive content — live in minutes.",
+    heading: "Your next chapter starts with a jar.",
+    sub: "Create your account, tell your story and bring your community closer.",
     perks: [
       ["bi-rocket-takeoff-fill", "Live in minutes", "Finish your profile and your page opens for tips."],
       ["bi-bank", "Real payouts", "Balance to your South African bank account, on request."],
@@ -180,7 +181,7 @@ function RegisterInner() {
       return;
     }
     try {
-      await register({
+      const createdUser = await register({
         email: email.trim(),
         password,
         username: username.trim(),
@@ -191,48 +192,17 @@ function RegisterInner() {
       // Creators go straight into the onboarding wizard (profile type,
       // location, identity, bank, verification). Everyone else lands on
       // the dashboard.
-      router.push(role === "creator" ? "/onboarding" : "/dashboard");
+      router.push(createdUser.role === "creator" ? "/onboarding" : createdUser.role === "enterprise" ? "/enterprise-portal" : "/fan-dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Try again.");
     }
   }
 
   return (
-    <section className="container-content grid items-start gap-16 py-16 lg:grid-cols-2 lg:py-24">
-      {/* Branding panel */}
-      <div className="hidden lg:sticky lg:top-24 lg:block">
-        <p className="eyebrow">Create your account</p>
-        <h1 className="heading-xl mt-4 max-w-md text-4xl md:text-5xl">{panel.heading}</h1>
-        <p className="body-muted mt-5 max-w-md text-lg">{panel.sub}</p>
-        <ul className="mt-10 space-y-5">
-          {panel.perks.map(([icon, title, body]) => (
-            <li key={title} className="flex items-start gap-4 rounded-2xl border border-border bg-white p-4 shadow-soft">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-mint/15 text-lg text-green">
-                <i className={`bi ${icon}`} />
-              </span>
-              <div>
-                <p className="font-display font-bold text-ink">{title}</p>
-                <p className="body-muted mt-0.5 text-sm">{body}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-        {refStatus === "valid" && (
-          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-mint/40 bg-mint/10 p-4">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-mint text-navy">
-              <i className="bi bi-gift-fill" />
-            </span>
-            <p className="text-sm text-ink">
-              You&apos;re joining through a <span className="font-bold">referral</span> — your referrer
-              earns a small commission on your tips, at no cost to you.
-            </p>
-          </div>
-        )}
-      </div>
-
+    <AuthShell title={panel.heading} description={panel.sub}>
       {/* Form card */}
-      <div className="mx-auto w-full max-w-lg">
-        <div className="card !p-6 md:!p-8">
+      <div className="tj-auth-form tj-register-form">
+        <div className="tj-register-card">
           <div className="flex items-baseline justify-between">
             <h2 className="text-2xl font-extrabold tracking-tight text-ink">Create your account</h2>
             <span className="font-mono text-[11px] uppercase tracking-wide text-muted">
@@ -278,6 +248,7 @@ function RegisterInner() {
                       <button
                         key={r.value}
                         type="button"
+                        aria-pressed={active}
                         onClick={() => setRole(r.value)}
                         className={`flex flex-col items-start gap-1 rounded-xl border px-3 py-3 text-left transition ${
                           active
@@ -491,7 +462,7 @@ function RegisterInner() {
             )}
 
             {error && (
-              <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500">
+              <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500">
                 <span aria-hidden><i className="bi bi-exclamation-triangle-fill" /></span>
                 <span>{error}</span>
               </div>
@@ -527,10 +498,10 @@ function RegisterInner() {
 
         <p className="mt-4 text-center text-[11px] text-muted">
           <i className="bi bi-shield-lock-fill mr-1 text-green" aria-hidden />
-          Free to join · No credit card · 6% flat only when a tip lands
+          Free to join · No credit card needed to get started
         </p>
       </div>
-    </section>
+    </AuthShell>
   );
 }
 

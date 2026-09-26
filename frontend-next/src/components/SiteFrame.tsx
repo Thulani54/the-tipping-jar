@@ -14,7 +14,7 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
 
-  if (bare) return <>{children}</>;
+  if (bare || pathname === "/login" || pathname === "/register" || pathname === "/fan-dashboard") return <>{children}</>;
 
   return (
     <div className="marketing-site">
