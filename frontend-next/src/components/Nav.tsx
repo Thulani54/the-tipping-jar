@@ -1,93 +1,92 @@
 "use client";
-
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
+import {
+  Route,
+  LayoutGrid,
+  Tag,
+  BookOpen,
+  ArrowUpRight,
+  Menu,
+  X,
+} from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/lib/auth";
-
 const LINKS = [
-  // Creators directory hidden during private beta — see src/app/creators/page.tsx.
-  { href: "/features", label: "Features" },
-  { href: "/how-it-works", label: "How it works" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/blog", label: "Blog" },
+  { href: "/how-it-works", label: "How it works", icon: Route },
+  { href: "/features", label: "Features", icon: LayoutGrid },
+  { href: "/pricing", label: "Pricing", icon: Tag },
+  { href: "/blog", label: "Our journal", icon: BookOpen },
 ];
-
 export function Nav() {
-  const { isAuthenticated, isCreator, isAdmin, logout } = useAuth();
+  const { isAuthenticated, isCreator, isAdmin } = useAuth();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
-
+  const destination = isAdmin
+    ? "/admin-portal"
+    : isCreator
+      ? "/dashboard"
+      : "/fan-dashboard";
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-darker/80 backdrop-blur">
-      <nav className="container-content flex h-16 items-center justify-between">
-        <Logo />
-
-        <div className="hidden items-center gap-7 md:flex">
-          {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="text-sm text-muted hover:text-ink">
-              {l.label}
+    <header className="tj-nav">
+      <nav className="tj-container tj-nav-inner" aria-label="Main navigation">
+        <Logo size={38} />
+        <div className="tj-desktop-links">
+          {LINKS.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              aria-current={pathname === href ? "page" : undefined}
+            >
+              <Icon size={18} strokeWidth={1.5} />
+              <span>{label}</span>
             </Link>
           ))}
         </div>
-
-        <div className="hidden items-center gap-3 md:flex">
-          {isAuthenticated ? (
-            <>
-              <Link
-                href={isAdmin ? "/admin-portal" : isCreator ? "/dashboard" : "/fan-dashboard"}
-                className="btn-ghost !py-2 !px-4 text-sm"
-              >
-                {isAdmin ? "Admin" : "Dashboard"}
-              </Link>
-              <button onClick={logout} className="text-sm text-muted hover:text-ink">
-                Log out
-              </button>
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="text-sm text-muted hover:text-ink">
-                Log in
-              </Link>
-              <Link href="/register" className="btn-primary !py-2 !px-4 text-sm">
-                Get started
-              </Link>
-            </>
-          )}
+        <div className="tj-nav-actions">
+          <Link href={isAuthenticated ? destination : "/login"}>
+            {isAuthenticated ? "My dashboard" : "Log in"}
+          </Link>
+          <Link
+            href={isAuthenticated ? destination : "/register"}
+            className="tj-button tj-button-small"
+          >
+            {isAuthenticated ? "Open dashboard" : "Start your jar"}
+            <ArrowUpRight size={16} />
+          </Link>
         </div>
-
         <button
-          className="md:hidden text-xl text-ink"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Toggle menu"
+          className="tj-menu-toggle"
+          aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
+          aria-controls="mobile-navigation"
+          onClick={() => setOpen(!open)}
         >
-          <i className={open ? "bi bi-x-lg" : "bi bi-list"} />
+          {open ? <X /> : <Menu />}
         </button>
       </nav>
-
       {open && (
-        <div className="border-t border-border md:hidden">
-          <div className="container-content flex flex-col gap-3 py-4">
-            {LINKS.map((l) => (
-              <Link key={l.href} href={l.href} className="text-muted" onClick={() => setOpen(false)}>
-                {l.label}
-              </Link>
-            ))}
-            {isAuthenticated ? (
-              <button onClick={logout} className="text-left text-muted">
-                Log out
-              </button>
-            ) : (
-              <>
-                <Link href="/login" className="text-muted" onClick={() => setOpen(false)}>
-                  Log in
-                </Link>
-                <Link href="/register" className="btn-primary" onClick={() => setOpen(false)}>
-                  Get started
-                </Link>
-              </>
-            )}
-          </div>
+        <div id="mobile-navigation" className="tj-mobile-links">
+          {LINKS.map((l) => (
+            <Link href={l.href} key={l.href} onClick={() => setOpen(false)}>
+              {l.label}
+            </Link>
+          ))}
+          <Link
+            href={isAuthenticated ? destination : "/login"}
+            onClick={() => setOpen(false)}
+          >
+            {isAuthenticated ? "My dashboard" : "Log in"}
+          </Link>
+          <Link
+            href={isAuthenticated ? destination : "/register"}
+            className="tj-button"
+            onClick={() => setOpen(false)}
+          >
+            {isAuthenticated ? "Open dashboard" : "Start your jar"}
+            <ArrowUpRight size={18} />
+          </Link>
         </div>
       )}
     </header>

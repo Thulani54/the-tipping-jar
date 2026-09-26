@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Space_Mono } from "next/font/google";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./globals.css";
+import "./marketing.css";
 import { AuthProvider } from "@/lib/auth";
 import { SiteFrame } from "@/components/SiteFrame";
 

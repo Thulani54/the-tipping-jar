@@ -17,10 +17,10 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
   if (bare) return <>{children}</>;
 
   return (
-    <>
+    <div className="marketing-site">
       <Nav />
       <main className="min-h-[70vh]">{children}</main>
       <Footer />
-    </>
+    </div>
   );
 }
