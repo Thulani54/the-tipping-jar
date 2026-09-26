@@ -71,15 +71,30 @@ command -v sshpass >/dev/null || die "sshpass not installed (brew install hudoch
 if [[ $DO_WEB -eq 1 ]]; then
   step "Building frontend (strict — a failure stops the deploy)"
   BUILD_LOG="$(mktemp -t tj-build)"
-  # No pipe here: we need npm's own exit status, not a pipeline's.
-  if ! ( cd "$WEB_SRC" && npm run build ) >"$BUILD_LOG" 2>&1; then
+  build_ok=0
+  # Clean first. The container build always starts fresh (.dockerignore
+  # excludes .next), so an incremental local build proves nothing about
+  # whether the deploy will succeed — and stale .next/types artifacts
+  # produce phantom "file not found" type errors of their own.
+  rm -rf "$WEB_SRC/.next"
+  for attempt in 1 2; do
+    # No pipe here: we need npm's own exit status, not a pipeline's.
+    if ( cd "$WEB_SRC" && npm run build ) >"$BUILD_LOG" 2>&1 \
+       && ! grep -qE 'Failed to compile|Build failed because of webpack errors' "$BUILD_LOG"; then
+      build_ok=1; break
+    fi
+    # next/font fetches Google Fonts at BUILD time; that call is flaky and
+    # throws "Cannot read properties of null" when the fetch fails. It is
+    # not a code error, so retry once before giving up.
+    if grep -q 'An error occurred in `next/font`' "$BUILD_LOG" && [[ $attempt -eq 1 ]]; then
+      warn "next/font fetch failed (transient) — retrying build"
+      continue
+    fi
+    break
+  done
+  if [[ $build_ok -ne 1 ]]; then
     echo; tail -40 "$BUILD_LOG"
     die "frontend build FAILED — nothing pushed, nothing deployed. Log: $BUILD_LOG"
-  fi
-  # Belt and braces: Next can exit 0 on some soft failures.
-  if grep -qE 'Failed to compile|Build failed because of webpack errors' "$BUILD_LOG"; then
-    echo; tail -40 "$BUILD_LOG"
-    die "frontend build reported compile errors — nothing pushed, nothing deployed."
   fi
   ok "frontend build passed"
   rm -f "$BUILD_LOG"
@@ -109,25 +124,54 @@ fi
 # ── 3. deploy ───────────────────────────────────────────────────────────
 if [[ $DO_WEB -eq 1 ]]; then
   step "Deploying frontend → $DEPLOY_HOST:$WEB_DIR"
-  tar -C "$WEB_SRC" -czf - \
-      --exclude='./node_modules' --exclude='./.next' --exclude='._*' . \
-    | remote "tar xzf - -C $WEB_DIR 2>/dev/null; \
-              find $WEB_DIR -name '._*' -delete; \
-              cd $WEB_DIR && NEXT_PUBLIC_API_BASE=$API_BASE PREVIEW_HTTP=0 \
-              docker compose up --build -d" 2>&1 \
-    | grep -vE 'Warning: Permanently added|LIBARCHIVE' || true
+  WEB_LOG="$(mktemp -t tj-web-deploy)"
+  # NOTE: no `| grep || true` around this — swallowing the pipeline's exit
+  # status is how a failing remote docker build once got reported as success.
+  set +e
+  for attempt in 1 2; do
+    tar -C "$WEB_SRC" -czf - \
+        --exclude='./node_modules' --exclude='./.next' --exclude='._*' . \
+      | remote "set -e; tar xzf - -C $WEB_DIR 2>/dev/null; \
+                find $WEB_DIR -name '._*' -delete; \
+                cd $WEB_DIR && NEXT_PUBLIC_API_BASE=$API_BASE PREVIEW_HTTP=0 \
+                docker compose up --build -d" >"$WEB_LOG" 2>&1
+    rc=$?
+    # Same transient next/font failure can hit the container build, where
+    # .dockerignore excludes .next so fonts are always fetched fresh.
+    if [[ $rc -ne 0 ]] && grep -q 'next/font' "$WEB_LOG" && [[ $attempt -eq 1 ]]; then
+      printf '%s  ! next/font fetch failed remotely (transient) — retrying%s\n' "$ylw" "$rst"
+      continue
+    fi
+    break
+  done
+  set -e
+  grep -vE 'Warning: Permanently added|LIBARCHIVE' "$WEB_LOG" | tail -5 || true
+  if [[ $rc -ne 0 ]] || grep -qE 'failed to solve|did not complete successfully|ERROR \[' "$WEB_LOG"; then
+    echo; tail -60 "$WEB_LOG"
+    die "remote frontend build/deploy FAILED (rc=$rc). Previous container left running. Log: $WEB_LOG"
+  fi
   ok "frontend container restarted"
+  rm -f "$WEB_LOG"
 fi
 
 if [[ $DO_BACKEND -eq 1 ]]; then
   svc="${RUST_SERVICES[*]:-}"
   step "Deploying backend → $DEPLOY_HOST:$RUST_DIR ${svc:+($svc)}"
+  BE_LOG="$(mktemp -t tj-be-deploy)"
+  set +e
   tar -C "$RUST_SRC" -czf - --exclude='./target' --exclude='._*' . \
-    | remote "tar xzf - -C $RUST_DIR 2>/dev/null; \
+    | remote "set -e; tar xzf - -C $RUST_DIR 2>/dev/null; \
               find $RUST_DIR -name '._*' -delete; \
-              cd $RUST_DIR && docker compose up --build -d $svc" 2>&1 \
-    | grep -vE 'Warning: Permanently added|LIBARCHIVE' || true
+              cd $RUST_DIR && docker compose up --build -d $svc" >"$BE_LOG" 2>&1
+  rc=$?
+  set -e
+  grep -vE 'Warning: Permanently added|LIBARCHIVE' "$BE_LOG" | tail -5 || true
+  if [[ $rc -ne 0 ]] || grep -qE 'failed to solve|did not complete successfully|ERROR \[' "$BE_LOG"; then
+    echo; tail -60 "$BE_LOG"
+    die "remote backend build/deploy FAILED (rc=$rc). Previous container(s) left running. Log: $BE_LOG"
+  fi
   ok "backend container(s) restarted"
+  rm -f "$BE_LOG"
 fi
 
 # ── 4. verify ───────────────────────────────────────────────────────────

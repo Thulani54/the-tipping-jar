@@ -32,6 +32,8 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  // Keep development assets isolated from production builds.
+  distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
   // Standalone output → small self-contained server for the Docker image.
   output: "standalone",
   reactStrictMode: true,

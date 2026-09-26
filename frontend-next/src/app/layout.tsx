@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Manrope, Space_Mono } from "next/font/google";
+import { Space_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./globals.css";
 import "./marketing.css";
@@ -10,10 +11,10 @@ import { SiteFrame } from "@/components/SiteFrame";
 // Manrope — a clean geometric grotesque — is the site typeface for both body
 // text and headings. Space Mono stays for the monospaced voice (receipt slips,
 // eyebrow labels, code samples).
-const sans = Manrope({
-  subsets: ["latin"],
+const sans = localFont({
+  src: "./fonts/Manrope-variable.ttf",
   variable: "--font-sans",
-  weight: ["400", "500", "600", "700", "800"],
+  weight: "200 800",
   display: "swap",
 });
 const mono = Space_Mono({

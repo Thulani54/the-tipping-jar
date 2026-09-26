@@ -822,3 +822,4 @@
     scroll-behavior: auto !important;
   }
 }
+@media(max-width:760px){.tj-register-form button[aria-pressed]{display:grid;grid-template-columns:26px 1fr;column-gap:10px;row-gap:3px;padding:12px}.tj-register-form button[aria-pressed]>span:first-child{grid-row:1/3;align-self:center}.tj-register-form button[aria-pressed]>span:not(:first-child){grid-column:2}}
