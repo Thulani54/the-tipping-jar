@@ -1950,6 +1950,10 @@ function PayoutBankSetup({ token, onReady }: { token: string | null; onReady: (r
     setSaving(true); setError("");
     try {
       const details = { ...bank, account_name: (bank.account_name || "").trim(), account_no: (bank.account_no || "").replace(/\s/g, ""), branch_code: (bank.branch_code || "").replace(/\s/g, ""), account_type: bank.account_type || "cheque" };
+      if (!details.account_name || !details.bank || !/^[0-9]{4,20}$/.test(details.account_no) || !/^[0-9]{6}$/.test(details.branch_code)) {
+        setError("Enter the account holder, bank, a valid account number and a six-digit branch code.");
+        return;
+      }
       await api.updateMyCreatorProfile(token, { bank_details: details });
       setBank(details); setSaved(true); setEditing(false); onReady(true);
     } catch { setError("Your bank details weren't saved. Please try again."); }
