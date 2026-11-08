@@ -78,7 +78,7 @@ const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "exclusive", label: "Exclusive", icon: Lock },
   { id: "jars", label: "Jars", icon: Milk },
-  { id: "transactions", label: "Transactions", icon: Receipt },
+  { id: "transactions", label: "Transactions & payouts", icon: Receipt },
   { id: "referrals", label: "Referrals", icon: Users },
   { id: "studio", label: "Studio", icon: Palette },
   { id: "profile", label: "Profile", icon: UserRound },
@@ -789,7 +789,7 @@ function OverviewTab({
             </p>
           </div>
           <button
-            onClick={() => onTab("profile")}
+            onClick={() => onTab("transactions")}
             className="btn-primary shrink-0 !bg-amber-500 !px-4 !py-2 text-sm !text-white hover:!opacity-90"
           >
             Set up bank details <ArrowUpRight className="ml-1 inline h-3.5 w-3.5" strokeWidth={2.4} />
@@ -1924,7 +1924,64 @@ function exportTxnCsv(rows: Transaction[]) {
   );
 }
 
+function PayoutBankSetup({ token, onReady }: { token: string | null; onReady: (ready: boolean) => void }) {
+  const [bank, setBank] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    let active = true;
+    onReady(false); setLoading(true); setError(""); setSaved(false);
+    if (!token) { setLoading(false); return; }
+    api.myBankDetails(token).then((details) => {
+      if (!active) return;
+      setBank(details as Record<string, string>);
+      const ready = !!(details.account_name?.trim() && details.bank?.trim() && details.account_no?.trim());
+      setSaved(ready); setEditing(!ready); onReady(ready);
+    }).catch(() => { if (active) setError("We couldn't load your bank details. Retry before making changes."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [token, onReady, retry]);
+  async function save(event: React.FormEvent) {
+    event.preventDefault(); if (!token || saving) return;
+    setSaving(true); setError("");
+    try {
+      const details = { ...bank, account_name: (bank.account_name || "").trim(), account_no: (bank.account_no || "").replace(/\s/g, ""), branch_code: (bank.branch_code || "").replace(/\s/g, ""), account_type: bank.account_type || "cheque" };
+      await api.updateMyCreatorProfile(token, { bank_details: details });
+      setBank(details); setSaved(true); setEditing(false); onReady(true);
+    } catch { setError("Your bank details weren't saved. Please try again."); }
+    finally { setSaving(false); }
+  }
+  const input = "mt-1 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-ink";
+  return <section className="mt-5 border-t border-border pt-5" aria-label="Payout bank details">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h3 className="font-semibold text-ink">Your payout bank account</h3>
+      <span className="rounded-full bg-darker px-3 py-1 text-xs text-muted">{loading ? "Checking…" : saved ? "Details saved" : "Setup needed"}</span>
+    </div>
+    <p className="mt-2 text-sm text-muted">Add your bank details here once. Account verification is reviewed separately.</p>
+    {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+    {!loading && !editing && !saved && <button type="button" className="btn-ghost mt-3" onClick={() => setRetry(n => n + 1)}>Retry loading bank details</button>}
+    {!loading && saved && !editing && <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-ink">{bank.bank} · Account ending {bank.account_no?.replace(/\s/g, "").slice(-4)}</p><button type="button" className="btn-ghost" onClick={() => setEditing(true)}>Edit bank details</button></div>}
+    {!loading && editing && <form onSubmit={save} className="mt-4 space-y-3">
+      <label className="block text-sm text-muted">Account holder<input required maxLength={120} className={input} value={bank.account_name || ""} onChange={e => setBank(b => ({ ...b, account_name: e.target.value }))} placeholder="Name shown on your bank account" /></label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm text-muted">Bank<select required className={input} value={bank.bank || ""} onChange={e => { const value = e.target.value; setBank(b => ({ ...b, bank: value, branch_code: PROFILE_SA_BANKS.find(x => x.name === value)?.code || "" })); }}><option value="">Choose your bank</option>{bank.bank && !PROFILE_SA_BANKS.some(b => b.name === bank.bank) && <option value={bank.bank}>{bank.bank}</option>}{PROFILE_SA_BANKS.map(b => <option key={b.name}>{b.name}</option>)}</select></label>
+        <label className="block text-sm text-muted">Account type<select className={input} value={bank.account_type || "cheque"} onChange={e => setBank(b => ({ ...b, account_type: e.target.value }))}>{PROFILE_ACCOUNT_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select></label>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm text-muted">Account number<input required inputMode="numeric" pattern="[0-9 ]{4,24}" maxLength={24} className={input} value={bank.account_no || ""} onChange={e => setBank(b => ({ ...b, account_no: e.target.value.replace(/[^0-9 ]/g, "") }))} /></label>
+        <label className="block text-sm text-muted">Branch code<input required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} className={input} value={bank.branch_code || ""} onChange={e => setBank(b => ({ ...b, branch_code: e.target.value.replace(/\D/g, "") }))} /><span className="text-xs">Filled in when you choose your bank.</span></label>
+      </div>
+      <button type="submit" disabled={saving} className="btn-primary disabled:opacity-50">{saving ? "Saving…" : "Save bank details"}</button>
+    </form>}
+  </section>;
+}
+
 function TransactionsTab({ token, creatorId }: { token: string | null; creatorId: string | null }) {
+  const [payoutBankReady, setPayoutBankReady] = useState(false);
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [balance, setBalance] = useState<Balance | null>(null);
   const [payouts, setPayouts] = useState<Payout[]>([]);
@@ -1951,7 +2008,7 @@ function TransactionsTab({ token, creatorId }: { token: string | null; creatorId
   useEffect(load, [load]);
 
   async function payout() {
-    if (!token || busy) return;
+    if (!token || busy || !payoutBankReady) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -2050,7 +2107,7 @@ function TransactionsTab({ token, creatorId }: { token: string | null; creatorId
             <div>
               <p className="font-medium text-ink">Request a payout</p>
               <p className="body-muted mt-1 text-sm">
-                Withdraw your available balance to your bank account. Set up your bank details on the Profile tab first.
+                Add your bank account below, then request a withdrawal. Verification and payout eligibility are checked when you request it.
               </p>
               <p className="mt-3 font-display text-3xl font-extrabold tracking-tight text-teal">
                 R{money(available)}
@@ -2059,13 +2116,14 @@ function TransactionsTab({ token, creatorId }: { token: string | null; creatorId
             </div>
             <button
               onClick={payout}
-              disabled={busy || available <= 0}
+              disabled={busy || available <= 0 || !payoutBankReady}
               className="btn-primary !font-medium disabled:cursor-not-allowed disabled:opacity-50"
             >
               {busy ? "Requesting…" : "Request payout"}
             </button>
           </div>
-          {msg && <p className="mt-3 text-sm text-teal">{msg}</p>}
+          {msg && <p role="status" className="mt-3 text-sm text-teal">{msg}</p>}
+          <PayoutBankSetup token={token} onReady={setPayoutBankReady} />
         </div>
         <div className="card !p-5">
           <div className="flex items-baseline justify-between">
@@ -2969,10 +3027,8 @@ function ProfileTab({
   const coverPreview = cover ?? creator.cover_url;
   const publicUrl = `https://tippingjar.co.za/creator/${creator.slug}`;
 
-  // Bank verification status derived from the presence of the essential
-  // fields (holder + bank + account no). We treat all-3 as "verified" for
-  // the badge — the actual bank-verification happens against the payout
-  // gateway before the first cash-out.
+  // Field completeness is not verification; only the server KYC status
+  // controls the verified badge.
   const bankReady =
     !!(bank.account_name?.trim() && bank.bank?.trim() && bank.account_no?.trim());
 
@@ -3049,7 +3105,7 @@ function ProfileTab({
   const sectionCls = "card space-y-4 !p-5";
 
   const kyc = (creator.kyc_status || "").toLowerCase();
-  const verifiedBadge = kyc === "verified" || (bankReady && pct >= 70);
+  const verifiedBadge = kyc === "verified";
 
   return (
     <div className="space-y-6">
@@ -3317,11 +3373,11 @@ function ProfileTab({
                   bankReady ? "bg-green/10 text-green" : "bg-amber-500/15 text-amber-700"
                 }`}
               >
-                <ShieldCheck className="h-3 w-3" strokeWidth={2.6} /> {bankReady ? "Ready for payout" : "Incomplete"}
+                <ShieldCheck className="h-3 w-3" strokeWidth={2.6} /> {bankReady ? "Details entered" : "Incomplete"}
               </span>
             </div>
             <p className="text-xs text-muted">
-              Where we send your tips. Encrypted &amp; only shown to the payout team — never on your public page.
+              Where we send your tips. Saving these details does not verify your account. You can also manage them in Transactions & payouts.
             </p>
 
             <div>

@@ -409,9 +409,9 @@ function CreatorsTab({ token }: { token: string }) {
       {filtered.map((c) => (
         <tr key={c.id} className="border-b border-border/60 last:border-0">
           <td className="px-5 py-3">
-            <Link href={`/creator/${c.slug}`} className="font-semibold text-ink hover:text-green">
+            <button type="button" onClick={() => setVetting(c)} className="font-semibold text-ink hover:text-green hover:underline" aria-label={`View details for ${c.display_name}`}>
               {c.display_name}
-            </Link>
+            </button>
             <span className="ml-2 font-mono text-xs text-muted">@{c.slug}</span>
           </td>
           <td className="px-5 py-3 text-muted">{c.category || "—"}</td>
@@ -548,7 +548,7 @@ function VerifyCreatorModal({
         {/* Header */}
         <div className="flex items-start justify-between gap-4 border-b border-border p-5">
           <div className="min-w-0">
-            <p className="text-xs font-mono uppercase tracking-wide text-muted">Vetting</p>
+            <p className="text-xs font-mono uppercase tracking-wide text-muted">Creator details</p>
             <h2 className="mt-1 truncate text-lg font-bold text-ink">
               {creator.display_name} <span className="ml-1 text-sm font-mono text-muted">@{creator.slug}</span>
             </h2>
@@ -568,6 +568,17 @@ function VerifyCreatorModal({
         <div className="space-y-5 p-5">
           {err && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">{err}</div>}
           {!data && !err && <p className="text-sm text-muted">Loading documents…</p>}
+          <section className="rounded-2xl border border-border p-4" aria-label="Creator profile details">
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              {[["Category", creator.category], ["Profile type", creator.profile_type], ["Organisation", creator.org_type], ["Location", [creator.city, creator.country].filter(Boolean).join(", ")], ["Status", creator.is_active ? "Active" : "Inactive"], ["Introduction", creator.tagline]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted">{label}</dt><dd className="mt-1 text-ink">{value || "Not provided"}</dd></div>)}
+            </dl>
+            <Link href={`/creator/${creator.slug}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block text-sm font-semibold text-primary underline">Open public page ↗</Link>
+          </section>
+          <section className="rounded-2xl border border-border p-4" aria-label="Creator banking details">
+            <h3 className="font-semibold text-ink">Payout bank account</h3>
+            {creator.bank_details?.account_no ? <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">{[["Bank", creator.bank_details.bank], ["Account holder", creator.bank_details.account_name], ["Account number", creator.bank_details.account_no]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted">{label}</dt><dd className="mt-1 break-all font-mono text-ink">{value || "Not provided"}</dd></div>)}</dl> : <p className="mt-2 text-sm text-muted">No bank account added yet. The creator can add it under Transactions & payouts.</p>}
+            <p className="mt-3 text-xs text-muted">Bank details on file do not mean the account has been verified.</p>
+          </section>
 
           {data && (
             <>
