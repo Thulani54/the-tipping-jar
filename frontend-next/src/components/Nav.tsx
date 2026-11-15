@@ -2,22 +2,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import {
-  Route,
-  LayoutGrid,
-  Tag,
-  BookOpen,
-  ArrowUpRight,
-  Menu,
-  X,
-} from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/lib/auth";
 const LINKS = [
-  { href: "/how-it-works", label: "How it works", icon: Route },
-  { href: "/features", label: "Features", icon: LayoutGrid },
-  { href: "/pricing", label: "Pricing", icon: Tag },
-  { href: "/blog", label: "Our journal", icon: BookOpen },
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/features", label: "Features" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/blog", label: "Our journal" },
 ];
 export function Nav() {
   const { isAuthenticated, isCreator, isAdmin } = useAuth();
@@ -33,13 +25,12 @@ export function Nav() {
       <nav className="tj-container tj-nav-inner" aria-label="Main navigation">
         <Logo size={38} />
         <div className="tj-desktop-links">
-          {LINKS.map(({ href, label, icon: Icon }) => (
+          {LINKS.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               aria-current={pathname === href ? "page" : undefined}
             >
-              <Icon size={18} strokeWidth={1.5} />
               <span>{label}</span>
             </Link>
           ))}
@@ -53,7 +44,6 @@ export function Nav() {
             className="tj-button tj-button-small"
           >
             {isAuthenticated ? "Open dashboard" : "Start your jar"}
-            <ArrowUpRight size={16} />
           </Link>
         </div>
         <button
@@ -85,7 +75,6 @@ export function Nav() {
             onClick={() => setOpen(false)}
           >
             {isAuthenticated ? "Open dashboard" : "Start your jar"}
-            <ArrowUpRight size={18} />
           </Link>
         </div>
       )}
