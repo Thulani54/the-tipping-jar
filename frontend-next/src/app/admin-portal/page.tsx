@@ -80,7 +80,7 @@ export default function AdminPortalPage() {
     <div className="admin-workspace">
       {drawerOpen && <button className="admin-scrim" aria-label="Close navigation" onClick={() => setDrawerOpen(false)} />}
       <aside className={`admin-sidebar ${drawerOpen ? "is-open" : ""}`} aria-label="Admin navigation">
-        <Link href="/" className="admin-brand">Tipping Jar<span>Admin workspace</span></Link>
+        <button className="admin-menu" onClick={() => setDrawerOpen(false)} aria-label="Close navigation">Close menu ×</button><Link href="/" className="admin-brand">Tipping Jar<span>Admin workspace</span></Link>
         <nav aria-label="Admin sections">{TABS.map(t => <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id ? "page" : undefined}><i className={`bi ${t.icon}`} aria-hidden="true" />{t.label}</button>)}</nav>
         <div className="admin-sidebar-bottom"><Link href="/">View website</Link><button onClick={() => { if (window.confirm("Log out of the admin portal?")) { logout(); router.replace("/login"); } }}>Log out</button></div>
       </aside>
@@ -399,7 +399,7 @@ function CreatorsTab({ token }: { token: string }) {
         })}
       </div>
 
-    <Table head={["Creator", "Category", "KYC", "Media", "Joined", "Status", ""]}>
+    <div className="creator-directory"><Table head={["Creator", "Verification", "Status", ""]}>
       {filtered.map((c) => (
         <tr key={c.id} className="border-b border-border/60 last:border-0">
           <td className="px-5 py-3">
@@ -408,25 +408,7 @@ function CreatorsTab({ token }: { token: string }) {
             </button>
             <span className="mt-1 block text-xs text-muted">@{c.slug.replace(/^@/, "")}</span>
           </td>
-          <td className="px-5 py-3 text-muted">{c.category || "—"}</td>
-          <td className="px-5 py-3">
-            <select
-              value={c.kyc_status}
-              disabled={busy === c.id}
-              onChange={(e) => setKyc(c, e.target.value)}
-              className="rounded-lg border border-border bg-white px-2 py-1 text-xs text-ink focus:outline-none"
-            >
-              {["not_started", "pending", "verified", "rejected"].map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </td>
-          <td className="px-5 py-3 text-muted">
-            {c.has_avatar && <i className="bi bi-person-circle text-teal" title="Has avatar" />}{" "}
-            {c.has_cover && <i className="bi bi-image text-teal" title="Has cover" />}
-            {!c.has_avatar && !c.has_cover && "—"}
-          </td>
-          <td className="px-5 py-3 text-muted">{when(c.created_at)}</td>
+          <td className="px-5 py-3"><StatusPill status={c.kyc_status.replaceAll("_", " ")} /></td>
           <td className="px-5 py-3"><StatusPill status={c.is_active ? "active" : "inactive"} /></td>
           <td className="px-5 py-3 text-right">
             <span className="inline-flex items-center gap-2">
@@ -438,59 +420,98 @@ function CreatorsTab({ token }: { token: string }) {
               >
                 View details
               </button>
-              <button
-                onClick={() => setFeatured(c)}
-                disabled={busy === c.id}
-                title={c.is_featured ? "Unfeature" : "Feature on the landing page"}
-                className={`rounded-full px-2.5 py-1.5 text-sm transition disabled:opacity-50 ${
-                  c.is_featured ? "text-amber-500" : "text-muted/50 hover:text-amber-500"
-                }`}
-              >
-                <i className={`bi ${c.is_featured ? "bi-star-fill" : "bi-star"}`} />
-              </button>
-              <button
-                onClick={() => toggle(c)}
-                disabled={busy === c.id}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
-                  c.is_active
-                    ? "border border-yellow-500/40 text-yellow-600 hover:bg-yellow-50"
-                    : "bg-primary text-white"
-                }`}
-              >
-                {busy === c.id ? "…" : c.is_active ? "Deactivate" : "Activate"}
-              </button>
-              <button
-                onClick={() => remove(c)}
-                disabled={busy === c.id}
-                className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
-                title="Delete creator"
-              >
-                <i className="bi bi-trash" />
-              </button>
             </span>
           </td>
         </tr>
       ))}
-    </Table>
+    </Table></div>
     {vetting && (
       <VerifyCreatorModal
         token={token}
         creator={vetting}
         onClose={() => setVetting(null)}
         onDecided={() => { setVetting(null); load(); }}
+        management={<div className="mt-5 flex flex-wrap gap-2">              <button
+                onClick={() => setFeatured(vetting)}
+                disabled={busy === vetting.id}
+                title={vetting.is_featured ? "Unfeature" : "Feature on the landing page"}
+                className={`rounded-full px-2.5 py-1.5 text-sm transition disabled:opacity-50 ${
+                  vetting.is_featured ? "text-amber-500" : "text-muted/50 hover:text-amber-500"
+                }`}
+              >
+                <i className={`bi ${vetting.is_featured ? "bi-star-fill" : "bi-star"}`} />
+              </button>
+              <button
+                onClick={() => toggle(vetting)}
+                disabled={busy === vetting.id}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+                  vetting.is_active
+                    ? "border border-yellow-500/40 text-yellow-600 hover:bg-yellow-50"
+                    : "bg-primary text-white"
+                }`}
+              >
+                {busy === vetting.id ? "…" : vetting.is_active ? "Deactivate" : "Activate"}
+              </button>
+              <button
+                onClick={() => remove(vetting)}
+                disabled={busy === vetting.id}
+                className="rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                title="Delete creator"
+              >
+                <i className="bi bi-trash" />
+              </button>
+</div>}
       />
     )}
     </div>
   );
 }
 
-function CreatorActivity({ token, creator }: { token: string; creator: AdminCreator }) {
+function CreatorComms({ token, account }: { token: string; account: AdminUser | null }) {
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [history, setHistory] = useState<Awaited<ReturnType<typeof api.adminCommsLog>>>([]);
+  const [historyError, setHistoryError] = useState(false);
+  const load = useCallback(() => { api.adminCommsLog(token).then(setHistory).catch(() => setHistoryError(true)); }, [token]);
+  useEffect(load, [load]);
+  let phone = (account?.phone_number || "").replace(/[^0-9]/g, "");
+  if (phone.startsWith("00")) phone = phone.slice(2);
+  if (/^0\d{9}$/.test(phone)) phone = "27" + phone.slice(1);
+  const validPhone = /^[1-9]\d{7,14}$/.test(phone);
+  const entries = history.filter(h => h.recipient_emails?.some(e => e.toLowerCase() === account?.email.toLowerCase()));
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    if (!account?.email || busy || !subject.trim() || !message.trim()) return;
+    if (!window.confirm(`Send this email to ${account.email}?`)) return;
+    setBusy(true); setNotice("");
+    try {
+      const result = await api.adminBroadcast(token, { audience: "custom", recipients: [account.email], subject: subject.trim(), message: message.trim() });
+      setNotice(`Mail service accepted ${result.sent}/${result.recipients} message(s). Check the history for any preview rerouting.`);
+      if (result.sent) { setSubject(""); setMessage(""); }
+      load();
+    } catch (error) { setNotice(error instanceof Error ? error.message : "Email could not be sent."); }
+    finally { setBusy(false); }
+  }
+  return <div className="space-y-5">
+    <div><h3 className="font-semibold">Creator communications</h3><p className="mt-1 break-all text-sm text-muted">{account?.email || "No account email available"}</p>
+    {validPhone ? <a className="mt-3 inline-flex rounded-full border border-border px-4 py-2 text-sm font-semibold" href={`https://wa.me/${phone}`} target="_blank" rel="noopener noreferrer">WhatsApp creator ↗</a> : <p className="mt-2 text-xs text-muted">Add a valid international phone number to use WhatsApp.</p>}
+    <p className="mt-2 text-xs text-muted">WhatsApp opens a chat. Messages sent outside Tipping Jar are not tracked here.</p></div>
+    <form onSubmit={send} className="grid gap-3"><label className="text-sm">Subject<input required maxLength={200} value={subject} onChange={e => setSubject(e.target.value)} className="mt-1 w-full rounded-xl border border-border p-3" /></label><label className="text-sm">Message<textarea required rows={5} maxLength={10000} value={message} onChange={e => setMessage(e.target.value)} className="mt-1 w-full rounded-xl border border-border p-3" /></label><button disabled={busy || !account?.email} className="justify-self-start rounded-full bg-primary px-5 py-2 text-white disabled:opacity-50">{busy ? "Sending…" : "Send email to creator"}</button><p role="status" className="text-sm">{notice}</p></form>
+    <div><h3 className="font-semibold">Communication history</h3><p className="mt-1 text-xs text-muted">Recent platform comms addressed to this creator, including group messages. Recipient tracking starts with this update; older emails and automatic reports are not included.</p>
+      {historyError ? <p role="alert">Could not load communication history.</p> : entries.length ? <div className="mt-3 space-y-3">{entries.map(h => <article key={h.id} className="rounded-xl border border-border p-3"><h4 className="font-semibold">{h.subject}</h4><p className="mt-1 text-xs text-muted">{when(h.created_at)} · {h.actor} · {h.audience}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm">{h.message}</p><p className="mt-2 text-xs text-muted">{h.preview ? "Preview rerouted — not delivered to the intended audience" : `${h.sent}/${h.recipients} accepted by mail service (campaign total)`}</p></article>)}</div> : <p className="mt-3 text-sm text-muted">No tracked communications in the latest history.</p>}
+    </div>
+  </div>;
+}
+
+function CreatorActivity({ token, creator, section }: { token: string; creator: AdminCreator; section: string }) {
   const [account, setAccount] = useState<AdminUser | null>(null);
   const [tips, setTips] = useState<Tip[]>([]);
   const [posts, setPosts] = useState<ExclusivePost[]>([]);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<string[]>([]);
-  const [section, setSection] = useState("contact");
+
   useEffect(() => {
     let active = true;
     setLoading(true); setErrors([]); setAccount(null); setTips([]); setPosts([]);
@@ -505,10 +526,11 @@ function CreatorActivity({ token, creator }: { token: string; creator: AdminCrea
     return () => { active = false; };
   }, [token, creator.id, creator.user_id]);
   return <section className="rounded-2xl border border-border p-4">
-    <div className="mb-4 flex flex-wrap gap-2" aria-label="Creator information">{["contact","posts","tips"].map(x => <button key={x} type="button" aria-pressed={section === x} onClick={() => setSection(x)} className={`rounded-full px-4 py-2 text-sm ${section === x ? "bg-primary text-white" : "bg-slate-100 text-ink"}`}>{x === "contact" ? "Contact & account" : x === "posts" ? "Posts" : "Tips"}</button>)}</div>
+
     {loading ? <p role="status" className="text-sm text-muted">Loading creator activity…</p> : <>
       {errors.map(e => <p key={e} role="alert" className="mb-2 text-sm text-red-600">{e}</p>)}
       {section === "contact" && <dl className="grid gap-4 text-sm sm:grid-cols-2"><div><dt className="text-muted">Email</dt><dd className="mt-1 break-all">{account?.email ? <a href={`mailto:${account.email}`} className="underline">{account.email}</a> : "Not available"}</dd></div><div><dt className="text-muted">Phone</dt><dd className="mt-1">{account?.phone_number || "Not provided"}</dd></div><div><dt className="text-muted">Account joined</dt><dd className="mt-1">{account ? when(account.created_at) : "Not available"}</dd></div><div><dt className="text-muted">Creator profile created</dt><dd className="mt-1">{when(creator.created_at)}</dd></div></dl>}
+      {section === "comms" && <CreatorComms token={token} account={account} />}
       {section === "posts" && <div className="space-y-3"><p className="text-xs text-muted">Latest {posts.length} posts · up to 200</p>{!posts.length && !errors.some(e => e.startsWith("Posts")) && <p>No posts published yet.</p>}{posts.map(p => <article key={p.id} className="rounded-xl border border-border p-4"><p className="text-xs text-muted">{p.kind} · {p.access.replaceAll("_", " ")} · {when(p.created_at)}</p><h3 className="mt-2 font-semibold">{p.title}</h3><p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted">{p.body}</p>{p.media_url && /^https:\/\//i.test(p.media_url) && <a className="mt-3 inline-block text-sm underline" href={p.media_url} target="_blank" rel="noopener noreferrer">Open media</a>}</article>)}</div>}
       {section === "tips" && <div><p className="mb-3 text-sm">{tips.length} tips in loaded history · {money(tips.filter(t => t.status === "completed").reduce((n,t) => n + Number(t.amount || 0), 0))} completed</p>{!tips.length && !errors.some(e => e.startsWith("Tips")) && <p>No tips in the available history.</p>}<div className="max-h-80 space-y-2 overflow-auto">{tips.map(t => <article key={t.id} className="rounded-xl border border-border p-3"><div className="flex justify-between gap-3"><strong>{t.tipper_name || "Anonymous"}</strong><strong>{money(t.amount)}</strong></div><p className="mt-1 text-xs text-muted">{t.status} · {when(t.created_at)}</p>{t.message && <p className="mt-2 text-sm">{t.message}</p>}<p className="mt-2 text-xs text-muted">Net {money(t.creator_net)} · {t.reference}</p></article>)}</div></div>}
     </>}
@@ -523,14 +545,17 @@ function VerifyCreatorModal({
   creator,
   onClose,
   onDecided,
+  management,
 }: {
   token: string;
   creator: AdminCreator;
   onClose: () => void;
   onDecided: () => void;
+  management: React.ReactNode;
 }) {
   const [data, setData] = useState<Awaited<ReturnType<typeof api.adminCreatorVerification>> | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [section, setSection] = useState("contact");
   const [notes, setNotes] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
@@ -555,9 +580,10 @@ function VerifyCreatorModal({
   }
 
   useEffect(() => {
+    const previous = document.body.style.overflow; document.body.style.overflow = "hidden";
     const close = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
     window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
+    return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", close); };
   }, [onClose]);
 
   const gracePct = data
@@ -570,17 +596,17 @@ function VerifyCreatorModal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[80] grid place-items-center bg-black/50 p-4"
+      className="creator-modal-overlay"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        role="dialog" aria-modal="true" aria-label={`Creator details for ${creator.display_name}`} className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+        role="dialog" aria-modal="true" aria-label={`Creator details for ${creator.display_name}`} className="creator-modal"
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-border p-5">
+        <div className="creator-modal-header flex items-start justify-between gap-4 border-b border-border p-5">
           <div className="min-w-0">
             <p className="text-xs font-mono uppercase tracking-wide text-muted">Creator details</p>
-            <h2 className="mt-1 truncate text-lg font-bold text-ink">
+            <h2 className="mt-1 break-words text-lg font-bold text-ink">
               {creator.display_name} <span className="ml-1 text-sm font-mono text-muted">@{creator.slug}</span>
             </h2>
             {data && (
@@ -591,28 +617,29 @@ function VerifyCreatorModal({
             )}
           </div>
           <button onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-darker" aria-label="Close">
-            <i className="bi bi-x-lg" />
+            <span aria-hidden="true" className="text-xl">×</span>
           </button>
         </div>
 
+        <nav className="creator-tabs" aria-label="Creator sections">{[["contact","Contact"],["profile","Profile"],["posts","Posts"],["tips","Tips"],["banking","Banking"],["verification","Verification"],["comms","Comms"]].map(([id,label]) => <button key={id} onClick={() => setSection(id)} aria-pressed={section === id}>{label}</button>)}</nav>
         {/* Body */}
-        <div className="space-y-5 p-5">
-          {err && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">{err}</div>}
-          {!data && !err && <p className="text-sm text-muted">Loading documents…</p>}
-          <CreatorActivity token={token} creator={creator} />
-          <section className="rounded-2xl border border-border p-4" aria-label="Creator profile details">
+        <div className="creator-modal-body space-y-5 p-5">
+          {section === "verification" && err && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">{err}</div>}
+          {section === "verification" && !data && !err && <p className="text-sm text-muted">Loading documents…</p>}
+          {["contact","posts","tips","comms"].includes(section) && <CreatorActivity token={token} creator={creator} section={section} />}
+          {section === "profile" && <section className="rounded-2xl border border-border p-4" aria-label="Creator profile details">
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               {[["Category", creator.category], ["Profile type", creator.profile_type], ["Organisation", creator.org_type], ["Location", [creator.city, creator.country].filter(Boolean).join(", ")], ["Status", creator.is_active ? "Active" : "Inactive"], ["Introduction", creator.tagline]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted">{label}</dt><dd className="mt-1 text-ink">{value || "Not provided"}</dd></div>)}
             </dl>
-            <Link href={`/creator/${creator.slug}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block text-sm font-semibold text-primary underline">Open public page ↗</Link>
-          </section>
-          <section className="rounded-2xl border border-border p-4" aria-label="Creator banking details">
+            <Link href={`/creator/${creator.slug}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block text-sm font-semibold text-primary underline">Open public page ↗</Link>{management}
+          </section>}
+          {section === "banking" && <section className="rounded-2xl border border-border p-4" aria-label="Creator banking details">
             <h3 className="font-semibold text-ink">Payout bank account</h3>
             {creator.bank_details?.account_no ? <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">{[["Bank", creator.bank_details.bank], ["Account holder", creator.bank_details.account_name], ["Account number", creator.bank_details.account_no]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted">{label}</dt><dd className="mt-1 break-all font-mono text-ink">{value || "Not provided"}</dd></div>)}</dl> : <p className="mt-2 text-sm text-muted">No bank account added yet. The creator can add it under Transactions & payouts.</p>}
             <p className="mt-3 text-xs text-muted">Bank details on file do not mean the account has been verified.</p>
-          </section>
+          </section>}
 
-          {data && (
+          {section === "verification" && data && (
             <>
               {/* Grace-period meter */}
               <div className="rounded-2xl border border-border/60 p-4">
@@ -657,7 +684,7 @@ function VerifyCreatorModal({
         </div>
 
         {/* Actions */}
-        {data && (
+        {section === "verification" && data && (
           <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border p-5">
             <button
               onClick={() => decide("rejected")}

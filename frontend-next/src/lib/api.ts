@@ -258,7 +258,7 @@ export const api = {
     }),
   adminCommsLog: (token: string) =>
     request<
-      { id: string; actor: string; subject: string; audience: string; recipients: number; sent: number; created_at: string }[]
+      { id: string; actor: string; subject: string; audience: string; recipients: number; sent: number; created_at: string; recipient_emails?: string[]; message?: string; preview?: boolean }[]
     >("/admin/comms-log", { token }),
   adminSystem: (token: string) =>
     request<{ service: string; ok: boolean }[]>("/admin/system", { token }),

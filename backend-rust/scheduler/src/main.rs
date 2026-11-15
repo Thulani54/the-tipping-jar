@@ -118,6 +118,7 @@ async fn main() {
     .execute(&pools.accounts)
     .await
     .expect("failed to ensure comms_log table");
+    sqlx::query("ALTER TABLE comms_log ADD COLUMN IF NOT EXISTS recipient_emails JSONB NOT NULL DEFAULT '[]', ADD COLUMN IF NOT EXISTS message TEXT NOT NULL DEFAULT '', ADD COLUMN IF NOT EXISTS preview BOOLEAN NOT NULL DEFAULT false").execute(&pools.accounts).await.expect("failed to extend comms history");
 
     // Schedule the nightly report. Cron is 6-field (sec min hour dom mon dow),
     // evaluated in UTC — 22:00 UTC = 00:00 SAST.
@@ -356,10 +357,10 @@ async fn broadcast(
     let send_list: Vec<String> = if override_to.is_empty() {
         intended.clone()
     } else {
-        vec![override_to] // one representative preview while testing
+        vec![override_to.clone()] // one representative preview while testing
     };
 
-    let html_body = req.message.replace('\n', "<br/>");
+    let html_body = req.message.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('\n', "<br/>");
     let mut sent = 0usize;
     for to in &send_list {
         let subject = req.subject.clone();
@@ -390,7 +391,7 @@ async fn broadcast(
 
     // Log it.
     let _ = sqlx::query(
-        "INSERT INTO comms_log (id, actor, subject, audience, recipients, sent) VALUES ($1,$2,$3,$4,$5,$6)",
+        "INSERT INTO comms_log (id, actor, subject, audience, recipients, sent, recipient_emails, message, preview) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
     )
     .bind(Uuid::new_v4())
     .bind(req.actor.unwrap_or_default())
@@ -398,6 +399,9 @@ async fn broadcast(
     .bind(&audience)
     .bind(intended.len() as i64)
     .bind(sent as i64)
+    .bind(json!(intended))
+    .bind(&req.message)
+    .bind(!override_to.is_empty())
     .execute(&pools.accounts)
     .await;
 
@@ -407,17 +411,17 @@ async fn broadcast(
 
 /// Internal: recent comms history.
 async fn comms_log(State(pools): State<Pools>) -> Result<Json<Vec<serde_json::Value>>, AppError> {
-    let rows: Vec<(Uuid, String, String, String, i64, i64, chrono::DateTime<Utc>)> = sqlx::query_as(
-        "SELECT id, actor, subject, audience, recipients, sent, created_at
+    let rows: Vec<(Uuid, String, String, String, i64, i64, chrono::DateTime<Utc>, serde_json::Value, String, bool)> = sqlx::query_as(
+        "SELECT id, actor, subject, audience, recipients, sent, created_at, recipient_emails, message, preview
          FROM comms_log ORDER BY created_at DESC LIMIT 100",
     )
     .fetch_all(&pools.accounts)
     .await?;
     Ok(Json(
         rows.into_iter()
-            .map(|(id, actor, subject, audience, recipients, sent, created_at)| {
+            .map(|(id, actor, subject, audience, recipients, sent, created_at, recipient_emails, message, preview)| {
                 json!({ "id": id, "actor": actor, "subject": subject, "audience": audience,
-                        "recipients": recipients, "sent": sent, "created_at": created_at })
+                        "recipients": recipients, "sent": sent, "created_at": created_at, "recipient_emails": recipient_emails, "message": message, "preview": preview })
             })
             .collect(),
     ))
