@@ -164,6 +164,11 @@ async fn main() {
     .expect("invalid SIGNUP_REMINDER_CRON");
     sched.add(rem_job).await.expect("failed to add reminder job");
 
+    let verification_pools = pools.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
+        loop { interval.tick().await; if let Err(error) = deliver_verification_emails(&verification_pools).await { tracing::error!("Verification mail worker: {error}"); } }
+    });
     sched.start().await.expect("failed to start scheduler");
     tracing::info!("scheduler started — daily report '{cron}', signup reminders '{rem_cron}' (UTC)");
 
@@ -1093,4 +1098,77 @@ fn build_pdf(
     let mut buf = BufWriter::new(file);
     doc.save(&mut buf).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+/// Deliver durable verification decisions. A locked outbox row prevents two
+/// workers sending the same decision concurrently; unchanged KYC saves add no row.
+async fn deliver_verification_emails(pools: &Pools) -> Result<(), AppError> {
+    for _ in 0..25 {
+        let mut tx = pools.creators.begin().await?;
+        let row = sqlx::query("SELECT id,user_id,display_name,status,notes FROM verification_email_outbox WHERE sent_at IS NULL AND next_attempt_at <= now() ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1")
+            .fetch_optional(&mut *tx).await?;
+        let Some(row) = row else { break; };
+        let id: Uuid = row.try_get("id")?;
+        let user_id: Uuid = row.try_get("user_id")?;
+        let name: String = row.try_get("display_name")?;
+        let status: String = row.try_get("status")?;
+        let notes: String = row.try_get("notes")?;
+        let email: Option<(String,)> = sqlx::query_as("SELECT email FROM users WHERE id=$1").bind(user_id).fetch_optional(&pools.accounts).await?;
+        let Some((email,)) = email else {
+            sqlx::query("UPDATE verification_email_outbox SET next_attempt_at=now()+interval '1 hour' WHERE id=$1").bind(id).execute(&mut *tx).await?;
+            tx.commit().await?; continue;
+        };
+        let subject = if status == "verified" { "Your Tipping Jar creator account is verified" } else { "Your Tipping Jar verification needs attention" };
+        let message = verification_message(&name, &status, &notes);
+        let override_to = env("VERIFICATION_EMAIL_OVERRIDE_TO", "");
+        let preview = !override_to.is_empty();
+        let to = if preview { override_to } else { email.clone() };
+        let body = message.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('\n', "<br/>");
+        let html = format!("<div style=\"font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#0a2e50\"><h2>Tipping Jar</h2><p>{body}</p></div>");
+        // Stable event ID: retries update one history record instead of creating duplicates.
+        sqlx::query("INSERT INTO comms_log(id,actor,subject,audience,recipients,sent,recipient_emails,message,preview) VALUES($1,'system',$2,$3,1,0,$4,$5,$6) ON CONFLICT(id) DO NOTHING")
+            .bind(id).bind(subject).bind(format!("verification_{status}")).bind(json!([email])).bind(&message).bind(preview).execute(&pools.accounts).await?;
+        // Recover if SMTP acceptance was recorded before the outbox transaction committed.
+        let (already_sent,): (i64,) = sqlx::query_as("SELECT sent FROM comms_log WHERE id=$1").bind(id).fetch_one(&pools.accounts).await?;
+        if already_sent > 0 {
+            sqlx::query("UPDATE verification_email_outbox SET sent_at=now() WHERE id=$1").bind(id).execute(&mut *tx).await?;
+            tx.commit().await?; continue;
+        }
+        let text = message.clone(); let subj = subject.to_string();
+        let result = tokio::task::spawn_blocking(move || send_html_email(&to, &subj, &text, &html)).await.unwrap_or_else(|e| Err(e.to_string()));
+        if result.is_ok() {
+            sqlx::query("UPDATE comms_log SET sent=1 WHERE id=$1").bind(id).execute(&pools.accounts).await?;
+            sqlx::query("UPDATE verification_email_outbox SET sent_at=now() WHERE id=$1").bind(id).execute(&mut *tx).await?;
+        } else {
+            tracing::warn!("Verification email {id} was not accepted; retrying later");
+            sqlx::query("UPDATE verification_email_outbox SET next_attempt_at=now()+interval '10 minutes' WHERE id=$1").bind(id).execute(&mut *tx).await?;
+        }
+        tx.commit().await?;
+    }
+    Ok(())
+}
+
+fn verification_message(name: &str, status: &str, notes: &str) -> String {
+    let decision = if status == "verified" {
+        "Your creator verification has been approved. Thank you for completing verification."
+    } else {
+        "We could not approve your creator verification. Please review the feedback below and update your verification documents in your dashboard."
+    };
+    let feedback = if notes.trim().is_empty() { String::new() } else { format!("\n\nReview feedback: {}", notes.trim()) };
+    format!("Hi {name},\n\n{decision}{feedback}\n\nOpen your dashboard: https://www.tippingjar.co.za/dashboard?tab=profile\n\nNeed help? Contact accounts@tippingjar.co.za.\n\nThe Tipping Jar team")
+}
+
+#[cfg(test)]
+mod verification_email_tests {
+    use super::verification_message;
+    #[test]
+    fn approval_and_rejection_have_correct_outcomes() {
+        let approved = verification_message("Creator", "verified", "");
+        assert!(approved.contains("has been approved"));
+        assert!(!approved.contains("could not approve"));
+        let rejected = verification_message("Creator", "rejected", "Please upload a readable ID");
+        assert!(rejected.contains("could not approve"));
+        assert!(rejected.contains("Please upload a readable ID"));
+        assert!(rejected.contains("dashboard?tab=profile"));
+    }
 }

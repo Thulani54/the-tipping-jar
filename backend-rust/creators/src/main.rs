@@ -742,21 +742,19 @@ async fn set_kyc_internal(
     ) {
         return Err(AppError::BadRequest("invalid kyc status".into()));
     }
-    let res = sqlx::query(
-        "UPDATE creator_profiles
-         SET kyc_status = $1,
-             verification_notes = COALESCE($2, verification_notes)
-         WHERE id = $3",
-    )
-    .bind(&req.status)
-    .bind(req.notes.map(|n| n.chars().take(500).collect::<String>()))
-    .bind(id)
-    .execute(&st.pool)
-    .await?;
-    if res.rows_affected() == 0 {
-        return Err(AppError::NotFound("creator not found".into()));
+    let mut tx = st.pool.begin().await?;
+    let (previous, user_id, display_name, existing_notes): (String, Uuid, String, String) = sqlx::query_as("SELECT kyc_status,user_id,display_name,verification_notes FROM creator_profiles WHERE id=$1 FOR UPDATE")
+        .bind(id).fetch_one(&mut *tx).await?;
+    let notes = req.notes.map(|n| n.chars().take(500).collect::<String>()).unwrap_or(existing_notes);
+    sqlx::query("UPDATE creator_profiles SET kyc_status=$1, verification_notes=$2 WHERE id=$3")
+        .bind(&req.status).bind(&notes).bind(id).execute(&mut *tx).await?;
+    let queued = previous != req.status && matches!(req.status.as_str(), "verified" | "rejected");
+    if queued {
+        sqlx::query("INSERT INTO verification_email_outbox(id,creator_id,user_id,display_name,status,notes) VALUES($1,$2,$3,$4,$5,$6)")
+            .bind(Uuid::new_v4()).bind(id).bind(user_id).bind(display_name).bind(&req.status).bind(notes).execute(&mut *tx).await?;
     }
-    Ok(Json(json!({ "id": id, "kyc_status": req.status })))
+    tx.commit().await?;
+    Ok(Json(json!({ "id": id, "kyc_status": req.status, "email_queued": queued })))
 }
 
 /// Internal (admin portal): fetch a creator's verification documents +
@@ -1393,6 +1391,8 @@ async fn delete_design(
 // ── Bootstrap ───────────────────────────────────────────────────────────────
 
 async fn init_db(pool: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query("CREATE TABLE IF NOT EXISTS verification_email_outbox (id UUID PRIMARY KEY, creator_id UUID NOT NULL, user_id UUID NOT NULL, display_name TEXT NOT NULL, status TEXT NOT NULL, notes TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT now(), sent_at TIMESTAMPTZ)").execute(pool).await?;
+
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS creator_profiles (
             id           UUID PRIMARY KEY,
