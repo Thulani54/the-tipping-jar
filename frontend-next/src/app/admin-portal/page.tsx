@@ -399,7 +399,7 @@ function CreatorsTab({ token }: { token: string }) {
         })}
       </div>
 
-    <div className="creator-directory"><Table head={["Creator", "Verification", "Status", ""]}>
+    <div className="creator-directory"><Table head={["Creator", "Date joined", "Verification", "Status", ""]}>
       {filtered.map((c) => (
         <tr key={c.id} className="border-b border-border/60 last:border-0">
           <td className="px-5 py-3">
@@ -408,10 +408,12 @@ function CreatorsTab({ token }: { token: string }) {
             </button>
             <span className="mt-1 block text-xs text-muted">@{c.slug.replace(/^@/, "")}</span>
           </td>
+          <td className="px-5 py-3 text-xs text-muted"><span className="sm:hidden">Date joined: </span>{when(c.created_at)}</td>
           <td className="px-5 py-3"><StatusPill status={c.kyc_status.replaceAll("_", " ")} /></td>
           <td className="px-5 py-3"><StatusPill status={c.is_active ? "active" : "inactive"} /></td>
           <td className="px-5 py-3 text-right">
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex flex-wrap items-center gap-2">
+              <Link href={`/creator/${encodeURIComponent(c.slug)}`} target="_blank" rel="noopener noreferrer" className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold">View creator page ↗</Link>
               <button
                 onClick={() => setVetting(c)}
                 disabled={busy === c.id}
@@ -431,6 +433,7 @@ function CreatorsTab({ token }: { token: string }) {
         creator={vetting}
         onClose={() => setVetting(null)}
         onDecided={() => { setVetting(null); load(); }}
+        onSaved={updated => { setVetting(updated); load(); }}
         management={<div className="mt-5 flex flex-wrap gap-2">              <button
                 onClick={() => setFeatured(vetting)}
                 disabled={busy === vetting.id}
@@ -467,20 +470,53 @@ function CreatorsTab({ token }: { token: string }) {
   );
 }
 
+function AdminProfileEditor({ token, creator, onSaved }: { token: string; creator: AdminCreator; onSaved: (creator: AdminCreator) => void }) {
+  const [form, setForm] = useState({ display_name: creator.display_name, tagline: creator.tagline || "", category: creator.category || "", country: creator.country || "", city: creator.city || "", org_type: creator.org_type || "" });
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  async function save(e: React.FormEvent) {
+    e.preventDefault(); if (busy) return;
+    setBusy(true); setNotice("");
+    try { const cleaned = Object.fromEntries(Object.entries(form).map(([k,v]) => [k,v.trim()])) as typeof form; await api.adminUpdateCreatorProfile(token, creator.id, cleaned); onSaved({ ...creator, ...cleaned }); setNotice("Profile details saved."); }
+    catch (e) { setNotice(e instanceof Error ? e.message : "Could not save profile details."); }
+    finally { setBusy(false); }
+  }
+  return <form onSubmit={save} className="mt-5 border-t border-border pt-5"><h3 className="font-semibold">Edit profile details</h3><p className="mt-1 text-xs text-muted">Updates are recorded in the admin audit log.</p><div className="mt-4 grid gap-4 sm:grid-cols-2">{([["display_name","Display name",60],["category","Category",80],["country","Country",80],["city","City",120],["org_type","Organisation type",80]] as const).map(([key,label,max]) => <label key={key} className="text-sm">{label}<input required={key === "display_name"} maxLength={max} value={form[key]} onChange={e => setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-xl border border-border px-3 py-2" /></label>)}</div><label className="mt-4 block text-sm">Introduction<textarea maxLength={500} rows={3} value={form.tagline} onChange={e => setForm({...form,tagline:e.target.value})} className="mt-1 w-full rounded-xl border border-border p-3" /></label><button disabled={busy} className="mt-4 rounded-full bg-primary px-5 py-2 text-sm text-white disabled:opacity-50">{busy ? "Saving…" : "Save profile details"}</button><p role="status" className="mt-2 text-sm">{notice}</p></form>;
+}
+
+function CommunicationHistory({ token, email, refresh }: { token: string; email?: string; refresh?: unknown }) {
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof api.adminCommsLog>>>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [more, setMore] = useState(false);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  useEffect(() => {
+    let active = true; setLoading(true); setError(""); setRows([]);
+    api.adminCommsLog(token, email).then(data => { if(active){setRows(data);setMore(data.length === 100);} }).catch(() => {if(active)setError("Could not load communication history.");}).finally(()=>{if(active)setLoading(false);});
+    return () => {active=false;};
+  }, [token,email,refresh]);
+  async function next() {setLoading(true);setError("");try{const data=await api.adminCommsLog(token,email,rows.length);setRows(r=>[...r,...data]);setMore(data.length===100);}catch{setError("Could not load more history.");}finally{setLoading(false);}}
+  const visible=rows.filter(r => (filter === "all" || (filter === "preview" ? r.preview : filter === "failed" ? !r.preview && r.sent === 0 : !r.preview && r.sent > 0)) && `${r.subject} ${r.message || ""} ${r.recipient_emails?.join(" ") || ""} ${r.actor}`.toLowerCase().includes(query.toLowerCase()));
+  return <section className="space-y-3"><h3 className="font-semibold">Communication history</h3><p className="text-xs text-muted">Platform emails, individual and group comms, signup reminders and daily reports. Search filters loaded records; load older records below. Emails sent before tracking was added and external WhatsApp chats cannot be reconstructed.</p><div className="flex flex-wrap gap-2"><input aria-label="Search communication history" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search subject, recipient or message" className="min-w-0 flex-1 rounded-xl border border-border p-2 text-sm"/><select aria-label="Communication status" value={filter} onChange={e=>setFilter(e.target.value)} className="rounded-xl border border-border p-2 text-sm"><option value="all">All statuses</option><option value="sent">Accepted by mail service</option><option value="failed">Failed</option><option value="preview">Preview rerouted</option></select></div>
+    {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+    {!loading&&!error&&!visible.length&&<p className="text-sm text-muted">No matching communications in loaded history.</p>}
+    {visible.map(h=><details key={h.id} className="rounded-xl border border-border p-3"><summary className="cursor-pointer"><strong className="text-sm">{h.subject}</strong><span className="mt-1 block text-xs text-muted">{when(h.created_at)} · {h.audience.replaceAll("_"," ")} · {h.preview ? "Preview rerouted" : h.sent === 0 ? "Failed" : "Accepted by mail service"}</span></summary><dl className="mt-3 grid gap-2 text-xs"><div><dt className="text-muted">To</dt><dd className="break-all">{h.recipient_emails?.length ? h.recipient_emails.join(", ") : "Recipients not recorded for this older message"}</dd></div><div><dt className="text-muted">Sent by</dt><dd>{h.actor || "System"}</dd></div><div><dt className="text-muted">Delivery</dt><dd>{h.preview ? "Test override: intended recipients were not contacted." : `${h.sent}/${h.recipients} accepted by mail service. Inbox delivery is not confirmed.`}</dd></div></dl><p className="mt-3 whitespace-pre-wrap break-words text-sm">{h.message || "Message body was not retained for this older email."}</p></details>)}
+    {loading&&<p role="status" className="text-sm">Loading history…</p>}{more&&<button disabled={loading} onClick={next} className="rounded-full border border-border px-4 py-2 text-sm">Load older communications</button>}
+  </section>;
+}
+
 function CreatorComms({ token, account }: { token: string; account: AdminUser | null }) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
-  const [history, setHistory] = useState<Awaited<ReturnType<typeof api.adminCommsLog>>>([]);
-  const [historyError, setHistoryError] = useState(false);
-  const load = useCallback(() => { api.adminCommsLog(token).then(setHistory).catch(() => setHistoryError(true)); }, [token]);
-  useEffect(load, [load]);
+  const [history, setHistory] = useState(0);
+  const load = () => setHistory(n => n + 1);
   let phone = (account?.phone_number || "").replace(/[^0-9]/g, "");
   if (phone.startsWith("00")) phone = phone.slice(2);
   if (/^0\d{9}$/.test(phone)) phone = "27" + phone.slice(1);
   const validPhone = /^[1-9]\d{7,14}$/.test(phone);
-  const entries = history.filter(h => h.recipient_emails?.some(e => e.toLowerCase() === account?.email.toLowerCase()));
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!account?.email || busy || !subject.trim() || !message.trim()) return;
@@ -499,9 +535,7 @@ function CreatorComms({ token, account }: { token: string; account: AdminUser | 
     {validPhone ? <a className="mt-3 inline-flex rounded-full border border-border px-4 py-2 text-sm font-semibold" href={`https://wa.me/${phone}`} target="_blank" rel="noopener noreferrer">WhatsApp creator ↗</a> : <p className="mt-2 text-xs text-muted">Add a valid international phone number to use WhatsApp.</p>}
     <p className="mt-2 text-xs text-muted">WhatsApp opens a chat. Messages sent outside Tipping Jar are not tracked here.</p></div>
     <form onSubmit={send} className="grid gap-3"><label className="text-sm">Subject<input required maxLength={200} value={subject} onChange={e => setSubject(e.target.value)} className="mt-1 w-full rounded-xl border border-border p-3" /></label><label className="text-sm">Message<textarea required rows={5} maxLength={10000} value={message} onChange={e => setMessage(e.target.value)} className="mt-1 w-full rounded-xl border border-border p-3" /></label><button disabled={busy || !account?.email} className="justify-self-start rounded-full bg-primary px-5 py-2 text-white disabled:opacity-50">{busy ? "Sending…" : "Send email to creator"}</button><p role="status" className="text-sm">{notice}</p></form>
-    <div><h3 className="font-semibold">Communication history</h3><p className="mt-1 text-xs text-muted">Recent platform comms addressed to this creator, including group messages. Recipient tracking starts with this update; older emails and automatic reports are not included.</p>
-      {historyError ? <p role="alert">Could not load communication history.</p> : entries.length ? <div className="mt-3 space-y-3">{entries.map(h => <article key={h.id} className="rounded-xl border border-border p-3"><h4 className="font-semibold">{h.subject}</h4><p className="mt-1 text-xs text-muted">{when(h.created_at)} · {h.actor} · {h.audience}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm">{h.message}</p><p className="mt-2 text-xs text-muted">{h.preview ? "Preview rerouted — not delivered to the intended audience" : `${h.sent}/${h.recipients} accepted by mail service (campaign total)`}</p></article>)}</div> : <p className="mt-3 text-sm text-muted">No tracked communications in the latest history.</p>}
-    </div>
+    {account?.email && <CommunicationHistory token={token} email={account.email} refresh={history} />}
   </div>;
 }
 
@@ -546,12 +580,14 @@ function VerifyCreatorModal({
   onClose,
   onDecided,
   management,
+  onSaved,
 }: {
   token: string;
   creator: AdminCreator;
   onClose: () => void;
   onDecided: () => void;
   management: React.ReactNode;
+  onSaved: (creator: AdminCreator) => void;
 }) {
   const [data, setData] = useState<Awaited<ReturnType<typeof api.adminCreatorVerification>> | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -631,7 +667,7 @@ function VerifyCreatorModal({
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               {[["Category", creator.category], ["Profile type", creator.profile_type], ["Organisation", creator.org_type], ["Location", [creator.city, creator.country].filter(Boolean).join(", ")], ["Status", creator.is_active ? "Active" : "Inactive"], ["Introduction", creator.tagline]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted">{label}</dt><dd className="mt-1 text-ink">{value || "Not provided"}</dd></div>)}
             </dl>
-            <Link href={`/creator/${creator.slug}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block text-sm font-semibold text-primary underline">Open public page ↗</Link>{management}
+            <Link href={`/creator/${creator.slug}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block text-sm font-semibold text-primary underline">View creator page ↗</Link><AdminProfileEditor token={token} creator={creator} onSaved={onSaved} />{management}
           </section>}
           {section === "banking" && <section className="rounded-2xl border border-border p-4" aria-label="Creator banking details">
             <h3 className="font-semibold text-ink">Payout bank account</h3>
@@ -1204,14 +1240,8 @@ function CommsTab({ token, prefill }: { token: string; prefill?: string | null }
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const [history, setHistory] = useState<
-    { id: string; actor: string; subject: string; audience: string; recipients: number; sent: number; created_at: string }[] | null
-  >(null);
-
-  const loadHistory = useCallback(() => {
-    api.adminCommsLog(token).then(setHistory).catch(() => setHistory([]));
-  }, [token]);
-  useEffect(loadHistory, [loadHistory]);
+  const [history, setHistory] = useState(0);
+  const loadHistory = () => setHistory(n => n + 1);
   useEffect(() => {
     if (audience === "custom" && !users) {
       api.adminUsers(token).then(setUsers).catch(() => setUsers([]));
@@ -1350,28 +1380,7 @@ function CommsTab({ token, prefill }: { token: string; prefill?: string | null }
         </div>
       </div>
 
-      <div>
-        <h3 className="mb-3 text-base font-bold text-ink">Sent history</h3>
-        {!history ? (
-          <Loading />
-        ) : history.length === 0 ? (
-          <p className="body-muted">Nothing sent yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {history.slice(0, 12).map((h) => (
-              <div key={h.id} className="card !p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-semibold text-ink">{h.subject}</p>
-                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] text-primary">{h.audience}</span>
-                </div>
-                <p className="mt-1 text-xs text-muted">
-                  {h.actor || "system"} · {when(h.created_at)} · {h.sent}/{h.recipients} sent
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <CommunicationHistory token={token} refresh={history} />
     </div>
   );
 }

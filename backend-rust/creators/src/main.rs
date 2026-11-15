@@ -602,6 +602,31 @@ async fn get_me(
 
 /// Every profile (active or not), images reduced to booleans to keep the
 /// payload light (avatar/cover are data URLs).
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AdminProfileUpdate {
+    display_name: String,
+    tagline: String,
+    category: String,
+    country: String,
+    city: String,
+    org_type: String,
+}
+
+async fn update_profile_internal(State(st): State<AppState>, headers: HeaderMap, Path(id): Path<Uuid>, Json(req): Json<AdminProfileUpdate>) -> Result<Json<serde_json::Value>, AppError> {
+    common::require_internal_key(&headers)?;
+    if req.display_name.trim().is_empty() || req.display_name.chars().count() > 60 {
+        return Err(AppError::BadRequest("Display name must be 1–60 characters".into()));
+    }
+    for (label, value, max) in [("Introduction", &req.tagline, 500), ("Category", &req.category, 80), ("Country", &req.country, 80), ("City", &req.city, 120), ("Organisation type", &req.org_type, 80)] {
+        if value.chars().count() > max { return Err(AppError::BadRequest(format!("{label} is too long"))); }
+    }
+    let result = sqlx::query("UPDATE creator_profiles SET display_name=$2, tagline=$3, category=$4, country=$5, city=$6, org_type=$7 WHERE id=$1")
+        .bind(id).bind(req.display_name.trim()).bind(req.tagline.trim()).bind(req.category.trim()).bind(req.country.trim()).bind(req.city.trim()).bind(req.org_type.trim()).execute(&st.pool).await?;
+    if result.rows_affected() == 0 { return Err(AppError::NotFound("Creator not found".into())); }
+    Ok(Json(json!({"ok": true})))
+}
+
 async fn list_all_internal(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -1566,7 +1591,7 @@ async fn main() {
         .route("/internal/creators/all", get(list_all_internal))
         .route(
             "/internal/creators/:id",
-            get(get_by_id).delete(delete_creator_internal),
+            get(get_by_id).put(update_profile_internal).delete(delete_creator_internal),
         )
         .route("/internal/creators/by-user/:user_id", get(get_by_user_id_internal))
         .route("/internal/creators/:id/active", post(set_active_internal))

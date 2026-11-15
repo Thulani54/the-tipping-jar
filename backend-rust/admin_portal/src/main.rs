@@ -268,6 +268,13 @@ async fn delete_user(
     forward(&st, reqwest::Method::DELETE, format!("{}/internal/users/{id}", st.accounts_url), None).await
 }
 
+async fn update_creator_profile(State(st): State<AppState>, headers: HeaderMap, Path(id): Path<String>, Json(body): Json<Value>) -> Result<Json<Value>, AppError> {
+    let (_, email) = require_admin(&st, &headers).await?;
+    let result = forward(&st, reqwest::Method::PUT, format!("{}/internal/creators/{id}", st.creators_url), Some(&body)).await?;
+    audit(&st, &email, "creator.update_profile", &id.to_string(), "Profile details updated").await;
+    Ok(result)
+}
+
 async fn set_creator_kyc(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -472,13 +479,11 @@ async fn system(State(st): State<AppState>, headers: HeaderMap) -> Result<Json<V
 }
 
 /// Comms history from the scheduler's log.
-async fn comms_log(State(st): State<AppState>, headers: HeaderMap) -> Result<Json<Value>, AppError> {
+async fn comms_log(State(st): State<AppState>, headers: HeaderMap, axum::extract::Query(query): axum::extract::Query<std::collections::HashMap<String,String>>) -> Result<Json<Value>, AppError> {
     require_admin(&st, &headers).await?;
-    Ok(Json(
-        fetch_json(&st, format!("{}/internal/comms-log", st.scheduler_url), false)
-            .await
-            .unwrap_or(Value::Array(vec![])),
-    ))
+    let mut url = reqwest::Url::parse(&format!("{}/internal/comms-log", st.scheduler_url)).map_err(|e| AppError::Internal(e.to_string()))?;
+    for key in ["email", "offset"] { if let Some(value) = query.get(key) { url.query_pairs_mut().append_pair(key, value); } }
+    forward(&st, reqwest::Method::GET, url.to_string(), None).await
 }
 
 /// The admin action trail.
@@ -520,7 +525,7 @@ async fn main() {
         .route("/users/:id", axum::routing::delete(delete_user))
         .route("/users/:id/role", post(set_user_role))
         .route("/creators", get(creators))
-        .route("/creators/:id", axum::routing::delete(delete_creator))
+        .route("/creators/:id", axum::routing::delete(delete_creator).put(update_creator_profile))
         .route("/creators/:id/active", post(set_creator_active))
         .route("/creators/:id/kyc", post(set_creator_kyc))
         .route("/creators/:id/verification", get(get_creator_verification))

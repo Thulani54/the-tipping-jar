@@ -173,6 +173,7 @@ export const api = {
       body: { is_active },
       token,
     }),
+  adminUpdateCreatorProfile: (token: string, id: string, body: { display_name: string; tagline: string; category: string; country: string; city: string; org_type: string }) => request<{ok: boolean}>(`/admin/creators/${id}`, { token, method: "PUT", body }),
   adminCreatorPosts: (token: string, id: string) => request<ExclusivePost[]>(`/admin/creators/${id}/posts`, { token }),
   adminTips: (token: string) => request<Tip[]>("/admin/tips", { token }),
   adminTransactions: (token: string) =>
@@ -256,10 +257,10 @@ export const api = {
       body,
       token,
     }),
-  adminCommsLog: (token: string) =>
+  adminCommsLog: (token: string, email?: string, offset = 0) =>
     request<
       { id: string; actor: string; subject: string; audience: string; recipients: number; sent: number; created_at: string; recipient_emails?: string[]; message?: string; preview?: boolean }[]
-    >("/admin/comms-log", { token }),
+    >(`/admin/comms-log?offset=${offset}${email ? `&email=${encodeURIComponent(email)}` : ""}`, { token }),
   adminSystem: (token: string) =>
     request<{ service: string; ok: boolean }[]>("/admin/system", { token }),
   adminAudit: (token: string) => request<AuditEntry[]>("/admin/audit", { token }),

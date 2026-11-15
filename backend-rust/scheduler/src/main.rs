@@ -258,9 +258,9 @@ struct ThanksReq {
 
 /// Internal: a creator thanked a tipper — email the tipper their note.
 /// Honors COMMS_OVERRIDE_TO while testing.
-async fn send_thanks(Json(req): Json<ThanksReq>) -> Result<Json<serde_json::Value>, AppError> {
+async fn send_thanks(State(pools): State<Pools>, Json(req): Json<ThanksReq>) -> Result<Json<serde_json::Value>, AppError> {
     let override_to = env("COMMS_OVERRIDE_TO", "");
-    let to = if override_to.is_empty() { req.to.clone() } else { override_to };
+    let to = if override_to.is_empty() { req.to.clone() } else { override_to.clone() };
     let tipper = req.tipper_name.clone().unwrap_or_else(|| "there".into());
     let amount = req.amount.clone().unwrap_or_default();
     let subject = format!("{} says thank you!", req.creator_name);
@@ -292,9 +292,11 @@ async fn send_thanks(Json(req): Json<ThanksReq>) -> Result<Json<serde_json::Valu
         amt = if amount.is_empty() { String::new() } else { format!(" of R{amount}") },
         msg = req.message,
     );
+    let log_subject = subject.clone(); let log_text = text.clone();
     let sent = tokio::task::spawn_blocking(move || send_html_email(&to, &subject, &text, &html))
         .await
         .unwrap_or_else(|e| Err(format!("join error: {e}")));
+    log_communication(&pools, "creator", "thanks", vec![req.to], &log_subject, &log_text, sent.is_ok(), !override_to.is_empty()).await;
     match sent {
         Ok(()) => Ok(Json(json!({ "sent": true }))),
         Err(e) => Err(AppError::Internal(format!("send failed: {e}"))),
@@ -383,38 +385,35 @@ async fn broadcast(
         let ok = tokio::task::spawn_blocking(move || send_html_email(&to2, &subject, &text, &html))
             .await
             .unwrap_or_else(|e| Err(format!("join error: {e}")));
+        log_communication(&pools, req.actor.as_deref().unwrap_or("admin"), &audience, if override_to.is_empty() { vec![to.clone()] } else { intended.clone() }, &req.subject, &req.message, ok.is_ok(), !override_to.is_empty()).await;
         match ok {
             Ok(()) => sent += 1,
             Err(e) => tracing::error!("broadcast to {to} failed: {e}"),
         }
     }
 
-    // Log it.
-    let _ = sqlx::query(
-        "INSERT INTO comms_log (id, actor, subject, audience, recipients, sent, recipient_emails, message, preview) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
-    )
-    .bind(Uuid::new_v4())
-    .bind(req.actor.unwrap_or_default())
-    .bind(req.subject.chars().take(200).collect::<String>())
-    .bind(&audience)
-    .bind(intended.len() as i64)
-    .bind(sent as i64)
-    .bind(json!(intended))
-    .bind(&req.message)
-    .bind(!override_to.is_empty())
-    .execute(&pools.accounts)
-    .await;
-
     tracing::info!("broadcast '{}' [{audience}] -> {sent}/{} (intended {})", req.subject, send_list.len(), intended.len());
     Ok(Json(json!({ "recipients": intended.len(), "sent": sent, "audience": audience })))
 }
 
-/// Internal: recent comms history.
-async fn comms_log(State(pools): State<Pools>) -> Result<Json<Vec<serde_json::Value>>, AppError> {
+async fn log_communication(pools: &Pools, actor: &str, audience: &str, recipients: Vec<String>, subject: &str, message: &str, sent: bool, preview: bool) {
+    if let Err(error) = sqlx::query("INSERT INTO comms_log (id,actor,subject,audience,recipients,sent,recipient_emails,message,preview) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)")
+        .bind(Uuid::new_v4()).bind(actor).bind(subject).bind(audience).bind(recipients.len() as i64).bind(if sent {1i64} else {0i64}).bind(json!(recipients)).bind(message).bind(preview).execute(&pools.accounts).await {
+        tracing::error!("Could not record communication: {error}");
+    }
+}
+
+#[derive(Deserialize, Default)]
+struct CommsHistoryQuery { email: Option<String>, offset: Option<i64> }
+
+/// Internal: paginated comms history.
+async fn comms_log(State(pools): State<Pools>, Query(query): Query<CommsHistoryQuery>) -> Result<Json<Vec<serde_json::Value>>, AppError> {
     let rows: Vec<(Uuid, String, String, String, i64, i64, chrono::DateTime<Utc>, serde_json::Value, String, bool)> = sqlx::query_as(
         "SELECT id, actor, subject, audience, recipients, sent, created_at, recipient_emails, message, preview
-         FROM comms_log ORDER BY created_at DESC LIMIT 100",
+         FROM comms_log WHERE ($1::text IS NULL OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(recipient_emails) AS recipient WHERE lower(recipient) = lower($1))) ORDER BY created_at DESC, id DESC LIMIT 100 OFFSET $2",
     )
+    .bind(query.email.as_deref())
+    .bind(query.offset.unwrap_or(0).max(0))
     .fetch_all(&pools.accounts)
     .await?;
     Ok(Json(
@@ -490,10 +489,12 @@ async fn run_signup_reminders(pools: &Pools) -> Result<(usize, usize), AppError>
         let (subj, text, html) = reminder_email(&username);
         let send = {
             let user_to = user_to.clone();
+            let subj = subj.clone(); let text = text.clone();
             tokio::task::spawn_blocking(move || send_html_email(&user_to, &subj, &text, &html))
                 .await
                 .unwrap_or_else(|e| Err(format!("join error: {e}")))
         };
+        log_communication(pools, "system", "signup_reminder", vec![email.clone()], &subj, &text, send.is_ok(), !override_to.is_empty()).await;
         match send {
             Ok(()) => {
                 sent += 1;
@@ -518,9 +519,11 @@ async fn run_signup_reminders(pools: &Pools) -> Result<(usize, usize), AppError>
         };
         for admin in admin_targets {
             let (subj, text, html) = admin_alert_email(&email, &username, &signed_up, after_hours);
+            let log_to = admin.clone(); let log_subj = subj.clone(); let log_text = text.clone();
             let res = tokio::task::spawn_blocking(move || send_html_email(&admin, &subj, &text, &html))
                 .await
                 .unwrap_or_else(|e| Err(format!("join error: {e}")));
+            log_communication(pools, "system", "admin_alert", vec![log_to], &log_subj, &log_text, res.is_ok(), !override_to.is_empty()).await;
             if let Err(e) = res {
                 tracing::error!("admin alert for {email} failed: {e}");
             }
@@ -719,9 +722,13 @@ async fn run_daily_report(
                             pdf: pdf_bytes,
                         };
                         // lettre's SMTP transport is blocking — keep the runtime free.
+                        let report_subject = format!("Your Tipping Jar report — {} from {} tip(s) · {}", args.net, args.n_tips, args.date_label);
+                        let report_message = format!("Hi {}, you received {} tip(s) totalling {} ({} to you) on {}. Attachment: {}", args.display, args.n_tips, args.gross, args.net, args.date_label, args.filename);
                         let sent = tokio::task::spawn_blocking(move || send_report_email(args))
                             .await
                             .unwrap_or_else(|e| Err(format!("join error: {e}")));
+                        let intended = user_of.get(cid).and_then(|u| email_of.get(u)).cloned().unwrap_or_else(|| to.clone());
+                        log_communication(pools, "system", "daily_report", vec![intended], &report_subject, &report_message, sent.is_ok(), to_override.is_some()).await;
                         match sent {
                             Ok(()) => {
                                 emailed += 1;
