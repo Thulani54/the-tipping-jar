@@ -700,14 +700,14 @@ function VerifyCreatorModal({
             >
               {busy === "pending" ? "Saving…" : "Mark pending"}
             </button>
-            <button
+            {data.kyc_status !== "verified" && <button
               onClick={() => decide("verified")}
               disabled={!!busy || !data.id_document_url || !data.proof_of_account_url}
               className="rounded-full bg-teal px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               title={(!data.id_document_url || !data.proof_of_account_url) ? "Creator has not uploaded both documents yet" : ""}
             >
               {busy === "verified" ? "Approving…" : "✅ Approve as verified"}
-            </button>
+            </button>}
           </div>
         )}
       </div>
