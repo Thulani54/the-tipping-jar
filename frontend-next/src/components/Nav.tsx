@@ -36,9 +36,7 @@ export function Nav() {
           ))}
         </div>
         <div className="tj-nav-actions">
-          <Link href={isAuthenticated ? destination : "/login"}>
-            {isAuthenticated ? "My dashboard" : "Log in"}
-          </Link>
+          {!isAuthenticated && <Link href="/login">Log in</Link>}
           <Link
             href={isAuthenticated ? destination : "/register"}
             className="tj-button tj-button-small"
@@ -63,12 +61,7 @@ export function Nav() {
               {l.label}
             </Link>
           ))}
-          <Link
-            href={isAuthenticated ? destination : "/login"}
-            onClick={() => setOpen(false)}
-          >
-            {isAuthenticated ? "My dashboard" : "Log in"}
-          </Link>
+          {!isAuthenticated && <Link href="/login" onClick={() => setOpen(false)}>Log in</Link>}
           <Link
             href={isAuthenticated ? destination : "/register"}
             className="tj-button"

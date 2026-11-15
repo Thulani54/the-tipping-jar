@@ -281,6 +281,12 @@ async fn set_creator_kyc(
 
 /// GET a creator's verification submission — docs + notes + grace-window
 /// stats. Admin-only, audited.
+async fn get_creator_posts(State(st): State<AppState>, headers: HeaderMap, Path(id): Path<String>) -> Result<Json<Value>, AppError> {
+    let (_, email) = require_admin(&st, &headers).await?;
+    audit(&st, &email, "creator.view_posts", &id, "").await;
+    forward(&st, reqwest::Method::GET, format!("{}/internal/creators/{id}/posts", st.creators_url), None).await
+}
+
 async fn get_creator_verification(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -518,6 +524,7 @@ async fn main() {
         .route("/creators/:id/active", post(set_creator_active))
         .route("/creators/:id/kyc", post(set_creator_kyc))
         .route("/creators/:id/verification", get(get_creator_verification))
+        .route("/creators/:id/posts", get(get_creator_posts))
         .route("/tips", get(tips))
         .route("/analytics/daily", get(analytics_daily))
         .route("/transactions", get(transactions))

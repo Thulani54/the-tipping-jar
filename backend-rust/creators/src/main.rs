@@ -894,6 +894,13 @@ async fn create_post(
     Ok(Json(row))
 }
 
+async fn admin_posts_internal(State(st): State<AppState>, headers: HeaderMap, Path(id): Path<Uuid>) -> Result<Json<Vec<ExclusivePost>>, AppError> {
+    common::require_internal_key(&headers)?;
+    let rows = sqlx::query_as::<_, ExclusivePost>(&format!("SELECT {POST_COLUMNS} FROM exclusive_posts WHERE creator_id = $1 ORDER BY created_at DESC LIMIT 200"))
+        .bind(id).fetch_all(&st.pool).await?;
+    Ok(Json(rows))
+}
+
 async fn my_posts(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -1565,6 +1572,7 @@ async fn main() {
         .route("/internal/creators/:id/active", post(set_active_internal))
         .route("/internal/creators/:id/kyc", post(set_kyc_internal))
         .route("/internal/creators/:id/verification", get(get_verification_internal))
+        .route("/internal/creators/:id/posts", get(admin_posts_internal))
         .route("/internal/creators/:id/featured", post(set_featured_internal))
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state);

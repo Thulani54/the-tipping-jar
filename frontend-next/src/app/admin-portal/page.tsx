@@ -7,10 +7,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import "./admin.css";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import type {
   AdminCreator,
+  ExclusivePost,
   AuditEntry,
   AdminDashboard,
   AdminTickets,
@@ -54,9 +56,12 @@ function StatusPill({ status }: { status?: string }) {
 }
 
 export default function AdminPortalPage() {
-  const { token, isAuthenticated, isAdmin, initialized } = useAuth();
+  const { token, isAuthenticated, isAdmin, initialized, logout } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, updateTab] = useState<Tab>("overview");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const setTab = (next: Tab) => { updateTab(next); setDrawerOpen(false); const url = new URL(window.location.href); url.searchParams.set("tab", next); window.history.pushState({}, "", url); };
+  useEffect(() => { const sync = () => { const value = new URLSearchParams(window.location.search).get("tab"); updateTab(TABS.some(t => t.id === value) ? value as Tab : "overview"); }; sync(); window.addEventListener("popstate", sync); return () => window.removeEventListener("popstate", sync); }, []);
   const [commsPrefill, setCommsPrefill] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,30 +77,16 @@ export default function AdminPortalPage() {
   }
 
   return (
-    <div className="app-shell container-content py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="eyebrow">Admin portal</p>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Platform control</h1>
-        </div>
-        <span className="font-mono text-xs text-muted">live · api.tippingjar.co.za</span>
-      </div>
-
-      <div className="mt-8 flex gap-2 overflow-x-auto border-b border-border pb-px">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 whitespace-nowrap rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${
-              tab === t.id ? "border-b-2 border-teal text-ink" : "text-muted hover:text-ink"
-            }`}
-          >
-            <i className={`bi ${t.icon}`} />
-            {t.label}
-          </button>
-        ))}
-      </div>
-
+    <div className="admin-workspace">
+      {drawerOpen && <button className="admin-scrim" aria-label="Close navigation" onClick={() => setDrawerOpen(false)} />}
+      <aside className={`admin-sidebar ${drawerOpen ? "is-open" : ""}`} aria-label="Admin navigation">
+        <Link href="/" className="admin-brand">Tipping Jar<span>Admin workspace</span></Link>
+        <nav aria-label="Admin sections">{TABS.map(t => <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id ? "page" : undefined}><i className={`bi ${t.icon}`} aria-hidden="true" />{t.label}</button>)}</nav>
+        <div className="admin-sidebar-bottom"><Link href="/">View website</Link><button onClick={() => { if (window.confirm("Log out of the admin portal?")) { logout(); router.replace("/login"); } }}>Log out</button></div>
+      </aside>
+      <div className="admin-main">
+        <header className="admin-topbar"><button className="admin-menu" onClick={() => setDrawerOpen(!drawerOpen)} aria-expanded={drawerOpen}>Menu</button><span>Platform control</span><Link href="/admin-portal">Open dashboard</Link></header>
+        <main className="admin-content"><div className="admin-page-title"><div><p>Tipping Jar operations</p><h1>{TABS.find(t => t.id === tab)?.label}</h1></div><span className="admin-live">Live workspace</span></div>
       <div className="mt-8">
         {tab === "overview" && <OverviewTab token={token} />}
         {tab === "creators" && <CreatorsTab token={token} />}
@@ -114,6 +105,8 @@ export default function AdminPortalPage() {
         {tab === "support" && <SupportTab token={token} />}
         {tab === "comms" && <CommsTab token={token} prefill={commsPrefill} />}
         {tab === "system" && <SystemTab token={token} />}
+      </div>
+        </main>
       </div>
     </div>
   );
@@ -330,6 +323,7 @@ function CreatorsTab({ token }: { token: string }) {
   const [err, setErr] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [vetting, setVetting] = useState<AdminCreator | null>(null);
+  const [search, setSearch] = useState("");
   // Which KYC statuses to show. Pending sits at the top by default so vetting
   // work is one click away.
   const [kycFilter, setKycFilter] = useState<"all" | "pending" | "not_started" | "verified" | "rejected">("all");
@@ -339,7 +333,7 @@ function CreatorsTab({ token }: { token: string }) {
   useEffect(load, [load]);
   if (err) return <LoadError />;
   if (!rows) return <Loading />;
-  const filtered = rows.filter((c) => kycFilter === "all" || c.kyc_status === kycFilter);
+  const filtered = rows.filter(c => (kycFilter === "all" || c.kyc_status === kycFilter) && `${c.display_name} ${c.slug} ${c.category}`.toLowerCase().includes(search.toLowerCase()));
   const kycCounts = rows.reduce<Record<string, number>>((acc, c) => {
     acc[c.kyc_status] = (acc[c.kyc_status] || 0) + 1;
     return acc;
@@ -385,9 +379,9 @@ function CreatorsTab({ token }: { token: string }) {
 
   return (
     <div className="space-y-3">
-      {/* KYC filter chips + counts — makes 'creators awaiting review' one click. */}
+      <div className="admin-directory-intro"><div><h2>Your creator community</h2><p>Find a creator, review their account and follow their activity.</p></div><label className="admin-search">Search creators<input value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, handle or category" /></label></div>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Vet</span>
+        <span className="text-sm text-muted">Verification</span>
         {(["all", "pending", "not_started", "verified", "rejected"] as const).map((s) => {
           const count = s === "all" ? rows.length : (kycCounts[s] || 0);
           const active = kycFilter === s;
@@ -412,7 +406,7 @@ function CreatorsTab({ token }: { token: string }) {
             <button type="button" onClick={() => setVetting(c)} className="font-semibold text-ink hover:text-green hover:underline" aria-label={`View details for ${c.display_name}`}>
               {c.display_name}
             </button>
-            <span className="ml-2 font-mono text-xs text-muted">@{c.slug}</span>
+            <span className="mt-1 block text-xs text-muted">@{c.slug.replace(/^@/, "")}</span>
           </td>
           <td className="px-5 py-3 text-muted">{c.category || "—"}</td>
           <td className="px-5 py-3">
@@ -439,10 +433,10 @@ function CreatorsTab({ token }: { token: string }) {
               <button
                 onClick={() => setVetting(c)}
                 disabled={busy === c.id}
-                title="Review verification documents"
+                title="View creator details and verification"
                 className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:border-teal hover:text-teal disabled:opacity-50"
               >
-                <i className="bi bi-shield-check" /> Vet
+                View details
               </button>
               <button
                 onClick={() => setFeatured(c)}
@@ -490,6 +484,37 @@ function CreatorsTab({ token }: { token: string }) {
   );
 }
 
+function CreatorActivity({ token, creator }: { token: string; creator: AdminCreator }) {
+  const [account, setAccount] = useState<AdminUser | null>(null);
+  const [tips, setTips] = useState<Tip[]>([]);
+  const [posts, setPosts] = useState<ExclusivePost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [section, setSection] = useState("contact");
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setErrors([]); setAccount(null); setTips([]); setPosts([]);
+    Promise.allSettled([api.adminUsers(token), api.adminTips(token), api.adminCreatorPosts(token, creator.id)]).then(([u,t,p]) => {
+      if (!active) return;
+      const failures: string[] = [];
+      if (u.status === "fulfilled") setAccount(u.value.find(x => x.id === creator.user_id) || null); else failures.push("Contact details could not be loaded.");
+      if (t.status === "fulfilled") setTips(t.value.filter(x => x.creator_id === creator.id)); else failures.push("Tips could not be loaded.");
+      if (p.status === "fulfilled") setPosts(p.value); else failures.push("Posts could not be loaded.");
+      setErrors(failures); setLoading(false);
+    });
+    return () => { active = false; };
+  }, [token, creator.id, creator.user_id]);
+  return <section className="rounded-2xl border border-border p-4">
+    <div className="mb-4 flex flex-wrap gap-2" aria-label="Creator information">{["contact","posts","tips"].map(x => <button key={x} type="button" aria-pressed={section === x} onClick={() => setSection(x)} className={`rounded-full px-4 py-2 text-sm ${section === x ? "bg-primary text-white" : "bg-slate-100 text-ink"}`}>{x === "contact" ? "Contact & account" : x === "posts" ? "Posts" : "Tips"}</button>)}</div>
+    {loading ? <p role="status" className="text-sm text-muted">Loading creator activity…</p> : <>
+      {errors.map(e => <p key={e} role="alert" className="mb-2 text-sm text-red-600">{e}</p>)}
+      {section === "contact" && <dl className="grid gap-4 text-sm sm:grid-cols-2"><div><dt className="text-muted">Email</dt><dd className="mt-1 break-all">{account?.email ? <a href={`mailto:${account.email}`} className="underline">{account.email}</a> : "Not available"}</dd></div><div><dt className="text-muted">Phone</dt><dd className="mt-1">{account?.phone_number || "Not provided"}</dd></div><div><dt className="text-muted">Account joined</dt><dd className="mt-1">{account ? when(account.created_at) : "Not available"}</dd></div><div><dt className="text-muted">Creator profile created</dt><dd className="mt-1">{when(creator.created_at)}</dd></div></dl>}
+      {section === "posts" && <div className="space-y-3"><p className="text-xs text-muted">Latest {posts.length} posts · up to 200</p>{!posts.length && !errors.some(e => e.startsWith("Posts")) && <p>No posts published yet.</p>}{posts.map(p => <article key={p.id} className="rounded-xl border border-border p-4"><p className="text-xs text-muted">{p.kind} · {p.access.replaceAll("_", " ")} · {when(p.created_at)}</p><h3 className="mt-2 font-semibold">{p.title}</h3><p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted">{p.body}</p>{p.media_url && /^https:\/\//i.test(p.media_url) && <a className="mt-3 inline-block text-sm underline" href={p.media_url} target="_blank" rel="noopener noreferrer">Open media</a>}</article>)}</div>}
+      {section === "tips" && <div><p className="mb-3 text-sm">{tips.length} tips in loaded history · {money(tips.filter(t => t.status === "completed").reduce((n,t) => n + Number(t.amount || 0), 0))} completed</p>{!tips.length && !errors.some(e => e.startsWith("Tips")) && <p>No tips in the available history.</p>}<div className="max-h-80 space-y-2 overflow-auto">{tips.map(t => <article key={t.id} className="rounded-xl border border-border p-3"><div className="flex justify-between gap-3"><strong>{t.tipper_name || "Anonymous"}</strong><strong>{money(t.amount)}</strong></div><p className="mt-1 text-xs text-muted">{t.status} · {when(t.created_at)}</p>{t.message && <p className="mt-2 text-sm">{t.message}</p>}<p className="mt-2 text-xs text-muted">Net {money(t.creator_net)} · {t.reference}</p></article>)}</div></div>}
+    </>}
+  </section>;
+}
+
 // Verification modal — loads the creator's docs (ID + proof-of-account), shows
 // them inline, and lets the admin approve / reject with a note. Both docs are
 // data URLs so no extra fetch beyond the /admin/creators/:id/verification call.
@@ -529,6 +554,12 @@ function VerifyCreatorModal({
     }
   }
 
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [onClose]);
+
   const gracePct = data
     ? Math.max(0, Math.min(100, Math.round((data.grace_days_remaining / 31) * 100)))
     : 0;
@@ -543,7 +574,7 @@ function VerifyCreatorModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+        role="dialog" aria-modal="true" aria-label={`Creator details for ${creator.display_name}`} className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-4 border-b border-border p-5">
@@ -568,6 +599,7 @@ function VerifyCreatorModal({
         <div className="space-y-5 p-5">
           {err && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">{err}</div>}
           {!data && !err && <p className="text-sm text-muted">Loading documents…</p>}
+          <CreatorActivity token={token} creator={creator} />
           <section className="rounded-2xl border border-border p-4" aria-label="Creator profile details">
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               {[["Category", creator.category], ["Profile type", creator.profile_type], ["Organisation", creator.org_type], ["Location", [creator.city, creator.country].filter(Boolean).join(", ")], ["Status", creator.is_active ? "Active" : "Inactive"], ["Introduction", creator.tagline]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted">{label}</dt><dd className="mt-1 text-ink">{value || "Not provided"}</dd></div>)}

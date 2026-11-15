@@ -173,6 +173,7 @@ export const api = {
       body: { is_active },
       token,
     }),
+  adminCreatorPosts: (token: string, id: string) => request<ExclusivePost[]>(`/admin/creators/${id}/posts`, { token }),
   adminTips: (token: string) => request<Tip[]>("/admin/tips", { token }),
   adminTransactions: (token: string) =>
     request<Transaction[]>("/admin/transactions", { token }),
