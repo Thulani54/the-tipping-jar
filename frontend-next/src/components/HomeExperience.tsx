@@ -86,21 +86,10 @@ export function HomeExperience() {
   const active = AUDIENCES[audience];
   return (
     <>
-      <div className="tj-announcement">
-        <div className="tj-container">
-          <span>
-            <span className="tj-live-dot" />
-            Made for South African creators & communities
-          </span>
-          <Link href="/how-it-works">
-            Meet your new tip jar <ArrowRight size={14} />
-          </Link>
-        </div>
-      </div>
       <section className="tj-hero">
         <Image
           src="/creator-studio-hero.webp"
-          alt="A podcaster creating in a sunlit recording studio"
+          alt=""
           fill
           priority
           sizes="100vw"
@@ -108,10 +97,6 @@ export function HomeExperience() {
         />
         <div className="tj-container tj-hero-content">
           <div className="tj-hero-copy">
-            <span className="tj-hero-badge">
-              <span />
-              Your work. Your community. Your jar.
-            </span>
             <h1>
               Keep doing
               <br />

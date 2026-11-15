@@ -58,7 +58,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 86px;
+  height: 64px;
   gap: 24px;
 }
 .tj-nav .font-extrabold {
@@ -917,7 +917,7 @@
     padding-inline: 22px;
   }
   .tj-nav-inner {
-    height: 72px;
+    height: 60px;
   }
   .tj-desktop-links,
   .tj-nav-actions {
